@@ -8,6 +8,7 @@ import { Generator } from './modules/generator.js';
 import { ExamEngine, ExamTimer } from './modules/exam.js';
 import { SEED_QUESTIONS } from './data/seed_questions.js';
 import { ceraChat, verifyAndFixQuestion, setCurrentQuestion } from './modules/cera.js';
+import { pullFromGitHub } from './modules/sync.js';
 
 /* ════════════════════════════════════════════════════
    APP STATE
@@ -52,8 +53,19 @@ const CHAPTERS = {
 ════════════════════════════════════════════════════ */
 async function init() {
   // Luôn tự động hòa trộn các câu hỏi mới nhất từ hệ thống vào máy người dùng (chống lệch số lượng)
-  DB.addQuestions(SEED_QUESTIONS);
+  // Lưu ý: skipSync=true để không push ngược seed mặc định lên GitHub
+  DB.addQuestions(SEED_QUESTIONS, { skipSync: true });
   DB.markSeedLoaded();
+
+  // Kéo dữ liệu cộng đồng từ GitHub
+  pullFromGitHub(DB).then(res => {
+    if (res.questions > 0 || res.sources > 0) {
+      updateBankCount();
+      if (document.getElementById('bank-tab').classList.contains('active')) {
+        renderBank();
+      }
+    }
+  });
 
   // Apply saved theme
   const settings = DB.getSettings();

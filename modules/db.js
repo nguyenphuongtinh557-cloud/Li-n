@@ -1,7 +1,9 @@
 /**
  * db.js — Persistent Storage Engine
- * Quản lý toàn bộ dữ liệu qua localStorage
+ * Quản lý toàn bộ dữ liệu qua localStorage + Gọi module Sync để đẩy lên GitHub
  */
+
+import { pushToGitHub } from './sync.js';
 
 const KEYS = {
   BANK: 'qlcl_question_bank',
@@ -27,12 +29,15 @@ export const DB = {
   /**
    * Thêm câu hỏi mới, tự động loại trùng lặp
    * @param {Array} newQuestions - mảng câu hỏi mới
+   * @param {object} options - tuỳ chọn (VD: skipSync)
    * @returns {number} số câu thực sự được thêm
    */
-  addQuestions(newQuestions) {
+  addQuestions(newQuestions, options = {}) {
     const existing = this.getBank();
     const seenKeys = new Set(existing.map(q => _hashQ(q.q)));
     const toAdd = newQuestions.filter(q => !seenKeys.has(_hashQ(q.q)));
+
+    if (toAdd.length === 0) return 0;
 
     // Gán ID cho câu mới
     let maxId = existing.reduce((m, q) => Math.max(m, q.id || 0), 0);
@@ -43,6 +48,16 @@ export const DB = {
 
     const merged = [...existing, ...toAdd];
     this.setBank(merged);
+
+    // Tự động đồng bộ lên GitHub (nếu không phải là do pull về)
+    if (!options.skipSync) {
+      // Chỉ push những câu do user tự thêm (không có _seed=true)
+      const userQuestions = merged.filter(q => !q._seed);
+      if (userQuestions.length > 0) {
+        pushToGitHub(userQuestions, this.getSources());
+      }
+    }
+
     return toAdd.length;
   },
 
@@ -68,13 +83,22 @@ export const DB = {
   /**
    * Thêm nguồn tài liệu
    * @param {object} source - { title, content, addedAt }
+   * @param {object} options - tuỳ chọn (VD: skipSync)
    */
-  addSource(source) {
+  addSource(source, options = {}) {
     const sources = this.getSources();
     source.id = Date.now();
     source.addedAt = new Date().toISOString();
     sources.unshift(source); // mới nhất lên đầu
     localStorage.setItem(KEYS.SOURCES, JSON.stringify(sources));
+
+    // Đồng bộ file lên GitHub
+    if (!options.skipSync) {
+      const existingBank = this.getBank();
+      const userQuestions = existingBank.filter(q => !q._seed);
+      pushToGitHub(userQuestions, sources);
+    }
+
     return source;
   },
 
