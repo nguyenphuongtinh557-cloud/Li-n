@@ -10,28 +10,14 @@
 
 import { DB } from './db.js';
 
-// ─── API Configuration ────────────────────────────────────────────────────────
-const GEMINI_KEYS = [
-  'AIzaSy' + 'B4rSYnaBvBl4QWPyefSc_rODRZQ6eTrk8',
-  'AIzaSy' + 'A_YW64oHktvXQALBKurI67x1tdu3LNQ6M',
-  'AIzaSy' + 'ACGSiU_pf21ssY_gqymwGd-_jLqK6qtN8',
-];
-const GROQ_KEYS = [
-  'gsk_' + '3tflPbwbzb6gaOY6oV85WGdyb3FYBdZ02jP3gpwQTWYuVVTxxi4r',
-  'gsk_' + 'CZnyt64cTM680y3zTuH6WGdyb3FY2Q1b2tLt8JVO3ZC0H47vuQCr',
-  'gsk_' + 'D6W4iEm9lDp6B8XV9PDBWGdyb3FYArXtSZF235AzfsU1zuYiBOZs',
-];
+// ─── API Configuration ─────────────────────────────────────────────────────
+// CERA = Cerebras AI — chỉ dùng Cerebras làm engine AI
 const CEREBRAS_KEYS = [
   'csk-' + 'wr4c85jkpjy2v8c3f6vftcj2j4nekrkm4ye8kpej856yrtwk',
   'csk-' + 'hcvp52we6htpcyjefe26yj5wmtfk2et2ehv4tw6ptk8cmhep',
 ];
 
-let _geminiIdx = 0;
-let _groqIdx = 0;
 let _cerebrasIdx = 0;
-
-function getGeminiKey() { return GEMINI_KEYS[_geminiIdx++ % GEMINI_KEYS.length]; }
-function getGroqKey() { return GROQ_KEYS[_groqIdx++ % GROQ_KEYS.length]; }
 function getCerebrasKey() { return CEREBRAS_KEYS[_cerebrasIdx++ % CEREBRAS_KEYS.length]; }
 
 // ─── System Prompt ────────────────────────────────────────────────────────────
@@ -60,84 +46,21 @@ export function setCurrentQuestion(question) {
   _currentContext = question;
 }
 
-// ─── Gọi Gemini API (Ưu tiên số 1) ───────────────────────────────────────────
-async function callGemini(userMessage, systemPrompt = CERA_SYSTEM) {
-  const models = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-1.0-pro'];
-  for (let i = 0; i < GEMINI_KEYS.length; i++) {
-    const key = getGeminiKey();
-    for (const model of models) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-      try {
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: systemPrompt }] },
-            contents: [{ role: 'user', parts: [{ text: userMessage }] }],
-            generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
-          }),
-        });
-        if (res.status === 429 || res.status === 503) break;
-        if (!res.ok) continue;
-        const data = await res.json();
-        const output = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (output) return output;
-      } catch {
-        continue;
-      }
-    }
-  }
-  throw new Error('Gemini API Unavailable');
-}
+// ─── Gọi Cerebras (CERA) AI ───────────────────────────────────────────────────
+// CERA = Cerebras — chỉ gọi khi không tìm được dữ liệu trong hệ thống
+async function askAI(userMessage, systemPrompt = CERA_SYSTEM) {
+  const models = ['llama3.1-8b', 'llama3.1-70b'];
 
-// ─── Gọi Groq API (Dự phòng số 2) ─────────────────────────────────────────────
-async function callGroq(userMessage, systemPrompt = CERA_SYSTEM) {
-  // Model Groq đang hoạt động ổn định (Q3/2025)
-  const groqModels = ['llama-3.1-70b-versatile', 'llama-3.1-8b-instant', 'gemma2-9b-it'];
-  for (let i = 0; i < GROQ_KEYS.length; i++) {
-    const key = getGroqKey();
-    for (const model of groqModels) {
-      try {
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${key}`
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userMessage }
-            ],
-            temperature: 0.7,
-            max_tokens: 2048
-          })
-        });
-        if (res.status === 429) break;
-        if (!res.ok) continue;
-        const data = await res.json();
-        const output = data.choices?.[0]?.message?.content;
-        if (output) return output;
-      } catch {
-        continue;
-      }
-    }
-  }
-  throw new Error('Groq API Unavailable');
-}
-
-// ─── Gọi Cerebras API (Dự phòng số 3) ─────────────────────────────────────────
-async function callCerebras(userMessage, systemPrompt = CERA_SYSTEM) {
-  // Tên model Cerebras chính xác (không có dấu gạch nối)
-  const cerebrasModels = ['llama3.1-8b', 'llama3.1-70b'];
-  for (const model of cerebrasModels) {
-    for (let i = 0; i < CEREBRAS_KEYS.length; i++) {
+  for (const model of models) {
+    for (let attempt = 0; attempt < CEREBRAS_KEYS.length; attempt++) {
       const key = getCerebrasKey();
       try {
         const res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${key}`
+          },
           body: JSON.stringify({
             model,
             messages: [
@@ -157,25 +80,9 @@ async function callCerebras(userMessage, systemPrompt = CERA_SYSTEM) {
       }
     }
   }
-  throw new Error('Cerebras API Unavailable');
+  throw new Error('⚠️ Cera AI đang bận. Vui lòng thử lại sau vài giây!');
 }
 
-// ─── Hàm AI chính 3 Tầng Dự Phòng ────────────────────────────────────────────
-async function askAI(userMessage, systemPrompt = CERA_SYSTEM) {
-  try {
-    return await callGemini(userMessage, systemPrompt);
-  } catch {
-    try {
-      return await callGroq(userMessage, systemPrompt);
-    } catch {
-      try {
-        return await callCerebras(userMessage, systemPrompt);
-      } catch (e) {
-        throw new Error('Tất cả hệ thống AI đang bận. Vui lòng thử lại sau vài giây!');
-      }
-    }
-  }
-}
 
 // ─── Kiểm tra câu hỏi sai và cập nhật DB ─────────────────────────────────────
 /**
