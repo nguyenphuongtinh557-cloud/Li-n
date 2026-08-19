@@ -62,7 +62,7 @@ export function setCurrentQuestion(question) {
 
 // ─── Gọi Gemini API (Ưu tiên số 1) ───────────────────────────────────────────
 async function callGemini(userMessage, systemPrompt = CERA_SYSTEM) {
-  const models = ['gemini-1.5-flash', 'gemini-2.0-flash', 'gemini-1.5-pro'];
+  const models = ['gemini-1.5-flash', 'gemini-1.5-flash-8b', 'gemini-1.0-pro'];
   for (let i = 0; i < GEMINI_KEYS.length; i++) {
     const key = getGeminiKey();
     for (const model of models) {
@@ -77,7 +77,7 @@ async function callGemini(userMessage, systemPrompt = CERA_SYSTEM) {
             generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
           }),
         });
-        if (res.status === 429) break; // Hết quota key này → chuyển key tiếp
+        if (res.status === 429 || res.status === 503) break;
         if (!res.ok) continue;
         const data = await res.json();
         const output = data.candidates?.[0]?.content?.parts?.[0]?.text;
@@ -92,30 +92,36 @@ async function callGemini(userMessage, systemPrompt = CERA_SYSTEM) {
 
 // ─── Gọi Groq API (Dự phòng số 2) ─────────────────────────────────────────────
 async function callGroq(userMessage, systemPrompt = CERA_SYSTEM) {
+  // Model Groq chính thức đang hoạt động (tháng 8/2025)
+  const groqModels = ['llama3-70b-8192', 'llama3-8b-8192', 'mixtral-8x7b-32768'];
   for (let i = 0; i < GROQ_KEYS.length; i++) {
     const key = getGroqKey();
-    try {
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${key}`
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [
-            { role: 'system', content: systemPrompt },
-            { role: 'user', content: userMessage }
-          ],
-          temperature: 0.7
-        })
-      });
-      if (res.status === 429) continue;
-      if (!res.ok) throw new Error(`Groq HTTP ${res.status}`);
-      const data = await res.json();
-      return data.choices?.[0]?.message?.content || '';
-    } catch (e) {
-      if (i === GROQ_KEYS.length - 1) throw e;
+    for (const model of groqModels) {
+      try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${key}`
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userMessage }
+            ],
+            temperature: 0.7,
+            max_tokens: 2048
+          })
+        });
+        if (res.status === 429) break;
+        if (!res.ok) continue;
+        const data = await res.json();
+        const output = data.choices?.[0]?.message?.content;
+        if (output) return output;
+      } catch {
+        continue;
+      }
     }
   }
   throw new Error('Groq API Unavailable');
@@ -123,22 +129,35 @@ async function callGroq(userMessage, systemPrompt = CERA_SYSTEM) {
 
 // ─── Gọi Cerebras API (Dự phòng số 3) ─────────────────────────────────────────
 async function callCerebras(userMessage, systemPrompt = CERA_SYSTEM) {
-  const key = getCerebrasKey();
-  const res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-    body: JSON.stringify({
-      model: 'llama3.1-70b',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage },
-      ],
-      temperature: 0.7,
-    }),
-  });
-  if (!res.ok) throw new Error(`Cerebras HTTP ${res.status}`);
-  const data = await res.json();
-  return data.choices?.[0]?.message?.content || '';
+  // Model Cerebras đang hoạt động
+  const cerebrasModels = ['llama3.1-8b', 'llama-3.3-70b'];
+  for (const model of cerebrasModels) {
+    for (let i = 0; i < CEREBRAS_KEYS.length; i++) {
+      const key = getCerebrasKey();
+      try {
+        const res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userMessage },
+            ],
+            temperature: 0.7,
+            max_tokens: 2048,
+          }),
+        });
+        if (!res.ok) continue;
+        const data = await res.json();
+        const output = data.choices?.[0]?.message?.content;
+        if (output) return output;
+      } catch {
+        continue;
+      }
+    }
+  }
+  throw new Error('Cerebras API Unavailable');
 }
 
 // ─── Hàm AI chính 3 Tầng Dự Phòng ────────────────────────────────────────────
