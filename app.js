@@ -1033,86 +1033,88 @@ function initDraggableCera() {
   const panel = document.getElementById('cera-panel');
   const header = document.querySelector('.cera-header');
 
-  if (fab) makeElementDraggable(fab, fab, true);
-  if (panel && header) makeElementDraggable(panel, header, false);
+  if (fab) {
+    let dragMoved = false;
+
+    // Drag logic cho FAB
+    makeDraggable(fab, fab, (moved) => { dragMoved = moved; });
+
+    // Click chỉ toggle nếu KHÔNG kéo
+    fab.addEventListener('click', () => {
+      if (!dragMoved) toggleCeraChat();
+    });
+  }
+
+  // Drag cả panel qua header
+  if (panel && header) makeDraggable(panel, header, () => {});
 }
 
-function makeElementDraggable(el, handle, isFab = false) {
+function makeDraggable(el, handle, onEndCallback) {
   let isDragging = false;
-  let startX, startY, initialLeft, initialTop;
   let hasMoved = false;
+  let startX, startY, initLeft, initTop;
 
-  handle.style.cursor = 'grab';
-
-  function onDown(e) {
-    if (e.target.closest('button') || e.target.closest('a') || e.target.closest('.cera-header-actions')) return;
+  function onPointerDown(e) {
+    // Bỏ qua nếu click vào button/input bên trong
+    if (e.target.closest('button, input, textarea, a, select')) return;
     isDragging = true;
     hasMoved = false;
-    handle.style.cursor = 'grabbing';
 
-    const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
-    const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
-
-    startX = clientX;
-    startY = clientY;
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    startX = cx; startY = cy;
 
     const rect = el.getBoundingClientRect();
-    initialLeft = rect.left;
-    initialTop = rect.top;
+    initLeft = rect.left;
+    initTop = rect.top;
 
+    // Chuyển sang vị trí tuyệt đối để kéo tự do
     el.style.right = 'auto';
     el.style.bottom = 'auto';
-    el.style.left = `${initialLeft}px`;
-    el.style.top = `${initialTop}px`;
+    el.style.left = initLeft + 'px';
+    el.style.top = initTop + 'px';
+    el.style.transition = 'none';
 
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-    document.addEventListener('touchmove', onMove, { passive: false });
-    document.addEventListener('touchend', onUp);
+    document.addEventListener('mousemove', onPointerMove);
+    document.addEventListener('mouseup', onPointerUp);
+    document.addEventListener('touchmove', onPointerMove, { passive: false });
+    document.addEventListener('touchend', onPointerUp);
   }
 
-  function onMove(e) {
+  function onPointerMove(e) {
     if (!isDragging) return;
-    const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
-    const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+    if (e.cancelable) e.preventDefault();
 
-    const dx = clientX - startX;
-    const dy = clientY - startY;
+    const cx = e.touches ? e.touches[0].clientX : e.clientX;
+    const cy = e.touches ? e.touches[0].clientY : e.clientY;
+    const dx = cx - startX;
+    const dy = cy - startY;
 
-    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
-      hasMoved = true;
-      if (e.cancelable) e.preventDefault();
-    }
+    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) hasMoved = true;
 
-    let newLeft = initialLeft + dx;
-    let newTop = initialTop + dy;
+    const newLeft = Math.max(8, Math.min(initLeft + dx, window.innerWidth - el.offsetWidth - 8));
+    const newTop = Math.max(8, Math.min(initTop + dy, window.innerHeight - el.offsetHeight - 8));
 
-    const maxLeft = window.innerWidth - el.offsetWidth;
-    const maxTop = window.innerHeight - el.offsetHeight;
-    newLeft = Math.max(10, Math.min(newLeft, maxLeft - 10));
-    newTop = Math.max(10, Math.min(newTop, maxTop - 10));
-
-    el.style.left = `${newLeft}px`;
-    el.style.top = `${newTop}px`;
+    el.style.left = newLeft + 'px';
+    el.style.top = newTop + 'px';
   }
 
-  function onUp() {
+  function onPointerUp() {
     if (!isDragging) return;
     isDragging = false;
-    handle.style.cursor = 'grab';
-    document.removeEventListener('mousemove', onMove);
-    document.removeEventListener('mouseup', onUp);
-    document.removeEventListener('touchmove', onMove);
-    document.removeEventListener('touchend', onUp);
+    el.style.transition = '';
 
-    if (isFab && hasMoved) {
-      el.dataset.dragged = 'true';
-      setTimeout(() => { el.dataset.dragged = 'false'; }, 200);
-    }
+    document.removeEventListener('mousemove', onPointerMove);
+    document.removeEventListener('mouseup', onPointerUp);
+    document.removeEventListener('touchmove', onPointerMove);
+    document.removeEventListener('touchend', onPointerUp);
+
+    onEndCallback(hasMoved);
+    setTimeout(() => { hasMoved = false; }, 50);
   }
 
-  handle.addEventListener('mousedown', onDown);
-  handle.addEventListener('touchstart', onDown, { passive: false });
+  handle.addEventListener('mousedown', onPointerDown);
+  handle.addEventListener('touchstart', onPointerDown, { passive: false });
 }
 
 function clearCeraChat() {
