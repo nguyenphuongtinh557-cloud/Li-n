@@ -18,6 +18,8 @@ const SYNC_CONFIG = {
   token: 'github_pat_11CDAQRXQ0' + 'Q4JcFgjTIocw_zDkyKRBSnoUvtF5Mh0QMk3CulW2bRGq9c5PJleVCVC8FRR2F6LNRc1kL5Cl',
   questionsFile: 'data/community.json',
   sourcesFile: 'data/community_sources.json',
+  // File chỉnh sửa Admin — chỉ bạn mới có quyền ghi
+  adminEditsFile: 'data/admin_edits.json',
 };
 
 const RAW_BASE = `https://raw.githubusercontent.com/${SYNC_CONFIG.owner}/${SYNC_CONFIG.repo}/${SYNC_CONFIG.branch}`;
@@ -164,4 +166,23 @@ export async function pushToGitHub(questions = [], sources = []) {
  */
 export function isOnline() {
   return navigator.onLine;
+}
+
+// ─── Admin Edits: Patch câu hỏi gốc mà không cần sửa seed_questions.js ──────
+
+/**
+ * Đẩy danh sách chỉnh sửa admin lên GitHub (file admin_edits.json)
+ * Mỗi item là { id, ...fields } — các field cần cập nhật trên câu hỏi có id đó
+ * @param {Array} edits - mảng các chỉnh sửa
+ */
+export async function pushAdminEdits(edits = []) {
+  return await pushFile(SYNC_CONFIG.adminEditsFile, edits);
+}
+
+/**
+ * Kéo danh sách chỉnh sửa admin từ GitHub về
+ * @returns {Array} mảng các bản vá (patch objects)
+ */
+export async function pullAdminEdits() {
+  return await fetchRaw(SYNC_CONFIG.adminEditsFile);
 }

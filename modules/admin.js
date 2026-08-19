@@ -3,7 +3,7 @@
  */
 
 import { DB } from './db.js';
-import { pushToGitHub } from './sync.js';
+import { pushAdminEdits, pullAdminEdits } from './sync.js';
 
 let adminClickCount = 0;
 let adminClickTimeout = null;
@@ -137,22 +137,36 @@ export async function adminSaveQuestion() {
     _seed: false
   };
 
-  // 1. Cập nhật vào Local DB
+  // 1. Cập nhật Local DB của Admin
   DB.updateQuestion(id, updates);
-  
-  // 2. Giao diện mượt mà
+
+  // 2. Đóng modal và refresh bảng
   document.getElementById('admin-edit-modal').classList.remove('open');
   renderAdminTable(document.getElementById('admin-search-input').value.toLowerCase());
-  
-  alert("Lưu thành công trên máy của bạn. Đang đồng bộ lên hệ thống chung...");
-  
-  // 3. Push thẳng lên GitHub
+
+  const btn = document.querySelector('#admin-edit-modal .btn-primary');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Đang lưu...'; }
+
   try {
-    const existingBank = DB.getBank();
-    const userQuestions = existingBank.filter(q => !q._seed);
-    await pushToGitHub(userQuestions, DB.getSources());
-    alert("Đã đồng bộ thành công lên máy chủ! Mọi người dùng khác sẽ thấy câu hỏi mới ngay khi tải lại trang.");
+    // 3. Kéo bản edits hiện có trên GitHub về
+    let existingEdits = [];
+    try { existingEdits = await pullAdminEdits(); } catch {}
+
+    // 4. Merge: giữ các câu khác, đè lên câu có cùng ID
+    const mergedEdits = existingEdits.filter(e => e.id !== id);
+    mergedEdits.push({ id, ...updates, _adminEdit: true });
+
+    // 5. Push merged edits lên GitHub
+    const ok = await pushAdminEdits(mergedEdits);
+
+    if (ok) {
+      alert(`✅ Đã lưu và đồng bộ câu hỏi #${id} lên máy chủ! Mọi người dùng khác sẽ thấy khi tải lại trang.`);
+    } else {
+      alert('⚠️ Không thể kết nối GitHub. Dữ liệu đã lưu trên máy bạn nhưng chưa đồng bộ được.');
+    }
   } catch (e) {
-    alert("Có lỗi khi đồng bộ lên GitHub, nhưng dữ liệu đã được lưu trên máy bạn.");
+    alert('⚠️ Lỗi không mong đợi: ' + e.message);
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '💾 Lưu & Đồng Bộ Lên Mạng'; }
   }
 }

@@ -8,7 +8,7 @@ import { Generator } from './modules/generator.js';
 import { ExamEngine, ExamTimer } from './modules/exam.js';
 import { SEED_QUESTIONS } from './data/seed_questions.js';
 import { ceraChat, verifyAndFixQuestion, setCurrentQuestion } from './modules/cera.js';
-import { pullFromGitHub } from './modules/sync.js';
+import { pullFromGitHub, pullAdminEdits } from './modules/sync.js';
 import { initAdminAuth } from './modules/admin.js';
 
 /* ════════════════════════════════════════════════════
@@ -76,6 +76,29 @@ async function init() {
 
   updateBankCount();
   switchTab('exam-tab');
+
+  // Kéo bản vá của admin từ server về và patch lên DB local
+  // (Patch được ưu tiên hơn seed, giúp Admin sửa câu hỏi mà không cần đụng tới code)
+  try {
+    const adminEdits = await pullAdminEdits();
+    if (adminEdits.length > 0) {
+      const bank = DB.getBank();
+      let patched = 0;
+      adminEdits.forEach(edit => {
+        const idx = bank.findIndex(q => q.id === edit.id);
+        if (idx !== -1) {
+          bank[idx] = { ...bank[idx], ...edit };
+          patched++;
+        }
+      });
+      if (patched > 0) {
+        DB.setBank(bank);
+        console.log(`[Admin] ✅ Đã áp dụng ${patched} bản vá từ Admin Panel`);
+      }
+    }
+  } catch (e) {
+    console.warn('[Admin] Không thể kéo admin edits:', e);
+  }
 
   // Kích hoạt tính năng Kéo-Thả cho Chatbot Liên
   initDraggableCera();
