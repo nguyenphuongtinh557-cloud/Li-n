@@ -51,12 +51,9 @@ const CHAPTERS = {
    INITIALIZATION
 ════════════════════════════════════════════════════ */
 async function init() {
-  // Load seed questions nếu chưa load
-  if (!DB.isSeedLoaded()) {
-    const shuffledSeed = SEED_QUESTIONS.map((q, i) => ({ ...q, id: i + 1 }));
-    DB.addQuestions(shuffledSeed);
-    DB.markSeedLoaded();
-  }
+  // Luôn tự động hòa trộn các câu hỏi mới nhất từ hệ thống vào máy người dùng (chống lệch số lượng)
+  DB.addQuestions(SEED_QUESTIONS);
+  DB.markSeedLoaded();
 
   // Apply saved theme
   const settings = DB.getSettings();
