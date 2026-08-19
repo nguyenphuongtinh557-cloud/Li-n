@@ -1055,8 +1055,10 @@ function makeDraggable(el, handle, onEndCallback) {
   let startX, startY, initLeft, initTop;
 
   function onPointerDown(e) {
-    // Bỏ qua nếu click vào button/input bên trong
-    if (e.target.closest('button, input, textarea, a, select')) return;
+    // Chỉ bỏ qua nếu click vào các element tương tác BÊN TRONG (input, link, select)
+    // Không block button nếu handle chính nó là button (FAB)
+    if (el !== handle && e.target.closest('input, textarea, a, select')) return;
+    if (el === handle && e.target !== el && e.target.closest('input, textarea, a, select')) return;
     isDragging = true;
     hasMoved = false;
 

@@ -92,8 +92,8 @@ async function callGemini(userMessage, systemPrompt = CERA_SYSTEM) {
 
 // ─── Gọi Groq API (Dự phòng số 2) ─────────────────────────────────────────────
 async function callGroq(userMessage, systemPrompt = CERA_SYSTEM) {
-  // Model Groq chính thức đang hoạt động (tháng 8/2025)
-  const groqModels = ['llama3-70b-8192', 'llama3-8b-8192', 'mixtral-8x7b-32768'];
+  // Model Groq đang hoạt động ổn định (Q3/2025)
+  const groqModels = ['llama-3.1-70b-versatile', 'llama-3.1-8b-instant', 'gemma2-9b-it'];
   for (let i = 0; i < GROQ_KEYS.length; i++) {
     const key = getGroqKey();
     for (const model of groqModels) {
@@ -129,8 +129,8 @@ async function callGroq(userMessage, systemPrompt = CERA_SYSTEM) {
 
 // ─── Gọi Cerebras API (Dự phòng số 3) ─────────────────────────────────────────
 async function callCerebras(userMessage, systemPrompt = CERA_SYSTEM) {
-  // Model Cerebras đang hoạt động
-  const cerebrasModels = ['llama3.1-8b', 'llama-3.3-70b'];
+  // Tên model Cerebras chính xác (không có dấu gạch nối)
+  const cerebrasModels = ['llama3.1-8b', 'llama3.1-70b'];
   for (const model of cerebrasModels) {
     for (let i = 0; i < CEREBRAS_KEYS.length; i++) {
       const key = getCerebrasKey();
@@ -145,7 +145,7 @@ async function callCerebras(userMessage, systemPrompt = CERA_SYSTEM) {
               { role: 'user', content: userMessage },
             ],
             temperature: 0.7,
-            max_tokens: 2048,
+            max_tokens: 1500,
           }),
         });
         if (!res.ok) continue;
