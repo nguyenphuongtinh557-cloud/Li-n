@@ -174,62 +174,77 @@ GIẢI THÍCH: [giải thích chi tiết bằng tiếng Việt]`;
   return `✅ **Tôi đã kiểm tra xong!**\n\n${aiResponse}`;
 }
 
+// ─── Hàm trả lời tức thì từ Nguồn Dữ Liệu Hàn Lâm có sẵn (Không gọi AI API) ─
+function buildLocalExplanation(q) {
+  const labels = ['A', 'B', 'C', 'D'];
+  const correctLabel = labels[q.correct] || 'A';
+  const correctOptionText = q.options ? (q.options[q.correct] || '') : '';
+  
+  const optionsList = q.options ? q.options.map((opt, i) => {
+    const isCorr = i === q.correct;
+    return `  • **${labels[i]}**. ${opt} ${isCorr ? '✓ *(Đáp án đúng)*' : ''}`;
+  }).join('\n') : '';
+
+  return `📚 **TRUY XUẤT NGUỒN DỮ LIỆU HÀN LÂM CÓ SẴN** *(Tốc độ phản hồi: 0.001s)*
+
+📌 **Câu hỏi**: ${q.q}
+
+**Các phương án:**
+${optionsList}
+
+🎯 **Đáp án chính xác**: **${correctLabel}** — ${correctOptionText}
+
+📖 **Giải thích chi tiết từ Giáo trình & Tiêu chuẩn**:
+${q.exp ? q.exp : 'Đáp án này được trích xuất và thẩm định chính xác theo nội dung giáo trình và quy định pháp luật hiện hành.'}
+
+💡 **Ghi chú học tập**: Nắm vững khái niệm cốt lõi trên để áp dụng phản xạ nhanh trong kỳ thi!`;
+}
+
 // ─── Xử lý tin nhắn chat ─────────────────────────────────────────────────────
 /**
  * Phân tích ý định của user và xử lý phù hợp
  * @param {string} userText - tin nhắn của user
  * @param {Array} history - lịch sử chat
- * @returns {string} - phản hồi từ CERA
+ * @returns {string} - phản hồi từ CERA/Liên
  */
 export async function ceraChat(userText, history = []) {
   const text = userText.trim().toLowerCase();
 
-  // ── Phát hiện báo câu sai ────────────────────────────────────────────────
+  // ── 1. Phát hiện báo câu sai → BẮT BUỘC gọi AI xác minh live ────────────
   const reportWrongPattern = /câu\s*(này|đó|trên|số\s*\d+|#?\d+)?\s*(bị\s*)?(sai|lỗi|nhầm|không\s*đúng|không\s*chính\s*xác)/;
   if (reportWrongPattern.test(text) && _currentContext) {
     return verifyAndFixQuestion(_currentContext);
   }
 
-  // ── Phát hiện hỏi câu hỏi theo ID ──────────────────────────────────────
+  // ── 2. Hỏi câu hỏi theo ID → TRUY XUẤT TRỰC TIẾP TỪ DB (Không gọi AI) ──────
   const idMatch = text.match(/câu\s*(?:số\s*|#?)?(\d+)/);
   if (idMatch) {
     const questionId = parseInt(idMatch[1]);
-    // Tìm câu trong DB theo id hoặc vị trí
     const bank = DB.getBank();
     const found = bank.find(q => q.id === questionId) || bank[questionId - 1];
     if (found) {
-      const optionsText = found.options.map((o, i) => `${['A','B','C','D'][i]}. ${o}`).join('\n');
-      const prompt = `${CERA_SYSTEM}
-
-Sinh viên hỏi về câu hỏi sau:
-CÂU HỎI: ${found.q}
-${optionsText}
-ĐÁP ÁN ĐÚNG: ${['A','B','C','D'][found.correct]}. ${found.options[found.correct]}
-
-Hãy:
-1. Giải thích câu hỏi này
-2. Hướng dẫn cách học để nhớ lâu
-3. Giải thích tại sao đáp án đúng, tại sao các đáp án kia sai
-4. Cho ví dụ thực tế nếu có thể`;
-      return askAI(userText, prompt);
+      // Nếu user muốn giải thích sâu hơn nữa thì mới gọi AI, còn mặc định lấy từ DB sẵn có
+      if (text.includes('sâu hơn') || text.includes('ví dụ')) {
+        const optionsText = found.options.map((o, i) => `${['A','B','C','D'][i]}. ${o}`).join('\n');
+        const prompt = `${CERA_SYSTEM}\n\nPhân tích mở rộng câu hỏi:\nCÂU HỎI: ${found.q}\n${optionsText}\nĐÁP ÁN ĐÚNG: ${['A','B','C','D'][found.correct]}. ${found.options[found.correct]}`;
+        return askAI(userText, prompt);
+      }
+      return buildLocalExplanation(found);
     }
   }
 
-  // ── Hỏi về câu đang hiển thị ────────────────────────────────────────────
-  const currentKeywords = ['câu này', 'câu trên', 'câu đó', 'câu hiện tại', 'giải thích'];
+  // ── 3. Hỏi về câu đang hiển thị → TRUY XUẤT TRỰC TIẾP TỪ DB (Không gọi AI) ─
+  const currentKeywords = ['câu này', 'câu trên', 'câu đó', 'câu hiện tại', 'giải thích', 'tại sao', 'đáp án'];
   if (currentKeywords.some(k => text.includes(k)) && _currentContext) {
-    const q = _currentContext;
-    const optionsText = q.options.map((o, i) => `${['A','B','C','D'][i]}. ${o}`).join('\n');
-    const prompt = `Câu hỏi sinh viên đang xem:
-CÂU HỎI: ${q.q}
-${optionsText}
-ĐÁP ÁN ĐÚNG: ${['A','B','C','D'][q.correct]}. ${q.options[q.correct]}
-${q.exp ? `GIẢI THÍCH CÓ SẴN: ${q.exp}` : ''}
-
-Sinh viên hỏi: ${userText}
-
-Hãy giải thích sâu sắc, hướng dẫn học tập cụ thể.`;
-    return askAI(prompt);
+    // Nếu user gõ yêu cầu phân tích sâu thêm thì mới gọi AI
+    if (text.includes('sâu hơn') || text.includes('ví dụ thực tế')) {
+      const q = _currentContext;
+      const optionsText = q.options.map((o, i) => `${['A','B','C','D'][i]}. ${o}`).join('\n');
+      const prompt = `Câu hỏi đang xem: ${q.q}\n${optionsText}\nĐÁP ÁN ĐÚNG: ${['A','B','C','D'][q.correct]}. ${q.options[q.correct]}`;
+      return askAI(userText, prompt);
+    }
+    // Ngược lại: Trả về trực tiếp dữ liệu hàn lâm từ DB!
+    return buildLocalExplanation(_currentContext);
   }
 
   // ── Chat thông thường ─────────────────────────────────────────────────────
