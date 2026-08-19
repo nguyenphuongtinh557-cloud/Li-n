@@ -11,14 +11,20 @@
 import { DB } from './db.js';
 
 // ─── API Configuration ─────────────────────────────────────────────────────
-// CERA = Cerebras AI — chỉ dùng Cerebras làm engine AI
 const CEREBRAS_KEYS = [
   'csk-' + 'wr4c85jkpjy2v8c3f6vftcj2j4nekrkm4ye8kpej856yrtwk',
   'csk-' + 'hcvp52we6htpcyjefe26yj5wmtfk2et2ehv4tw6ptk8cmhep',
 ];
+const GROQ_KEYS = [
+  'gsk_' + '3tflPbwbzb6gaOY6oV85WGdyb3FYBdZ02jP3gpwQTWYuVVTxxi4r',
+  'gsk_' + 'CZnyt64cTM680y3zTuH6WGdyb3FY2Q1b2tLt8JVO3ZC0H47vuQCr',
+  'gsk_' + 'D6W4iEm9lDp6B8XV9PDBWGdyb3FYArXtSZF235AzfsU1zuYiBOZs',
+];
 
 let _cerebrasIdx = 0;
+let _groqIdx = 0;
 function getCerebrasKey() { return CEREBRAS_KEYS[_cerebrasIdx++ % CEREBRAS_KEYS.length]; }
+function getGroqKey() { return GROQ_KEYS[_groqIdx++ % GROQ_KEYS.length]; }
 
 // ─── System Prompt ────────────────────────────────────────────────────────────
 const CERA_SYSTEM = `Bạn là Liên — trợ lý AI thông minh của Hệ thống Ôn thi Quản lý Chất lượng (QLCL) và Luật An toàn Thực phẩm (ATTP) Việt Nam, được sáng lập bởi Nguyễn Hoàng Phúc và Dương Ngọc Trâm.
@@ -46,17 +52,14 @@ export function setCurrentQuestion(question) {
   _currentContext = question;
 }
 
-// ─── Gọi Cerebras (CERA) AI ───────────────────────────────────────────────────
-// CERA = Cerebras — chỉ gọi khi không tìm được dữ liệu trong hệ thống
-async function askAI(userMessage, systemPrompt = CERA_SYSTEM) {
-  // Các model Cerebras đang hoạt động theo API
-  const models = ['gemma-4-31b', 'gpt-oss-120b'];
-
+// ─── Gọi Groq AI (Dự phòng cực nhanh & miễn phí) ────────────────────────────
+async function callGroq(userMessage, systemPrompt) {
+  const models = ['llama-3.1-8b-instant', 'llama-3.1-70b-versatile'];
   for (const model of models) {
-    for (let attempt = 0; attempt < CEREBRAS_KEYS.length; attempt++) {
-      const key = getCerebrasKey();
+    for (let attempt = 0; attempt < GROQ_KEYS.length; attempt++) {
+      const key = getGroqKey();
       try {
-        const res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -81,7 +84,56 @@ async function askAI(userMessage, systemPrompt = CERA_SYSTEM) {
       }
     }
   }
-  throw new Error('⚠️ Cera AI đang bận. Vui lòng thử lại sau vài giây!');
+  throw new Error('Groq AI Failed');
+}
+
+// ─── Gọi Cerebras (CERA) AI ───────────────────────────────────────────────────
+async function askAI(userMessage, systemPrompt = CERA_SYSTEM) {
+  const models = ['gemma-4-31b', 'gpt-oss-120b'];
+
+  for (const model of models) {
+    for (let attempt = 0; attempt < CEREBRAS_KEYS.length; attempt++) {
+      const key = getCerebrasKey();
+      try {
+        const res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${key}`
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              { role: 'user', content: userMessage },
+            ],
+            temperature: 0.7,
+            max_tokens: 1500,
+          }),
+        });
+        
+        // 402 = Payment Required (Hết tiền). Lập tức nhảy sang Groq.
+        if (res.status === 402) {
+          console.warn('Cerebras hết quota (402). Tự động chuyển sang Groq AI...');
+          return await callGroq(userMessage, systemPrompt);
+        }
+
+        if (!res.ok) continue;
+        const data = await res.json();
+        const output = data.choices?.[0]?.message?.content;
+        if (output) return output;
+      } catch {
+        continue;
+      }
+    }
+  }
+
+  // Nếu Cerebras rớt mạng hoặc lỗi khác, dùng Groq làm phương án cuối cùng
+  try {
+    return await callGroq(userMessage, systemPrompt);
+  } catch (e) {
+    throw new Error('⚠️ Cera AI đang bận. Vui lòng thử lại sau vài giây!');
+  }
 }
 
 
