@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="vi" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ôn Thi Luật Thực Phẩm & QLCL — Hệ Thống Thông Minh</title>
+  <meta name="description" content="Hệ thống ôn thi Quản lý Chất lượng và An toàn Thực phẩm với AI sinh câu hỏi, bộ đề cân bằng độ khó và lưu trữ vĩnh viễn.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Thư viện đọc file (PDF & Word) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+</head>
+<body>
+
+  <!-- ═══════════════ HEADER ═══════════════ -->
+  <header class="app-header" role="banner">
+    <div class="header-inner">
+      <!-- Brand -->
+      <div class="header-brand" onclick="switchTab('exam-tab')" aria-label="Trang chủ">
+        <div class="header-brand-icon">⚖️</div>
+        <div>
+          <div class="header-brand-title">Ôn Thi QLCL & ATTP</div>
+          <div class="header-brand-sub">
+            Ngân hàng: <span id="header-bank-count">0</span> câu · AI-Powered
+          </div>
+        </div>
+      </div>
+
+      <!-- Nav -->
+      <nav class="header-nav" aria-label="Điều hướng chính">
+        <button id="nav-exam" class="nav-btn" onclick="switchTab('exam-tab')" title="Thi thử">
+          <i class="fa-solid fa-stopwatch"></i> <span class="nav-text">Thi Thử</span>
+        </button>
+        <button id="nav-practice" class="nav-btn" onclick="switchTab('practice-tab')" title="Luyện tập">
+          <i class="fa-solid fa-book-open"></i> <span class="nav-text">Luyện Tập</span>
+        </button>
+        <button id="nav-bank" class="nav-btn" onclick="switchTab('bank-tab')" title="Ngân hàng đề">
+          <i class="fa-solid fa-database"></i> <span class="nav-text">Ngân Hàng</span>
+        </button>
+        <button id="nav-source" class="nav-btn" onclick="switchTab('source-tab')" title="Thêm nguồn AI">
+          <i class="fa-solid fa-wand-magic-sparkles"></i> <span class="nav-text">AI Sinh Câu</span>
+        </button>
+        <button id="nav-history" class="nav-btn" onclick="switchTab('history-tab')" title="Lịch sử thi">
+          <i class="fa-solid fa-chart-line"></i> <span class="nav-text">Lịch Sử</span>
+        </button>
+      </nav>
+
+      <!-- Actions -->
+      <div class="header-actions">
+        <button id="btn-theme" class="btn-icon" onclick="toggleTheme()" title="Chuyển chế độ tối/sáng" aria-label="Toggle theme">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+        <button class="btn-icon" onclick="openSettings()" title="Cài đặt" aria-label="Settings">
+          <i class="fa-solid fa-gear"></i>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- ═══════════════ MAIN ═══════════════ -->
+  <main class="app-main" id="app-main">
+
+    <!-- ══════ TAB 1: THI THỬ ══════ -->
+    <section id="exam-tab" class="tab-content" role="main" aria-label="Thi thử">
+
+      <!-- Start Screen -->
+      <div id="exam-start-card" class="card" style="max-width:640px;margin:0 auto;">
+        <div class="text-center" style="margin-bottom:24px;">
+          <div style="width:72px;height:72px;background:var(--primary-light);border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:32px;">🎓</div>
+          <h1 style="font-size:22px;font-weight:800;margin-bottom:6px;">Đề Thi Thử Kết Thúc Học Phần</h1>
+          <p class="text-secondary text-sm">Hệ thống tự động tạo đề cân bằng độ khó từ ngân hàng câu hỏi đã chuẩn hóa.</p>
+        </div>
+
+        <div class="exam-start-grid">
+          <div class="exam-info-tile">
+            <label for="exam-question-count">Số câu hỏi</label>
+            <select id="exam-question-count" onchange="updateExamDuration()">
+              <option value="50">50 Câu (Tiêu chuẩn)</option>
+              <option value="60">60 Câu</option>
+              <option value="40">40 Câu</option>
+              <option value="30">30 Câu</option>
+            </select>
+          </div>
+          <div class="exam-info-tile">
+            <label>Thời gian</label>
+            <span id="exam-duration-text" style="display:block;font-size:15px;font-weight:700;">50 phút</span>
+          </div>
+          <div class="exam-info-tile">
+            <label>Điểm đạt</label>
+            <span style="display:block;font-size:15px;font-weight:700;color:var(--success);">≥ 7.0 / 10</span>
+          </div>
+        </div>
+
+        <!-- Difficulty ratio visual -->
+        <div style="margin:16px 0;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <span class="text-xs text-muted font-semibold" style="text-transform:uppercase;letter-spacing:.05em;">Phân bố độ khó bộ đề</span>
+            <div style="display:flex;gap:12px;font-size:11px;">
+              <span style="color:var(--diff-easy);">● Dễ 50%</span>
+              <span style="color:var(--diff-medium);">● TB 30%</span>
+              <span style="color:var(--diff-hard);">● Khó 20%</span>
+            </div>
+          </div>
+          <div class="difficulty-bar" style="height:10px;">
+            <div class="diff-bar-easy" style="flex:50;"></div>
+            <div class="diff-bar-medium" style="flex:30;"></div>
+            <div class="diff-bar-hard" style="flex:20;"></div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary btn-lg btn-full" onclick="initiateExam()" id="btn-start-exam" style="margin-top:8px;">
+          <i class="fa-solid fa-play"></i> Bắt Đầu Làm Bài Thi
+        </button>
+      </div>
+
+      <!-- Active Exam View -->
+      <div id="exam-active-card" class="hidden exam-layout">
+        <!-- Left: Question Area -->
+        <div>
+          <!-- Control Bar (Sticky) -->
+          <div class="exam-control-bar card card-sm flex justify-between items-center" style="position: sticky; top: 16px; z-index: 50; margin-bottom: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.08);">
+            <div class="flex items-center gap-2">
+              <span id="exam-timer-display" class="timer-display">50:00</span>
+              <button id="btn-pause" class="btn btn-secondary btn-sm" onclick="togglePauseExam()">
+                <i class="fa-solid fa-pause"></i> Tạm dừng
+              </button>
+            </div>
+            <button class="btn btn-success btn-sm" onclick="confirmSubmitExam()">
+              <i class="fa-solid fa-paper-plane"></i> Nộp Bài
+            </button>
+            <!-- Progress Bar -->
+            <div style="position: absolute; bottom: 0; left: 0; right: 0; height: 3px; background: var(--border); border-radius: 0 0 var(--radius-sm) var(--radius-sm); overflow: hidden;">
+              <div id="exam-progress-bar" style="height: 100%; width: 0%; background: var(--primary); transition: width 0.3s ease;"></div>
+            </div>
+          </div>
+
+          <!-- Question Card -->
+          <div class="card question-card">
+            <div class="question-header">
+              <div class="flex gap-2 items-center flex-wrap">
+                <span id="q-chapter-badge" class="badge badge-primary">Chương 1</span>
+                <span id="q-diff-badge" class="badge badge-easy">Dễ</span>
+              </div>
+              <button id="btn-flag" class="btn btn-secondary btn-sm" onclick="toggleFlagCurrentQuestion()">
+                <i class="fa-regular fa-bookmark"></i> Đánh dấu
+              </button>
+            </div>
+
+            <h2 id="q-title" class="question-text">Đang tải câu hỏi...</h2>
+
+            <div id="q-options-container" class="space-y-3"></div>
+
+            <div class="flex justify-between items-center" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+              <button id="btn-prev-q" class="btn btn-secondary btn-sm" onclick="navExamQuestion(-1)">
+                <i class="fa-solid fa-chevron-left"></i> Trước
+              </button>
+              <span id="q-progress-text" class="text-xs text-muted font-medium">Câu 1 / 50</span>
+              <button id="btn-next-q" class="btn btn-primary btn-sm" onclick="navExamQuestion(1)">
+                Sau <i class="fa-solid fa-chevron-right"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Palette Sidebar -->
+        <div class="exam-sidebar">
+          <div class="card" style="position:sticky;top:calc(var(--header-height) + 16px);">
+            <div class="flex justify-between items-center" style="margin-bottom:12px;">
+              <h3 style="font-size:13px;font-weight:700;">Danh Sách Câu</h3>
+              <span id="palette-summary" class="text-xs text-muted">Đã làm: 0/50</span>
+            </div>
+
+            <!-- Legend -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;font-size:11px;color:var(--text-muted);padding-bottom:10px;border-bottom:1px solid var(--border);margin-bottom:10px;">
+              <div style="display:flex;align-items:center;gap:6px;"><span style="width:12px;height:12px;background:var(--primary);border-radius:3px;flex-shrink:0;"></span>Đã chọn</div>
+              <div style="display:flex;align-items:center;gap:6px;"><span style="width:12px;height:12px;background:var(--bg-subtle);border:1.5px solid var(--border);border-radius:3px;flex-shrink:0;"></span>Chưa chọn</div>
+              <div style="display:flex;align-items:center;gap:6px;"><span style="width:12px;height:12px;background:var(--warning);border-radius:3px;flex-shrink:0;"></span>Đánh dấu</div>
+              <div style="display:flex;align-items:center;gap:6px;"><span style="width:12px;height:12px;outline:2px solid var(--primary);outline-offset:1px;border-radius:3px;flex-shrink:0;"></span>Đang xem</div>
+            </div>
+
+            <div id="palette-grid" class="palette-grid custom-scroll"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Exam Result Card -->
+      <div id="exam-result-card" class="hidden" style="max-width:820px;margin:0 auto;">
+        <div class="card" style="margin-bottom:16px;">
+          <div class="text-center" style="margin-bottom:20px;">
+            <span id="result-status-badge" class="badge badge-success" style="font-size:13px;padding:6px 16px;">ĐẠT YÊU CẦU</span>
+            <h2 style="font-size:24px;font-weight:800;margin-top:12px;">Kết Quả Bài Thi</h2>
+          </div>
+
+          <!-- Score ring + stats -->
+          <div style="display:flex;flex-wrap:wrap;gap:20px;align-items:center;justify-content:center;margin-bottom:20px;">
+            <div id="result-score-ring" class="result-score-ring">
+              <div class="result-score-inner">
+                <span id="result-score-val" style="font-size:22px;font-weight:800;color:var(--primary);">8.0/10</span>
+                <span id="result-score-label" style="font-size:11px;font-weight:600;color:var(--success);">✓ Đạt</span>
+              </div>
+            </div>
+
+            <div class="grid-4" style="flex:1;min-width:240px;">
+              <div class="stat-card">
+                <div id="res-correct" class="stat-value" style="color:var(--success);">40/50</div>
+                <div class="stat-label">Câu đúng</div>
+              </div>
+              <div class="stat-card">
+                <div id="res-pct" class="stat-value" style="color:var(--primary);">80%</div>
+                <div class="stat-label">Tỷ lệ đúng</div>
+              </div>
+              <div class="stat-card">
+                <div id="res-time" class="stat-value" style="color:var(--text-primary);">32:15</div>
+                <div class="stat-label">Thời gian</div>
+              </div>
+              <div class="stat-card">
+                <div id="res-diff-stats" class="grid-4" style="display:flex;flex-direction:column;gap:4px;font-size:11px;"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Chapter breakdown -->
+          <div>
+            <h4 style="font-size:13px;font-weight:700;margin-bottom:12px;">Phân Tích Theo Chương</h4>
+            <div id="res-chapter-bars" class="chapter-bar-wrap"></div>
+          </div>
+
+          <div class="divider"></div>
+          
+          <!-- Cẩm Nang Ôn Tập AI -->
+          <div id="exam-feedback-section" class="card" style="background: var(--primary-light); border: 1px solid var(--primary); margin-bottom: 20px; display: none;">
+            <h4 style="font-size:16px;font-weight:700;color:var(--primary);margin-bottom:12px;">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Phân Tích Lỗ Hổng Kiến Thức
+            </h4>
+            <div id="exam-feedback-content" class="space-y-3 text-sm text-primary">
+              <!-- Nội dung feedback sinh tự động sẽ được điền vào đây -->
+            </div>
+          </div>
+
+          <div class="flex gap-3 justify-center flex-wrap">
+            <button class="btn btn-primary" onclick="initiateExam()">
+              <i class="fa-solid fa-rotate-right"></i> Thi Lại Đề Khác
+            </button>
+            <button class="btn btn-secondary" onclick="toggleReviewDetails()">
+              <i class="fa-solid fa-list-check"></i> Xem Chi Tiết Đáp Án
+            </button>
+            <button class="btn btn-secondary" onclick="switchTab('history-tab')">
+              <i class="fa-solid fa-chart-line"></i> Xem Lịch Sử
+            </button>
+          </div>
+        </div>
+
+        <!-- Detailed Review Section -->
+        <div id="exam-review-container" class="hidden">
+          <h3 style="font-size:16px;font-weight:700;margin-bottom:16px;">Chi Tiết Từng Câu & Giải Thích</h3>
+          <div id="review-questions-list"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════ TAB 2: LUYỆN TẬP ══════ -->
+    <section id="practice-tab" class="tab-content" role="main" aria-label="Luyện tập">
+      <div class="card" style="max-width:680px;margin:0 auto 24px;">
+        <h2 style="font-size:18px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:10px;">
+          <i class="fa-solid fa-sliders" style="color:var(--primary);"></i> Cấu Hình Bài Luyện Tập
+        </h2>
+
+        <div class="space-y-4">
+          <div class="form-group">
+            <label class="form-label" for="practice-chapter-select">Chọn Chương</label>
+            <select id="practice-chapter-select" class="form-select">
+              <option value="0">Tất Cả Các Chương</option>
+              <option value="1">Chương 1: Tổng Quan CL & ATTP</option>
+              <option value="2">Chương 2: Hệ Thống QLCL</option>
+              <option value="3">Chương 3: Điều Kiện Tiên Quyết (GMP, SSOP)</option>
+              <option value="4">Chương 4: HACCP & ISO 22000</option>
+              <option value="5">Chương 5: Luật ATTP Việt Nam</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Số Lượng Câu Hỏi</label>
+            <div class="count-btn-group">
+              <button class="count-btn selected" onclick="selectPracticeCount(10)" id="cnt-10">10 Câu</button>
+              <button class="count-btn" onclick="selectPracticeCount(20)" id="cnt-20">20 Câu</button>
+              <button class="count-btn" onclick="selectPracticeCount(50)" id="cnt-50">50 Câu</button>
+              <button class="count-btn" onclick="selectPracticeCount(100)" id="cnt-100">100 Câu</button>
+              <button class="count-btn" onclick="selectPracticeCount('all')" id="cnt-all">Tất Cả</button>
+            </div>
+          </div>
+
+          <button class="btn btn-primary btn-lg btn-full" onclick="startPracticeMode()">
+            <i class="fa-solid fa-play"></i> Bắt Đầu Ôn Tập
+          </button>
+        </div>
+      </div>
+
+      <!-- Practice session -->
+      <div id="practice-session-container" class="hidden" style="max-width:720px;margin:0 auto;">
+        <div id="practice-questions-wrapper"></div>
+      </div>
+    </section>
+
+    <!-- ══════ TAB 3: NGÂN HÀNG ĐỀ ══════ -->
+    <section id="bank-tab" class="tab-content" role="main" aria-label="Ngân hàng câu hỏi">
+      <div class="card">
+        <div class="flex justify-between items-center flex-wrap gap-3" style="margin-bottom:16px;">
+          <div>
+            <h2 style="font-size:18px;font-weight:700;">Ngân Hàng Câu Hỏi</h2>
+            <p id="bank-count-text" class="text-xs text-muted mt-1">Đang tải...</p>
+          </div>
+          <div class="flex gap-2 flex-wrap">
+            <select id="bank-filter-chapter" class="form-select" style="width:auto;min-width:160px;" onchange="onBankFilter()">
+              <option value="0">Tất Cả Chương</option>
+              <option value="1">Chương 1</option>
+              <option value="2">Chương 2</option>
+              <option value="3">Chương 3</option>
+              <option value="4">Chương 4</option>
+              <option value="5">Chương 5</option>
+            </select>
+            <select id="bank-filter-diff" class="form-select" style="width:auto;min-width:130px;" onchange="onBankFilter()">
+              <option value="0">Tất Cả Độ Khó</option>
+              <option value="1">Dễ</option>
+              <option value="2">Trung Bình</option>
+              <option value="3">Khó</option>
+            </select>
+            <div class="search-wrap">
+              <i class="fa-solid fa-magnifying-glass search-icon"></i>
+              <input id="bank-search-input" class="form-input search-input" type="search" placeholder="Tìm kiếm câu hỏi..." oninput="onBankFilter()" style="min-width:200px;">
+            </div>
+          </div>
+        </div>
+
+        <div id="bank-list-container" class="space-y-3"></div>
+
+        <div class="flex justify-between items-center" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+          <button id="bank-prev-btn" class="btn btn-secondary btn-sm" onclick="changeBankPage(-1)">
+            <i class="fa-solid fa-chevron-left"></i> Trang trước
+          </button>
+          <span id="bank-page-info" class="text-sm text-muted font-medium">Trang 1/1</span>
+          <button id="bank-next-btn" class="btn btn-primary btn-sm" onclick="changeBankPage(1)">
+            Trang sau <i class="fa-solid fa-chevron-right"></i>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════ TAB 4: AI SINH CÂU HỎI ══════ -->
+    <section id="source-tab" class="tab-content" role="main" aria-label="Thêm nguồn và sinh câu hỏi AI">
+      <div style="max-width:780px;margin:0 auto;" class="space-y-6">
+
+        <!-- Stats bar -->
+        <div class="grid-2">
+          <div class="card card-sm" style="border-left:4px solid var(--primary);">
+            <div style="font-size:28px;font-weight:800;color:var(--primary);" id="source-bank-count">0</div>
+            <div class="text-sm text-muted">Tổng câu trong ngân hàng</div>
+          </div>
+          <div class="card card-sm" style="border-left:4px solid #8b5cf6;">
+            <div style="font-size:28px;font-weight:800;color:#8b5cf6;" id="source-ai-count">0</div>
+            <div class="text-sm text-muted">Câu được sinh bởi AI</div>
+          </div>
+        </div>
+
+        <!-- Input Form -->
+        <div class="card">
+          <h2 style="font-size:18px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:10px;">
+            <i class="fa-solid fa-wand-magic-sparkles" style="color:#8b5cf6;"></i>
+            Sinh Câu Hỏi Tự Động Từ Tài Liệu
+          </h2>
+          <p class="text-sm text-muted" style="margin-bottom:20px;">Paste nội dung tài liệu → AI phân tích và tự động sinh câu hỏi trắc nghiệm → Lưu vĩnh viễn vào ngân hàng</p>
+
+          <div class="space-y-4">
+            
+            <!-- File Upload Area -->
+            <div class="form-group">
+              <label class="form-label">Tải lên Giáo Trình / Tài Liệu (PDF, Word)</label>
+              <div class="file-upload-area" id="file-upload-dropzone">
+                <input type="file" id="source-file-upload" accept=".pdf,.docx,.doc" class="file-upload-input" onchange="handleFileUpload(event)">
+                <div class="file-upload-content text-center" style="padding: 24px; border: 2px dashed var(--border); border-radius: var(--radius-md); background: var(--bg-subtle); cursor: pointer; transition: 0.2s;">
+                  <i class="fa-solid fa-cloud-arrow-up" style="font-size: 32px; color: var(--primary); margin-bottom: 12px;"></i>
+                  <p style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Click hoặc kéo thả file vào đây</p>
+                  <p class="text-xs text-muted">Hỗ trợ định dạng: PDF, DOCX (Văn bản sẽ tự động được trích xuất)</p>
+                  <div id="file-extract-progress" class="hidden" style="margin-top: 12px;">
+                    <span class="spinner" style="border-color: var(--primary); border-right-color: transparent; width: 16px; height: 16px;"></span>
+                    <span class="text-xs font-semibold" style="color: var(--primary); margin-left: 6px;">Đang đọc file...</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="divider" style="margin: 8px 0; position: relative;">
+              <span style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); background: var(--bg-card); padding: 0 12px; font-size: 12px; color: var(--text-muted); font-weight: 600;">HOẶC NHẬP THỦ CÔNG</span>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="source-title">Tên Tài Liệu (tùy chọn)</label>
+              <input id="source-title" class="form-input" type="text" placeholder="Ví dụ: Chương 4 - Hệ thống HACCP">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="source-content">Nội Dung Tài Liệu <span style="color:var(--danger);">*</span></label>
+              <textarea id="source-content" class="form-textarea" style="min-height:200px;" placeholder="Paste nội dung sách, bài giảng, slide bài học vào đây...&#10;&#10;Ví dụ: HACCP (Hazard Analysis and Critical Control Points) là hệ thống phân tích mối nguy và xác định điểm kiểm soát tới hạn..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="generate-count">Số Câu Muốn Sinh</label>
+                <select id="generate-count" class="form-select">
+                  <option value="5">5 câu (thử nghiệm)</option>
+                  <option value="10" selected>10 câu</option>
+                  <option value="20">20 câu</option>
+                  <option value="30">30 câu</option>
+                  <option value="50">50 câu</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Progress bar -->
+            <div id="generation-progress" class="hidden generation-progress">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+                <span class="text-sm font-semibold" style="color:var(--primary);">Đang xử lý...</span>
+                <span id="generation-text" class="text-xs text-muted">Chuẩn bị...</span>
+              </div>
+              <div class="progress-bar-wrap">
+                <div id="generation-bar" class="progress-bar-fill" style="width:0%"></div>
+              </div>
+            </div>
+
+            <button id="btn-generate" class="btn btn-primary btn-lg btn-full" onclick="handleGenerateQuestions()">
+              <i class="fa-solid fa-wand-magic-sparkles"></i> Sinh Câu Hỏi AI
+            </button>
+
+            <p class="text-xs text-muted text-center">
+              <i class="fa-solid fa-bolt" style="color:var(--accent);"></i>
+              Hệ thống sử dụng kiến trúc Multi-Layer AI (Cerebras, Gemini, Groq) để phân tích đa chiều.
+            </p>
+          </div>
+        </div>
+
+        <!-- Source List -->
+        <div class="card">
+          <h3 style="font-size:15px;font-weight:700;margin-bottom:16px;">
+            <i class="fa-solid fa-folder-open" style="color:var(--primary);margin-right:8px;"></i>
+            Tài Liệu Đã Thêm
+          </h3>
+          <div id="source-list" class="space-y-3"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ══════ TAB 5: LỊCH SỬ ══════ -->
+    <section id="history-tab" class="tab-content" role="main" aria-label="Lịch sử thi">
+      <div style="max-width:780px;margin:0 auto;" class="space-y-4">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <h2 style="font-size:18px;font-weight:700;">
+            <i class="fa-solid fa-chart-line" style="color:var(--primary);margin-right:8px;"></i>
+            Lịch Sử Bài Thi
+          </h2>
+        </div>
+        <div id="history-list" class="space-y-3"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ═══════════════ MODALS ═══════════════ -->
+
+  <!-- Confirm Submit Modal -->
+  <div id="modal-confirm-submit" class="modal-overlay" role="dialog" aria-modal="true" aria-labelledby="modal-submit-title">
+    <div class="modal-box text-center">
+      <div style="width:56px;height:56px;background:var(--accent-light);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:24px;">⚠️</div>
+      <h3 id="modal-submit-title" style="font-size:18px;font-weight:700;margin-bottom:8px;">Xác Nhận Nộp Bài?</h3>
+      <p id="modal-submit-text" class="text-sm text-secondary" style="margin-bottom:20px;">Bạn chưa hoàn thành tất cả câu hỏi.</p>
+      <div class="flex gap-3">
+        <button class="btn btn-secondary btn-full" onclick="closeModal('modal-confirm-submit')">Quay Lại</button>
+        <button class="btn btn-success btn-full" onclick="finishExam()">
+          <i class="fa-solid fa-paper-plane"></i> Nộp Bài
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ SETTINGS PANEL ═══════════════ -->
+  <div id="settings-overlay" class="settings-overlay" onclick="closeSettings()"></div>
+  <aside id="settings-panel" class="settings-panel" role="complementary" aria-label="Cài đặt">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+      <h2 style="font-size:16px;font-weight:700;">
+        <i class="fa-solid fa-gear" style="color:var(--primary);margin-right:8px;"></i>Cài Đặt
+      </h2>
+      <button class="btn-icon" onclick="closeSettings()" aria-label="Đóng">
+        <i class="fa-solid fa-xmark" style="color:var(--text-secondary);"></i>
+      </button>
+    </div>
+
+    <div class="space-y-6">
+
+      <!-- Dark Mode -->
+      <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-top:1px solid var(--border);">
+        <div>
+          <div style="font-size:14px;font-weight:600;">Chế Độ Tối</div>
+          <div class="text-xs text-muted">Bảo vệ mắt khi học khuya</div>
+        </div>
+        <label style="position:relative;display:inline-block;width:44px;height:24px;">
+          <input id="settings-theme" type="checkbox" style="display:none;">
+          <span style="position:absolute;cursor:pointer;inset:0;background:var(--border);border-radius:12px;transition:.3s;"
+                onclick="this.previousElementSibling.checked = !this.previousElementSibling.checked;"></span>
+        </label>
+      </div>
+
+      <!-- Difficulty Ratio -->
+      <div style="padding-top:12px;border-top:1px solid var(--border);">
+        <div style="font-size:14px;font-weight:600;margin-bottom:4px;">Tỉ Lệ Độ Khó Đề Thi</div>
+        <div class="text-xs text-muted" style="margin-bottom:8px;">Hiện tại: 50% Dễ / 30% TB / 20% Khó</div>
+        <div class="difficulty-bar" style="height:10px;">
+          <div class="diff-bar-easy" style="flex:50;"></div>
+          <div class="diff-bar-medium" style="flex:30;"></div>
+          <div class="diff-bar-hard" style="flex:20;"></div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="saveSettings()">
+        <i class="fa-solid fa-floppy-disk"></i> Lưu Cài Đặt
+      </button>
+
+      <!-- Danger zone -->
+      <div style="padding-top:16px;border-top:1px solid var(--border);">
+        <p class="text-xs text-muted font-semibold" style="text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px;">Khu Vực Nguy Hiểm</p>
+        <button class="btn btn-secondary btn-sm" style="color:var(--danger);" onclick="if(confirm('Xoá toàn bộ dữ liệu và reset về ban đầu?')){localStorage.clear();location.reload();}">
+          <i class="fa-solid fa-trash-can"></i> Xóa Toàn Bộ Dữ Liệu
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ═══════════════ TOAST ═══════════════ -->
+  <div id="toast-container" aria-live="polite" aria-label="Thông báo"></div>
+
+  <!-- ═══════════════ SCRIPTS ═══════════════ -->
+  <script type="module" src="app.js"></script>
+
+  <!-- ═══════════════ CERA CHATBOT ═══════════════ -->
+
+  <!-- Floating Button -->
+  <button id="cera-fab" class="cera-fab" onclick="toggleCeraChat()" title="Trợ lý Liên" aria-label="Mở trợ lý Liên">
+    <span class="cera-fab-icon"><img src="chatbot.webp" alt="Liên" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></span>
+    <span class="cera-fab-badge" id="cera-badge" style="display:none">1</span>
+  </button>
+
+  <!-- Chat Panel -->
+  <div id="cera-panel" class="cera-panel" role="dialog" aria-label="Trợ lý Liên" aria-hidden="true">
+    <!-- Header -->
+    <div class="cera-header">
+      <div class="cera-header-info">
+        <div class="cera-avatar"><img src="chatbot.webp" alt="Liên" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
+        <div>
+          <div class="cera-name">Trợ lý Liên</div>
+          <div class="cera-status" id="cera-status-text"><span class="cera-dot"></span>Sẵn sàng hỗ trợ bạn</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;">
+        <button class="cera-header-btn" onclick="clearCeraChat()" title="Xóa lịch sử chat">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+        <button class="cera-header-btn" onclick="toggleCeraChat()" title="Đóng">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Messages -->
+    <div class="cera-messages" id="cera-messages">
+      <!-- Welcome message -->
+      <div class="cera-msg cera-msg-bot">
+        <div class="cera-msg-avatar"><img src="chatbot.webp" alt="Liên" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
+        <div class="cera-msg-bubble">
+          <p>Xin chào bạn! Tôi là <strong>Liên</strong> — trợ lý AI của Hệ thống Ôn thi <strong>QLCL & ATTP</strong>, sáng lập bởi <strong>Nguyễn Hoàng Phúc</strong> và <strong>Dương Ngọc Trâm</strong>. 🌸</p>
+          <p>Tôi luôn sẵn sàng hỗ trợ bạn:</p>
+          <ul>
+            <li>💡 Phân tích & giải thích sâu từng câu hỏi</li>
+            <li>📚 Hướng dẫn mẹo học nhớ lâu</li>
+            <li>🔍 Kiểm tra câu sai & tự động sửa DB</li>
+          </ul>
+          <p style="font-size:12px;opacity:0.8;margin-top:4px;">Bạn có thể gõ <em>"giải thích câu này"</em> hoặc <em>"câu này bị sai"</em> bất cứ lúc nào nhé!</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Context indicator -->
+    <div class="cera-context" id="cera-context" style="display:none">
+      <i class="fa-solid fa-eye"></i>
+      <span id="cera-context-text">Đang xem câu: ...</span>
+    </div>
+
+    <!-- Input -->
+    <div class="cera-input-wrap">
+      <textarea
+        id="cera-input"
+        class="cera-input"
+        placeholder="Hỏi Liên về câu hỏi, bài tập hoặc báo câu sai..."
+        rows="1"
+        onkeydown="ceraKeyDown(event)"
+        oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"
+        aria-label="Nhập tin nhắn cho Liên"
+      ></textarea>
+      <button id="cera-send-btn" class="cera-send-btn" onclick="ceraSend()" title="Gửi (Enter)" aria-label="Gửi">
+        <i class="fa-solid fa-paper-plane"></i>
+      </button>
+    </div>
+  </div>
+
+  <!-- Inline helper scripts -->
+  <script>
+    // Update exam duration display when count changes
+    function updateExamDuration() {
+      const count = parseInt(document.getElementById('exam-question-count').value) || 50;
+      document.getElementById('exam-duration-text').textContent = count + ' phút';
+    }
+
+    // Custom scrollbar style for palette
+    document.addEventListener('DOMContentLoaded', () => {
+      const style = document.createElement('style');
+      style.textContent = `.custom-scroll::-webkit-scrollbar{width:4px}.custom-scroll::-webkit-scrollbar-track{background:transparent}.custom-scroll::-webkit-scrollbar-thumb{background:var(--border);border-radius:99px}`;
+      document.head.appendChild(style);
+    });
+  </script>
+</body>
+</html>
+

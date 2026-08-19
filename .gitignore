@@ -1,0 +1,26 @@
+# Python scripts (chỉ dùng nội bộ để sinh câu hỏi, không cần deploy)
+*.py
+__pycache__/
+*.pyc
+
+# Môi trường Python
+.env
+venv/
+
+# Logs & temp files
+*.log
+*.tmp
+*.bak
+
+# File tạm
+inspect_pdf.py
+test_ocr.py
+test_rapidocr.py
+test_api.py
+extract_wrapper.js
+extract_script.js
+QLCLdataseed_questions.js
+
+# OS files
+.DS_Store
+Thumbs.db

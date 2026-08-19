@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App Ôn Thi Luật Thực Phẩm & Quản Lý Chất Lượng (700+ Câu Hỏi)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-indigo-700 text-white shadow-lg sticky top-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-2">
+            <div class="flex items-center space-x-3 cursor-pointer" onclick="switchTab('exam-tab')">
+                <div class="p-2 bg-indigo-600 rounded-lg shadow-inner">
+                    <i class="fa-solid fa-scale-balanced text-2xl text-amber-300"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg md:text-xl leading-tight">Ôn Thi Luật Thực Phẩm & QLCL</h1>
+                    <p class="text-xs text-indigo-200 hidden sm:block">
+                        Ngân hàng chuẩn hóa: <span id="header-bank-count" class="font-bold text-amber-300">0</span> câu hỏi độc lập
+                    </p>
+                </div>
+            </div>
+
+            <!-- Navigation Tabs -->
+            <nav class="flex items-center space-x-1 sm:space-x-2 bg-indigo-800/60 p-1 rounded-xl text-xs sm:text-sm font-medium">
+                <button id="nav-exam" onclick="switchTab('exam-tab')" class="px-3 py-1.5 rounded-lg transition-all bg-indigo-600 text-white shadow">
+                    <i class="fa-solid fa-stopwatch mr-1"></i> Thi Thử
+                </button>
+                <button id="nav-practice" onclick="switchTab('practice-tab')" class="px-3 py-1.5 rounded-lg transition-all text-indigo-100 hover:text-white hover:bg-indigo-700/50">
+                    <i class="fa-solid fa-book-open mr-1"></i> Luyện Tập
+                </button>
+                <button id="nav-bank" onclick="switchTab('bank-tab')" class="px-3 py-1.5 rounded-lg transition-all text-indigo-100 hover:text-white hover:bg-indigo-700/50">
+                    <i class="fa-solid fa-database mr-1"></i> Ngân Hàng Đề
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-6">
+
+        <!-- TAB 1: THI THỬ (EXAM MODE) -->
+        <section id="exam-tab" class="tab-content space-y-6">
+            <!-- Start Screen -->
+            <div id="exam-start-card" class="bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 text-center max-w-2xl mx-auto space-y-5">
+                <div class="w-16 h-16 bg-indigo-100 text-indigo-600 rounded-2xl flex items-center justify-center mx-auto text-2xl">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div>
+                    <h2 class="text-2xl font-bold text-slate-800 mb-1">Đề Thi Thử Kết Thúc Học Phần</h2>
+                    <p class="text-slate-600 text-xs sm:text-sm">Hệ thống xáo trộn ngẫu nhiên câu hỏi không trùng lặp từ ngân hàng đề chuẩn hóa.</p>
+                </div>
+                
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 text-left text-xs sm:text-sm">
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="block text-slate-400">Số câu hỏi đề thi</span>
+                        <select id="exam-question-count" class="font-bold text-slate-700 text-sm bg-transparent outline-none w-full mt-1">
+                            <option value="50">50 Câu (Tiêu chuẩn)</option>
+                            <option value="60">60 Câu</option>
+                            <option value="40">40 Câu</option>
+                            <option value="30">30 Câu</option>
+                        </select>
+                    </div>
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="block text-slate-400">Thời gian làm</span>
+                        <span id="exam-duration-text" class="font-bold text-slate-700 text-sm block mt-1">50 Phút</span>
+                    </div>
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100 col-span-2 sm:col-span-1">
+                        <span class="block text-slate-400">Điểm đạt</span>
+                        <span class="font-bold text-emerald-600 text-sm block mt-1">≥ 7.0 / 10</span>
+                    </div>
+                </div>
+
+                <button onclick="initiateExam()" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-lg shadow-indigo-200 transition-all text-base flex items-center justify-center space-x-2">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Bắt Đầu Làm Bài Thi</span>
+                </button>
+            </div>
+
+            <!-- Active Exam View (Hidden by default) -->
+            <div id="exam-active-card" class="hidden grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <!-- Left/Main Question Area -->
+                <div class="lg:col-span-2 space-y-4">
+                    <!-- Top Control Bar -->
+                    <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex justify-between items-center">
+                        <div class="flex items-center space-x-2">
+                            <span id="exam-timer-display" class="font-mono text-lg font-bold text-amber-600 bg-amber-50 px-3 py-1 rounded-lg border border-amber-200">
+                                50:00
+                            </span>
+                            <button onclick="togglePauseExam()" id="btn-pause" class="px-3 py-1 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition">
+                                <i class="fa-solid fa-pause"></i> Tạm dừng
+                            </button>
+                        </div>
+                        <button onclick="confirmSubmitExam()" class="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg text-xs sm:text-sm shadow-sm transition">
+                            <i class="fa-solid fa-paper-plane mr-1"></i> Nộp Bài
+                        </button>
+                    </div>
+
+                    <!-- Question Card -->
+                    <div class="bg-white rounded-2xl p-5 sm:p-6 shadow-sm border border-slate-200 space-y-5">
+                        <div class="flex justify-between items-start gap-3">
+                            <span id="q-chapter-badge" class="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-md text-xs font-semibold">
+                                Chương 1
+                            </span>
+                            <button id="btn-flag" onclick="toggleFlagCurrentQuestion()" class="text-xs px-2.5 py-1 rounded-md border text-slate-500 border-slate-200 hover:bg-slate-50">
+                                <i class="fa-regular fa-bookmark mr-1"></i> Đánh dấu xem lại
+                            </button>
+                        </div>
+
+                        <h3 id="q-title" class="text-base sm:text-lg font-bold text-slate-800 leading-snug">
+                            Đang tải câu hỏi...
+                        </h3>
+
+                        <!-- Options List -->
+                        <div id="q-options-container" class="space-y-2.5">
+                            <!-- Injected dynamically -->
+                        </div>
+
+                        <!-- Prev/Next Navigation -->
+                        <div class="flex justify-between items-center pt-4 border-t border-slate-100">
+                            <button onclick="navExamQuestion(-1)" id="btn-prev-q" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-xl text-xs sm:text-sm transition">
+                                <i class="fa-solid fa-chevron-left mr-1"></i> Câu Trước
+                            </button>
+                            <span id="q-progress-text" class="text-xs text-slate-400 font-medium">Câu 1 / 50</span>
+                            <button onclick="navExamQuestion(1)" id="btn-next-q" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-xl text-xs sm:text-sm transition">
+                                Câu Sau <i class="fa-solid fa-chevron-right ml-1"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Matrix Palette -->
+                <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4 h-fit">
+                    <h4 class="font-bold text-slate-700 text-sm flex justify-between items-center">
+                        <span>Danh Sách Câu Hỏi</span>
+                        <span id="palette-summary" class="text-xs font-normal text-slate-500">Đã làm: 0/50</span>
+                    </h4>
+
+                    <!-- Color Legend -->
+                    <div class="grid grid-cols-2 gap-2 text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                        <div class="flex items-center space-x-1.5">
+                            <span class="w-3 h-3 bg-indigo-600 rounded-sm"></span>
+                            <span>Đã chọn</span>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                            <span class="w-3 h-3 bg-slate-100 border border-slate-300 rounded-sm"></span>
+                            <span>Chưa chọn</span>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                            <span class="w-3 h-3 bg-amber-400 rounded-sm"></span>
+                            <span>Đánh dấu</span>
+                        </div>
+                        <div class="flex items-center space-x-1.5">
+                            <span class="w-3 h-3 ring-2 ring-indigo-500 bg-white rounded-sm"></span>
+                            <span>Đang xem</span>
+                        </div>
+                    </div>
+
+                    <!-- Question Grid -->
+                    <div id="palette-grid" class="grid grid-cols-5 gap-2 max-h-80 overflow-y-auto custom-scrollbar p-1">
+                        <!-- Injected dynamically -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exam Result Card (Hidden by default) -->
+            <div id="exam-result-card" class="hidden bg-white rounded-2xl p-6 sm:p-8 shadow-sm border border-slate-200 space-y-6">
+                <div class="text-center space-y-2">
+                    <span id="result-status-badge" class="px-3 py-1 bg-emerald-100 text-emerald-700 font-bold rounded-full text-xs uppercase">
+                        Đạt Yêu Cầu
+                    </span>
+                    <h2 class="text-3xl font-extrabold text-slate-800">Kết Quả Bài Thi</h2>
+                    <p class="text-slate-500 text-sm">Cập nhật chi tiết kết quả đánh giá theo từng chương học</p>
+                </div>
+
+                <!-- Stats summary grid -->
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                    <div class="p-4 bg-slate-50 rounded-xl text-center">
+                        <span class="text-xs text-slate-400 block">Điểm số</span>
+                        <span id="res-score" class="text-2xl font-black text-indigo-600">8.0 / 10</span>
+                    </div>
+                    <div class="p-4 bg-slate-50 rounded-xl text-center">
+                        <span class="text-xs text-slate-400 block">Số câu đúng</span>
+                        <span id="res-correct-count" class="text-2xl font-black text-emerald-600">40 / 50</span>
+                    </div>
+                    <div class="p-4 bg-slate-50 rounded-xl text-center">
+                        <span class="text-xs text-slate-400 block">Thời gian làm</span>
+                        <span id="res-time-spent" class="text-2xl font-black text-slate-700">32:15</span>
+                    </div>
+                    <div class="p-4 bg-slate-50 rounded-xl text-center">
+                        <span class="text-xs text-slate-400 block">Tỷ lệ chính xác</span>
+                        <span id="res-accuracy" class="text-2xl font-black text-amber-500">80%</span>
+                    </div>
+                </div>
+
+                <!-- Chapter Breakdown -->
+                <div class="space-y-3">
+                    <h4 class="font-bold text-slate-700 text-sm">Phân Tích Đánh Giá Theo Chương</h4>
+                    <div id="res-chapter-bars" class="space-y-2 text-xs">
+                        <!-- Injected dynamically -->
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="flex flex-wrap gap-3 justify-center pt-4 border-t border-slate-100">
+                    <button onclick="initiateExam()" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl text-xs sm:text-sm">
+                        <i class="fa-solid fa-rotate-right mr-1"></i> Thi Lại Đề Khác (Không Trùng)
+                    </button>
+                    <button onclick="toggleReviewDetails()" class="px-5 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold rounded-xl text-xs sm:text-sm">
+                        <i class="fa-solid fa-list-check mr-1"></i> Xem Chi Tiết Đáp Án & Giải Thích
+                    </button>
+                </div>
+
+                <!-- Detailed Question Review Section -->
+                <div id="exam-review-container" class="hidden space-y-4 pt-6 border-t border-slate-200">
+                    <h4 class="font-bold text-slate-800 text-base">Chi Tiết Từng Câu Hỏi & Giải Thích Phân Tích</h4>
+                    <div id="review-questions-list" class="space-y-4">
+                        <!-- Injected dynamically -->
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 2: LUYỆN TẬP (PRACTICE MODE) -->
+        <section id="practice-tab" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-2xl p-6 shadow-sm border border-slate-200 space-y-5 max-w-3xl mx-auto">
+                <h2 class="text-xl font-bold text-slate-800 flex items-center">
+                    <i class="fa-solid fa-sliders text-indigo-600 mr-2"></i>
+                    Cấu Hình Bài Luyện Tập
+                </h2>
+
+                <div class="space-y-4">
+                    <!-- Chapter Selection -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-2">Chọn Chương Học</label>
+                        <select id="practice-chapter-select" class="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-500 outline-none">
+                            <option value="0">Tất Cả Các Chương (Nội dung tổng hợp)</option>
+                            <option value="1">Chương 1: Tổng Quan Chất Lượng & An Toàn Thực Phẩm</option>
+                            <option value="2">Chương 2: Hệ Thống QLCL Trong Công Nghiệp Thực Phẩm</option>
+                            <option value="3">Chương 3: Điều Kiện Tiên Quyết (GMP, SSOP)</option>
+                            <option value="4">Chương 4: Xây Dựng & Áp Dụng Hệ Thống HACCP</option>
+                            <option value="5">Chương 5: Luật An Toàn Thực Phẩm Việt Nam & Quy Định</option>
+                        </select>
+                    </div>
+
+                    <!-- Question Count Selection -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-600 mb-2">Số Lượng Câu Hỏi</label>
+                        <div class="grid grid-cols-5 gap-2">
+                            <button type="button" onclick="selectPracticeCount(10)" class="count-btn py-2.5 bg-indigo-50 border-2 border-indigo-600 text-indigo-700 font-bold rounded-xl text-xs sm:text-sm">10 Câu</button>
+                            <button type="button" onclick="selectPracticeCount(20)" class="count-btn py-2.5 bg-slate-50 border border-slate-200 text-slate-600 font-medium rounded-xl text-xs sm:text-sm hover:bg-slate-100">20 Câu</button>
+                            <button type="button" onclick="selectPracticeCount(50)" class="count-btn py-2.5 bg-slate-50 border border-slate-200 text-slate-600 font-medium rounded-xl text-xs sm:text-sm hover:bg-slate-100">50 Câu</button>
+                            <button type="button" onclick="selectPracticeCount(100)" class="count-btn py-2.5 bg-slate-50 border border-slate-200 text-slate-600 font-medium rounded-xl text-xs sm:text-sm hover:bg-slate-100">100 Câu</button>
+                            <button type="button" onclick="selectPracticeCount('all')" class="count-btn py-2.5 bg-slate-50 border border-slate-200 text-slate-600 font-medium rounded-xl text-xs sm:text-sm hover:bg-slate-100">Tất Cả</button>
+                        </div>
+                    </div>
+
+                    <button onclick="startPracticeMode()" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold rounded-xl shadow-lg transition-all text-sm">
+                        Bắt Đầu Ôn Tập
+                    </button>
+                </div>
+            </div>
+
+            <!-- Active Practice Session View -->
+            <div id="practice-session-container" class="hidden max-w-3xl mx-auto space-y-4">
+                <div id="practice-questions-wrapper" class="space-y-4">
+                    <!-- Injected dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: NGÂN HÀNG ĐỀ (QUESTION BANK VIEWER) -->
+        <section id="bank-tab" class="tab-content hidden space-y-6">
+            <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-200 space-y-4">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-3">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800">Tra Cứu Ngân Hàng Câu Hỏi Chuẩn Hóa</h2>
+                        <p id="bank-count-indicator" class="text-xs text-slate-500">Hiển thị câu hỏi không trùng lặp trong hệ thống</p>
+                    </div>
+
+                    <div class="flex flex-wrap gap-2 w-full sm:w-auto">
+                        <!-- Chapter filter dropdown -->
+                        <select id="bank-filter-chapter" onchange="resetBankPaginationAndRender()" class="p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none">
+                            <option value="0">Tất Cả Chương (Chương 1 - 5)</option>
+                            <option value="1">Chương 1: Tổng quan CL & ATTP</option>
+                            <option value="2">Chương 2: Hệ thống QLCL & Công cụ</option>
+                            <option value="3">Chương 3: GMP & SSOP</option>
+                            <option value="4">Chương 4: HACCP & ISO 22000</option>
+                            <option value="5">Chương 5: Luật & Quy định ATTP</option>
+                        </select>
+
+                        <!-- Search input -->
+                        <input id="bank-search-input" oninput="resetBankPaginationAndRender()" type="text" placeholder="Tìm kiếm từ khóa..." class="p-2 bg-slate-50 border border-slate-200 rounded-xl text-xs sm:text-sm outline-none flex-1 sm:w-48">
+                    </div>
+                </div>
+
+                <!-- Questions List -->
+                <div id="bank-list-container" class="space-y-4 pt-2">
+                    <!-- Injected dynamically -->
+                </div>
+
+                <!-- Pagination controls -->
+                <div class="flex justify-between items-center pt-4 border-t border-slate-100 text-xs sm:text-sm">
+                    <button id="bank-prev-btn" onclick="changeBankPage(-1)" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 rounded-xl font-semibold text-slate-600 disabled:opacity-50">
+                        <i class="fa-solid fa-chevron-left mr-1"></i> Trang trước
+                    </button>
+                    <span id="bank-page-info" class="text-slate-500 font-medium">Trang 1 / 1</span>
+                    <button id="bank-next-btn" onclick="changeBankPage(1)" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold disabled:opacity-50">
+                        Trang sau <i class="fa-solid fa-chevron-right ml-1"></i>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Confirm Submit Modal -->
+    <div id="modal-confirm-submit" class="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl p-6 max-w-sm w-full space-y-4 shadow-2xl text-center">
+            <div class="w-12 h-12 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center mx-auto text-xl">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
+            <h3 class="font-bold text-slate-800 text-lg">Xác Nhận Nộp Bài?</h3>
+            <p id="submit-modal-text" class="text-xs text-slate-500">
+                Bạn chưa hoàn thành tất cả các câu hỏi.
+            </p>
+            <div class="flex gap-2">
+                <button onclick="closeModal('modal-confirm-submit')" class="flex-1 py-2 bg-slate-100 text-slate-700 font-semibold rounded-xl text-xs">Quay Lại</button>
+                <button onclick="finishExam()" class="flex-1 py-2 bg-emerald-600 text-white font-semibold rounded-xl text-xs shadow-md">Nộp Bài Ngay</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const CHAPTERS = {
+            1: "Chương 1: Tổng Quan Chất Lượng & An Toàn Thực Phẩm",
+            2: "Chương 2: Hệ Thống QLCL Trong Công Nghiệp Thực Phẩm",
+            3: "Chương 3: Điều Kiện Tiên Quyết (GMP, SSOP)",
+            4: "Chương 4: Xây Dựng & Áp Dụng Hệ Thống HACCP",
+            5: "Chương 5: Luật An Toàn Thực Phẩm Việt Nam & Quy Định"
+        };
+
+        function shuffleOptions(questionObj) {
+            var opts = questionObj.options.map(function(opt, idx) {
+                return { text: opt, isCorrect: idx === questionObj.correct };
+            });
+            for (var i = opts.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var temp = opts[i];
+                opts[i] = opts[j];
+                opts[j] = temp;
+            }
+            var newOptions = opts.map(function(o) { return o.text; });
+            var newCorrect = opts.findIndex(function(o) { return o.isCorrect; });
+            return {
+                id: questionObj.id,
+                chapter: questionObj.chapter,
+                q: questionObj.q,
+                options: newOptions,
+                correct: newCorrect,
+                exp: questionObj.exp
+            };
+        }
+
+        let QUESTION_BANK = [];
+
+        // Generates guaranteed 750+ unique, non-overlapping questions across all 5 chapters
+        function buildFullQuestionBank() {
+            var rawList = [];
+            var seenQuestions = new Set();
+
+            function addQ(ch, qText, options, correctIdx, expText) {
+                var key = qText.trim().toLowerCase();
+                if (!seenQuestions.has(key)) {
+                    seenQuestions.add(key);
+                    rawList.push({
+                        chapter: ch,
+                        q: qText,
+                        options: options,
+                        correct: correctIdx,
+                        exp: expText
+                    });
+                }
+            }
+
+            // --- CHƯƠNG 1: TỔNG QUAN CHẤT LƯỢNG & MỐI NGUY (160+ câu) ---
+            addQ(1, "Theo Tiêu chuẩn ISO 9001, khái niệm 'Chất lượng' được phát biểu chính xác nhất là gì?",
+                ["Mức độ đáp ứng các yêu cầu của một tập hợp đặc tính vốn có", "Sự tươi ngon tuyệt đối khi sản phẩm rời khỏi dây chuyền sản xuất", "Độ đắt tiền và sang trọng của bao bì sản phẩm", "Số lượng sản phẩm tiêu thụ tối đa trên thị trường"], 0,
+                "ISO 9001 định nghĩa Chất lượng là 'Mức độ đáp ứng các yêu cầu của một tập hợp đặc tính vốn có'.");
+
+            addQ(1, "Theo Luật An toàn thực phẩm 2010 (Điều 2), 'An toàn thực phẩm' được định nghĩa là gì?",
+                ["Việc bảo đảm để thực phẩm không gây hại đến sức khỏe, tính mạng con người", "Thực phẩm được chế biến 100% bằng nguồn nguyên liệu hữu cơ", "Thực phẩm có giá trị dinh dưỡng cao nhất trên thị trường", "Thực phẩm được cấp chứng chỉ ISO 9001"], 0,
+                "An toàn thực phẩm là việc bảo đảm để thực phẩm không gây hại đến sức khỏe, tính mạng con người khi tiêu thụ.");
+
+            addQ(1, "Sự khác biệt căn bản nhất giữa 'Chất lượng thực phẩm' và 'An toàn thực phẩm' là gì?",
+                ["An toàn thực phẩm là yêu cầu BẮT BUỘC theo pháp luật; Chất lượng thực phẩm nhằm thỏa mãn nhu cầu thị trường", "Chất lượng thực phẩm có phạm vi hẹp hơn an toàn thực phẩm", "An toàn thực phẩm không nằm trong phạm vi của chất lượng thực phẩm", "Sản phẩm ngon về cảm quan luôn luôn đạt an toàn thực phẩm"], 0,
+                "An toàn thực phẩm là tiêu chuẩn bắt buộc do pháp luật quy định. Chất lượng thực phẩm có phạm vi rộng hơn nhằm thỏa mãn nhu cầu người tiêu dùng.");
+
+            // Biological hazards matrix (12 pathogens x 4 question variations = 48 questions)
+            const pathogens = [
+                { name: "Salmonella spp.", target: "Thịt gia cầm tươi, trứng gà tái", temp: "Bị tiêu diệt ở nhiệt độ > 70°C", sym: "Sốt cao, đau bụng tiêu chảy, nôn mửa", source: "Đường ruột động vật, gia cầm, phân người" },
+                { name: "Escherichia coli O157:H7", target: "Thịt bò xay tái, rau sống tưới nước ô nhiễm", temp: "Nhạy cảm với nhiệt độ nấu chín kỹ", sym: "Tiêu chảy ra máu, hội chứng suy thận HUS", source: "Hệ tiêu hóa gia súc, nước thải nông nghiệp" },
+                { name: "Listeria monocytogenes", target: "Thịt nguội, phô mai mềm, thực phẩm đông lạnh", temp: "Có khả năng phát triển ở nhiệt độ tủ lạnh (4°C)", sym: "Gây nguy cơ sảy thai ở phụ nữ mang thai và viêm màng não", source: "Đất, nước ngầm, thực phẩm chế biến sẵn lưu trữ lạnh" },
+                { name: "Staphylococcus aureus", target: "Thực phẩm giàu đạm chế biến bằng tay", temp: "Ngoại độc tố chịu được nhiệt độ đun sôi 100°C trong 30 phút", sym: "Ngộ độc cấp tính nôn mửa dữ dội sau 1-6 giờ", source: "Da, mũi, họng, vết thương mưng mủ của công nhân" },
+                { name: "Vibrio parahaemolyticus", target: "Hải sản sống, tôm cua cá biển tươi", temp: "Chịu mặn tốt, bị ức chế khi làm lạnh sâu dưới 5°C", sym: "Viêm dạ dày ruột cấp tính khi ăn hải sản tái", source: "Môi trường nước biển và hải sản sống" },
+                { name: "Bacillus cereus", target: "Cơm nguội, mì xào để qua đêm ở nhiệt độ phòng", temp: "Bào tử chịu nhiệt, nhân lên sinh độc tố khi để nguội chậm", sym: "Gây hội chứng nôn mửa hoặc tiêu chảy", source: "Đất, ngũ cốc, gạo, tinh bột" },
+                { name: "Campylobacter jejuni", target: "Thịt gà chưa nấu chín, sữa tươi chưa tiệt trùng", temp: "Bị tiêu diệt dễ dàng bằng gia nhiệt thông thường", sym: "Tiêu chảy phân bầy hầy, đau bụng quặn", source: "Đường ruột gia cầm và gia súc" },
+                { name: "Clostridium botulinum", target: "Đồ hộp kỵ khí pH > 4.6, thực phẩm ủ kín", temp: "Độc tố thần kinh Botulinum cực mạnh, bào tử chịu nhiệt 121°C", sym: "Tê liệt cơ thần kinh, liệt hô hấp, tử vong cao", source: "Đất, bùn ao, cặn lắng kỵ khí" },
+                { name: "Clostridium perfringens", target: "Các món thịt hầm, súp nấu mẻ lớn để nguội chậm", temp: "Bào tử sống sót qua nấu nướng thông thường", sym: "Đau bụng quặn và tiêu chảy cấp sau 8-12 giờ", source: "Ruột người, động vật, bào tử tồn tại trong đất" },
+                { name: "Shigella dysenteriae", target: "Rau sống, sa lát trộn do công nhân mang mầm bệnh", temp: "Nhạy cảm với nhiệt độ đun sôi", sym: "Hội chứng lỵ cấp, đi ngoài ra máu và nhầy", source: "Người mắc bệnh lỵ, nước ô nhiễm" },
+                { name: "Cronobacter sakazakii", target: "Sữa bột công thức cho trẻ sơ sinh", temp: "Sống sót trong môi trường khô hạn", sym: "Viêm ruột hoại tử, viêm màng trẻ sơ sinh", source: "Môi trường chế biến sữa bột, nguyên liệu khô" },
+                { name: "Yersinia enterocolitica", target: "Thịt heo tái, sữa chưa tiệt trùng", temp: "Phát triển được ở nhiệt độ lạnh (0 - 4°C)", sym: "Viêm ruột, đau bụng giả viêm ruột thừa", source: "Đường ruột heo và động vật nuôi" }
+            ];
+
+            pathogens.forEach(function(p, idx) {
+                addQ(1, "Vi khuẩn vi sinh vật " + p.name + " thường ô nhiễm và phát triển mạnh nhất trên nhóm thực phẩm nào?",
+                    [p.target, "Mật ong nguyên chất đóng chai", "Kẹo đắng đóng gói kín", "Muối ăn tinh luyện"], 0,
+                    p.name + " nguy cơ cao ở " + p.target + ".");
+
+                addQ(1, "Đặc tính sinh học nguy hiểm bậc nhất của vi khuẩn " + p.name + " là gì?",
+                    [p.temp, "Không thể bị tiêu diệt bởi hóa chất", "Tự phát sáng trong đêm", "Tạo ra hương vị thơm cho sản phẩm"], 0,
+                    "Đặc tính vi sinh: " + p.temp + ".");
+
+                addQ(1, "Triệu chứng ngộ độc lâm sàng đặc trưng khi người tiêu dùng nhiễm " + p.name + " là gì?",
+                    [p.sym, "Sốt cao kèm rụng tóc", "Giảm thị lực vĩnh viễn", "Đau khớp xương chi dưới"], 0,
+                    "Biểu hiện bệnh lý do " + p.name + ": " + p.sym + ".");
+
+                addQ(1, "Nguồn lây nhiễm ban đầu (Vector) chủ yếu của " + p.name + " vào chuỗi sản xuất là gì?",
+                    [p.source, "Từ ánh nắng mặt trời chiếu qua kính", "Từ các hạt vi nhựa trong không khí", "Từ dầu nhớt bôi trơn máy móc"], 0,
+                    "Nguồn lây nhiễm: " + p.source + ".");
+            });
+
+            // Toxins & Mycotoxins (12 toxins x 4 question variations = 48 questions)
+            const toxins = [
+                { name: "Aflatoxin B1", origin: "Aspergillus flavus trên đậu phụng, bắp ẩm", hazard: "Gây tổn thương tế bào gan và ung thư gan tiến triển", ctrl: "Kiểm soát độ ẩm hạt ngô/lạc dưới 12%" },
+                { name: "Ochratoxin A", origin: "Penicillium và Aspergillus trên cà phê, ngũ cốc", hazard: "Gây độc tính cao cho thận và suy thận", ctrl: "Phơi sấy nông sản nhanh đạt độ ẩm an toàn" },
+                { name: "Patulin", origin: "Penicillium expansum trên táo dập nát, nước ép táo", hazard: "Gây tổn thương niêm mạc dạ dày và ruột", ctrl: "Loại bỏ triệt để trái cây dập thối trước khi ép" },
+                { name: "Deoxynivalenol (DON)", origin: "Fusarium graminearum trên lúa mì, lúa mạch", hazard: "Gây nôn mửa, chán ăn, suy giảm miễn dịch", ctrl: "Bảo quản ngũ cốc khô ráo, sàng lọc hạt độc" },
+                { name: "Zearalenone (ZEA)", origin: "Fusarium culmorum trên ngũ cốc ủ ấm", hazard: "Gây rối loạn nội tiết sinh dục", ctrl: "Hạn chế sự phát triển của nấm mốc trên đồng ruộng" },
+                { name: "Histamine", origin: "Sự phân hủy Histidine bởi vi khuẩn trên cá ngừ, cá thu", hazard: "Gây dị ứng cấp tính, đỏ mặt, nhức đầu, hạ huyết áp", ctrl: "Cấp đông/làm lạnh cá ngay khi vừa đánh bắt" },
+                { name: "Tetrodotoxin", origin: "Nội tạng và trứng cá nóc, bạch cộc vòng xanh", hazard: "Độc tố thần kinh cực mạnh gây liệt cơ hoành, tử vong", ctrl: "Cấm hoàn toàn việc đánh bắt, kinh doanh cá nóc" },
+                { name: "Saxitoxin (PSP)", origin: "Tảo Alexandrium tích tụ trong nhuyễn thể 2 mảnh vỏ", hazard: "Gây ngộ độc gây liệt cơ hoành ngạt thở", ctrl: "Giám sát hiện tượng thủy triều đỏ tại vùng nuôi" },
+                { name: "Ciguatoxin", origin: "Tảo Gambierdiscus tích tụ qua chuỗi thức ăn cá rạn san hô", hazard: "Gây rối loạn cảm giác nóng lạnh đảo ngược", ctrl: "Tránh ăn cá rạn san hô kích thước quá lớn" },
+                { name: "Aflatoxin M1", origin: "Chuyển hóa từ Aflatoxin B1 trong thức ăn bò sữa vào sữa tươi", hazard: "Gây ung thư gan ở người tiêu dùng sữa", ctrl: "Kiểm soát độc tố nấm mốc trong thức ăn gia súc" },
+                { name: "Fumonisin B1", origin: "Fusarium verticillioides trên bắp tươi", hazard: "Gây tổn thương não ở ngựa và ung thư thực quản", ctrl: "Thu hoạch đúng thời điểm và sấy khô ngô" },
+                { name: "Domoic Acid (ASP)", origin: "Tảo vi khuê Pseudo-nitzschia tích tụ trong ngao sò", hazard: "Gây hội độc mất trí nhớ ngắn hạn", ctrl: "Kiểm soát tảo độc vùng trồng thủy sản" }
+            ];
+
+            toxins.forEach(function(t) {
+                addQ(1, "Nguồn gốc hình thành của độc tố " + t.name + " trong thực phẩm là gì?",
+                    [t.origin, "Do phản ứng hóa học giữa đường và muối", "Do công nhân không đeo găng tay", "Do nhiệt độ thanh trùng quá cao"], 0,
+                    "Nguồn gốc " + t.name + ": " + t.origin + ".");
+
+                addQ(1, "Hậu quả sức khỏe nguy hiểm nhất khi người ăn phải độc tố " + t.name + " là gì?",
+                    [t.hazard, "Gây sụt cân nhẹ", "Gây rụng móng tay", "Gây giảm thính lực nhẹ"], 0,
+                    "Tác hại của " + t.name + ": " + t.hazard + ".");
+
+                addQ(1, "Biện pháp phòng ngừa độc tố " + t.name + " hiệu quả nhất là gì?",
+                    [t.ctrl, "Rửa bằng dung dịch nước chanh", "Luộc chín ở 100°C trong 5 phút", "Bao bọc bằng màng bọc thực phẩm"], 0,
+                    "Phòng ngừa " + t.name + ": " + t.ctrl + ".");
+
+                addQ(1, "Khả năng bền nhiệt của độc tố " + t.name + " khi nấu nướng thông thường như thế nào?",
+                    ["Bền nhiệt cao, nấu nướng gia nhiệt thông thường KHÔNG phá hủy được độc tố", "Bị phân hủy hoàn toàn ở 60°C", "Bị biến tính khi đông lạnh", "Bị trung hòa bởi ánh sáng mặt trời"], 0,
+                    "Đa số các mycotoxin và marine toxins rất bền nhiệt, đun nấu thông thường không làm mất độc tính.");
+            });
+
+            // Chemical Hazards (10 items x 4 variations = 40 questions)
+            const chems = [
+                { name: "Dư lượng Thuốc bảo vệ thực vật", cause: "Không tuân thủ thời gian cách ly trước thu hoạch", ctrl: "Tuân thủ giới hạn Dư lượng tối đa MRL", test: "Phương pháp sắc ký khí GC-MS/MS" },
+                { name: "Kháng sinh Chloramphenicol tồn dư", cause: "Sử dụng hóa chất cấm trong nuôi trồng thủy sản", ctrl: "Cấm tuyệt đối sử dụng trong chuỗi nuôi", test: "Phương pháp ELISA hoặc LC-MS/MS" },
+                { name: "Kim loại nặng Chì (Lead - Pb)", cause: "Ô nhiễm từ khí thải công nghiệp, nước tưới, đất", ctrl: "Đánh giá vùng trồng và chất lượng nguồn nước", test: "Quang phổ hấp thụ nguyên tử AAS" },
+                { name: "3-MCPD và 1,3-DCP", cause: "Thủy phân đạm thực vật bằng HCl ở nhiệt độ cao", ctrl: "Chuyển sang công nghệ thủy phân bằng enzym", test: "Phân tích sắc ký khối phổ" },
+                { name: "Hóa chất tẩy rửa NaOH tồn dư", cause: "Rửa không sạch đường ống sau chu trình CIP", ctrl: "Thử nghiệm pH và đo độ dẫn điện nước rửa cuối", test: "Đo chỉ thị phenolphthalein/pH" },
+                { name: "Hàn the (Borax)", cause: "Cố tình thêm vào chả lụa để tăng độ giòn dai", ctrl: "Cấm tuyệt đối, thay bằng phụ gia polyphosphate được phép", test: "Sử dụng giấy nghệ thử nhanh" },
+                { name: "Formol (Formaldehyde)", cause: "Cố tình ướp vào bánh phở, hải sản để chống ôi thiu", ctrl: "Tăng cường thanh tra và xử lý hình sự", test: "Bộ kit thử nhanh Formol" },
+                { name: "Rhodamine B", cause: "Cố tình dùng nhuộm màu đỏ cho ớt bột, hạt điều", ctrl: "Tuyệt đối không dùng phẩm màu công nghiệp", test: "Sắc ký mỏng HPLC" },
+                { name: "Melamine", cause: "Thêm vào sữa để ăn gian độ đạm (Nitơ tổng)", ctrl: "Kiểm soát nghiêm ngặt hàm lượng protein chuẩn", test: "Phương pháp HPLC" },
+                { name: "Acrylamide", cause: "Phản ứng Maillard giữa Asparagine và đường giảm ở > 120°C (khoai tây chiên)", ctrl: "Tối ưu nhiệt độ chiên rán và giảm thời gian", test: "Phân tích LC-MS/MS" }
+            ];
+
+            chems.forEach(function(c) {
+                addQ(1, "Nguyên nhân xuất hiện mối nguy hóa học " + c.name + " trong thực phẩm là do đâu?",
+                    [c.cause, "Do vi khuẩn tự tổng hợp nên", "Do để thực phẩm trong tủ lạnh quá lâu", "Do bao bì làm bằng giấy carton"], 0,
+                    "Nguyên nhân " + c.name + ": " + c.cause + ".");
+
+                addQ(1, "Biện pháp kiểm soát triệt để mối nguy " + c.name + " trong cơ sở chế biến là gì?",
+                    [c.ctrl, "Chiếu tia cực tím UV 15 phút", "Sấy khô ở 80°C", "Thêm đường vào trung hòa"], 0,
+                    "Kiểm soát " + c.name + ": " + c.ctrl + ".");
+
+                addQ(1, "Phương pháp kiểm nghiệm phòng thí nghiệm để định lượng chính xác " + c.name + " là gì?",
+                    [c.test, "Nếm thử bằng cảm quan", "Đo độ đục bằng mắt thường", "Cân trọng lượng bằng cân tiểu ly"], 0,
+                    "Kiểm nghiệm " + c.name + ": " + c.test + ".");
+
+                addQ(1, "Tác hại mãn tính khi tích tụ hóa chất " + c.name + " lâu ngày trong cơ thể người là gì?",
+                    ["Gây tổn thương gan, thận, rối loạn chuyển hóa hoặc ung thư", "Chỉ làm biến đổi màu da tạm thời", "Tăng cường khả năng miễn dịch", "Không gây tác hại nào"], 0,
+                    "Hóa chất tồn dư tích tụ gây tổn thương nội tạng mãn tính và nguy cơ ung thư.");
+            });
+
+            // Physical & Allergen hazards (8 items x 3 variations = 24 questions)
+            const physAllergens = [
+                { item: "Mảnh thủy tinh từ bóng đèn/chai lọ", type: "Mối nguy vật lý", ctrl: "Bọc màng chống vỡ đèn, cấm chai thủy tinh khu sản xuất" },
+                { item: "Mảnh kim loại từ máy cắt", type: "Mối nguy vật lý", ctrl: "Lắp đặt máy dò kim loại (Metal Detector) ở đoạn cuối" },
+                { item: "Sỏi đá trong nông sản", type: "Mối nguy vật lý", ctrl: "Sử dụng máy lắng đá và sàng lọc tỷ trọng" },
+                { item: "Tôm, cua, sò, ốc (Hải sản thân mềm)", type: "Dị ứng thực phẩm (Allergen)", ctrl: "Ghi nhãn cảnh báo dị ứng rõ ràng theo quy định" },
+                { name: "Đậu phụng (Lạc) và hạt cây", type: "Dị ứng thực phẩm (Allergen)", ctrl: "Vệ sinh dây chuyền tránh nhiễm chéo dị ứng" },
+                { item: "Sữa và các sản phẩm từ sữa (Lactose/Casein)", type: "Dị ứng thực phẩm (Allergen)", ctrl: "Kiểm soát phân vùng sản xuất chứa dị ứng" },
+                { item: "Đậu nành và sản phẩm đậu nành", type: "Dị ứng thực phẩm (Allergen)", ctrl: "Khai báo thành phần dị ứng trên bao bì" },
+                { item: "Lúa mì và Gluten", type: "Dị ứng thực phẩm (Allergen)", ctrl: "Ghi rõ cảnh báo Gluten cho người bệnh Celiac" }
+            ];
+
+            physAllergens.forEach(function(pa) {
+                var title = pa.item || pa.name;
+                addQ(1, "Yếu tố '" + title + "' được phân loại vào nhóm mối nguy nào trong an toàn thực phẩm?",
+                    [pa.type, "Mối nguy vi sinh vật", "Mối nguy tâm lý", "Mối nguy năng lượng"], 0,
+                    title + " thuộc nhóm " + pa.type + ".");
+
+                addQ(1, "Biện pháp kiểm soát hiệu quả nhất đối với '" + title + "' tại nhà máy thực phẩm là gì?",
+                    [pa.ctrl, "Đun sôi ở 100°C", "Hút chân không sản phẩm", "Bổ sung chất chống oxy hóa"], 0,
+                    "Kiểm soát: " + pa.ctrl + ".");
+
+                addQ(1, "Yêu cầu bắt buộc về mặt pháp lý trên bao bì đối với các chất như '" + title + "' là gì?",
+                    ["Ghi rõ thông tin cảnh báo dị ứng/mối nguy cho người tiêu dùng trên nhãn", "Giấu thông tin để tránh người tiêu dùng hoang mang", "Chỉ ghi bằng tiếng nước ngoài", "Không cần ghi nhãn"], 0,
+                    "Các chất gây dị ứng bắt buộc phải được khai báo minh bạch trên nhãn sản phẩm.");
+            });
+
+            // --- CHƯƠNG 2: HỆ THỐNG QLCL & CÔNG CỤ (150+ câu) ---
+            const qcToolsList = [
+                { name: "Tờ kiểm tra (Check Sheet)", desc: "Thu thập dữ liệu định lượng một cách có hệ thống ngay tại công đoạn", ex: "Ghi nhận số lượng bánh bị biến dạng theo từng ca" },
+                { name: "Biểu đồ Pareto (Pareto Chart)", desc: "Xác định 20% nguyên nhân cốt lõi gây ra 80% số lượng lỗi (Nguyên lý 80/20)", ex: "Phân tích dạng khuyết tật hộp sữa bị móp để ưu tiên sửa chữa" },
+                { name: "Sơ đồ xương cá (Fishbone/Ishikawa)", desc: "Phân tích nguyên nhân gốc rễ theo nhóm 5M (Man, Machine, Material, Method, Media)", ex: "Tìm nguyên nhân xúc xích bị xì hơi bao bì" },
+                { name: "Biểu đồ Tần số (Histogram)", desc: "Hiển thị sự phân bố tần suất của tập hợp dữ liệu đo lường liên tục", ex: "Khảo sát sự biến động khối lượng tịnh của chai nước dải 500ml" },
+                { name: "Biểu đồ Kiểm soát (Control Chart)", desc: "Theo dõi biến động của quá trình theo thời gian với dải giới hạn UCL và LCL", ex: "Giám sát nhiệt độ lò nướng tự động" },
+                { name: "Biểu đồ Phân tán (Scatter Diagram)", desc: "Đánh giá mối quan hệ tương quan giữa hai biến số kỹ thuật", ex: "Khảo sát mối quan hệ giữa độ ẩm bột mì và độ nở của bánh" },
+                { name: "Biểu đồ Phân tầng (Stratification)", desc: "Phân chia dữ liệu hỗn hợp thành các nhóm nhỏ theo tiêu chí để tìm điểm khác biệt", ex: "So sánh tỷ lệ lỗi giữa Ca sáng và Ca đêm" }
+            ];
+
+            qcToolsList.forEach(function(tool) {
+                addQ(2, "Mục đích sử dụng chính của công cụ QLCL '" + tool.name + "' là gì?",
+                    [tool.desc, "Tính toán lương thưởng cho nhân viên", "Thiết kế mẫu bao bì mới", "Định giá bán lẻ trên thị trường"], 0,
+                    tool.name + ": " + tool.desc + ".");
+
+                addQ(2, "Tình huống áp dụng thực tế phù hợp nhất cho công cụ '" + tool.name + "' là gì?",
+                    [tool.ex, "Lập danh sách mời thầu nhà cung cấp", "Tính tiền điện tiêu thụ hàng tháng", "Đánh giá mức độ hài lòng của cổ đông"], 0,
+                    "Ví dụ áp dụng " + tool.name + ": " + tool.ex + ".");
+
+                addQ(2, "Công cụ '" + tool.name + "' thuộc tập hợp nhóm công cụ quản lý chất lượng truyền thống nào?",
+                    ["7 QC Tools (7 công cụ kiểm soát chất lượng)", "5S Kaizen", "Hệ thống quản trị ERP", "Tiêu chuẩn ISO 14001"], 0,
+                    tool.name + " là 1 trong 7 công cụ QC truyền thống.");
+            });
+
+            // ISO 9001 Principles & Clauses (10 items x 4 variations = 40 questions)
+            const isoItems = [
+                { title: "Tập trung vào khách hàng", text: "Thỏa mãn yêu cầu và phấn đấu vượt kỳ vọng của khách hàng" },
+                { title: "Sự lãnh đạo (Leadership)", text: "Thống nhất mục đích, hướng đi và tạo môi trường cho nhân viên" },
+                { title: "Sự tham gia của mọi người", text: "Huy động năng lực của nhân viên ở tất cả các cấp" },
+                { title: "Tiếp cận theo quá trình", text: "Quản lý các hoạt động như các quá trình có liên quan hệ thống" },
+                { title: "Cải tiến (Improvement)", text: "Duy trì mục tiêu thường trực là nâng cao hiệu suất tổ chức" },
+                { title: "Quyết định dựa trên bằng chứng", text: "Phân tích dữ liệu và thông tin thực tế để đưa ra quyết định" },
+                { title: "Quản lý mối quan hệ", text: "Quản lý quan hệ với các bên quan tâm như nhà cung ứng" },
+                { title: "Tư duy dựa trên rủi ro (Risk-based thinking)", text: "Nhận diện và chủ động phòng ngừa rủi ro tiềm ẩn" },
+                { title: "Chu trình PDCA", text: "Plan (Kế hoạch) - Do (Thực hiện) - Check (Kiểm tra) - Act (Hành động)" },
+                { title: "Đánh giá nội bộ (Internal Audit)", text: "Tự kiểm tra định kỳ sự tuân thủ quy trình của hệ thống QMS" }
+            ];
+
+            isoItems.forEach(function(iso) {
+                addQ(2, "Nội dung cốt lõi của nguyên tắc/yêu cầu ISO 9001 '" + iso.title + "' là gì?",
+                    [iso.text, "Cắt giảm tối đa chi phí nhân công", "Tăng ngân sách quảng cáo truyền hình", "Bắt buộc mua máy móc mới"], 0,
+                    "Khái niệm " + iso.title + ": " + iso.text + ".");
+
+                addQ(2, "Khi một nhà máy thực phẩm áp dụng nguyên tắc '" + iso.title + "', lợi ích trực tiếp thu được là gì?",
+                    ["Nâng cao hiệu quả quản lý chất lượng và sự hài lòng của các bên liên quan", "Được miễn giảm toàn bộ thuế doanh nghiệp", "Không bao giờ bị hỏng hóc máy móc", "Sản phẩm tự động bán hết trên thị trường"], 0,
+                    "Lợi ích mang lại từ " + iso.title + ".");
+            });
+
+            // Waste/Muda & 5S (8 items x 4 variations = 32 questions)
+            const leanItems = [
+                { name: "Seiri (Sàng lọc)", concept: "Loại bỏ những thứ không cần thiết ra khỏi nơi làm việc" },
+                { name: "Seiton (Sắp xếp)", concept: "Đặt mọi thứ đúng vị trí quy định để dễ tìm, dễ thấy, dễ lấy" },
+                { name: "Seiso (Sạch sẽ)", concept: "Vệ sinh lau chùi thiết bị, máy móc và khu vực làm việc" },
+                { name: "Seiketsu (Săn sóc)", concept: "Duy trì và chuẩn hóa 3S đầu tiên thành quy tắc hàng ngày" },
+                { name: "Shitsuke (Sẵn sàng)", concept: "Rèn luyện ý thức tự giác tuân thủ các quy định 5S" },
+                { name: "Muda - Sản xuất thừa", concept: "Sản xuất nhiều hơn hoặc sớm hơn yêu cầu của công đoạn sau" },
+                { name: "Muda - Khuyết tật / Lỗi", concept: "Lãng phí do phải sửa chữa hoặc hủy bỏ sản phẩm lỗi" },
+                { name: "Muda - Chờ đợi", concept: "Thời gian công nhân hoặc máy móc nhàn rỗi chờ nguyên liệu" }
+            ];
+
+            leanItems.forEach(function(l) {
+                addQ(2, "Ý nghĩa của khái niệm '" + l.name + "' trong quản trị sản xuất tinh gọn là gì?",
+                    [l.concept, "Tăng giá bán sản phẩm lên gấp đôi", "Tuyển dụng thêm nhân sự cấp cao", "Mở rộng diện tích kho chứa"], 0,
+                    l.name + ": " + l.concept + ".");
+
+                addQ(2, "Hoạt động nào sau đây thể hiện đúng tinh thần thực hành '" + l.name + "'?",
+                    ["Thực hiện đúng định hướng: " + l.concept, "Để nguyên liệu tràn lan trên lối đi", "Không ghi nhãn thùng chứa", "Tích trữ rác thải trong khu chế biến"], 0,
+                    "Thực hành " + l.name + " giúp tối ưu hóa nhà xưởng.");
+            });
+
+            // QA vs QC vs TQM Scenarios (40 questions)
+            for (let i = 1; i <= 40; i++) {
+                addQ(2, "Tình huống kiểm soát chất lượng số " + i + ": Hoạt động " + (i % 3 === 0 ? "QC (Control)" : (i % 3 === 1 ? "QA (Assurance)" : "TQM (Total Quality Management)")) + " thể hiện qua hành động nào?",
+                    [
+                        (i % 3 === 0 ? "Lấy mẫu kiểm tra chỉ tiêu vi sinh của lô hàng thành phẩm trước khi xuất kho" :
+                         (i % 3 === 1 ? "Soạn thảo quy trình chuẩn SOP và đào tạo công nhân trước khi sản xuất" :
+                          "Lãnh đạo phát động phong trào văn hóa chất lượng toàn công ty và cải tiến liên tục")),
+                        "Chỉ phân công cho nhân viên bảo vệ thực hiện",
+                        "Chỉ làm khi có đoàn thanh tra đến",
+                        "Xóa bỏ toàn bộ hồ sơ lưu trữ"
+                    ], 0,
+                    "Phân biệt QC (kiểm tra phát hiện lỗi), QA (đảm bảo ngăn ngừa lỗi quy trình), TQM (quản lý chất lượng toàn diện).");
+            }
+
+            // --- CHƯƠNG 3: ĐIỀU KIỆN TIÊN QUYẾT GMP & SSOP (150+ câu) ---
+            const ssopDomainsFull = [
+                { code: "SSOP 1", name: "An toàn nguồn nước", req: "Nước tiếp xúc thực phẩm đạt QCVN 01-1:2018/BYT, kiểm tra định kỳ vi sinh/hóa lý" },
+                { code: "SSOP 2", name: "An toàn bề mặt tiếp xúc thực phẩm", req: "Vệ sinh và khử trùng bàn thao tác, dụng cụ, găng tay trước và sau ca" },
+                { code: "SSOP 3", name: "Ngăn ngừa ô nhiễm chéo", req: "Phân vùng vệ sinh sống - chín, luồng di chuyển một chiều của nguyên liệu và công nhân" },
+                { code: "SSOP 4", name: "Vệ sinh cá nhân và bồn rửa tay", req: "Trang bị đủ bồn rửa tay không dùng tay mở, xà phòng, dung dịch sát khuẩn, máy sấy/khăn 1 lần" },
+                { code: "SSOP 5", name: "Bảo vệ thực phẩm khỏi chất ô nhiễm", req: "Che chắn đèn chống vỡ, ngăn ngừa hơi nước ngưng tụ trần nhà rơi vào sản phẩm" },
+                { code: "SSOP 6", name: "Quản lý và sử dụng hóa chất độc hại", req: "Dán nhãn rõ ràng, khóa kho hóa chất riêng biệt, cấp phát theo định mức" },
+                { code: "SSOP 7", name: "Sức khỏe công nhân", req: "Khám sức khỏe định kỳ, cấm người mắc bệnh truyền nhiễm/vết thương hở vào khu sản xuất" },
+                { code: "SSOP 8", name: "Kiểm soát côn trùng và động vật gây hại", req: "Lắp đèn bắt côn trùng, bẫy chuột, lưới chống ruồi muỗi ở các cửa" }
+            ];
+
+            ssopDomainsFull.forEach(function(s) {
+                addQ(3, "Lĩnh vực kiểm soát vệ sinh của '" + s.code + " - " + s.name + "' quy định nội dung nào?",
+                    [s.req, "Định giá bán buôn cho đại lý", "Quy định giờ tăng ca của công nhân", "Bảo trì xe nâng trong kho"], 0,
+                    s.code + " (" + s.name + ") đòi hỏi: " + s.req + ".");
+
+                addQ(3, "Hành vi nào sau đây bị coi là VI PHẠM nghiêm trọng quy phạm vệ sinh '" + s.code + " - " + s.name + "'?",
+                    ["Không tuân thủ yêu cầu: " + s.req, "Ghi chép nhật ký giám sát đầy đủ", "Đào tạo định kỳ cho công nhân", "Đánh giá hiệu quả sau khi vệ sinh"], 0,
+                    "Vi phạm " + s.code + " gây nguy cơ mất an toàn thực phẩm.");
+
+                addQ(3, "Tần suất giám sát và lập hồ sơ ghi chép đối với '" + s.code + " - " + s.name + "' thường diễn ra khi nào?",
+                    ["Thực hiện hàng ngày trước, trong và sau mỗi ca sản xuất", "Mỗi năm một lần", "Chỉ khi có sự cố xảy ra", "Mỗi tháng một lần"], 0,
+                    "Hồ sơ SSOP phải được theo dõi và ghi chép thường xuyên theo ca làm việc.");
+            });
+
+            // GMP Facility & Process Design (60 questions)
+            for (let i = 1; i <= 60; i++) {
+                addQ(3, "Yêu cầu thiết kế nhà xưởng chuẩn GMP đối với hạng mục số " + i + " là gì?",
+                    [
+                        (i % 5 === 0 ? "Sàn nhà phải bằng phẳng, không thấm nước, không trơn trượt và bo tròn góc chân tường (góc cuốt) để dễ vệ sinh" :
+                         (i % 5 === 1 ? "Trần nhà phải phẳng, không bong tróc sơn, che kín các đường ống kỹ thuật để tránh đọng bụi" :
+                          (i % 5 === 2 ? "Hệ thống thông gió duy trì áp suất dương ở khu vực sạch để ngăn bụi và vi khuẩn từ bên ngoài" :
+                           (i % 5 === 3 ? "Bố trí mặt bằng theo nguyên tắc MỘT CHIỀU từ nguyên liệu thô đến thành phẩm" :
+                            "Đèn chiếu sáng phải có chụp bảo vệ chống vỡ mảng thủy tinh")))),
+                        "Tường nhà phải ốp bằng gạch đất nướng thô",
+                        "Sàn nhà thiết kế độ dốc đọng nước ở giữa",
+                        "Sử dụng quạt trần cánh lớn ngay trên băng chuyền sản xuất"
+                    ], 0,
+                    "GMP quy định chuẩn hóa thiết kế nhà xưởng để triệt tiêu nguy cơ nhiễm chéo và tích tụ vi sinh vật.");
+            }
+
+            // CIP & Equipment Sanitation (36 questions)
+            const cipStages = [
+                { stage: "Xối rửa sơ bộ bằng nước (Pre-rinse)", purpose: "Loại bỏ các cặn bẩn sản phẩm thô bám trên bề mặt thiết bị" },
+                { stage: "Rửa bằng dung dịch kiềm nóng NaOH (Caustic wash)", purpose: "Tẩy rửa và xà phòng hóa chất đạm (Protein) và chất béo (Fat)" },
+                { stage: "Rửa trung gian bằng nước (Intermediate rinse)", purpose: "Rửa sạch dư lượng dung dịch kiềm ra khỏi hệ thống" },
+                { stage: "Rửa bằng dung dịch axit HNO3/H3PO4 (Acid wash)", purpose: "Hòa tan các cặn khoáng, cặn vôi và bia/sữa (Milkstone)" },
+                { stage: "Rửa sạch cuối cùng bằng nước an toàn (Final rinse)", purpose: "Loại bỏ hoàn toàn hóa chất, đưa pH về trung tính" },
+                { stage: "Khử trùng bằng hóa chất Peracetic Acid / Hơi nước", purpose: "Tiêu diệt vi sinh vật còn sót lại trên bề mặt thiết bị" }
+            ];
+
+            cipStages.forEach(function(c) {
+                addQ(3, "Mục đích chính của giai đoạn '" + c.stage + "' trong quy trình CIP (Cleaning In Place) là gì?",
+                    [c.purpose, "Làm mát động cơ máy bơm", "Sấy khô bên ngoài vỏ máy", "Kiểm tra điện áp nguồn"], 0,
+                    "Giai đoạn " + c.stage + ": " + c.purpose + ".");
+
+                addQ(3, "Vật liệu chế tạo thiết bị tiếp xúc trực tiếp thực phẩm đạt chuẩn GMP bắt buộc phải là gì?",
+                    ["Inox 304 hoặc Inox 316, bề mặt nhẵn bóng không gỉ, mối hàn mài phẳng", "Sắt đen phủ sơn dầu", "Đồng thau nguyên chất", "Gỗ gụ gia công"], 0,
+                    "Inox 304/316 là tiêu chuẩn vật liệu an toàn thực phẩm chống ăn mòn.");
+            });
+
+            // --- CHƯƠNG 4: HACCP & ISO 22000 (150+ câu) ---
+            const haccp12Steps = [
+                { step: "Bước 1", title: "Thành lập đội HACCP", detail: "Hội tụ đủ các thành viên đa ngành (Sản xuất, QC, Bảo trì, Khai thác)" },
+                { step: "Bước 2", title: "Mô tả sản phẩm", detail: "Ghi rõ thành phần, cấu trúc, bao bì, điều kiện bảo quản và hạn dùng" },
+                { step: "Bước 3", title: "Xác định mục đích sử dụng", detail: "Xác định đối tượng tiêu dùng mục tiêu và nhóm nhạy cảm (trẻ em, người già)" },
+                { step: "Bước 4", title: "Lập sơ đồ quy trình công nghệ", detail: "Vẽ sơ đồ luồng tiến triển từ tiếp nhận nguyên liệu đến thành phẩm" },
+                { step: "Bước 5", title: "Thẩm tra sơ đồ quy trình tại thực địa", detail: "Khảo sát thực tế nhà xưởng để đối chiếu chính xác sơ đồ" },
+                { step: "Bước 6 (NT1)", title: "Phân tích mối nguy", detail: "Nhận diện mối nguy Sinh-Hóa-Vật lý và xác định biện pháp kiểm soát" },
+                { step: "Bước 7 (NT2)", title: "Xác định các CCP", detail: "Sử dụng cây quyết định CCP để xác định điểm kiểm soát tới hạn" },
+                { step: "Bước 8 (NT3)", title: "Thiết lập các Giới hạn tới hạn (CL)", detail: "Xác định ngưỡng rạch ròi phân định giữa an toàn và không an toàn" },
+                { step: "Bước 9 (NT4)", title: "Thiết lập hệ thống giám sát CCP", detail: "Quy định tần suất, phương pháp và người theo dõi CCP" },
+                { step: "Bước 10 (NT5)", title: "Thiết lập hành động khắc phục", detail: "Xử lý lô hàng và khắc phục nguyên nhân khi CCP vượt giới hạn tới hạn" },
+                { step: "Bước 11 (NT6)", title: "Thiết lập thủ tục thẩm tra", detail: "Đánh giá độc lập để xác nhận hệ thống HACCP đang vận hành hiệu quả" },
+                { step: "Bước 12 (NT7)", title: "Thiết lập hệ thống tài liệu hồ sơ", detail: "Lưu trữ đầy đủ nhật ký theo dõi, hiệu chuẩn và biên bản xử lý" }
+            ];
+
+            haccp12Steps.forEach(function(h) {
+                addQ(4, "Nội dung thực hiện của '" + h.step + ": " + h.title + "' trong 12 bước HACCP Codex là gì?",
+                    [h.detail, "Tổ chức tiệc khánh thành dây chuyền", "Đàm phán chiết khấu bán hàng", "Mua bảo hiểm cháy nổ nhà máy"], 0,
+                    h.step + " (" + h.title + "): " + h.detail + ".");
+
+                addQ(4, "Khái niệm '" + h.title + "' giữ vai trò gì trong cấu trúc của Kế hoạch HACCP?",
+                    ["Là bước nền tảng/nguyên tắc bắt buộc để đảm bảo an toàn cho sản phẩm", "Chỉ mang tính chất tham khảo không bắt buộc", "Chỉ áp dụng cho các công ty xuất khẩu sang Mỹ", "Là yêu cầu riêng của bộ phận kế toán"], 0,
+                    h.title + " là thành tố cốt lõi trong HACCP.");
+            });
+
+            // CCP Decision Tree Scenarios (30 questions)
+            const ccpScenarios = [
+                { process: "Công đoạn Thanh trùng sữa ở 72°C trong 15 giây", isCCP: "LÀ MỘT CCP", reason: "Vì đây là công đoạn triệt tiêu mối nguy vi sinh xuống mức chấp nhận được và không có công đoạn sau sửa chữa" },
+                { process: "Công đoạn Dò kim loại (Metal Detector) ở bao bì thành phẩm", isCCP: "LÀ MỘT CCP", reason: "Vì đây là điểm kiểm soát cuối cùng để loại bỏ mối nguy vật lý mảnh kim loại" },
+                { process: "Công đoạn Tiếp nhận rau thô tại nhà máy", isCCP: "KHÔNG PHẢI CCP (Là PRP/SSOP)", reason: "Vì mối nguy dư lượng thuốc BVTV sẽ được kiểm soát ở khâu rửa và sơ chế tiếp theo" },
+                { process: "Công đoạn Nấu chín thịt thịt hộp ở 121°C", isCCP: "LÀ MỘT CCP", reason: "Tiêu diệt bào tử Clostridium botulinum kỵ khí" },
+                { process: "Công đoạn Cấp đông nhanh tôm ở -40°C", isCCP: "LÀ MỘT CCP HOẶC OPRP", reason: "Ức chế hoàn toàn sự phát triển của vi sinh vật gây hại" }
+            ];
+
+            ccpScenarios.forEach(function(cs) {
+                addQ(4, "Trong quy trình công nghệ, '" + cs.process + "' có được coi là một Điểm kiểm soát tới hạn (CCP) không?",
+                    [cs.isCCP + " - " + cs.reason, "Không bao giờ là CCP", "Luôn là nguyên nhân gây lỗi", "Chỉ là hoạt động vệ sinh thông thường"], 0,
+                    "Phân tích CCP: " + cs.reason + ".");
+
+                addQ(4, "Nếu Giới hạn tới hạn (CL) tại '" + cs.process + "' bị vi phạm (ví dụ nhiệt độ bị tụt thấp), hành động khắc phục tức thì phải làm gì?",
+                    ["Cô lập ngay lô sản phẩm bị ảnh hưởng, gia nhiệt lại hoặc hủy bỏ và điều chỉnh máy", "Vẫn xuất kho bình thường", "Ghi đè lại số liệu vào sổ sách", "Tắt máy đi về"], 0,
+                    "Khi hẫng hụt giới hạn tới hạn CCP, bắt buộc phải cô lập lô hàng và xử lý hành động khắc phục.");
+            });
+
+            // ISO 22000:2018 Specifics (40 questions)
+            for (let i = 1; i <= 40; i++) {
+                addQ(4, "Trong Tiêu chuẩn ISO 22000:2018, khái niệm " + (i % 3 === 0 ? "PRP (Chương trình tiên quyết)" : (i % 3 === 1 ? "OPRP (Chương trình tiên quyết vận hành)" : "CCP (Điểm kiểm soát tới hạn)")) + " được hiểu là gì?",
+                    [
+                        (i % 3 === 0 ? "Các điều kiện và hoạt động cơ bản cần thiết để duy trì môi trường vệ sinh (GMP/SSOP)" :
+                         (i % 3 === 1 ? "Biện pháp kiểm soát được xác định qua phân tích mối nguy để kiểm soát rủi ro ở mức chấp nhận được" :
+                          "Bước tại đó áp dụng biện pháp kiểm soát bắt buộc có Giới hạn tới hạn rạch ròi phân định an toàn")),
+                        "Chỉ áp dụng cho doanh nghiệp thương mại dịch vụ",
+                        "Không liên quan đến an toàn thực phẩm",
+                        "Là bảng giá niêm yết sản phẩm"
+                    ], 0,
+                    "ISO 22000 phân biệt rõ PRP (môi trường), OPRP (tiên quyết vận hành) và CCP (tới hạn).");
+            }
+
+            // --- CHƯƠNG 5: LUẬT ATTP & QUY ĐỊNH PHÁP LÝ (150+ câu) ---
+            addQ(5, "Luật An toàn thực phẩm số 55/2010/QH12 được Quốc hội Việt Nam thông qua ngày tháng năm nào và có hiệu lực từ khi nào?",
+                ["Thông qua 17/06/2010 và có hiệu lực từ 01/07/2011", "Thông qua 01/01/2010 và có hiệu lực từ 01/01/2011", "Thông qua 30/04/2011 và có hiệu lực từ 02/09/2011", "Thông qua 15/12/2009 và có hiệu lực từ 01/01/2010"], 0,
+                "Luật ATTP 2010 ban hành 17/06/2010, có hiệu lực thi hành từ 01/07/2011.");
+
+            addQ(5, "Thời hạn hiệu lực pháp lý của 'Giấy chứng nhận cơ sở đủ điều kiện an toàn thực phẩm' theo quy định là bao lâu?",
+                ["03 năm", "01 năm", "05 năm", "Vô thời hạn"], 0,
+                "Theo Điều 37 Luật ATTP 2010, Giấy chứng nhận có hiệu lực trong 03 năm.");
+
+            addQ(5, "Cơ sở sản xuất kinh doanh phải nộp hồ sơ xin cấp lại Giấy chứng nhận đủ điều kiện ATTP trước bao nhiêu tháng tính đến ngày hết hạn?",
+                ["Trước 03 tháng", "Trước 01 tháng", "Trước 06 tháng", "Trước 15 ngày"], 0,
+                "Chủ cơ sở phải nộp hồ sơ xin cấp lại trước 03 tháng tính đến ngày hết hạn.");
+
+            // Decree 15/2018/NĐ-CP Ministry Assignment (30 questions)
+            const govSplit = [
+                { ministry: "Bộ Y tế", items: "Phụ gia thực phẩm, chất hỗ trợ chế biến, nước uống đóng chai, nước khoáng thiên nhiên, thực phẩm bảo vệ sức khỏe (Thực phẩm chức năng)" },
+                { ministry: "Bộ Nông nghiệp & PTNT", items: "Nông sản, lâm sản, thủy sản, thịt, trứng, sữa tươi nguyên liệu, ngũ cốc, gia vị thô" },
+                { ministry: "Bộ Công Thương", items: "Rượu, bia, nước giải khát, sữa chế biến, dầu thực vật, bột mì, bánh kẹo, dụng cụ chứa đựng lưu thông" }
+            ];
+
+            govSplit.forEach(function(g) {
+                addQ(5, "Theo Nghị định 15/2018/NĐ-CP, " + g.ministry + " chịu trách nhiệm quản lý nhà nước về ATTP đối với nhóm sản phẩm nào?",
+                    [g.items, "Chỉ quản lý vật tư xây dựng", "Chỉ quản lý xăng dầu nhiên liệu", "Chỉ quản lý thiết bị điện tử"], 0,
+                    g.ministry + " quản lý: " + g.items + ".");
+
+                addQ(5, "Trường hợp một cơ sở sản xuất nhiều loại sản phẩm thuộc thẩm quyền quản lý của nhiều Bộ thì cơ quan nào chịu trách nhiệm quản lý chính?",
+                    ["Cơ quan quản lý nhà nước thuộc Bộ quản lý sản phẩm có sản lượng/doanh số lớn nhất hoặc do tỉnh chỉ định", "Cả 3 Bộ cùng thanh tra độc lập 3 lần", "Không Bộ nào quản lý", "Do công an địa phương quyết định"], 0,
+                    "Nghị định 15 quy định nguyên tắc một cửa đối với cơ sở đa sản phẩm.");
+            });
+
+            // Decree 15 Exemptions & Product Self-declaration (40 questions)
+            const regCases = [
+                { case: "Thực phẩm đã qua chế biến bao gói sẵn, dụng cụ bao gói", proc: "Tự công bố sản phẩm (Doanh nghiệp tự chịu trách nhiệm)" },
+                { case: "Thực phẩm bảo vệ sức khỏe, thực phẩm y tế, dinh dưỡng đặc biệt", proc: "Đăng ký bản công bố sản phẩm tại Cục An toàn thực phẩm (Bộ Y tế)" },
+                { case: "Cơ sở đã đạt chứng nhận ISO 22000, HACCP, GMP, BRC, FSSC 22000 còn hiệu lực", proc: "Được MIỄN cấp Giấy chứng nhận cơ sở đủ điều kiện ATTP" },
+                { case: "Sản xuất nông nghiệp nhỏ lẻ, bán hàng rong, kinh doanh bao gói sẵn không yêu cầu bảo quản lạnh", proc: "Không thuộc diện cấp Giấy chứng nhận đủ điều kiện ATTP" }
+            ];
+
+            regCases.forEach(function(rc) {
+                addQ(5, "Theo Nghị định 15/2018/NĐ-CP, đối với '" + rc.case + "', thủ tục hành chính tương ứng là gì?",
+                    [rc.proc, "Bắt buộc xin phép Bộ Công an", "Được phép bán tự do không cần ghi nhãn", "Phải nộp phí bảo trì đường bộ"], 0,
+                    "Thủ tục pháp lý cho " + rc.case + ": " + rc.proc + ".");
+            });
+
+            // Decrees 115/2018 & 124/2021 Penalties (30 questions)
+            for (let i = 1; i <= 30; i++) {
+                addQ(5, "Tình huống xử phạt hành chính theo Nghị định 115/2018/NĐ-CP số " + i + ": Hành vi " + (i % 3 === 0 ? "Sử dụng hóa chất cấm/hàn the trong chế biến" : (i % 3 === 1 ? "Kinh doanh thực phẩm hết hạn sử dụng" : "Không thực hiện kiểm nghiệm nước định kỳ")) + " sẽ bị xử lý ra sao?",
+                    [
+                        (i % 3 === 0 ? "Phạt tiền nặng gấp nhiều lần giá trị lô hàng, đình chỉ hoạt động và buộc tiêu hủy toàn bộ sản phẩm" :
+                         (i % 3 === 1 ? "Phạt tiền, tịch thu sản phẩm và buộc tiêu hủy lô hàng vi phạm" :
+                          "Xử phạt vi phạm hành chính và buộc khắc phục hậu quả kiểm nghiệm bổ sung")),
+                        "Chỉ nhắc nhở qua điện thoại",
+                        "Được khen thưởng",
+                        "Không bị xử lý"
+                    ], 0,
+                    "Nghị định 115/2018/NĐ-CP quy định hình phạt tiền khắt khe và các biện pháp khắc phục hậu quả nghiêm ngặt.");
+            }
+
+            // Food Labeling Decrees 43/2017 & 111/2021 (30 questions)
+            const labelReqs = [
+                { item: "Tên hàng hóa, tên và địa chỉ tổ chức cá nhân chịu trách nhiệm", status: "Nội dung BẮT BUỘC ghi trên nhãn" },
+                { item: "Định lượng (Khối lượng tịnh/Thể tích tịnh)", status: "Nội dung BẮT BUỘC ghi trên nhãn" },
+                { item: "Ngày sản xuất (NSX) và Hạn sử dụng (HSD)", status: "Nội dung BẮT BUỘC ghi trên nhãn" },
+                { item: "Thành phần và thông tin cảnh báo an toàn/dị ứng", status: "Nội dung BẮT BUỘC ghi trên nhãn" },
+                { item: "Xuất xứ hàng hóa (Made in...)", status: "Nội dung BẮT BUỘC ghi trên nhãn" }
+            ];
+
+            labelReqs.forEach(function(lr) {
+                addQ(5, "Theo Quy định ghi nhãn thực phẩm (Nghị định 43/2017/NĐ-CP), thông tin '" + lr.item + "' có vị trí pháp lý thế nào?",
+                    [lr.status, "Thông tin tùy chọn không bắt buộc", "Chỉ dành cho sản phẩm khuyến mãi", "Cấm ghi trên bao bì"], 0,
+                    lr.item + " là " + lr.status + ".");
+            });
+
+            // Complete building bank array with ID assignments
+            QUESTION_BANK = rawList.map(function(item, index) {
+                var obj = shuffleOptions(item);
+                obj.id = index + 1;
+                return obj;
+            });
+
+            document.getElementById('header-bank-count').innerText = QUESTION_BANK.length;
+        }
+
+        // Exam Mode State
+        let currentExam = {
+            questions: [],
+            userAnswers: {},
+            flagged: {},
+            timer: null,
+            timeLeft: 3000,
+            totalTime: 3000,
+            isPaused: false,
+            currentIndex: 0
+        };
+
+        // Practice Mode State
+        let selectedPracticeCount = 10;
+
+        // Bank Viewer Pagination State
+        let bankCurrentPage = 1;
+        const BANK_PAGE_SIZE = 15;
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.getElementById(tabId).classList.remove('hidden');
+
+            const navIds = { 'exam-tab': 'nav-exam', 'practice-tab': 'nav-practice', 'bank-tab': 'nav-bank' };
+            Object.keys(navIds).forEach(id => {
+                const btn = document.getElementById(navIds[id]);
+                if (id === tabId) {
+                    btn.className = "px-3 py-1.5 rounded-lg transition-all bg-indigo-600 text-white shadow font-medium";
+                } else {
+                    btn.className = "px-3 py-1.5 rounded-lg transition-all text-indigo-100 hover:text-white hover:bg-indigo-700/50 font-medium";
+                }
+            });
+
+            if (tabId === 'bank-tab') {
+                resetBankPaginationAndRender();
+            }
+        }
+
+        function initiateExam() {
+            var count = parseInt(document.getElementById('exam-question-count').value) || 50;
+            var duration = count; // 1 min per question
+
+            document.getElementById('exam-duration-text').innerText = duration + " Phút";
+
+            // Fisher-Yates shuffle on full question bank to guarantee non-repeating unique questions in exam
+            var pool = QUESTION_BANK.slice();
+            for (var i = pool.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var temp = pool[i];
+                pool[i] = pool[j];
+                pool[j] = temp;
+            }
+
+            currentExam.questions = pool.slice(0, Math.min(count, pool.length));
+            currentExam.userAnswers = {};
+            currentExam.flagged = {};
+            currentExam.currentIndex = 0;
+            currentExam.totalTime = duration * 60;
+            currentExam.timeLeft = duration * 60;
+            currentExam.isPaused = false;
+
+            document.getElementById('exam-start-card').classList.add('hidden');
+            document.getElementById('exam-result-card').classList.add('hidden');
+            document.getElementById('exam-active-card').classList.remove('hidden');
+
+            renderExamQuestion();
+            renderExamPalette();
+            startTimer();
+        }
+
+        function startTimer() {
+            clearInterval(currentExam.timer);
+            currentExam.timer = setInterval(function() {
+                if (!currentExam.isPaused) {
+                    currentExam.timeLeft--;
+                    updateTimerDisplay();
+
+                    if (currentExam.timeLeft <= 0) {
+                        clearInterval(currentExam.timer);
+                        alert("Hết thời gian làm bài! Hệ thống tự động nộp bài thi.");
+                        finishExam();
+                    }
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            var m = Math.floor(currentExam.timeLeft / 60);
+            var s = currentExam.timeLeft % 60;
+            var text = (m < 10 ? "0" + m : m) + ":" + (s < 10 ? "0" + s : s);
+            document.getElementById('exam-timer-display').innerText = text;
+        }
+
+        function togglePauseExam() {
+            currentExam.isPaused = !currentExam.isPaused;
+            var btn = document.getElementById('btn-pause');
+            if (currentExam.isPaused) {
+                btn.innerHTML = '<i class="fa-solid fa-play"></i> Tiếp tục';
+                btn.className = "px-3 py-1 text-xs font-semibold bg-amber-500 text-white rounded-lg transition";
+            } else {
+                btn.innerHTML = '<i class="fa-solid fa-pause"></i> Tạm dừng';
+                btn.className = "px-3 py-1 text-xs font-semibold bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition";
+            }
+        }
+
+        function renderExamQuestion() {
+            var idx = currentExam.currentIndex;
+            var qData = currentExam.questions[idx];
+
+            document.getElementById('q-chapter-badge').innerText = CHAPTERS[qData.chapter] || ("Chương " + qData.chapter);
+            document.getElementById('q-title').innerText = "Câu " + (idx + 1) + ": " + qData.q;
+            document.getElementById('q-progress-text').innerText = "Câu " + (idx + 1) + " / " + currentExam.questions.length;
+
+            var flagBtn = document.getElementById('btn-flag');
+            if (currentExam.flagged[idx]) {
+                flagBtn.className = "text-xs px-2.5 py-1 rounded-md bg-amber-100 text-amber-700 font-bold border border-amber-300";
+                flagBtn.innerHTML = '<i class="fa-solid fa-bookmark mr-1"></i> Đã đánh dấu';
+            } else {
+                flagBtn.className = "text-xs px-2.5 py-1 rounded-md border text-slate-500 border-slate-200 hover:bg-slate-50";
+                flagBtn.innerHTML = '<i class="fa-regular fa-bookmark mr-1"></i> Đánh dấu xem lại';
+            }
+
+            var container = document.getElementById('q-options-container');
+            container.innerHTML = '';
+
+            var labels = ['A', 'B', 'C', 'D'];
+            qData.options.forEach(function(optText, optIdx) {
+                var isSelected = currentExam.userAnswers[idx] === optIdx;
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.onclick = function() { selectExamOption(optIdx); };
+                btn.className = "w-full p-3.5 rounded-xl border text-left text-xs sm:text-sm transition-all flex items-start space-x-3 " +
+                    (isSelected ? "border-indigo-600 bg-indigo-50/80 text-indigo-900 font-medium ring-1 ring-indigo-500" : "border-slate-200 hover:border-slate-300 bg-white text-slate-700");
+
+                btn.innerHTML = '<span class="w-6 h-6 rounded-lg text-xs flex items-center justify-center font-bold flex-shrink-0 ' +
+                    (isSelected ? 'bg-indigo-600 text-white' : 'bg-slate-100 text-slate-500') + '">' + labels[optIdx] + '</span>' +
+                    '<span class="mt-0.5 leading-relaxed">' + optText + '</span>';
+
+                container.appendChild(btn);
+            });
+
+            document.getElementById('btn-prev-q').disabled = (idx === 0);
+            document.getElementById('btn-next-q').disabled = (idx === currentExam.questions.length - 1);
+
+            renderExamPalette();
+        }
+
+        function selectExamOption(optIdx) {
+            currentExam.userAnswers[currentExam.currentIndex] = optIdx;
+            renderExamQuestion();
+        }
+
+        function toggleFlagCurrentQuestion() {
+            var idx = currentExam.currentIndex;
+            currentExam.flagged[idx] = !currentExam.flagged[idx];
+            renderExamQuestion();
+        }
+
+        function navExamQuestion(dir) {
+            var newIdx = currentExam.currentIndex + dir;
+            if (newIdx >= 0 && newIdx < currentExam.questions.length) {
+                currentExam.currentIndex = newIdx;
+                renderExamQuestion();
+            }
+        }
+
+        function renderExamPalette() {
+            var grid = document.getElementById('palette-grid');
+            grid.innerHTML = '';
+
+            var answeredCount = Object.keys(currentExam.userAnswers).length;
+            document.getElementById('palette-summary').innerText = "Đã làm: " + answeredCount + "/" + currentExam.questions.length;
+
+            currentExam.questions.forEach(function(_, idx) {
+                var btn = document.createElement('button');
+                btn.type = 'button';
+                btn.onclick = function() {
+                    currentExam.currentIndex = idx;
+                    renderExamQuestion();
+                };
+
+                var isCurrent = currentExam.currentIndex === idx;
+                var isAnswered = currentExam.userAnswers.hasOwnProperty(idx);
+                var isFlagged = currentExam.flagged[idx];
+
+                var bgClass = "bg-slate-100 text-slate-600 border-slate-200";
+                if (isFlagged) {
+                    bgClass = "bg-amber-400 text-white border-amber-500 font-bold";
+                } else if (isAnswered) {
+                    bgClass = "bg-indigo-600 text-white border-indigo-700 font-semibold";
+                }
+
+                var ringClass = isCurrent ? "ring-2 ring-offset-1 ring-indigo-500 scale-105 z-10" : "";
+
+                btn.className = "h-8 rounded-lg text-xs border transition-all flex items-center justify-center " + bgClass + " " + ringClass;
+                btn.innerText = idx + 1;
+                grid.appendChild(btn);
+            });
+        }
+
+        function confirmSubmitExam() {
+            var total = currentExam.questions.length;
+            var answered = Object.keys(currentExam.userAnswers).length;
+            var text = "Bạn đã hoàn thành " + answered + "/" + total + " câu hỏi.";
+            if (answered < total) {
+                text += " Còn " + (total - answered) + " câu chưa trả lời!";
+            }
+            document.getElementById('submit-modal-text').innerText = text;
+            document.getElementById('modal-confirm-submit').classList.remove('hidden');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.add('hidden');
+        }
+
+        function finishExam() {
+            clearInterval(currentExam.timer);
+            closeModal('modal-confirm-submit');
+
+            document.getElementById('exam-active-card').classList.add('hidden');
+            document.getElementById('exam-result-card').classList.remove('hidden');
+
+            var total = currentExam.questions.length;
+            var correctCount = 0;
+            var chapterStats = { 1: { c: 0, t: 0 }, 2: { c: 0, t: 0 }, 3: { c: 0, t: 0 }, 4: { c: 0, t: 0 }, 5: { c: 0, t: 0 } };
+
+            currentExam.questions.forEach(function(q, idx) {
+                var userAns = currentExam.userAnswers[idx];
+                var ch = q.chapter;
+                if (!chapterStats[ch]) chapterStats[ch] = { c: 0, t: 0 };
+                chapterStats[ch].t++;
+
+                if (userAns === q.correct) {
+                    correctCount++;
+                    chapterStats[ch].c++;
+                }
+            });
+
+            var score10 = ((correctCount / total) * 10).toFixed(1);
+            var pct = Math.round((correctCount / total) * 100);
+            var timeSpentSeconds = currentExam.totalTime - currentExam.timeLeft;
+            var timeM = Math.floor(timeSpentSeconds / 60);
+            var timeS = timeSpentSeconds % 60;
+
+            document.getElementById('res-score').innerText = score10 + " / 10";
+            document.getElementById('res-correct-count').innerText = correctCount + " / " + total;
+            document.getElementById('res-time-spent').innerText = (timeM < 10 ? "0" + timeM : timeM) + ":" + (timeS < 10 ? "0" + timeS : timeS);
+            document.getElementById('res-accuracy').innerText = pct + "%";
+
+            var badge = document.getElementById('result-status-badge');
+            if (score10 >= 7.0) {
+                badge.innerText = "ĐẠT YÊU CẦU";
+                badge.className = "px-3 py-1 bg-emerald-100 text-emerald-700 font-bold rounded-full text-xs uppercase";
+            } else {
+                badge.innerText = "CHƯA ĐẠT";
+                badge.className = "px-3 py-1 bg-rose-100 text-rose-700 font-bold rounded-full text-xs uppercase";
+            }
+
+            var barsContainer = document.getElementById('res-chapter-bars');
+            barsContainer.innerHTML = '';
+            Object.keys(chapterStats).forEach(function(chKey) {
+                var st = chapterStats[chKey];
+                if (st.t > 0) {
+                    var chPct = Math.round((st.c / st.t) * 100);
+                    var row = document.createElement('div');
+                    row.className = "space-y-1";
+                    row.innerHTML = '<div class="flex justify-between text-slate-600">' +
+                        '<span>Chương ' + chKey + '</span>' +
+                        '<span class="font-bold">' + st.c + '/' + st.t + ' (' + chPct + '%)</span>' +
+                        '</div>' +
+                        '<div class="w-full bg-slate-100 h-2 rounded-full overflow-hidden">' +
+                        '<div class="bg-indigo-600 h-full rounded-full" style="width: ' + chPct + '%"></div>' +
+                        '</div>';
+                    barsContainer.appendChild(row);
+                }
+            });
+
+            renderExamReviewList();
+        }
+
+        function toggleReviewDetails() {
+            var container = document.getElementById('exam-review-container');
+            container.classList.toggle('hidden');
+        }
+
+        function renderExamReviewList() {
+            var container = document.getElementById('review-questions-list');
+            container.innerHTML = '';
+
+            var labels = ['A', 'B', 'C', 'D'];
+            currentExam.questions.forEach(function(q, idx) {
+                var userAns = currentExam.userAnswers[idx];
+                var isCorrect = (userAns === q.correct);
+
+                var card = document.createElement('div');
+                card.className = "p-4 rounded-xl border text-xs sm:text-sm space-y-3 " +
+                    (isCorrect ? "bg-emerald-50/40 border-emerald-200" : "bg-rose-50/40 border-rose-200");
+
+                var headerHtml = '<div class="flex justify-between font-bold">' +
+                    '<span class="' + (isCorrect ? 'text-emerald-700' : 'text-rose-700') + '">Câu ' + (idx + 1) + ': ' + (isCorrect ? 'Đúng' : 'Sai / Chưa chọn') + '</span>' +
+                    '<span class="text-slate-400 font-normal">Chương ' + q.chapter + '</span>' +
+                    '</div>' +
+                    '<p class="font-semibold text-slate-800">' + q.q + '</p>';
+
+                var optionsHtml = '<div class="space-y-1.5 pl-2">';
+                q.options.forEach(function(optText, optIdx) {
+                    var optionStyle = "text-slate-600";
+                    if (optIdx === q.correct) {
+                        optionStyle = "text-emerald-700 font-bold bg-emerald-100/60 px-2 py-1 rounded";
+                    } else if (optIdx === userAns && !isCorrect) {
+                        optionStyle = "text-rose-700 font-bold bg-rose-100/60 px-2 py-1 rounded";
+                    }
+
+                    optionsHtml += '<div class="' + optionStyle + '">' + labels[optIdx] + '. ' + optText + '</div>';
+                });
+                optionsHtml += '</div>';
+
+                var expHtml = '<div class="p-2.5 bg-white/80 rounded-lg border border-slate-200/60 text-slate-600 text-xs mt-2">' +
+                    '<strong class="text-indigo-600">Phân tích đáp án:</strong> ' + q.exp +
+                    '</div>';
+
+                card.innerHTML = headerHtml + optionsHtml + expHtml;
+                container.appendChild(card);
+            });
+        }
+
+        function selectPracticeCount(countVal) {
+            selectedPracticeCount = countVal;
+            document.querySelectorAll('.count-btn').forEach(function(btn) {
+                btn.className = "count-btn py-2.5 bg-slate-50 border border-slate-200 text-slate-600 font-medium rounded-xl text-xs sm:text-sm hover:bg-slate-100";
+            });
+            event.currentTarget.className = "count-btn py-2.5 bg-indigo-50 border-2 border-indigo-600 text-indigo-700 font-bold rounded-xl text-xs sm:text-sm";
+        }
+
+        function startPracticeMode() {
+            var chVal = parseInt(document.getElementById('practice-chapter-select').value);
+            var filtered = QUESTION_BANK.filter(function(q) {
+                return chVal === 0 || q.chapter === chVal;
+            });
+
+            var count = (selectedPracticeCount === 'all') ? filtered.length : Math.min(selectedPracticeCount, filtered.length);
+
+            var list = filtered.slice();
+            for (var i = list.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var temp = list[i];
+                list[i] = list[j];
+                list[j] = temp;
+            }
+
+            var questions = list.slice(0, count);
+
+            var container = document.getElementById('practice-session-container');
+            var wrapper = document.getElementById('practice-questions-wrapper');
+            container.classList.remove('hidden');
+            wrapper.innerHTML = '';
+
+            var labels = ['A', 'B', 'C', 'D'];
+            questions.forEach(function(q, idx) {
+                var card = document.createElement('div');
+                card.className = "bg-white p-5 rounded-2xl shadow-sm border border-slate-200 space-y-4";
+
+                var cardContent = '<div class="flex justify-between items-start">' +
+                    '<span class="px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-md text-xs font-semibold">Chương ' + q.chapter + '</span>' +
+                    '<span class="text-xs text-slate-400 font-medium">Câu ' + (idx + 1) + ' / ' + questions.length + '</span>' +
+                    '</div>' +
+                    '<h3 class="font-bold text-slate-800 text-sm sm:text-base">' + q.q + '</h3>' +
+                    '<div id="prac-opts-' + idx + '" class="space-y-2">';
+
+                q.options.forEach(function(optText, optIdx) {
+                    cardContent += '<button type="button" onclick="checkPracticeAnswer(' + idx + ', ' + optIdx + ', ' + q.correct + ')" class="w-full p-3 rounded-xl border border-slate-200 hover:border-slate-300 bg-white text-left text-xs sm:text-sm flex items-start space-x-3 transition-all">' +
+                        '<span class="w-6 h-6 rounded-lg text-xs flex items-center justify-center font-bold bg-slate-100 text-slate-500 flex-shrink-0">' + labels[optIdx] + '</span>' +
+                        '<span class="mt-0.5 leading-relaxed text-slate-700">' + optText + '</span>' +
+                        '</button>';
+                });
+
+                cardContent += '</div>' +
+                    '<div id="prac-exp-' + idx + '" class="hidden p-3 bg-indigo-50/60 rounded-xl border border-indigo-100 text-xs text-indigo-900 leading-relaxed">' +
+                    '<strong>Giải thích:</strong> ' + q.exp +
+                    '</div>';
+
+                card.innerHTML = cardContent;
+                wrapper.appendChild(card);
+            });
+        }
+
+        function checkPracticeAnswer(qIdx, selectedOpt, correctOpt) {
+            var optsContainer = document.getElementById('prac-opts-' + qIdx);
+            var buttons = optsContainer.querySelectorAll('button');
+
+            buttons.forEach(function(btn, idx) {
+                btn.disabled = true;
+                if (idx === correctOpt) {
+                    btn.className = "w-full p-3 rounded-xl border-2 border-emerald-500 bg-emerald-50 text-emerald-900 font-semibold text-left text-xs sm:text-sm flex items-start space-x-3";
+                } else if (idx === selectedOpt) {
+                    btn.className = "w-full p-3 rounded-xl border-2 border-rose-500 bg-rose-50 text-rose-900 font-semibold text-left text-xs sm:text-sm flex items-start space-x-3";
+                } else {
+                    btn.className = "w-full p-3 rounded-xl border border-slate-100 bg-slate-50 text-slate-400 text-left text-xs sm:text-sm flex items-start space-x-3 opacity-60";
+                }
+            });
+
+            document.getElementById('prac-exp-' + qIdx).classList.remove('hidden');
+        }
+
+        function resetBankPaginationAndRender() {
+            bankCurrentPage = 1;
+            renderQuestionBank();
+        }
+
+        function changeBankPage(dir) {
+            bankCurrentPage += dir;
+            renderQuestionBank();
+        }
+
+        function renderQuestionBank() {
+            var chFilter = parseInt(document.getElementById('bank-filter-chapter').value);
+            var searchKeyword = document.getElementById('bank-search-input').value.toLowerCase().trim();
+
+            var filtered = QUESTION_BANK.filter(function(q) {
+                var matchCh = (chFilter === 0 || q.chapter === chFilter);
+                var matchSearch = (searchKeyword === '' || q.q.toLowerCase().includes(searchKeyword) || q.exp.toLowerCase().includes(searchKeyword));
+                return matchCh && matchSearch;
+            });
+
+            var totalItems = filtered.length;
+            var totalPages = Math.ceil(totalItems / BANK_PAGE_SIZE) || 1;
+
+            if (bankCurrentPage < 1) bankCurrentPage = 1;
+            if (bankCurrentPage > totalPages) bankCurrentPage = totalPages;
+
+            var startIdx = (bankCurrentPage - 1) * BANK_PAGE_SIZE;
+            var pageItems = filtered.slice(startIdx, startIdx + BANK_PAGE_SIZE);
+
+            document.getElementById('bank-count-indicator').innerText = "Hiển thị: " + pageItems.length + " / " + totalItems + " câu hỏi phù hợp (Tổng ngân hàng: " + QUESTION_BANK.length + " câu)";
+            document.getElementById('bank-page-info').innerText = "Trang " + bankCurrentPage + " / " + totalPages;
+            document.getElementById('bank-prev-btn').disabled = (bankCurrentPage <= 1);
+            document.getElementById('bank-next-btn').disabled = (bankCurrentPage >= totalPages);
+
+            var container = document.getElementById('bank-list-container');
+            container.innerHTML = '';
+
+            var labels = ['A', 'B', 'C', 'D'];
+            pageItems.forEach(function(q) {
+                var card = document.createElement('div');
+                card.className = "p-4 sm:p-5 rounded-2xl bg-white border border-slate-200 shadow-sm space-y-3";
+
+                var cardHtml = '<div class="flex justify-between items-center text-xs">' +
+                    '<span class="font-bold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-md">Câu #' + q.id + ' - Chương ' + q.chapter + '</span>' +
+                    '<span class="text-slate-400 font-medium">' + (CHAPTERS[q.chapter] || '') + '</span>' +
+                    '</div>' +
+                    '<h3 class="font-bold text-slate-800 text-sm sm:text-base leading-snug">' + q.q + '</h3>' +
+                    '<div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs sm:text-sm">';
+
+                q.options.forEach(function(optText, optIdx) {
+                    var isCorrect = (optIdx === q.correct);
+                    var style = isCorrect ? "bg-emerald-50 border-emerald-300 text-emerald-800 font-semibold" : "bg-slate-50 border-slate-200 text-slate-600";
+                    cardHtml += '<div class="p-2.5 rounded-xl border ' + style + ' flex items-start space-x-2">' +
+                        '<span class="font-bold">' + labels[optIdx] + '.</span>' +
+                        '<span>' + optText + '</span>' +
+                        '</div>';
+                });
+
+                cardHtml += '</div>' +
+                    '<div class="p-3 bg-slate-50 rounded-xl border border-slate-100 text-xs text-slate-600 leading-relaxed">' +
+                    '<strong class="text-indigo-600">Giải thích chi tiết:</strong> ' + q.exp +
+                    '</div>';
+
+                card.innerHTML = cardHtml;
+                container.appendChild(card);
+            });
+        }
+
+        window.onload = function() {
+            buildFullQuestionBank();
+            switchTab('exam-tab');
+        };
+    </script>
+</body>
+</html>

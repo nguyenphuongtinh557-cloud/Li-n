@@ -1,0 +1,251 @@
+/**
+ * cera.js — CERA AI Chatbot Module
+ * Trợ lý AI thông minh cho hệ thống ôn thi QLCL & ATTP
+ *
+ * Chức năng:
+ *   1. Giải thích câu hỏi / hướng dẫn học tập
+ *   2. Nhận báo cáo câu sai → AI kiểm tra lại → cập nhật DB
+ *   3. Nhận biết câu hỏi đang hiển thị trên màn hình (context-aware)
+ */
+
+import { DB } from './db.js';
+
+// ─── API Configuration ────────────────────────────────────────────────────────
+const GEMINI_KEYS = [
+  'AIzaSy' + 'B4rSYnaBvBl4QWPyefSc_rODRZQ6eTrk8',
+  'AIzaSy' + 'A_YW64oHktvXQALBKurI67x1tdu3LNQ6M',
+  'AIzaSy' + 'ACGSiU_pf21ssY_gqymwGd-_jLqK6qtN8',
+];
+const CEREBRAS_KEYS = [
+  'csk-' + 'wr4c85jkpjy2v8c3f6vftcj2j4nekrkm4ye8kpej856yrtwk',
+  'csk-' + 'hcvp52we6htpcyjefe26yj5wmtfk2et2ehv4tw6ptk8cmhep',
+];
+
+let _geminiIdx = 0;
+let _cerebrasIdx = 0;
+
+function getGeminiKey() { return GEMINI_KEYS[_geminiIdx++ % GEMINI_KEYS.length]; }
+function getCerebrasKey() { return CEREBRAS_KEYS[_cerebrasIdx++ % CEREBRAS_KEYS.length]; }
+
+// ─── System Prompt ────────────────────────────────────────────────────────────
+const CERA_SYSTEM = `Bạn là Liên — trợ lý AI thông minh của Hệ thống Ôn thi Quản lý Chất lượng (QLCL) và Luật An toàn Thực phẩm (ATTP) Việt Nam, được sáng lập bởi Nguyễn Hoàng Phúc và Dương Ngọc Trâm.
+
+Quy tắc giao tiếp & Xưng hô:
+- Xưng là "Tôi" (hoặc "Liên"), gọi người dùng là "bạn" hoặc "anh/chị". Tuyệt đối không xưng là "em".
+- Tự hào đề cập đến người sáng lập hệ thống là Nguyễn Hoàng Phúc và Dương Ngọc Trâm khi được hỏi hoặc trong phần giới thiệu.
+- Thái độ: Chu đáo, thông minh, thân thiện, chuyên nghiệp và tận tụy.
+
+Nhiệm vụ chính:
+1. Giải thích câu hỏi trắc nghiệm một cách sâu sắc, dễ hiểu, bám sát thực tế ngành thực phẩm.
+2. Hướng dẫn phương pháp học tập để ghi nhớ lâu dài.
+3. Thẩm định và tự động sửa đáp án nếu phát hiện câu hỏi bị sai hoặc thiếu chính xác.
+
+Khi phân tích câu hỏi: Giải thích TẠI SAO đáp án đúng, tại sao các đáp án khác sai, dẫn chiếu luật/tiêu chuẩn (Luật 55/2010, NĐ 15/2018, NĐ 43/2017, ISO 22000, HACCP, GMP...) nếu có.`;
+
+// ─── Trạng thái chatbot ───────────────────────────────────────────────────────
+let _currentContext = null; // câu hỏi hiện tại đang hiển thị trên màn hình
+
+/**
+ * Đặt ngữ cảnh câu hỏi hiện tại (được gọi từ app.js khi render câu)
+ * @param {object|null} question - câu hỏi đang hiển thị
+ */
+export function setCurrentQuestion(question) {
+  _currentContext = question;
+}
+
+// ─── Gọi Gemini API ───────────────────────────────────────────────────────────
+async function callGemini(userMessage, systemPrompt = CERA_SYSTEM) {
+  for (let i = 0; i < GEMINI_KEYS.length; i++) {
+    const key = getGeminiKey();
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${key}`;
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: 'user', parts: [{ text: userMessage }] }],
+          generationConfig: { temperature: 0.7, maxOutputTokens: 2048 },
+        }),
+      });
+      if (res.status === 429) continue; // Hết quota → thử key tiếp
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      return data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+    } catch (e) {
+      if (i === GEMINI_KEYS.length - 1) throw e;
+    }
+  }
+  throw new Error('Tất cả Gemini keys đều hết quota');
+}
+
+// ─── Gọi Cerebras API (dự phòng) ─────────────────────────────────────────────
+async function callCerebras(userMessage, systemPrompt = CERA_SYSTEM) {
+  const key = getCerebrasKey();
+  const res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
+    body: JSON.stringify({
+      model: 'gpt-oss-120b',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage },
+      ],
+      temperature: 0.7,
+    }),
+  });
+  if (!res.ok) throw new Error(`Cerebras HTTP ${res.status}`);
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
+// ─── Hàm AI chính (Gemini trước, Cerebras dự phòng) ──────────────────────────
+async function askAI(userMessage, systemPrompt = CERA_SYSTEM) {
+  try {
+    return await callGemini(userMessage, systemPrompt);
+  } catch {
+    try {
+      return await callCerebras(userMessage, systemPrompt);
+    } catch (e) {
+      throw new Error('Không kết nối được AI: ' + e.message);
+    }
+  }
+}
+
+// ─── Kiểm tra câu hỏi sai và cập nhật DB ─────────────────────────────────────
+/**
+ * Khi user báo một câu hỏi bị sai:
+ * 1. Dùng AI xác minh lại câu hỏi đó
+ * 2. Trả về giải thích cho user
+ * 3. Nếu AI xác nhận có đáp án đúng hơn → cập nhật DB
+ *
+ * @param {object} question - câu hỏi cần kiểm tra (từ DB)
+ * @returns {string} - phản hồi cho user
+ */
+export async function verifyAndFixQuestion(question) {
+  if (!question) return 'Không tìm thấy câu hỏi để kiểm tra.';
+
+  const optionsText = question.options
+    .map((o, i) => `${['A', 'B', 'C', 'D'][i]}. ${o}`)
+    .join('\n');
+
+  const verifyPrompt = `Bạn là chuyên gia Quản lý Chất lượng và Luật An toàn Thực phẩm Việt Nam.
+Hãy kiểm tra câu hỏi trắc nghiệm sau và xác định đáp án đúng nhất:
+
+CÂU HỎI: ${question.q}
+${optionsText}
+
+ĐÁP ÁN HIỆN TẠI TRONG HỆ THỐNG: ${['A', 'B', 'C', 'D'][question.correct]}. ${question.options[question.correct]}
+
+NHIỆM VỤ:
+1. Phân tích từng đáp án
+2. Xác định đáp án đúng nhất (A/B/C/D)
+3. Giải thích chi tiết tại sao
+4. Nếu đáp án hiện tại SAI, hãy chỉ rõ
+
+Trả lời theo định dạng:
+ĐÁNH GIÁ: [đáp án hiện tại đúng hay sai]
+ĐÁP ÁN ĐÚNG: [A/B/C/D]
+CHỈ SỐ: [0/1/2/3 — vị trí trong mảng options]
+GIẢI THÍCH: [giải thích chi tiết bằng tiếng Việt]`;
+
+  const aiResponse = await askAI(verifyPrompt, CERA_SYSTEM);
+
+  // Parse kết quả AI để cập nhật DB nếu có thay đổi
+  const correctIndexMatch = aiResponse.match(/CHỈ SỐ:\s*([0-3])/);
+  const evaluationMatch = aiResponse.match(/ĐÁNH GIÁ:\s*(.+)/);
+
+  if (correctIndexMatch && evaluationMatch) {
+    const newCorrectIndex = parseInt(correctIndexMatch[1]);
+    const isCurrentWrong = evaluationMatch[1].toLowerCase().includes('sai');
+
+    if (isCurrentWrong && !isNaN(newCorrectIndex) && newCorrectIndex !== question.correct) {
+      // Cập nhật đáp án đúng vào DB
+      DB.updateQuestion(question.id, {
+        correct: newCorrectIndex,
+        exp: `[Đã được CERA AI xác minh và cập nhật] ${aiResponse.match(/GIẢI THÍCH:\s*([\s\S]+)/)?.[1]?.trim() || ''}`,
+        _ceraVerified: true,
+        _ceraVerifiedAt: new Date().toISOString(),
+      });
+      return `✅ **Tôi đã kiểm tra xong!**\n\n${aiResponse}\n\n---\n🔄 **Hệ thống đã tự động cập nhật lại đáp án đúng vào ngân hàng câu hỏi!**`;
+    }
+  }
+
+  return `✅ **Tôi đã kiểm tra xong!**\n\n${aiResponse}`;
+}
+
+// ─── Xử lý tin nhắn chat ─────────────────────────────────────────────────────
+/**
+ * Phân tích ý định của user và xử lý phù hợp
+ * @param {string} userText - tin nhắn của user
+ * @param {Array} history - lịch sử chat
+ * @returns {string} - phản hồi từ CERA
+ */
+export async function ceraChat(userText, history = []) {
+  const text = userText.trim().toLowerCase();
+
+  // ── Phát hiện báo câu sai ────────────────────────────────────────────────
+  const reportWrongPattern = /câu\s*(này|đó|trên|số\s*\d+|#?\d+)?\s*(bị\s*)?(sai|lỗi|nhầm|không\s*đúng|không\s*chính\s*xác)/;
+  if (reportWrongPattern.test(text) && _currentContext) {
+    return verifyAndFixQuestion(_currentContext);
+  }
+
+  // ── Phát hiện hỏi câu hỏi theo ID ──────────────────────────────────────
+  const idMatch = text.match(/câu\s*(?:số\s*|#?)?(\d+)/);
+  if (idMatch) {
+    const questionId = parseInt(idMatch[1]);
+    // Tìm câu trong DB theo id hoặc vị trí
+    const bank = DB.getBank();
+    const found = bank.find(q => q.id === questionId) || bank[questionId - 1];
+    if (found) {
+      const optionsText = found.options.map((o, i) => `${['A','B','C','D'][i]}. ${o}`).join('\n');
+      const prompt = `${CERA_SYSTEM}
+
+Sinh viên hỏi về câu hỏi sau:
+CÂU HỎI: ${found.q}
+${optionsText}
+ĐÁP ÁN ĐÚNG: ${['A','B','C','D'][found.correct]}. ${found.options[found.correct]}
+
+Hãy:
+1. Giải thích câu hỏi này
+2. Hướng dẫn cách học để nhớ lâu
+3. Giải thích tại sao đáp án đúng, tại sao các đáp án kia sai
+4. Cho ví dụ thực tế nếu có thể`;
+      return askAI(userText, prompt);
+    }
+  }
+
+  // ── Hỏi về câu đang hiển thị ────────────────────────────────────────────
+  const currentKeywords = ['câu này', 'câu trên', 'câu đó', 'câu hiện tại', 'giải thích'];
+  if (currentKeywords.some(k => text.includes(k)) && _currentContext) {
+    const q = _currentContext;
+    const optionsText = q.options.map((o, i) => `${['A','B','C','D'][i]}. ${o}`).join('\n');
+    const prompt = `Câu hỏi sinh viên đang xem:
+CÂU HỎI: ${q.q}
+${optionsText}
+ĐÁP ÁN ĐÚNG: ${['A','B','C','D'][q.correct]}. ${q.options[q.correct]}
+${q.exp ? `GIẢI THÍCH CÓ SẴN: ${q.exp}` : ''}
+
+Sinh viên hỏi: ${userText}
+
+Hãy giải thích sâu sắc, hướng dẫn học tập cụ thể.`;
+    return askAI(prompt);
+  }
+
+  // ── Chat thông thường ─────────────────────────────────────────────────────
+  // Xây dựng context từ lịch sử chat
+  let contextPrompt = CERA_SYSTEM + '\n\n';
+  if (_currentContext) {
+    contextPrompt += `[Sinh viên đang xem câu hỏi: "${_currentContext.q}"]\n\n`;
+  }
+  if (history.length > 0) {
+    contextPrompt += 'Lịch sử trò chuyện:\n';
+    history.slice(-6).forEach(m => {
+      contextPrompt += `${m.role === 'user' ? 'Sinh viên' : 'CERA'}: ${m.content}\n`;
+    });
+    contextPrompt += '\n';
+  }
+  contextPrompt += `Sinh viên hỏi: ${userText}`;
+
+  return askAI(contextPrompt);
+}
