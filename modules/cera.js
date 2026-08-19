@@ -274,8 +274,10 @@ export async function ceraChat(userText, history = []) {
   }
 
   // ── 2. Hỏi câu hỏi theo ID → TRUY XUẤT TRỰC TIẾP TỪ DB ─────────────────────
+  // Chỉ kích hoạt nếu câu hỏi rất ngắn (VD: "câu 15", "giải thích câu 15")
+  // Tránh lỗi khi user copy-paste toàn bộ câu hỏi dài có chứa chữ "Câu 1: ..."
   const idMatch = text.match(/câu\s*(?:số\s*|#?)?(\d+)/);
-  if (idMatch) {
+  if (idMatch && text.length < 40) {
     const questionId = parseInt(idMatch[1]);
     const bank = DB.getBank();
     const found = bank.find(q => q.id === questionId) || bank[questionId - 1];
