@@ -54,7 +54,8 @@ export function setCurrentQuestion(question) {
 
 // ─── Gọi Groq AI (Dự phòng cực nhanh & miễn phí) ────────────────────────────
 async function callGroq(userMessage, systemPrompt) {
-  const models = ['llama-3.1-8b-instant', 'llama-3.1-70b-versatile'];
+  // Cập nhật model Groq hiện đang hoạt động
+  const models = ['groq/compound-mini', 'openai/gpt-oss-120b'];
   for (const model of models) {
     for (let attempt = 0; attempt < GROQ_KEYS.length; attempt++) {
       const key = getGroqKey();
