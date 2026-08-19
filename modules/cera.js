@@ -220,6 +220,90 @@ GIẢI THÍCH: [giải thích chi tiết bằng tiếng Việt]`;
   return `✅ **Tôi đã kiểm tra xong!**\n\n${aiResponse}`;
 }
 
+// ─── Persistent Knowledge Cache Manager ────────────────────────────────────────
+const CACHE_KEY = 'cera_knowledge_cache';
+
+function getKnowledgeCache() {
+  try {
+    return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}');
+  } catch {
+    return {};
+  }
+}
+
+function saveKnowledgeCache(key, answer) {
+  try {
+    const cache = getKnowledgeCache();
+    const cleanKey = key.trim().toLowerCase();
+    cache[cleanKey] = {
+      answer,
+      savedAt: new Date().toISOString()
+    };
+    localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
+  } catch (e) {
+    console.warn('Lưu cache CERA thất bại:', e);
+  }
+}
+
+function searchKnowledgeCache(userQuery) {
+  const cache = getKnowledgeCache();
+  const q = userQuery.trim().toLowerCase();
+  
+  if (cache[q]) return cache[q].answer;
+  for (const [k, v] of Object.entries(cache)) {
+    if (k.length > 5 && (q.includes(k) || k.includes(q))) {
+      return v.answer;
+    }
+  }
+  return null;
+}
+
+// ─── Tìm kiếm trong Kho 703 câu hỏi & Nguồn tài liệu đã nạp ─────────────────────
+function searchLocalDatabase(userQuery) {
+  const qClean = userQuery.trim().toLowerCase();
+  const bank = DB.getBank();
+
+  // Tách từ khóa quan trọng
+  const words = qClean
+    .replace(/[^\w\sàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ]/g, '')
+    .split(/\s+/)
+    .filter(w => w.length > 2);
+
+  if (words.length > 0) {
+    let bestMatch = null;
+    let maxMatchScore = 0;
+
+    for (const item of bank) {
+      const itemText = (item.q + ' ' + (item.exp || '')).toLowerCase();
+      let score = 0;
+      words.forEach(w => {
+        if (itemText.includes(w)) score++;
+      });
+
+      // Nếu khớp từ 50% số từ khóa trở lên
+      if (score > maxMatchScore && score >= Math.ceil(words.length * 0.5)) {
+        maxMatchScore = score;
+        bestMatch = item;
+      }
+    }
+
+    if (bestMatch && maxMatchScore >= 2) {
+      return buildLocalExplanation(bestMatch);
+    }
+  }
+
+  // Tìm trong Nguồn tài liệu đã upload
+  const sources = DB.getSources();
+  for (const src of sources) {
+    const srcText = (src.content || '').toLowerCase();
+    if (words.length > 0 && words.some(w => srcText.includes(w))) {
+      return `📚 **TRUY XUẤT NGUỒN TÀI LIỆU ĐÃ NẠP ("${src.title}")** *(Phản hồi 0.001s)*\n\n${src.content.slice(0, 600)}...\n\n💡 *Dữ liệu được trích xuất trực tiếp từ tài liệu đã lưu trong hệ thống.*`;
+    }
+  }
+
+  return null;
+}
+
 // ─── Hàm trả lời tức thì từ Nguồn Dữ Liệu Hàn Lâm có sẵn (Không gọi AI API) ─
 function buildLocalExplanation(q) {
   const labels = ['A', 'B', 'C', 'D'];
@@ -262,18 +346,19 @@ export async function ceraChat(userText, history = []) {
     return verifyAndFixQuestion(_currentContext);
   }
 
-  // ── 2. Hỏi câu hỏi theo ID → TRUY XUẤT TRỰC TIẾP TỪ DB (Không gọi AI) ──────
+  // ── 2. Hỏi câu hỏi theo ID → TRUY XUẤT TRỰC TIẾP TỪ DB ─────────────────────
   const idMatch = text.match(/câu\s*(?:số\s*|#?)?(\d+)/);
   if (idMatch) {
     const questionId = parseInt(idMatch[1]);
     const bank = DB.getBank();
     const found = bank.find(q => q.id === questionId) || bank[questionId - 1];
     if (found) {
-      // Nếu user muốn giải thích sâu hơn nữa thì mới gọi AI, còn mặc định lấy từ DB sẵn có
       if (text.includes('sâu hơn') || text.includes('ví dụ')) {
         const optionsText = found.options.map((o, i) => `${['A','B','C','D'][i]}. ${o}`).join('\n');
         const prompt = `${CERA_SYSTEM}\n\nPhân tích mở rộng câu hỏi:\nCÂU HỎI: ${found.q}\n${optionsText}\nĐÁP ÁN ĐÚNG: ${['A','B','C','D'][found.correct]}. ${found.options[found.correct]}`;
-        return askAI(userText, prompt);
+        const resp = await askAI(prompt);
+        saveKnowledgeCache(userText, resp);
+        return resp;
       }
       return buildLocalExplanation(found);
     }

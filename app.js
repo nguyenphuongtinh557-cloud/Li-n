@@ -63,6 +63,9 @@ async function init() {
 
   updateBankCount();
   switchTab('exam-tab');
+
+  // Kích hoạt tính năng Kéo-Thả cho Chatbot Liên
+  initDraggableCera();
 }
 
 /* ════════════════════════════════════════════════════
@@ -1008,6 +1011,9 @@ function toggleCeraChat() {
   const badge = document.getElementById('cera-badge');
   if (!panel || !fab) return;
 
+  // Nếu người dùng vừa thực hiện hành động Kéo-Thả (Drag) FAB thì không toggle mở panel
+  if (fab.dataset.dragged === 'true') return;
+
   const isOpen = panel.classList.toggle('is-open');
   fab.classList.toggle('is-open', isOpen);
   panel.setAttribute('aria-hidden', !isOpen);
@@ -1017,6 +1023,96 @@ function toggleCeraChat() {
     document.getElementById('cera-input')?.focus();
     updateCeraContextUI();
   }
+}
+
+/* ════════════════════════════════════════════════════
+   DRAGGABLE CERA CHATBOT (KÉO-THẢ BẤT KỲ ĐÂU MÀN HÌNH)
+════════════════════════════════════════════════════ */
+function initDraggableCera() {
+  const fab = document.getElementById('cera-fab');
+  const panel = document.getElementById('cera-panel');
+  const header = document.querySelector('.cera-header');
+
+  if (fab) makeElementDraggable(fab, fab, true);
+  if (panel && header) makeElementDraggable(panel, header, false);
+}
+
+function makeElementDraggable(el, handle, isFab = false) {
+  let isDragging = false;
+  let startX, startY, initialLeft, initialTop;
+  let hasMoved = false;
+
+  handle.style.cursor = 'grab';
+
+  function onDown(e) {
+    if (e.target.closest('button') || e.target.closest('a') || e.target.closest('.cera-header-actions')) return;
+    isDragging = true;
+    hasMoved = false;
+    handle.style.cursor = 'grabbing';
+
+    const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+
+    startX = clientX;
+    startY = clientY;
+
+    const rect = el.getBoundingClientRect();
+    initialLeft = rect.left;
+    initialTop = rect.top;
+
+    el.style.right = 'auto';
+    el.style.bottom = 'auto';
+    el.style.left = `${initialLeft}px`;
+    el.style.top = `${initialTop}px`;
+
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onUp);
+  }
+
+  function onMove(e) {
+    if (!isDragging) return;
+    const clientX = e.type.startsWith('touch') ? e.touches[0].clientX : e.clientX;
+    const clientY = e.type.startsWith('touch') ? e.touches[0].clientY : e.clientY;
+
+    const dx = clientX - startX;
+    const dy = clientY - startY;
+
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+      hasMoved = true;
+      if (e.cancelable) e.preventDefault();
+    }
+
+    let newLeft = initialLeft + dx;
+    let newTop = initialTop + dy;
+
+    const maxLeft = window.innerWidth - el.offsetWidth;
+    const maxTop = window.innerHeight - el.offsetHeight;
+    newLeft = Math.max(10, Math.min(newLeft, maxLeft - 10));
+    newTop = Math.max(10, Math.min(newTop, maxTop - 10));
+
+    el.style.left = `${newLeft}px`;
+    el.style.top = `${newTop}px`;
+  }
+
+  function onUp() {
+    if (!isDragging) return;
+    isDragging = false;
+    handle.style.cursor = 'grab';
+    document.removeEventListener('mousemove', onMove);
+    document.removeEventListener('mouseup', onUp);
+    document.removeEventListener('touchmove', onMove);
+    document.removeEventListener('touchend', onUp);
+
+    if (isFab && hasMoved) {
+      el.dataset.dragged = 'true';
+      setTimeout(() => { el.dataset.dragged = 'false'; }, 200);
+    }
+  }
+
+  handle.addEventListener('mousedown', onDown);
+  handle.addEventListener('touchstart', onDown, { passive: false });
 }
 
 function clearCeraChat() {
