@@ -304,8 +304,15 @@ export async function ceraChat(userText, history = []) {
     return buildLocalExplanation(_currentContext);
   }
 
-  // ── Chat thông thường ─────────────────────────────────────────────────────
-  // Xây dựng context từ lịch sử chat
+  // ── 4. Tìm trong Knowledge Cache (câu hỏi đã học trước) ──────────────────
+  const cached = searchKnowledgeCache(userText);
+  if (cached) return `🧠 **TỪ BỘ NHỚ ĐÃ HỌC** *(0.001s)*\n\n${cached}`;
+
+  // ── 5. Tìm trong 703 câu DB + Tài liệu đã nạp ────────────────────────────
+  const localResult = searchLocalDatabase(userText);
+  if (localResult) return localResult;
+
+  // ── 6. Không có dữ liệu → Mới gọi CERA (Cerebras AI) ────────────────────
   let contextPrompt = CERA_SYSTEM + '\n\n';
   if (_currentContext) {
     contextPrompt += `[Sinh viên đang xem câu hỏi: "${_currentContext.q}"]\n\n`;
@@ -319,5 +326,7 @@ export async function ceraChat(userText, history = []) {
   }
   contextPrompt += `Sinh viên hỏi: ${userText}`;
 
-  return askAI(contextPrompt);
+  const aiReply = await askAI(contextPrompt);
+  saveKnowledgeCache(userText, aiReply);
+  return aiReply;
 }
