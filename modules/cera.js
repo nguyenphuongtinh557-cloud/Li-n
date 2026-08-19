@@ -49,7 +49,8 @@ export function setCurrentQuestion(question) {
 // ─── Gọi Cerebras (CERA) AI ───────────────────────────────────────────────────
 // CERA = Cerebras — chỉ gọi khi không tìm được dữ liệu trong hệ thống
 async function askAI(userMessage, systemPrompt = CERA_SYSTEM) {
-  const models = ['llama3.1-8b', 'llama3.1-70b'];
+  // Các model Cerebras đang hoạt động theo API
+  const models = ['gemma-4-31b', 'gpt-oss-120b'];
 
   for (const model of models) {
     for (let attempt = 0; attempt < CEREBRAS_KEYS.length; attempt++) {
