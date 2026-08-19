@@ -627,6 +627,81 @@
       document.head.appendChild(style);
     });
   </script>
+  <!-- ═══════════════ ADMIN MODALS (HIDDEN) ═══════════════ -->
+  <!-- 1. Admin List Modal -->
+  <div id="admin-list-modal" class="modal-overlay hidden" style="z-index: 9999;">
+    <div class="modal-box" style="max-width: 900px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header">
+        <h2>🛠️ Admin Panel - Quản Lý Câu Hỏi</h2>
+        <button class="btn-icon" onclick="document.getElementById('admin-list-modal').classList.add('hidden')">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body" style="flex: 1; overflow-y: auto; padding-top: 10px;">
+        <input type="text" id="admin-search-input" class="form-input" placeholder="🔍 Tìm kiếm câu hỏi (ID, nội dung)..." style="margin-bottom: 15px;">
+        <div class="table-responsive">
+          <table class="history-table" id="admin-questions-table">
+            <thead>
+              <tr>
+                <th style="width: 60px;">ID</th>
+                <th>Nội Dung Câu Hỏi</th>
+                <th style="width: 80px;">Sửa</th>
+              </tr>
+            </thead>
+            <tbody id="admin-questions-tbody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 2. Admin Edit Modal -->
+  <div id="admin-edit-modal" class="modal-overlay hidden" style="z-index: 10000;">
+    <div class="modal-box" style="max-width: 700px; width: 95%; max-height: 95vh; overflow-y: auto;">
+      <div class="modal-header">
+        <h2 id="admin-edit-title">Chỉnh Sửa Câu Hỏi</h2>
+        <button class="btn-icon" onclick="document.getElementById('admin-edit-modal').classList.add('hidden')">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body space-y-4">
+        <input type="hidden" id="admin-edit-id">
+        <div>
+          <label class="form-label">Câu hỏi:</label>
+          <textarea id="admin-edit-q" class="form-input" rows="3"></textarea>
+        </div>
+        
+        <div><label class="form-label">Đáp án A:</label><input type="text" id="admin-edit-opt0" class="form-input"></div>
+        <div><label class="form-label">Đáp án B:</label><input type="text" id="admin-edit-opt1" class="form-input"></div>
+        <div><label class="form-label">Đáp án C:</label><input type="text" id="admin-edit-opt2" class="form-input"></div>
+        <div><label class="form-label">Đáp án D:</label><input type="text" id="admin-edit-opt3" class="form-input"></div>
+        
+        <div>
+          <label class="form-label">Đáp án đúng (0=A, 1=B, 2=C, 3=D):</label>
+          <select id="admin-edit-correct" class="form-input">
+            <option value="0">A</option>
+            <option value="1">B</option>
+            <option value="2">C</option>
+            <option value="3">D</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="form-label">Giải thích:</label>
+          <textarea id="admin-edit-exp" class="form-input" rows="3"></textarea>
+        </div>
+
+        <div class="flex justify-end gap-2" style="margin-top: 20px;">
+          <button class="btn btn-secondary" onclick="document.getElementById('admin-edit-modal').classList.add('hidden')">Hủy</button>
+          <button class="btn btn-primary" onclick="adminSaveQuestion()">💾 Lưu & Đồng Bộ Lên Mạng</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="./app.js"></script>
 </body>
 </html>
 

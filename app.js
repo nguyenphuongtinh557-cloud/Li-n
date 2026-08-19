@@ -9,6 +9,7 @@ import { ExamEngine, ExamTimer } from './modules/exam.js';
 import { SEED_QUESTIONS } from './data/seed_questions.js';
 import { ceraChat, verifyAndFixQuestion, setCurrentQuestion } from './modules/cera.js';
 import { pullFromGitHub } from './modules/sync.js';
+import { initAdminAuth } from './modules/admin.js';
 
 /* ════════════════════════════════════════════════════
    APP STATE
@@ -78,6 +79,9 @@ async function init() {
 
   // Kích hoạt tính năng Kéo-Thả cho Chatbot Liên
   initDraggableCera();
+
+  // Kích hoạt bộ lắng nghe click ẩn 5 lần cho quyền Admin
+  initAdminAuth();
 }
 
 /* ════════════════════════════════════════════════════
