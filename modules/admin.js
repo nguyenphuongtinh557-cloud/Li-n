@@ -44,7 +44,7 @@ export function initAdminAuth() {
 }
 
 function openAdminPanel() {
-  document.getElementById('admin-list-modal').classList.remove('hidden');
+  document.getElementById('admin-list-modal').classList.add('open');
   renderAdminTable();
 
   // Search logic
@@ -108,7 +108,7 @@ window.openAdminEdit = function(id) {
   document.getElementById('admin-edit-correct').value = q.correct;
   document.getElementById('admin-edit-exp').value = q.exp || '';
 
-  document.getElementById('admin-edit-modal').classList.remove('hidden');
+  document.getElementById('admin-edit-modal').classList.add('open');
 };
 
 export async function adminSaveQuestion() {
@@ -141,7 +141,7 @@ export async function adminSaveQuestion() {
   DB.updateQuestion(id, updates);
   
   // 2. Giao diện mượt mà
-  document.getElementById('admin-edit-modal').classList.add('hidden');
+  document.getElementById('admin-edit-modal').classList.remove('open');
   renderAdminTable(document.getElementById('admin-search-input').value.toLowerCase());
   
   alert("Lưu thành công trên máy của bạn. Đang đồng bộ lên hệ thống chung...");

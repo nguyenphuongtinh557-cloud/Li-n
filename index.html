@@ -629,11 +629,11 @@
   </script>
   <!-- ═══════════════ ADMIN MODALS (HIDDEN) ═══════════════ -->
   <!-- 1. Admin List Modal -->
-  <div id="admin-list-modal" class="modal-overlay hidden" style="z-index: 9999;">
+  <div id="admin-list-modal" class="modal-overlay" style="z-index: 9999;">
     <div class="modal-box" style="max-width: 900px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">
       <div class="modal-header">
         <h2>🛠️ Admin Panel - Quản Lý Câu Hỏi</h2>
-        <button class="btn-icon" onclick="document.getElementById('admin-list-modal').classList.add('hidden')">
+        <button class="btn-icon" onclick="document.getElementById('admin-list-modal').classList.remove('open')">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
@@ -658,11 +658,11 @@
   </div>
 
   <!-- 2. Admin Edit Modal -->
-  <div id="admin-edit-modal" class="modal-overlay hidden" style="z-index: 10000;">
+  <div id="admin-edit-modal" class="modal-overlay" style="z-index: 10000;">
     <div class="modal-box" style="max-width: 700px; width: 95%; max-height: 95vh; overflow-y: auto;">
       <div class="modal-header">
         <h2 id="admin-edit-title">Chỉnh Sửa Câu Hỏi</h2>
-        <button class="btn-icon" onclick="document.getElementById('admin-edit-modal').classList.add('hidden')">
+        <button class="btn-icon" onclick="document.getElementById('admin-edit-modal').classList.remove('open')">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
@@ -694,7 +694,7 @@
         </div>
 
         <div class="flex justify-end gap-2" style="margin-top: 20px;">
-          <button class="btn btn-secondary" onclick="document.getElementById('admin-edit-modal').classList.add('hidden')">Hủy</button>
+          <button class="btn btn-secondary" onclick="document.getElementById('admin-edit-modal').classList.remove('open')">Hủy</button>
           <button class="btn btn-primary" onclick="adminSaveQuestion()">💾 Lưu & Đồng Bộ Lên Mạng</button>
         </div>
       </div>
