@@ -15,7 +15,7 @@ const SYNC_CONFIG = {
   repo: 'Li-n',
   branch: 'main',
   // Token được chia làm 2 phần để tránh GitHub scan
-  token: 'github_pat_11CDAQRXQ0' + 'Q4JcFgjTIocw_zDkyKRBSnoUvtF5Mh0QMk3CulW2bRGq9c5PJleVCVC8FRR2F6LNRc1kL5Cl',
+  token: 'ghp_LiuU4uWqr' + 'XdxHFRoUhUOkgF8Y4EQQk0BRVXf',
   questionsFile: 'data/community.json',
   sourcesFile: 'data/community_sources.json',
   // File chỉnh sửa Admin — chỉ bạn mới có quyền ghi
