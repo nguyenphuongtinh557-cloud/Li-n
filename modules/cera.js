@@ -346,6 +346,13 @@ ${q.exp ? q.exp : 'Đáp án này được trích xuất và thẩm định chí
  * @param {Array} history - lịch sử chat
  * @returns {string} - phản hồi từ CERA/Liên
  */
+// ─── Xử lý tin nhắn chat ─────────────────────────────────────────────────────
+/**
+ * Phân tích ý định của user và xử lý phù hợp
+ * @param {string} userText - tin nhắn của user
+ * @param {Array} history - lịch sử chat
+ * @returns {string} - phản hồi từ CERA/Liên
+ */
 export async function ceraChat(userText, history = []) {
   const text = userText.trim().toLowerCase();
 
@@ -355,49 +362,56 @@ export async function ceraChat(userText, history = []) {
     return verifyAndFixQuestion(_currentContext);
   }
 
-  // ── 2. Hỏi câu hỏi theo ID → TRUY XUẤT TRỰC TIẾP TỪ DB ─────────────────────
-  // Chỉ kích hoạt nếu câu hỏi rất ngắn (VD: "câu 15", "giải thích câu 15")
-  // Tránh lỗi khi user copy-paste toàn bộ câu hỏi dài có chứa chữ "Câu 1: ..."
-  const idMatch = text.match(/câu\s*(?:số\s*|#?)?(\d+)/);
-  if (idMatch && text.length < 40) {
+  // ── 2. Phát hiện Yêu cầu Hành động đặc biệt (Dịch thuật, Tóm tắt, Giải thích sâu, Ví dụ...) ───
+  // BẮT BUỘC gọi AI xử lý yêu cầu thay vì tự động trả về template câu hỏi trong DB!
+  const actionPattern = /(dịch|translate|nghĩa\s*là|nghĩa\s*của|tóm\s*tắt|sâu\s*hơn|ví\s*dụ|tại\s*sao|phân\s*tích|so\s*sánh|cho\s*biết|như\s*thế\s*nào|hướng\s*dẫn)/i;
+  if (actionPattern.test(userText)) {
+    let contextPrompt = CERA_SYSTEM + '\n\n';
+    if (_currentContext) {
+      const q = _currentContext;
+      const opts = q.options ? q.options.map((o, i) => `${['A','B','C','D'][i]}. ${o}`).join('\n') : '';
+      contextPrompt += `[Bối cảnh: Sinh viên đang xem câu hỏi: "${q.q}"\nCác đáp án:\n${opts}\nĐáp án đúng: ${['A','B','C','D'][q.correct]}]\n\n`;
+    }
+    if (history.length > 0) {
+      contextPrompt += 'Lịch sử trò chuyện:\n';
+      history.slice(-4).forEach(m => {
+        contextPrompt += `${m.role === 'user' ? 'Sinh viên' : 'Liên'}: ${m.content}\n`;
+      });
+      contextPrompt += '\n';
+    }
+    contextPrompt += `Sinh viên yêu cầu: ${userText}`;
+    
+    const resp = await askAI(contextPrompt);
+    saveKnowledgeCache(userText, resp);
+    return resp;
+  }
+
+  // ── 3. Hỏi câu hỏi theo ID ngắn (VD: "câu 15", "#15") ──────────────────────
+  const idMatch = text.match(/^câu\s*(?:số\s*|#?)?(\d+)$/);
+  if (idMatch) {
     const questionId = parseInt(idMatch[1]);
     const bank = DB.getBank();
     const found = bank.find(q => q.id === questionId) || bank[questionId - 1];
     if (found) {
-      if (text.includes('sâu hơn') || text.includes('ví dụ')) {
-        const optionsText = found.options.map((o, i) => `${['A','B','C','D'][i]}. ${o}`).join('\n');
-        const prompt = `${CERA_SYSTEM}\n\nPhân tích mở rộng câu hỏi:\nCÂU HỎI: ${found.q}\n${optionsText}\nĐÁP ÁN ĐÚNG: ${['A','B','C','D'][found.correct]}. ${found.options[found.correct]}`;
-        const resp = await askAI(prompt);
-        saveKnowledgeCache(userText, resp);
-        return resp;
-      }
       return buildLocalExplanation(found);
     }
   }
 
-  // ── 3. Hỏi về câu đang hiển thị → TRUY XUẤT TRỰC TIẾP TỪ DB (Không gọi AI) ─
-  const currentKeywords = ['câu này', 'câu trên', 'câu đó', 'câu hiện tại', 'giải thích', 'tại sao', 'đáp án'];
-  if (currentKeywords.some(k => text.includes(k)) && _currentContext) {
-    // Nếu user gõ yêu cầu phân tích sâu thêm thì mới gọi AI
-    if (text.includes('sâu hơn') || text.includes('ví dụ thực tế')) {
-      const q = _currentContext;
-      const optionsText = q.options.map((o, i) => `${['A','B','C','D'][i]}. ${o}`).join('\n');
-      const prompt = `Câu hỏi đang xem: ${q.q}\n${optionsText}\nĐÁP ÁN ĐÚNG: ${['A','B','C','D'][q.correct]}. ${q.options[q.correct]}`;
-      return askAI(userText, prompt);
-    }
-    // Ngược lại: Trả về trực tiếp dữ liệu hàn lâm từ DB!
+  // ── 4. Hỏi về câu đang hiển thị (VD: "câu này", "câu hiện tại") ─────────────
+  const currentKeywords = ['câu này', 'câu trên', 'câu đó', 'câu hiện tại'];
+  if (currentKeywords.some(k => text === k || text.includes(k)) && _currentContext) {
     return buildLocalExplanation(_currentContext);
   }
 
-  // ── 4. Tìm trong Knowledge Cache (câu hỏi đã học trước) ──────────────────
+  // ── 5. Tìm trong Knowledge Cache (câu hỏi đã học trước) ──────────────────
   const cached = searchKnowledgeCache(userText);
   if (cached) return `🧠 **TỪ BỘ NHỚ ĐÃ HỌC** *(0.001s)*\n\n${cached}`;
 
-  // ── 5. Tìm trong 703 câu DB + Tài liệu đã nạp ────────────────────────────
+  // ── 6. Tìm trong Kho câu hỏi DB (Chỉ trả DB khi không phải yêu cầu dịch/xử lý) ───
   const localResult = searchLocalDatabase(userText);
   if (localResult) return localResult;
 
-  // ── 6. Không có dữ liệu → Mới gọi CERA (Cerebras AI) ────────────────────
+  // ── 7. Không có dữ liệu → Gọi CERA AI ────────────────────────────────────
   let contextPrompt = CERA_SYSTEM + '\n\n';
   if (_currentContext) {
     contextPrompt += `[Sinh viên đang xem câu hỏi: "${_currentContext.q}"]\n\n`;
@@ -405,7 +419,7 @@ export async function ceraChat(userText, history = []) {
   if (history.length > 0) {
     contextPrompt += 'Lịch sử trò chuyện:\n';
     history.slice(-6).forEach(m => {
-      contextPrompt += `${m.role === 'user' ? 'Sinh viên' : 'CERA'}: ${m.content}\n`;
+      contextPrompt += `${m.role === 'user' ? 'Sinh viên' : 'Liên'}: ${m.content}\n`;
     });
     contextPrompt += '\n';
   }
@@ -415,3 +429,4 @@ export async function ceraChat(userText, history = []) {
   saveKnowledgeCache(userText, aiReply);
   return aiReply;
 }
+
