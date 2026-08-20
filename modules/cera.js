@@ -34,12 +34,21 @@ Quy tắc giao tiếp & Xưng hô:
 - Tự hào đề cập đến người sáng lập hệ thống là Nguyễn Hoàng Phúc và Dương Ngọc Trâm khi được hỏi hoặc trong phần giới thiệu.
 - Thái độ: Chu đáo, thông minh, thân thiện, chuyên nghiệp và tận tụy.
 
+Thông tin cá nhân hệ thống (trả lời tự nhiên khi được hỏi):
+- Người sáng lập Nguyễn Hoàng Phúc có người yêu tên là Như Phương, hiện đang theo học tại Trường Đại học Đồng Tháp, ngành Sư phạm Tin học.
+- Dương Ngọc Trâm là đồng sáng lập hệ thống cùng với Nguyễn Hoàng Phúc.
+
 Nhiệm vụ chính:
 1. Giải thích câu hỏi trắc nghiệm một cách sâu sắc, dễ hiểu, bám sát thực tế ngành thực phẩm.
 2. Hướng dẫn phương pháp học tập để ghi nhớ lâu dài.
 3. Thẩm định và tự động sửa đáp án nếu phát hiện câu hỏi bị sai hoặc thiếu chính xác.
 
-Khi phân tích câu hỏi: Giải thích TẠI SAO đáp án đúng, tại sao các đáp án khác sai, dẫn chiếu luật/tiêu chuẩn (Luật 55/2010, NĐ 15/2018, NĐ 43/2017, ISO 22000, HACCP, GMP...) nếu có.`;
+Khi phân tích câu hỏi: Giải thích TẠI SAO đáp án đúng, tại sao các đáp án khác sai, dẫn chiếu luật/tiêu chuẩn cụ thể:
+- Luật ATTP số 55/2010/QH12, Nghị định 15/2018/NĐ-CP, Nghị định 43/2017/NĐ-CP
+- ISO 22000:2018, HACCP (7 nguyên tắc Codex), GMP, SSOP
+- Thông tư 47/2009/TT-BNNPTNT (13 QCVN về điều kiện ATVSTP sản xuất thủy sản: QCVN 02-01 đến 02-13)
+- Thông tư 26/2016/TT-BNNPTNT & 36/2018/TT-BNNPTNT (kiểm dịch động vật và sản phẩm động vật thủy sản)
+- Thông tư 06/2022/TT-BNNPTNT (sửa đổi bổ sung về kiểm dịch thủy sản)\`;
 
 // ─── Trạng thái chatbot ───────────────────────────────────────────────────────
 let _currentContext = null; // câu hỏi hiện tại đang hiển thị trên màn hình
@@ -238,36 +247,55 @@ function searchKnowledgeCache(userQuery) {
   return null;
 }
 
-// ─── Tìm kiếm trong Kho 703 câu hỏi & Nguồn tài liệu đã nạp ─────────────────────
+// ─── Tìm kiếm trong Kho câu hỏi & Nguồn tài liệu đã nạp ────────────────────────
+// Dùng weighted scoring: từ dài (>4 ký tự) = đặc trưng hơn → trọng số cao hơn
 function searchLocalDatabase(userQuery) {
   const qClean = userQuery.trim().toLowerCase();
   const bank = DB.getBank();
 
-  // Tách từ khóa quan trọng
+  // Tách toàn bộ từ khóa (> 2 ký tự)
   const words = qClean
     .replace(/[^\w\sàáảãạăắằẳẵặâấầẩẫậèéẻẽẹêếềểễệìíỉĩịòóỏõọôốồổỗộơớờởỡợùúủũụưứừửữựỳýỷỹỵđ]/g, '')
     .split(/\s+/)
     .filter(w => w.length > 2);
 
   if (words.length > 0) {
+    // Phân loại từ khóa theo độ quan trọng
+    const longWords  = words.filter(w => w.length > 4);  // đặc trưng cao, trọng số 3
+    const shortWords = words.filter(w => w.length <= 4); // đặc trưng thấp, trọng số 1
+    const maxPossibleScore = longWords.length * 3 + shortWords.length * 1;
+
     let bestMatch = null;
     let maxMatchScore = 0;
 
     for (const item of bank) {
-      const itemText = (item.q + ' ' + (item.exp || '')).toLowerCase();
-      let score = 0;
-      words.forEach(w => {
-        if (itemText.includes(w)) score++;
-      });
+      const qText   = item.q.toLowerCase();
+      const expText = (item.exp || '').toLowerCase();
+      const combined = qText + ' ' + expText;
 
-      // Nếu khớp từ 50% số từ khóa trở lên
-      if (score > maxMatchScore && score >= Math.ceil(words.length * 0.5)) {
+      // Tính điểm weighted
+      let score = 0;
+      longWords.forEach(w  => { if (combined.includes(w)) score += 3; });
+      shortWords.forEach(w => { if (combined.includes(w)) score += 1; });
+
+      // Điều kiện 1: Phải đạt ≥ 60% tổng điểm tối đa
+      if (maxPossibleScore > 0 && score < maxPossibleScore * 0.6) continue;
+
+      // Điều kiện 2: Bắt buộc có ≥ 1 từ dài khớp (nếu query có từ dài)
+      const hasLongMatch = longWords.length === 0 || longWords.some(w => combined.includes(w));
+      if (!hasLongMatch) continue;
+
+      // Điều kiện 3: Phần exp phải chứa ít nhất 1 từ dài liên quan → trả lời có nghĩa
+      const expRelevant = longWords.length === 0 || longWords.some(w => expText.includes(w));
+      if (!expRelevant) continue;
+
+      if (score > maxMatchScore) {
         maxMatchScore = score;
         bestMatch = item;
       }
     }
 
-    if (bestMatch && maxMatchScore >= 2) {
+    if (bestMatch) {
       return buildLocalExplanation(bestMatch);
     }
   }
@@ -283,6 +311,7 @@ function searchLocalDatabase(userQuery) {
 
   return null;
 }
+
 
 // ─── Hàm trả lời tức thì từ Nguồn Dữ Liệu Hàn Lâm có sẵn (Không gọi AI API) ─
 function buildLocalExplanation(q) {
