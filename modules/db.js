@@ -10,7 +10,7 @@ const KEYS = {
   SOURCES: 'qlcl_sources',
   HISTORY: 'qlcl_exam_history',
   SETTINGS: 'qlcl_settings',
-  SEED_LOADED: 'qlcl_seed_loaded_v6',
+  SEED_LOADED: 'qlcl_seed_loaded_v7',
 };
 
 export const DB = {
