@@ -11345,5 +11345,805 @@
     "source": "ai_generated",
     "id": 753,
     "_synced": true
+  },
+  {
+    "q": "Để tránh việc thu hồi sản phẩm do lỗi nhãn thông tin (ví dụ: thiếu thông tin thành phần gây dị ứng), các bên liên quan nào cần phối hợp chặt chẽ nhất?",
+    "options": [
+      "Nhà sản xuất + Cơ quan quản lý Nhà nước + Nhà phân phối",
+      "Nhà sản xuất + Người tiêu dùng",
+      "Cơ quan quản lý Nhà nước + Người tiêu dùng",
+      "Nhà phân phối + Người tiêu dùng"
+    ],
+    "correct": 0,
+    "difficulty": 3,
+    "chapter": 1,
+    "exp": "Phối hợp giữa nhà sản xuất (đảm bảo nhãn đúng), cơ quan quản lý (giám sát tiêu chuẩn nhãn) và nhà phân phối (kiểm tra hàng trước khi tới người tiêu dùng) là yếu tố then chốt để ngăn ngừa lỗi nhãn và thu hồi.",
+    "source": "ai_generated",
+    "id": 754,
+    "_synced": true
+  },
+  {
+    "q": "Thuộc tính nào của chất lượng thực phẩm liên quan đến các đặc điểm cảm quan như màu sắc, hương vị và kết cấu?",
+    "options": [
+      "Chất lượng dinh dưỡng",
+      "Chất lượng vệ sinh",
+      "Chất lượng cảm quan",
+      "Chất lượng sử dụng"
+    ],
+    "correct": 2,
+    "difficulty": 1,
+    "chapter": 1,
+    "exp": "Chất lượng cảm quan (cảm giác) là những yếu tố người tiêu dùng cảm nhận bằng các giác quan.",
+    "source": "ai_generated",
+    "id": 755,
+    "_synced": true
+  },
+  {
+    "q": "Công ty sản xuất xúc xích nhận phản hồi từ khách hàng về việc lô hàng mới có màu sắc nhạt nhòa, cấu trúc bị bở và thiếu hương vị hun khói đặc trưng, mặc dù chỉ tiêu vi sinh và hóa học đều đạt an toàn. Lô hàng này đang gặp sự cố ở thuộc tính chất lượng nào?",
+    "options": [
+      "Chất lượng vệ sinh",
+      "Chất lượng dinh dưỡng",
+      "Chất lượng thị hiếu (cảm quan)",
+      "Chất lượng sử dụng"
+    ],
+    "correct": 2,
+    "difficulty": 2,
+    "chapter": 1,
+    "exp": "Chất lượng thị hiếu (cảm quan) thể hiện qua các đặc điểm người tiêu dùng cảm nhận trực tiếp bằng giác quan như màu sắc, mùi vị, cấu trúc, độ mềm/giòn.",
+    "source": "ai_generated",
+    "id": 756,
+    "_synced": true
+  },
+  {
+    "q": "Trong bối cảnh các bên liên quan phối hợp để duy trì chất lượng thực phẩm, ai là người chịu trách nhiệm chính trong việc ngăn ngừa suy giảm chất lượng do điều kiện bảo quản không đạt chuẩn sau khi sản phẩm rời nhà máy?",
+    "options": [
+      "Nhà sản xuất",
+      "Nhà phân phối và bán lẻ",
+      "Tổ chức kiểm định và chứng nhận",
+      "Cơ quan quản lý nhà nước"
+    ],
+    "correct": 1,
+    "difficulty": 3,
+    "chapter": 1,
+    "exp": "Sau khi sản phẩm rời nhà máy, nhà phân phối và bán lẻ kiểm soát môi trường bảo quản (nhiệt độ, độ ẩm, vệ sinh) nên là người chịu trách nhiệm chính.",
+    "source": "ai_generated",
+    "id": 757,
+    "_synced": true
+  },
+  {
+    "q": "Một nhà máy đồ hộp nhận thấy tỷ lệ sản phẩm lỗi hở mí đóng gói có xu hướng tăng. Trưởng phòng Sản xuất kiến nghị Ban Giám đốc không chỉ quy trách nhiệm cho riêng đội ngũ QC (kiểm soát chất lượng) mà cần tổ chức buổi đối thoại với công nhân đứng máy đóng gói, khuyến khích họ đóng góp ý kiến và đề xuất giải pháp cải tiến thao tác vận hành. Đề xuất này dựa trên nguyên tắc nào?",
+    "options": [
+      "Quan hệ hợp tác có lợi với nhà cung cấp",
+      "Sự tham gia của mọi người",
+      "Tiếp cận theo hệ thống",
+      "Quyết định dựa trên sự kiện"
+    ],
+    "correct": 1,
+    "difficulty": 2,
+    "chapter": 1,
+    "exp": "Chất lượng không phải trách nhiệm riêng của bộ phận kiểm tra (QC) mà cần sự tham gia, chủ động đề xuất giải pháp của nhân viên ở mọi cấp độ (công nhân trực tiếp), đúng với nguyên tắc 'Sự tham gia của mọi người'.",
+    "source": "ai_generated",
+    "id": 758,
+    "_synced": true
+  },
+  {
+    "q": "Công ty chế biến sữa tươi X gặp tình trạng chất lượng sữa nguyên liệu thu mua từ các hộ dân không ổn định. Thay vì liên tục thay đổi đối tác hoặc ép giá, công ty đã cử chuyên gia kỹ thuật xuống tận nông hộ hướng dẫn quy trình vắt sữa an toàn, hỗ trợ thiết bị bảo quản lạnh và cam kết bao tiêu sản phẩm lâu dài. Hành động của Công ty X thể hiện việc ứng dụng nguyên tắc nào?",
+    "options": [
+      "Tiếp cận theo quá trình",
+      "Sự tham gia của mọi người",
+      "Quan hệ hợp tác có lợi với nhà cung cấp",
+      "Quyết định dựa trên sự kiện"
+    ],
+    "correct": 2,
+    "difficulty": 2,
+    "chapter": 1,
+    "exp": "Việc hỗ trợ kỹ thuật và cam kết thu mua lâu dài tạo mối quan hệ phụ thuộc lẫn nhau, giúp nâng cao chất lượng đầu vào và cùng tạo ra giá trị gia tăng, thể hiện nguyên tắc 'Quan hệ hợp tác có lợi với nhà cung cấp'.",
+    "source": "ai_generated",
+    "id": 759,
+    "_synced": true
+  },
+  {
+    "q": "Quyết định dựa trên sự kiện trong quản lý chất lượng thực phẩm được thực hiện dựa trên yếu tố nào?",
+    "options": [
+      "Cảm tính và kinh nghiệm cá nhân",
+      "Phân tích dữ liệu, kết quả kiểm nghiệm và phản hồi khách hàng",
+      "Sở thích của nhà cung cấp",
+      "Quy định pháp luật cũ không thay đổi"
+    ],
+    "correct": 1,
+    "difficulty": 1,
+    "chapter": 1,
+    "exp": "Quyết định dựa trên sự kiện dựa vào dữ liệu, kết quả kiểm nghiệm và phản hồi khách hàng để đưa ra biện pháp khắc phục.",
+    "source": "ai_generated",
+    "id": 760,
+    "_synced": true
+  },
+  {
+    "q": "Nguyên tắc đầu tiên trong hệ thống quản lý chất lượng ISO 9000 là gì?",
+    "options": [
+      "Cải tiến liên tục",
+      "Tập trung vào khách hàng",
+      "Tiếp cận theo quy trình",
+      "Lãnh đạo"
+    ],
+    "correct": 1,
+    "difficulty": 1,
+    "chapter": 1,
+    "exp": "Nguyên tắc đầu tiên của ISO 9000 nhấn mạnh việc hiểu và đáp ứng nhu cầu của khách hàng.",
+    "source": "ai_generated",
+    "id": 761,
+    "_synced": true
+  },
+  {
+    "q": "Công ty X sản xuất bánh nướng có mẫu mã bao bì rất bắt mắt và hương vị thơm ngon xuất sắc (đạt điểm cảm quan tối đa). Tuy nhiên, kết quả kiểm nghiệm cho thấy lô sản phẩm chứa độc tố aflatoxin vượt mức cho phép, gây nguy cơ ngộ độc cao. Giá trị chất lượng của lô sản phẩm này được đánh giá như thế nào?",
+    "options": [
+      "Đạt chất lượng cao vì có cảm quan và bao bì rất đẹp",
+      "Đạt chất lượng trung bình vì hương vị ngon bù đắp cho chỉ tiêu vi sinh",
+      "Chất lượng bằng không vì an toàn thực phẩm là điều kiện tiên quyết và là thuộc tính bắt buộc",
+      "Tùy thuộc vào việc khách hàng có bị ngộ độc thực tế hay không"
+    ],
+    "correct": 2,
+    "difficulty": 2,
+    "chapter": 1,
+    "exp": "An toàn thực phẩm là nền tảng thấp nhất và là điều kiện tiên quyết. Nếu sản phẩm chứa độc tố gây ngộ độc thì chất lượng của sản phẩm đó bằng không, bất chấp các chỉ tiêu cảm quan khác.",
+    "source": "ai_generated",
+    "id": 762,
+    "_synced": true
+  },
+  {
+    "q": "Doanh nghiệp đồ hộp cải tiến bao bì sản phẩm bằng cách bổ sung nắp giật dễ mở, in rõ thông tin hướng dẫn bảo quản sau khi mở nắp và mã QR truy xuất nguồn gốc. Việc cải tiến này nhằm mục đích nâng cao thuộc tính chất lượng nào?",
+    "options": [
+      "Chất lượng sử dụng (dịch vụ)",
+      "Chất lượng dinh dưỡng",
+      "Chất lượng vệ sinh",
+      "Chất lượng cảm quan"
+    ],
+    "correct": 0,
+    "difficulty": 2,
+    "chapter": 1,
+    "exp": "Chất lượng sử dụng (dịch vụ) thể hiện ở khả năng bảo quản, bao bì tiện lợi, thông tin ghi nhãn đầy đủ và chính xác, tạo thuận tiện cho người tiêu dùng.",
+    "source": "ai_generated",
+    "id": 763,
+    "_synced": true
+  },
+  {
+    "q": "Tiêu chuẩn nào sau đây không thuộc danh sách các tiêu chuẩn quốc tế/việt cho an toàn thực phẩm?",
+    "options": [
+      "HACCP",
+      "ISO 22000",
+      "VietGAP",
+      "ISO 9000"
+    ],
+    "correct": 3,
+    "difficulty": 1,
+    "chapter": 1,
+    "exp": "ISO 9000 là tiêu chuẩn quản lý chất lượng chung, không chuyên về an toàn thực phẩm như các tiêu chuẩn còn lại.",
+    "source": "ai_generated",
+    "id": 764,
+    "_synced": true
+  },
+  {
+    "q": "Trong vai trò của nhà phân phối và bán lẻ, yếu tố nào không được đề cập trong tài liệu để duy trì chất lượng sản phẩm?",
+    "options": [
+      "Kiểm soát nhiệt độ",
+      "Kiểm soát độ ẩm",
+      "Đào tạo nhân viên về vệ sinh",
+      "Quảng cáo tiếp thị"
+    ],
+    "correct": 3,
+    "difficulty": 1,
+    "chapter": 1,
+    "exp": "Tài liệu nhắc đến nhiệt độ, độ ẩm và vệ sinh, nhưng không đề cập đến quảng cáo tiếp thị.",
+    "source": "ai_generated",
+    "id": 765,
+    "_synced": true
+  },
+  {
+    "q": "Đoàn thanh tra của Cơ quan Quản lý Nhà nước đột xuất kiểm tra một cơ sở chế biến thủy sản và phát hiện vi phạm về quy chuẩn vệ sinh. Để tuân thủ đúng vai trò của các bên liên quan trong hệ thống quản lý chất lượng, cơ sở sản xuất này nên thực hiện động thái nào?",
+    "options": [
+      "Từ chối hợp tác vì cho rằng Nhà nước đang can thiệp quá sâu vào hoạt động nội bộ của doanh nghiệp",
+      "Nhờ người tiêu dùng đứng ra cam kết chất lượng sản phẩm để không bị xử phạt",
+      "Chấp hành quyết định xử lý, nhanh chóng khắc phục vi phạm theo quy chuẩn và củng cố hệ thống GMP/HACCP",
+      "Chuyển toàn bộ trách nhiệm đảm bảo an toàn thực phẩm sang cho cơ quan thanh tra"
+    ],
+    "correct": 2,
+    "difficulty": 2,
+    "chapter": 1,
+    "exp": "Cơ quan Nhà nước có vai trò thanh tra, kiểm tra và giám sát tuân thủ. Nhà sản xuất phải chấp hành, khắc phục vi phạm và duy trì các hệ thống quản lý chất lượng (GMP, HACCP, ISO 22000) để tuân thủ pháp luật.",
+    "source": "ai_generated",
+    "id": 766,
+    "_synced": true
+  },
+  {
+    "q": "Một công ty bia áp dụng công nghệ đóng gói hiện đại để kéo dài thời gian bảo quản, nhưng do lỗi máy móc trong giai đoạn cuối cùng, một lô bia lon bị rò rỉ và mất chất lượng. Trong bối cảnh này, bên nào chịu trách nhiệm chính trong việc thực hiện đánh giá rủi ro và đưa ra biện pháp phòng ngừa để ngăn ngừa sự cố tương tự?",
+    "options": [
+      "Nhà sản xuất và cơ sở chế biến",
+      "Cơ quan quản lý Nhà nước",
+      "Người tiêu dùng",
+      "Nhà phân phối"
+    ],
+    "correct": 0,
+    "difficulty": 3,
+    "chapter": 1,
+    "exp": "Nhà sản xuất và cơ sở chế biến chịu trách nhiệm trực tiếp kiểm soát quy trình và thực hiện đánh giá rủi ro; họ phải duy trì, kiểm tra, và cải tiến công nghệ đóng gói để ngăn ngừa lỗi.",
+    "source": "ai_generated",
+    "id": 767,
+    "_synced": true
+  },
+  {
+    "q": "Trong bối cảnh tiêu chuẩn Codex và Luật An toàn thực phẩm Việt Nam, phát biểu nào sau đây mô tả đúng mối quan hệ giữa chất lượng cảm quan và an toàn thực phẩm?",
+    "options": [
+      "Chất lượng cảm quan cao luôn đồng nghĩa với an toàn thực phẩm",
+      "Các khuyết điểm cảm quan luôn là chỉ báo đáng tin cậy cho nguy cơ sinh học",
+      "Sự thiếu hụt khuyết điểm cảm quan không đảm bảo thực phẩm an toàn",
+      "Đánh giá cảm quan không liên quan gì đến việc đánh giá an toàn"
+    ],
+    "correct": 2,
+    "difficulty": 3,
+    "chapter": 1,
+    "exp": "Một sản phẩm có vẻ ngoài, mùi vị bình thường không đồng nghĩa với việc không có mầm bệnh; do đó, không có khuyết điểm cảm quan không bảo đảm an toàn.",
+    "source": "ai_generated",
+    "id": 768,
+    "_synced": true
+  },
+  {
+    "q": "Áp dụng nguyên tắc \"tập trung vào khách hàng\" của ISO 9000 vào hệ thống HACCP, hành động nào sau đây thể hiện sự đồng bộ tốt nhất giữa hai tiêu chuẩn?",
+    "options": [
+      "Thực hiện khảo sát mức độ hài lòng của người tiêu dùng về an toàn thực phẩm và dùng kết quả để điều chỉnh các điểm kiểm soát tới hạn (CCP)",
+      "Chỉ tập trung vào việc đạt chứng nhận ISO 9001 mà không thay đổi quy trình sản xuất",
+      "Giảm giá bán sản phẩm để tăng doanh thu mà không cải thiện quy trình kiểm soát chất lượng",
+      "Tăng cường quảng cáo về nguồn gốc hữu cơ mà không kiểm tra thực tế các yếu tố nguy cơ"
+    ],
+    "correct": 0,
+    "difficulty": 3,
+    "chapter": 1,
+    "exp": "Khảo sát hài lòng khách hàng về an toàn thực phẩm cung cấp dữ liệu để ưu tiên, điều chỉnh CCP, đồng thời đáp ứng yêu cầu tập trung vào khách hàng của ISO 9000.",
+    "source": "ai_generated",
+    "id": 769,
+    "_synced": true
+  },
+  {
+    "q": "Một nhà cung cấp nguyên liệu đưa ra lô nguyên liệu có độ ẩm biến động, ảnh hưởng đến chất lượng sản phẩm cuối cùng. Theo nguyên tắc tiếp cận theo quá trình và hợp tác có lợi, biện pháp nào sau đây giảm rủi ro tốt nhất?",
+    "options": [
+      "Từ chối tất cả các lô vượt ngưỡng độ ẩm mà không xử lý thêm",
+      "Điều chỉnh tham số sấy trong quá trình sản xuất dựa trên dữ liệu độ ẩm thời gian thực",
+      "Yêu cầu nhà cung cấp cung cấp giấy chứng nhận độ ẩm mà không kiểm tra lại",
+      "Tăng tồn kho để có thể dùng nguyên liệu đã kiểm tra sau"
+    ],
+    "correct": 1,
+    "difficulty": 3,
+    "chapter": 1,
+    "exp": "Điều chỉnh quy trình sản xuất dựa trên dữ liệu thời gian thực giữ cho quá trình ổn định và duy trì mối quan hệ hợp tác với nhà cung cấp.",
+    "source": "ai_generated",
+    "id": 770,
+    "_synced": true
+  },
+  {
+    "q": "Một nhà máy chế biến sữa tươi đạt 100% tiêu chuẩn chất lượng và an toàn thực phẩm tại cửa xưởng. Tuy nhiên, khi sản phẩm tới hệ thống siêu thị tại địa phương B, hàng loạt lô sữa bị chua và đông vón do xe lạnh vận chuyển không duy trì đúng nhiệt độ 2-4°C. Tình huống này phản ánh đúng thực tế nào được đề cập trong công tác quản lý chất lượng?",
+    "options": [
+      "Chất lượng sản phẩm chỉ do bộ phận QA tại nhà máy chế biến quyết định.",
+      "Chất lượng sản phẩm có thể bị suy giảm do khâu lưu thông, vận chuyển không bảo đảm điều kiện bảo quản dù ban đầu đạt chuẩn tại nhà máy.",
+      "Nhà sản xuất phải chịu trách nhiệm hoàn toàn về hư hỏng phát sinh trong quá trình bán lẻ.",
+      "Người tiêu dùng chưa biết cách bảo quản sản phẩm đúng hướng dẫn của nhà sản xuất."
+    ],
+    "correct": 1,
+    "difficulty": 2,
+    "chapter": 1,
+    "exp": "Theo bài học, nếu quá trình lưu thông và phân phối (kho bãi, vận chuyển) không được kiểm soát tốt điều kiện nhiệt độ, độ ẩm thì chất lượng sản phẩm sẽ bị suy giảm dù ban đầu đạt tiêu chuẩn tại nhà máy sản xuất.",
+    "source": "ai_generated",
+    "id": 771,
+    "_synced": true
+  },
+  {
+    "q": "Do nhu cầu người tiêu dùng muốn thực phẩm ít chất bảo quản, công ty thay thế bảo quản nhân tạo bằng chiết xuất tự nhiên có hoạt tính kháng khuẩn nhưng thời gian bảo quản ngắn hơn. Rủi ro an toàn thực phẩm lớn nhất có thể phát sinh là gì?",
+    "options": [
+      "Tăng nguy cơ phát triển vi sinh gây ngộ độc thực phẩm",
+      "Chi phí sản xuất tăng làm giảm lợi nhuận",
+      "Cải thiện nhận thức tích cực của người tiêu dùng",
+      "Kéo dài thời gian bảo quản sản phẩm"
+    ],
+    "correct": 0,
+    "difficulty": 3,
+    "chapter": 1,
+    "exp": "Chiết xuất tự nhiên có thời gian bảo quản ngắn hơn có thể không kiểm soát được vi sinh, dẫn đến nguy cơ ngộ độc.",
+    "source": "ai_generated",
+    "id": 772,
+    "_synced": true
+  },
+  {
+    "q": "Khi đưa một sản phẩm thực phẩm mới ra thị trường xuất khẩu, yếu tố nào nên được ưu tiên để đáp ứng yêu cầu thị trường quốc tế và giảm thiểu rủi ro không tuân thủ quy định?",
+    "options": [
+      "Tăng cường hương vị và màu sắc để thu hút người tiêu dùng",
+      "Giảm chi phí sản xuất để nâng tính cạnh tranh",
+      "Tuân thủ nghiêm ngặt tiêu chuẩn vệ sinh và thông tin nhãn đầy đủ, chính xác",
+      "Mở rộng thời gian bảo quản bất kể chất liệu bao bì"
+    ],
+    "correct": 2,
+    "difficulty": 3,
+    "chapter": 1,
+    "exp": "Tiêu chuẩn vệ sinh và nhãn hiệu chính xác là yêu cầu bắt buộc của hầu hết thị trường quốc tế, giảm rủi ro vi phạm pháp lý.",
+    "source": "ai_generated",
+    "id": 773,
+    "_synced": true
+  },
+  {
+    "q": "Trong một doanh nghiệp thực phẩm, lãnh đạo muốn giảm rủi ro thất bại chất lượng nhưng ngân sách hạn chế. Hành động nào sau đây sẽ giảm rủi ro một cách hiệu quả nhất dựa trên nguyên tắc cam kết của lãnh đạo?",
+    "options": [
+      "Phân bổ nguồn lực cho các điểm kiểm soát quan trọng được xác định qua HACCP",
+      "Tăng ngân sách đào tạo cho toàn bộ nhân viên mà không xác định nhu cầu cụ thể",
+      "Triển khai các cuộc kiểm tra chất lượng chỉ ở cấp cao, không tham gia nhân viên trực tiếp",
+      "Xoay vòng vị trí lãnh đạo mỗi năm để mọi người đều có cơ hội quyết định"
+    ],
+    "correct": 0,
+    "difficulty": 3,
+    "chapter": 1,
+    "exp": "Việc tập trung nguồn lực vào các CCP (Critical Control Points) dựa trên HACCP giúp kiểm soát rủi ro cốt lõi mà không tốn quá nhiều chi phí.",
+    "source": "ai_generated",
+    "id": 774,
+    "_synced": true
+  },
+  {
+    "q": "Ai là bên chịu trách nhiệm pháp lý đầu tiên khi xảy ra sự cố mất an toàn thực phẩm?",
+    "options": [
+      "Cơ quan quản lý Nhà nước",
+      "Người tiêu dùng",
+      "Nhà sản xuất và cơ sở chế biến",
+      "Nhà bán lẻ"
+    ],
+    "correct": 2,
+    "difficulty": 1,
+    "chapter": 1,
+    "exp": "Nhà sản xuất là đối tượng đầu tiên chịu trách nhiệm trước pháp luật và xã hội.",
+    "source": "ai_generated",
+    "id": 775,
+    "_synced": true
+  },
+  {
+    "q": "Một món ăn nhanh sẵn sàng ăn (ready‑to‑eat) có độ ẩm cao, pH trung bình và chứa hạt hạt (nuts). Trong quá trình đánh giá rủi ro, yếu tố nguy cơ nào được coi là quan trọng nhất?",
+    "options": [
+      "Nguy cơ sinh học từ Clostridium botulinum",
+      "Nguy cơ hoá học do dư lượng thuốc trừ sâu",
+      "Nguy cơ vật lý từ mảnh vụn hạt hạt",
+      "Nguy cơ sinh học từ Bacillus cereus"
+    ],
+    "correct": 3,
+    "difficulty": 3,
+    "chapter": 1,
+    "exp": "Độ ẩm cao và pH trung bình tạo môi trường thuận lợi cho Bacillus cereus phát triển; đây là nguy cơ sinh học chính trong thực phẩm sẵn ăn.",
+    "source": "ai_generated",
+    "id": 776,
+    "_synced": true
+  },
+  {
+    "q": "Một doanh nghiệp chế biến thịt gà đông lạnh dán nhãn ghi rõ: 'Sản phẩm tươi sống, bắt buộc phải nấu chín kỹ trước khi ăn'. Người tiêu dùng xả đông rồi ăn sống trực tiếp dẫn đến ngộ độc Salmonella. Dựa trên định nghĩa An toàn thực phẩm theo Codex và Luật ATTP, kết luận nào sau đây là đúng về khía cạnh pháp lý an toàn thực phẩm của nhà máy?",
+    "options": [
+      "Nhà máy vi phạm an toàn thực phẩm vì sản phẩm bán ra có chứa vi khuẩn Salmonella.",
+      "Sản phẩm vẫn đảm bảo yêu cầu an toàn thực phẩm của nhà máy vì vi sinh vật sẽ bị tiêu diệt nếu tiêu thụ theo đúng 'mục đích sử dụng đã định' (nấu chín).",
+      "Nhà máy chịu trách nhiệm bồi thường hoàn toàn vì sản phẩm thực phẩm phải an toàn trong mọi hình thức sử dụng.",
+      "Nhà máy bị thu hồi giấy phép vì thực phẩm tươi sống không được phép chứa bất kỳ vi sinh vật nào."
+    ],
+    "correct": 1,
+    "difficulty": 2,
+    "chapter": 1,
+    "exp": "An toàn thực phẩm là việc bảo đảm thực phẩm không gây hại khi được chế biến và/hoặc tiêu thụ theo đúng 'mục đích sử dụng đã định'. Việc ăn sống gà tươi đông lạnh là sử dụng sai mục đích đã định trên nhãn.",
+    "source": "ai_generated",
+    "id": 777,
+    "_synced": true
+  },
+  {
+    "q": "An toàn thực phẩm tập trung kiểm soát các mối nguy nào tại thời điểm tiêu thụ?",
+    "options": [
+      "Sinh học, hoá học, vật lý",
+      "Kinh tế, xã hội, môi trường",
+      "Tiếp thị, pháp lý",
+      "Dinh dưỡng, cảm quan"
+    ],
+    "correct": 0,
+    "difficulty": 1,
+    "chapter": 1,
+    "exp": "Mối nguy sinh học, hoá học và vật lý là ba loại nguy cơ chính trong an toàn thực phẩm.",
+    "source": "ai_generated",
+    "id": 778,
+    "_synced": true
+  },
+  {
+    "q": "Một doanh nghiệp xuất khẩu trái cây tươi sang thị trường Châu Âu gặp khó khăn do thời gian vận chuyển đường biển kéo dài khiến sản phẩm bị hư hỏng trước khi tới tay người tiêu dùng. Để khắc phục sự cố này, giải pháp ứng dụng Khoa học & Kỹ thuật phù hợp nhất là gì?",
+    "options": [
+      "Áp dụng công nghệ bảo quản lạnh sâu và đóng gói hiện đại để kéo dài thời gian sử dụng",
+      "Thay đổi nhãn mác sản phẩm theo chuẩn Codex để tăng thời hạn sử dụng trên giấy tờ",
+      "Sử dụng thêm nhiều chất bảo quản hóa học mạnh không theo quy định để giữ trái cây tươi lâu",
+      "Giảm giá bán sản phẩm để khuyến khích tiêu thụ nhanh tại cửa khẩu"
+    ],
+    "correct": 0,
+    "difficulty": 2,
+    "chapter": 1,
+    "exp": "Tiến bộ trong công nghệ chế biến, bảo quản lạnh và đóng gói (khoa học kỹ thuật) giúp nâng cao chất lượng, kéo dài thời gian sử dụng và giảm tổn thất trong chuỗi cung ứng.",
+    "source": "ai_generated",
+    "id": 779,
+    "_synced": true
+  },
+  {
+    "q": "Hệ thống quản lý nào sau đây không được nêu trong tài liệu là yêu cầu cần thiết cho nhà sản xuất?",
+    "options": [
+      "GMP",
+      "HACCP",
+      "ISO 22000",
+      "ISO 9001"
+    ],
+    "correct": 3,
+    "difficulty": 1,
+    "chapter": 1,
+    "exp": "Tài liệu liệt kê GMP, HACCP, ISO 22000 nhưng không nhắc đến ISO 9001.",
+    "source": "ai_generated",
+    "id": 780,
+    "_synced": true
+  },
+  {
+    "q": "Yếu tố nào sau đây không trực tiếp ảnh hưởng đến an toàn thực phẩm trong môi trường sản xuất?",
+    "options": [
+      "Nhiễm ô nhiễm đất",
+      "Điều kiện vệ sinh thiết bị",
+      "Mẫu mã bao bì",
+      "Nước dùng trong chế biến"
+    ],
+    "correct": 2,
+    "difficulty": 1,
+    "chapter": 1,
+    "exp": "Mẫu mã bao bì liên quan đến chất lượng cảm quan, không phải yếu tố trực tiếp gây nguy cơ an toàn.",
+    "source": "ai_generated",
+    "id": 781,
+    "_synced": true
+  },
+  {
+    "q": "Trong một chuỗi cung ứng thực phẩm, nếu nhiệt độ lưu trữ tại kho trung gian tăng từ 4 °C lên 12 °C trong 6 giờ, yếu tố rủi ro nào sẽ gây ảnh hưởng lớn nhất đến an toàn thực phẩm và yêu cầu ưu tiên kiểm soát tại điểm này?",
+    "options": [
+      "Sự phát triển của vi khuẩn thực vật (psychrotrophic bacteria)",
+      "Quá trình oxy hoá lipid",
+      "Mầm bệnh nấm mốc (mycotoxin)",
+      "Ô nhiễm vật lý do côn trùng"
+    ],
+    "correct": 0,
+    "difficulty": 3,
+    "chapter": 1,
+    "exp": "Nhiệt độ 12 °C cho phép vi khuẩn thực vật sinh sôi nhanh, gây nguy cơ ngộ độc thực phẩm; các yếu tố khác ít ảnh hưởng ở mức nhiệt độ này.",
+    "source": "ai_generated",
+    "id": 782,
+    "_synced": true
+  },
+  {
+    "q": "Sản phẩm thực phẩm bị thu hồi do nhiễm khuẩn. Để tuân thủ nguyên tắc quyết định dựa trên sự kiện và cải tiến liên tục, doanh nghiệp nên thực hiện chuỗi hành động nào?",
+    "options": [
+      "Thực hiện phân tích nguyên nhân dựa trên dữ liệu nhiễm khuẩn, triển khai biện pháp khắc phục mục tiêu, và giám sát hiệu quả sau khi áp dụng",
+      "Ngay lập tức thu hồi, đổ lỗi cho công nhân sản xuất và tăng kiểm tra cuối dây chuyền mà không điều tra nguồn gốc",
+      "Thay nhà cung cấp, dừng sản xuất tạm thời và tổ chức đào tạo lại toàn bộ nhân viên",
+      "Tiến hành khảo sát khách hàng, điều chỉnh chiến lược marketing và tiếp tục sản xuất mà không thay đổi quy trình"
+    ],
+    "correct": 0,
+    "difficulty": 3,
+    "chapter": 1,
+    "exp": "Phân tích dữ liệu, xác định nguyên nhân gốc, thực hiện hành động khắc phục và theo dõi là quy trình quyết định dựa trên dữ liệu và cải tiến liên tục.",
+    "source": "ai_generated",
+    "id": 783,
+    "_synced": true
+  },
+  {
+    "q": "Một công ty thực phẩm phát triển 4 dòng sản phẩm: (1) Kẹo cao su thảo mộc, (2) Nước khoáng đóng chai, (3) Viên nén chiết xuất thảo dược đăng ký dưới dạng thuốc chữa bệnh, (4) Son môi hữu cơ từ dầu dừa. Theo Luật An toàn thực phẩm Việt Nam, bộ phận pháp chế của công ty xác định nhóm sản phẩm nào KHÔNG thuộc phạm vi quản lý của luật này?",
+    "options": [
+      "Sản phẩm (1) và (2)",
+      "Sản phẩm (3) và (4)",
+      "Sản phẩm (1), (3) và (4)",
+      "Sản phẩm (2) và (3)"
+    ],
+    "correct": 1,
+    "difficulty": 2,
+    "chapter": 1,
+    "exp": "Theo Luật An toàn thực phẩm Việt Nam, thực phẩm bao gồm cả đồ uống, kẹo cao su, nhưng loại trừ mỹ phẩm (son môi) và dược phẩm/thuốc.",
+    "source": "ai_generated",
+    "id": 784,
+    "_synced": true
+  },
+  {
+    "q": "Một doanh nghiệp muốn xuất khẩu sang EU và ASEAN, cần tuân thủ Codex, ISO 22000 và HACCP. Câu nào mô tả đúng nhất mối quan hệ giữa ba tiêu chuẩn này trong việc đảm bảo an toàn thực phẩm?",
+    "options": [
+      "HACCP là nền tảng, ISO 22000 tích hợp HACCP, còn Codex cung cấp các hướng dẫn quốc tế",
+      "ISO 22000 thay thế hoàn toàn HACCP và Codex",
+      "Codex là bắt buộc, HACCP là tùy chọn, ISO 22000 không liên quan",
+      "Ba tiêu chuẩn này độc lập, không thể tích hợp với nhau"
+    ],
+    "correct": 0,
+    "difficulty": 3,
+    "chapter": 1,
+    "exp": "HACCP là cốt lõi, ISO 22000 bao hàm HACCP và mở rộng, còn Codex đưa ra các tiêu chuẩn quốc tế hỗ trợ.",
+    "source": "ai_generated",
+    "id": 785,
+    "_synced": true
+  },
+  {
+    "q": "Trong quá trình sản xuất bánh quy, bộ phận QA phát hiện: Lô hàng A bị nứt vỡ và màu sắc nhạt hơn tiêu chuẩn (kém về cảm quan) nhưng kết quả kiểm nghiệm vi sinh và hóa học đạt chuẩn. Lô hàng B có hình thức rất đẹp nhưng bị nhiễm dư lượng thuốc bảo vệ thực vật vượt ngưỡng cho phép. Đánh giá nào sau đây đúng nhất về hai lô hàng?",
+    "options": [
+      "Lô A vi phạm an toàn thực phẩm; Lô B đạt chất lượng thực phẩm.",
+      "Lô A bị giảm giá trị chất lượng (cảm quan) nhưng vẫn an toàn; Lô B vi phạm nghiêm trọng về an toàn thực phẩm.",
+      "Cả hai lô A và B đều không đạt tiêu chuẩn an toàn thực phẩm.",
+      "Cả hai lô A và B đều đạt an toàn thực phẩm nhưng lô A vi phạm tính tiện dụng."
+    ],
+    "correct": 1,
+    "difficulty": 2,
+    "chapter": 1,
+    "exp": "Lô A chỉ bị ảnh hưởng thuộc tính chất lượng (giá trị cảm quan) nhưng không chứa mối nguy gây hại nên vẫn an toàn. Lô B chứa mối nguy hóa học vượt ngưỡng gây hại sức khỏe nên vi phạm an toàn thực phẩm.",
+    "source": "ai_generated",
+    "id": 786,
+    "_synced": true
+  },
+  {
+    "q": "Trong quá trình lưu thông, một lô hàng thịt hộp của công ty X bị phát hiện nhiễm vi sinh vật vượt mức cho phép do lỗi kiểm soát điều kiện vệ sinh nhà xưởng. Dựa trên quy định về vai trò của các bên liên quan, Ban Giám đốc công ty X cần thực hiện hành động nào đầu tiên để thể hiện đúng trách nhiệm?",
+    "options": [
+      "Đổ lỗi hoàn toàn cho nhà phân phối vì bảo quản sai quy cách tại cửa hàng",
+      "Chủ động thu hồi lô hàng vi phạm, báo cáo cơ quan quản lý và khắc phục sự cố vệ sinh nhà xưởng",
+      "Giữ yên lặng và chờ đợi phản hồi, khiếu nại chính thức từ phía người tiêu dùng rồi mới xử lý",
+      "Yêu cầu cơ quan quản lý Nhà nước chịu trách nhiệm bồi thường cho người tiêu dùng"
+    ],
+    "correct": 1,
+    "difficulty": 2,
+    "chapter": 1,
+    "exp": "Nhà sản xuất là bên chịu trách nhiệm trực tiếp về mặt đạo đức lẫn pháp lý đối với an toàn sản phẩm. Khi sự cố xảy ra, họ phải chủ động thu hồi, báo cáo và khắc phục nguyên nhân từ nhà xưởng/quy trình.",
+    "source": "ai_generated",
+    "id": 787,
+    "_synced": true
+  },
+  {
+    "q": "Doanh nghiệp thủy sản X muốn xuất khẩu mặt hàng tôm đông lạnh sang thị trường Châu Âu nhưng đối tác yêu cầu phải có bằng chứng độc lập chứng minh hệ thống quản lý an toàn thực phẩm đạt chuẩn quốc tế. Doanh nghiệp X cần hợp tác với tác nhân nào trong chuỗi cung ứng để giải quyết vấn đề này?",
+    "options": [
+      "Các đơn vị vận chuyển và kho lưu trữ logistics.",
+      "Các tổ chức kiểm định và chứng nhận chất lượng độc lập (đánh giá tiêu chuẩn HACCP, ISO 22000).",
+      "Hiệp hội người tiêu dùng tại thị trường mục tiêu.",
+      "Các đại lý bán lẻ và siêu thị nội địa."
+    ],
+    "correct": 1,
+    "difficulty": 2,
+    "chapter": 1,
+    "exp": "Các tổ chức kiểm định và chứng nhận chất lượng thực hiện đánh giá, kiểm định và cấp chứng nhận (HACCP, ISO 22000,...) giúp khẳng định mức độ tuân thủ, tạo niềm tin cho đối tác và nâng cao năng lực cạnh tranh quốc tế.",
+    "source": "ai_generated",
+    "id": 788,
+    "_synced": true
+  },
+  {
+    "q": "Trong năm thuộc tính cơ bản của chất lượng thực phẩm, khi một sản phẩm được lưu trữ lâu dài dưới điều kiện nhiệt độ không đạt tiêu chuẩn, yếu tố nào kết hợp sẽ ảnh hưởng trực tiếp nhất đến rủi ro ngộ độc thực phẩm?",
+    "options": [
+      "Chất lượng dinh dưỡng và chất lượng cảm quan",
+      "Chất lượng vệ sinh và chất lượng dịch vụ (bảo quản lâu dài)",
+      "Chất lượng cảm quan và mức giá phù hợp",
+      "Chất lượng dinh dưỡng và mức giá phù hợp"
+    ],
+    "correct": 1,
+    "difficulty": 3,
+    "chapter": 1,
+    "exp": "Vệ sinh và khả năng bảo quản lâu dài (dịch vụ) quyết định nguy cơ vi sinh gây ngộ độc khi nhiệt độ không kiểm soát.",
+    "source": "ai_generated",
+    "id": 789,
+    "_synced": true
+  },
+  {
+    "q": "Công ty sản xuất nước giải khát Y nhận thấy xu hướng người tiêu dùng hiện nay ưa chuộng các sản phẩm ít đường, nguồn gốc tự nhiên và có bao bì thân thiện với môi trường. Đội ngũ R&D đã nhanh chóng nghiên cứu điều chỉnh công thức và bao bì để ứng đáp chính xác thị hiếu này. Hành động của Công ty Y thể hiện việc áp dụng nguyên tắc nào trong hệ thống quản lý chất lượng ISO 9000?",
+    "options": [
+      "Sự lãnh đạo.",
+      "Tập trung vào khách hàng.",
+      "Sự tham gia của mọi người.",
+      "Cải tiến."
+    ],
+    "correct": 1,
+    "difficulty": 2,
+    "chapter": 1,
+    "exp": "Nguyên tắc 'Tập trung vào khách hàng' đòi hỏi doanh nghiệp hiểu rõ nhu cầu, mong đợi của khách hàng để cung cấp sản phẩm an toàn, chất lượng ổn định và phù hợp với xu hướng tiêu dùng.",
+    "source": "ai_generated",
+    "id": 790,
+    "_synced": true
+  },
+  {
+    "q": "Theo tài liệu, “chất lượng công nghệ” phản ánh điều gì?",
+    "options": [
+      "Hiệu quả của quy trình chế biến và khả năng duy trì tính ổn định của sản phẩm",
+      "Giá thành sản phẩm",
+      "Thiết kế bao bì",
+      "Màu sắc sản phẩm"
+    ],
+    "correct": 0,
+    "difficulty": 1,
+    "chapter": 1,
+    "exp": "Định nghĩa nêu rõ chất lượng công nghệ liên quan tới hiệu quả quy trình và ổn định sản phẩm.",
+    "source": "ai_generated",
+    "id": 791,
+    "_synced": true
+  },
+  {
+    "q": "Một nhà máy chế biến đồ uống phát hiện kẻ gian cố tình xâm nhập kho nguyên liệu và đổ hóa chất lạ vào bồn chứa nhằm phá hoại uy tín doanh nghiệp. Việc thiết lập hệ thống giám sát an ninh và kiểm soát rủi ro để ngăn chặn hành vi này thuộc phạm trù nào?",
+    "options": [
+      "Quản lý chất lượng dinh dưỡng",
+      "Phòng vệ thực phẩm (Food defense)",
+      "Kiểm soát chất lượng cảm quan",
+      "Quản lý chất lượng sử dụng"
+    ],
+    "correct": 1,
+    "difficulty": 2,
+    "chapter": 1,
+    "exp": "Phòng vệ thực phẩm bao gồm các biện pháp nhằm ngăn ngừa hành vi nhiễm bẩn cố ý, phá hoại thực phẩm hoặc khủng bố sinh học.",
+    "source": "ai_generated",
+    "id": 792,
+    "_synced": true
+  },
+  {
+    "q": "Tiêu chuẩn nào sau đây không phải là tiêu chuẩn quốc tế thường được áp dụng trong quản lý an toàn thực phẩm?",
+    "options": [
+      "Codex Alimentarius",
+      "ISO 22000",
+      "HACCP",
+      "ISO 9001"
+    ],
+    "correct": 3,
+    "difficulty": 1,
+    "chapter": 1,
+    "exp": "ISO 9001 là tiêu chuẩn quản lý chất lượng chung, không chuyên về an toàn thực phẩm.",
+    "source": "ai_generated",
+    "id": 793,
+    "_synced": true
+  },
+  {
+    "q": "Một nhà máy sản xuất bia lon gặp sự cố sản phẩm bị biến chất và hư hỏng nhanh sau khi xuất xưởng, không đạt được thời hạn bảo quản dài như tiêu chuẩn công nghệ thông thường của bia lon. Với vai trò Quản lý Chất lượng, hành động nào phản ánh đúng việc áp dụng khái niệm 'chất lượng công nghệ' để xử lý sự cố này?",
+    "options": [
+      "Đánh giá và tối ưu lại quy trình đóng gói, công nghệ thanh/tiệt trùng và điều kiện duy trì tính ổn định của sản phẩm",
+      "Thay đổi thiết kế bao bì ngoài thùng carton để thu hút người tiêu dùng hơn",
+      "Chuyển toàn bộ dây chuyền sang sản xuất bia hơi để không cần quan tâm đến thời gian bảo quản",
+      "Tăng lượng chất bảo quản hóa học vượt ngưỡng cho phép để kéo dài thời gian sử dụng"
+    ],
+    "correct": 0,
+    "difficulty": 2,
+    "chapter": 1,
+    "exp": "Chất lượng công nghệ phản ánh hiệu quả của quy trình chế biến (như công nghệ đóng gói, thanh trùng) và khả năng duy trì tính ổn định trong bảo quản. Do đó cần rà soát các yếu tố công nghệ này để khắc phục hư hỏng.",
+    "source": "ai_generated",
+    "id": 794,
+    "_synced": true
+  },
+  {
+    "q": "Nguyên tắc nào nhấn mạnh việc xem các hoạt động sản xuất, chế biến, bảo quản và phân phối như một chuỗi các quá trình có đầu vào, đầu ra và liên kết chặt chẽ?",
+    "options": [
+      "Nguyên tắc tham gia của mọi người",
+      "Nguyên tắc tiếp cận theo quá trình",
+      "Nguyên tắc tiếp cận theo hệ thống",
+      "Nguyên tắc cải tiến liên tục"
+    ],
+    "correct": 1,
+    "difficulty": 1,
+    "chapter": 1,
+    "exp": "Nguyên tắc tiếp cận theo quá trình mô tả mỗi công đoạn có đầu vào, đầu ra và mối liên hệ với các công đoạn khác.",
+    "source": "ai_generated",
+    "id": 795,
+    "_synced": true
+  },
+  {
+    "q": "Theo Luật An toàn thực phẩm Việt Nam, một sản phẩm đồ uống có bổ sung vitamin được xem là thực phẩm hay không?",
+    "options": [
+      "Có, vì nó được tiêu thụ bằng cách uống và đáp ứng định nghĩa thực phẩm",
+      "Không, vì nó được xếp vào thực phẩm chức năng theo quy định riêng",
+      "Có, chỉ khi hàm lượng vitamin dưới mức quy định tối đa cho phép",
+      "Không, vì các đồ uống có bổ sung vitamin bị loại trừ khỏi định nghĩa thực phẩm"
+    ],
+    "correct": 0,
+    "difficulty": 3,
+    "chapter": 1,
+    "exp": "Luật quy định thực phẩm bao gồm mọi sản phẩm ăn, uống ở dạng tươi sống hoặc đã qua sơ chế, kể cả đồ uống có bổ sung vitamin.",
+    "source": "ai_generated",
+    "id": 796,
+    "_synced": true
+  },
+  {
+    "q": "'Chất lượng vệ sinh' trong quản lý an toàn thực phẩm đề cập đến yếu tố nào?",
+    "options": [
+      "Hàm lượng protein, lipid và vitamin",
+      "Không có vi sinh vật gây bệnh, độc tố, hóa chất độc hại hoặc dị vật vượt quá giới hạn",
+      "Màu sắc, mùi vị và độ giòn của sản phẩm",
+      "Bao bì tiện lợi và thông tin nhãn đầy đủ"
+    ],
+    "correct": 1,
+    "difficulty": 1,
+    "chapter": 1,
+    "exp": "Chất lượng vệ sinh tập trung vào việc loại bỏ hoặc kiểm soát vi sinh, độc tố, hoá chất và dị vật.",
+    "source": "ai_generated",
+    "id": 797,
+    "_synced": true
+  },
+  {
+    "q": "Tại một nhà máy chế biến thủy sản xuất khẩu, khi phát hiện chỉ tiêu vi sinh trong lô hàng tôm đông lạnh vượt ngưỡng cho phép, Giám đốc chất lượng không vội vã đưa ra kết luận quy trách nhiệm cho công nhân khâu rửa, mà yêu cầu thu thập dữ liệu kiểm nghiệm từ các công đoạn: nước cấp, nhiệt độ cấp đông, hồ sơ nguyên liệu đầu vào và nhật ký vệ sinh thiết bị để phân tích căn nguyên. Việc làm này thể hiện rõ nhất nguyên tắc quản lý chất lượng nào?",
+    "options": [
+      "Quyết định dựa trên sự kiện",
+      "Tiếp cận theo hệ thống",
+      "Cải tiến liên tục",
+      "Sự tham gia của mọi người"
+    ],
+    "correct": 0,
+    "difficulty": 2,
+    "chapter": 1,
+    "exp": "Giám đốc chất lượng căn cứ vào việc thu thập, phân tích dữ liệu, kết quả kiểm nghiệm và bằng chứng cụ thể thay vì cảm tính để đưa ra giải pháp khắc phục, đúng với nguyên tắc 'Quyết định dựa trên sự kiện'.",
+    "source": "ai_generated",
+    "id": 798,
+    "_synced": true
+  },
+  {
+    "q": "An toàn thực phẩm được định nghĩa là gì?",
+    "options": [
+      "Một thuộc tính không thể tách rời và bắt buộc của chất lượng thực phẩm",
+      "Chỉ liên quan đến hương vị",
+      "Yếu tố phụ thuộc vào bao bì",
+      "Không ảnh hưởng đến sức khỏe"
+    ],
+    "correct": 0,
+    "difficulty": 1,
+    "chapter": 1,
+    "exp": "An toàn thực phẩm là thuộc tính bắt buộc, không thể tách rời khỏi chất lượng thực phẩm.",
+    "source": "ai_generated",
+    "id": 799,
+    "_synced": true
+  },
+  {
+    "q": "Trong các đặc tính chất lượng thực phẩm, yếu tố nào không thuộc giá trị cảm quan?",
+    "options": [
+      "Màu sắc",
+      "Mùi vị",
+      "Hàm lượng protein",
+      "Độ giòn"
+    ],
+    "correct": 2,
+    "difficulty": 1,
+    "chapter": 1,
+    "exp": "Hàm lượng protein là giá trị dinh dưỡng, không phải cảm quan.",
+    "source": "ai_generated",
+    "id": 800,
+    "_synced": true
+  },
+  {
+    "q": "Một doanh nghiệp thực phẩm triển khai hệ thống ISO 22000 nhưng không đồng thời áp dụng GMP trong việc lựa chọn và kiểm soát nguyên liệu đầu vào. Hậu quả rủi ro nào dưới đây có khả năng xảy ra cao nhất?",
+    "options": [
+      "Ô nhiễm sinh học do nguyên liệu không sạch",
+      "Sai lệch nhãn hiệu sản phẩm",
+      "Giảm thời gian bảo quản của sản phẩm",
+      "Tăng chi phí sản xuất"
+    ],
+    "correct": 0,
+    "difficulty": 3,
+    "chapter": 1,
+    "exp": "ISO 22000 tập trung vào an toàn thực phẩm trong toàn bộ chuỗi, nhưng nếu GMP không được thực hiện ở khâu nguyên liệu, nguy cơ ô nhiễm sinh học sẽ tăng, gây mất an toàn và chất lượng.",
+    "source": "ai_generated",
+    "id": 801,
+    "_synced": true
+  },
+  {
+    "q": "Trong số các thuộc tính cơ bản của chất lượng thực phẩm được nêu, thuộc tính nào sau đây không được liệt kê?",
+    "options": [
+      "Chất lượng dinh dưỡng",
+      "Chất lượng vệ sinh",
+      "Chất lượng cảm quan",
+      "Chất lượng giá cả"
+    ],
+    "correct": 3,
+    "difficulty": 1,
+    "chapter": 1,
+    "exp": "Các thuộc tính cơ bản gồm dinh dưỡng, vệ sinh, cảm quan, sử dụng và dịch vụ; giá cả không nằm trong danh sách.",
+    "source": "ai_generated",
+    "id": 802,
+    "_synced": true
+  },
+  {
+    "q": "Một nhà máy chế biến thủy sản phát hiện lô sản phẩm tôm đông lạnh bị nhiễm vi sinh vật do nguồn nước sử dụng tại khâu rửa nguyên liệu chưa qua xử lý triệt để. Tình huống này thể hiện tác động của yếu tố nào và doanh nghiệp cần tập trung kiểm soát khâu nào nhất?",
+    "options": [
+      "Yếu tố pháp luật; cần ghi nhãn cảnh báo vi sinh vật trên bao bì",
+      "Yếu tố môi trường sản xuất; cần kiểm soát điều kiện vệ sinh nguồn nước và nhà xưởng",
+      "Yếu tố kỳ vọng khách hàng; cần thay đổi hương vị để che lấp mùi vi sinh",
+      "Yếu tố thương mại quốc tế; cần đàm phán giảm giá thành sản phẩm"
+    ],
+    "correct": 1,
+    "difficulty": 2,
+    "chapter": 1,
+    "exp": "Môi trường sản xuất (đất, nước, không khí, vệ sinh nhà xưởng) ảnh hưởng trực tiếp đến ATTP. Việc kiểm soát vệ sinh nguồn nước và cơ sở chế biến là bắt buộc để ngăn chặn ô nhiễm vi sinh vật.",
+    "source": "ai_generated",
+    "id": 803,
+    "_synced": true
   }
 ]
