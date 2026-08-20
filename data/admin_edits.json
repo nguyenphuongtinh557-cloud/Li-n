@@ -12,5 +12,19 @@
     "exp": "Thiết lập ngưỡng tới hạn (Critical Limit) là Nguyên tắc 3, tương ứng với Bước 8 trong 12 bước triển khai HACCP theo hướng dẫn của Codex.",
     "_seed": false,
     "_adminEdit": true
+  },
+  {
+    "id": 247,
+    "q": "Trong quá trình phân tích nguy cơ, 4 nhóm đối tượng cần phân tích gồm: thực phẩm dễ gây ngộ độc cao; thực phẩm vi phạm quy chuẩn nhiều; môi trường/cơ sở nghi ô nhiễm; và:",
+    "options": [
+      "Thực phẩm có giá thành cao",
+      "Thực phẩm có nguồn gốc nhập khẩu",
+      "Thực phẩm không có nhãn",
+      "Thực phẩm không có bảo quản"
+    ],
+    "correct": 3,
+    "exp": "",
+    "_seed": false,
+    "_adminEdit": true
   }
 ]
