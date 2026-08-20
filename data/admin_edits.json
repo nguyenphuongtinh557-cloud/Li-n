@@ -1,19 +1,5 @@
 [
   {
-    "id": 413,
-    "q": "Trong hệ thống HACCP, việc thiết lập ngưỡng tới hạn (Critical Limit) thuộc Nguyên tắc thứ mấy và tương ứng với Bước mấy trong quy trình triển khai của Codex?",
-    "options": [
-      "Nguyên tắc 1 — Bước 6",
-      "Nguyên tắc 2 — Bước 7",
-      "Nguyên tắc 3 — Bước 8",
-      "A B C  đều đúng"
-    ],
-    "correct": 3,
-    "exp": "Thiết lập ngưỡng tới hạn (Critical Limit) là Nguyên tắc 3, tương ứng với Bước 8 trong 12 bước triển khai HACCP theo hướng dẫn của Codex.",
-    "_seed": false,
-    "_adminEdit": true
-  },
-  {
     "id": 247,
     "q": "Trong quá trình phân tích nguy cơ, 4 nhóm đối tượng cần phân tích gồm: thực phẩm dễ gây ngộ độc cao; thực phẩm vi phạm quy chuẩn nhiều; môi trường/cơ sở nghi ô nhiễm; và:",
     "options": [
@@ -24,6 +10,20 @@
     ],
     "correct": 3,
     "exp": "",
+    "_seed": false,
+    "_adminEdit": true
+  },
+  {
+    "id": 413,
+    "q": "Trong hệ thống HACCP, việc thiết lập ngưỡng tới hạn (Critical Limit) thuộc Nguyên tắc thứ mấy và tương ứng với Bước mấy trong quy trình triển khai của Codex?",
+    "options": [
+      "Nguyên tắc 1 — Bước 6",
+      "Nguyên tắc 2 — Bước 7",
+      "Nguyên tắc 3 — Bước 8",
+      "A B C  đều đúng"
+    ],
+    "correct": 1,
+    "exp": "Thiết lập ngưỡng tới hạn (Critical Limit) là Nguyên tắc 3, tương ứng với Bước 8 trong 12 bước triển khai HACCP theo hướng dẫn của Codex.",
     "_seed": false,
     "_adminEdit": true
   }
