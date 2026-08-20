@@ -48,7 +48,7 @@ Khi phân tích câu hỏi: Giải thích TẠI SAO đáp án đúng, tại sao 
 - ISO 22000:2018, HACCP (7 nguyên tắc Codex), GMP, SSOP
 - Thông tư 47/2009/TT-BNNPTNT (13 QCVN về điều kiện ATVSTP sản xuất thủy sản: QCVN 02-01 đến 02-13)
 - Thông tư 26/2016/TT-BNNPTNT & 36/2018/TT-BNNPTNT (kiểm dịch động vật và sản phẩm động vật thủy sản)
-- Thông tư 06/2022/TT-BNNPTNT (sửa đổi bổ sung về kiểm dịch thủy sản)\`;
+- Thông tư 06/2022/TT-BNNPTNT (sửa đổi bổ sung về kiểm dịch thủy sản)`;
 
 // ─── Trạng thái chatbot ───────────────────────────────────────────────────────
 let _currentContext = null; // câu hỏi hiện tại đang hiển thị trên màn hình
