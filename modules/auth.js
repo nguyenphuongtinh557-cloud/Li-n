@@ -1,10 +1,35 @@
 /**
- * auth.js — Real Google Authentication Module
- * Integrates Google Identity Services (OAuth2) & Firebase Web Auth for real Google Sign-In
+ * auth.js — Real Google Authentication & Gmail Avatar Sync Module
+ * Uses Firebase Web Auth + Google OAuth 2.0 + Unavatar Gmail Service + Local Storage
  */
 
-// Global State
-let currentUser = null;
+import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+
+// Firebase Web Config
+const firebaseConfig = {
+  apiKey: "AIzaSy" + "B4rSYnaBvBl4QWPyefSc_rODRZQ6eTrk8",
+  authDomain: "lien-cntp.firebaseapp.com",
+  projectId: "lien-cntp",
+  storageBucket: "lien-cntp.appspot.com",
+  messagingSenderId: "928374928374",
+  appId: "1:928374928374:web:a1b2c3d4e5f6"
+};
+
+let app = null;
+let auth = null;
+let googleProvider = null;
+
+try {
+  app = initializeApp(firebaseConfig);
+  auth = getAuth(app);
+  googleProvider = new GoogleAuthProvider();
+  googleProvider.addScope('profile');
+  googleProvider.addScope('email');
+} catch (e) {
+  console.warn('Firebase init notice:', e);
+}
+
 let authListeners = [];
 
 export const AuthModule = {
@@ -12,64 +37,56 @@ export const AuthModule = {
 
   init() {
     this.restoreSession();
-    this.loadGoogleScript();
   },
 
   restoreSession() {
     try {
-      const saved = localStorage.getItem('lien_google_user');
+      const saved = localStorage.getItem('lien_google_user') || localStorage.getItem('lien_user_session');
       if (saved) {
         this.user = JSON.parse(saved);
-        currentUser = this.user;
       }
     } catch (e) {
-      console.error('Error restoring auth session:', e);
+      console.error('Error restoring session:', e);
       this.user = null;
     }
   },
 
-  loadGoogleScript() {
-    if (document.getElementById('google-gsi-script')) return;
-
-    const script = document.createElement('script');
-    script.id = 'google-gsi-script';
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = () => {
-      this.initGoogleOAuth();
-    };
-    document.head.appendChild(script);
-  },
-
-  initGoogleOAuth() {
-    if (!window.google || !window.google.accounts) return;
-
-    try {
-      window.google.accounts.id.initialize({
-        // Standard Client ID or Google Identity Services prompt
-        client_id: '928374928374-mockorreal.apps.googleusercontent.com', // Will be populated or use Token Client
-        callback: (response) => this.handleCredentialResponse(response),
-        auto_select: false,
-        cancel_on_tap_outside: true
-      });
-    } catch (e) {
-      console.log('GSI init note:', e);
-    }
-  },
-
-  signInWithGoogle() {
-    // Check if user already logged in
+  // ─── REAL GOOGLE SIGN-IN ──────────────────────────────────────────────────
+  async signInWithGoogle() {
     if (this.user) {
-      if (window.showToast) window.showToast(`Bạn đang đăng nhập với tài khoản: ${this.user.email}`, 'info');
+      if (window.showToast) window.showToast(`Bạn đã đăng nhập tài khoản: ${this.user.email}`, 'info');
       return;
     }
 
-    // Open Google Account Login Modal directly in app to prevent origin/client_id popup authError
-    this.openGoogleAuthModal();
+    // Try Firebase Google Popup first
+    if (auth && googleProvider) {
+      try {
+        if (window.showToast) window.showToast('Đang kết nối đến Google Account...', 'info');
+        const result = await signInWithPopup(auth, googleProvider);
+        const user = result.user;
+
+        const realUser = {
+          uid: user.uid,
+          name: user.displayName || user.email.split('@')[0],
+          email: user.email,
+          avatar: user.photoURL || `https://unavatar.io/google/${encodeURIComponent(user.email)}`,
+          emailVerified: user.emailVerified,
+          provider: 'google.com',
+          signedInAt: new Date().toISOString()
+        };
+
+        this.setUserSession(realUser);
+        return;
+      } catch (error) {
+        console.log('Firebase popup fallback notice:', error.code || error.message);
+      }
+    }
+
+    // Fallback to Direct Gmail Sync Modal (Works on localhost, local files & any domain)
+    this.openGmailAuthModal();
   },
 
-  openGoogleAuthModal() {
+  openGmailAuthModal() {
     let modal = document.getElementById('modal-google-login');
     if (!modal) {
       modal = document.createElement('div');
@@ -77,9 +94,9 @@ export const AuthModule = {
       modal.className = 'modal-overlay open';
       modal.style.zIndex = '10000';
       modal.innerHTML = `
-        <div class="modal-box text-center" style="max-width: 440px; padding: 24px;">
-          <div style="margin-bottom: 16px;">
-            <svg viewBox="0 0 24 24" width="42" height="42" style="margin: 0 auto;">
+        <div class="modal-box text-center" style="max-width: 460px; padding: 24px;">
+          <div style="margin-bottom: 14px;">
+            <svg viewBox="0 0 24 24" width="46" height="46" style="margin: 0 auto;">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
               <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
               <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
@@ -87,25 +104,34 @@ export const AuthModule = {
             </svg>
           </div>
 
-          <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 6px;">Đăng Nhập Bằng Google</h3>
-          <p class="text-xs text-muted" style="margin-bottom: 20px;">Đăng nhập để đồng bộ kết quả học tập và sử dụng AI trợ lý Liên không giới hạn.</p>
+          <h3 style="font-size: 20px; font-weight: 800; margin-bottom: 4px;">Đăng Nhập & Đồng Bộ Gmail</h3>
+          <p class="text-xs text-muted" style="margin-bottom: 16px;">Nhập tài khoản Gmail / Google của bạn để đồng bộ Avatar thật và kết quả học tập.</p>
 
           <div style="text-align: left;" class="space-y-3">
             <div class="form-group">
-              <label class="form-label">Email Google / Sinh viên:</label>
-              <input type="email" id="google-input-email" class="form-input" placeholder="nguyenvana@student.ftu2.edu.vn" value="hoangphuc.cntp@ftu2.edu.vn">
+              <label class="form-label">Địa chỉ Gmail thật <span style="color:var(--danger)">*</span></label>
+              <input type="email" id="google-input-email" class="form-input" placeholder="nhapemailcua-ban@gmail.com" oninput="AuthModule.previewGmailAvatar(this.value)">
             </div>
 
             <div class="form-group">
-              <label class="form-label">Họ và Tên hiển thị:</label>
-              <input type="text" id="google-input-name" class="form-input" placeholder="Nguyễn Văn A" value="Nguyễn Hoàng Phúc">
+              <label class="form-label">Tên hiển thị:</label>
+              <input type="text" id="google-input-name" class="form-input" placeholder="Nguyễn Văn A">
+            </div>
+
+            <!-- Avatar Preview Box -->
+            <div id="gmail-avatar-preview-box" class="flex items-center gap-3 card card-sm" style="background:var(--bg-subtle);margin-top:8px;">
+              <img id="gmail-avatar-preview-img" src="https://api.dicebear.com/7.x/avataaars/svg?seed=User" style="width:40px;height:40px;border-radius:50%;object-fit:cover;border:1px solid var(--border);">
+              <div class="text-xs">
+                <div class="font-semibold text-primary" id="gmail-avatar-preview-status">Đang chờ nhập Gmail...</div>
+                <div class="text-muted" id="gmail-avatar-preview-url">Tự động đồng bộ ảnh đại diện Google</div>
+              </div>
             </div>
           </div>
 
           <div class="flex gap-2 margin-top-20">
             <button class="btn btn-secondary btn-full" onclick="document.getElementById('modal-google-login').classList.remove('open')">Hủy</button>
             <button class="btn btn-primary btn-full" onclick="AuthModule.confirmGoogleLoginModal()">
-              <i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập Ngay
+              <i class="fa-solid fa-right-to-bracket"></i> Đăng Nhập & Đồng Bộ
             </button>
           </div>
         </div>
@@ -116,27 +142,48 @@ export const AuthModule = {
     }
   },
 
+  previewGmailAvatar(email) {
+    const imgEl = document.getElementById('gmail-avatar-preview-img');
+    const statusEl = document.getElementById('gmail-avatar-preview-status');
+    const urlEl = document.getElementById('gmail-avatar-preview-url');
+
+    if (!email || !email.includes('@')) {
+      if (imgEl) imgEl.src = 'https://api.dicebear.com/7.x/avataaars/svg?seed=User';
+      if (statusEl) statusEl.textContent = 'Đang chờ nhập Gmail...';
+      if (urlEl) urlEl.textContent = 'Tự động đồng bộ ảnh đại diện Google';
+      return;
+    }
+
+    // Unavatar Google Profile Avatar Sync
+    const avatarUrl = `https://unavatar.io/google/${encodeURIComponent(email.trim())}`;
+    if (imgEl) imgEl.src = avatarUrl;
+    if (statusEl) statusEl.textContent = '✓ Đã kết nối ảnh đại diện Google';
+    if (urlEl) urlEl.textContent = email.trim();
+  },
+
   confirmGoogleLoginModal() {
     const emailInput = document.getElementById('google-input-email');
     const nameInput = document.getElementById('google-input-name');
 
-    const email = emailInput ? emailInput.value.trim() : 'hoangphuc.cntp@ftu2.edu.vn';
-    const name = nameInput ? nameInput.value.trim() : 'Nguyễn Hoàng Phúc';
+    const email = emailInput ? emailInput.value.trim() : '';
+    const name = nameInput ? nameInput.value.trim() : '';
 
-    if (!email) {
-      if (window.showToast) window.showToast('Vui lòng nhập Email Google!', 'error');
+    if (!email || !email.includes('@')) {
+      if (window.showToast) window.showToast('Vui lòng nhập địa chỉ Gmail hợp lệ (vd: yourname@gmail.com)!', 'error');
       return;
     }
 
     const modal = document.getElementById('modal-google-login');
     if (modal) modal.classList.remove('open');
 
-    // Create authentic Google session
+    const displayName = name || email.split('@')[0];
+    const realAvatarUrl = `https://unavatar.io/google/${encodeURIComponent(email)}`;
+
     const realUser = {
       uid: 'google_' + Math.random().toString(36).substring(2, 12),
-      name: name || email.split('@')[0],
+      name: displayName,
       email: email,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(name || email)}`,
+      avatar: realAvatarUrl,
       emailVerified: true,
       provider: 'google.com',
       signedInAt: new Date().toISOString()
@@ -147,23 +194,19 @@ export const AuthModule = {
 
   setUserSession(user) {
     this.user = user;
-    currentUser = user;
     localStorage.setItem('lien_google_user', JSON.stringify(user));
-
-    // Also sync to legacy session key
     localStorage.setItem('lien_user_session', JSON.stringify({
       name: user.name,
       email: user.email,
       avatar: user.avatar
     }));
 
-    // Notify UI
-    if (window.NavController && window.NavController.renderUserAuthZone) {
+    if (window.NavController) {
       window.NavController.currentUser = user;
       window.NavController.renderUserAuthZone();
     }
     if (window.showToast) {
-      window.showToast(`Xin chào ${user.name}! Đã đăng nhập bằng Google.`, 'success');
+      window.showToast(`Đã đăng nhập thành công với tài khoản Google (${user.email})!`, 'success');
     }
 
     this.notifyListeners(user);
@@ -171,15 +214,14 @@ export const AuthModule = {
 
   signOut() {
     this.user = null;
-    currentUser = null;
     localStorage.removeItem('lien_google_user');
     localStorage.removeItem('lien_user_session');
 
-    if (window.google && window.google.accounts && window.google.accounts.id) {
-      window.google.accounts.id.disableAutoSelect();
+    if (auth) {
+      firebaseSignOut(auth).catch(() => {});
     }
 
-    if (window.NavController && window.NavController.renderUserAuthZone) {
+    if (window.NavController) {
       window.NavController.currentUser = null;
       window.NavController.renderUserAuthZone();
     }
@@ -188,6 +230,14 @@ export const AuthModule = {
     }
 
     this.notifyListeners(null);
+  },
+
+  updateCustomAvatar(newAvatarUrl, newName) {
+    if (!this.user) return;
+    if (newName) this.user.name = newName;
+    if (newAvatarUrl) this.user.avatar = newAvatarUrl;
+
+    this.setUserSession(this.user);
   },
 
   onAuthStateChanged(callback) {

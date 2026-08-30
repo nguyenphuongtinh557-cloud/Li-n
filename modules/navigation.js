@@ -366,18 +366,75 @@ export const NavController = {
 
   openProfileSettingsModal() {
     this.closeUserPopover();
-    if (window.showToast) window.showToast('Tính năng Cài đặt Hồ sơ cá nhân', 'info');
+    this.openEditAvatarModal();
   },
 
   openEditAvatarModal() {
     this.closeUserPopover();
-    const newName = prompt('Nhập tên hiển thị mới:', this.currentUser?.name || '');
-    if (newName && newName.trim()) {
-      this.currentUser.name = newName.trim();
-      this.currentUser.avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(newName)}`;
-      localStorage.setItem('lien_user_session', JSON.stringify(this.currentUser));
-      this.renderUserAuthZone();
-      if (window.showToast) window.showToast('Đã cập nhật thông tin thành công!', 'success');
+    let modal = document.getElementById('modal-edit-profile');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'modal-edit-profile';
+      modal.className = 'modal-overlay open';
+      modal.style.zIndex = '10000';
+      modal.innerHTML = `
+        <div class="modal-box text-center" style="max-width: 440px; padding: 24px;">
+          <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 16px;">🖼️ Cập Nhật Hồ Sơ & Ảnh Đại Diện</h3>
+          
+          <div style="text-align: left;" class="space-y-3">
+            <div class="form-group">
+              <label class="form-label">Tên hiển thị:</label>
+              <input type="text" id="edit-profile-name" class="form-input" value="${this.currentUser?.name || ''}">
+            </div>
+
+            <div class="form-group">
+              <label class="form-label">Link Ảnh Đại Diện (Google Photo / Image URL):</label>
+              <input type="url" id="edit-profile-avatar" class="form-input" placeholder="https://lh3.googleusercontent.com/a/..." value="${this.currentUser?.avatar || ''}">
+            </div>
+
+            <div class="text-xs text-muted">
+              💡 Bạn có thể dán link ảnh thật từ Google/Facebook/Imgur hoặc để tự động đồng bộ theo Gmail.
+            </div>
+          </div>
+
+          <div class="flex gap-2 margin-top-20">
+            <button class="btn btn-secondary btn-full" onclick="document.getElementById('modal-edit-profile').classList.remove('open')">Hủy</button>
+            <button class="btn btn-primary btn-full" onclick="NavController.saveProfileEdit()">
+              <i class="fa-solid fa-floppy-disk"></i> Lưu Hồ Sơ
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+    } else {
+      const nameInput = document.getElementById('edit-profile-name');
+      const avatarInput = document.getElementById('edit-profile-avatar');
+      if (nameInput) nameInput.value = this.currentUser?.name || '';
+      if (avatarInput) avatarInput.value = this.currentUser?.avatar || '';
+      modal.classList.add('open');
     }
+  },
+
+  saveProfileEdit() {
+    const nameInput = document.getElementById('edit-profile-name');
+    const avatarInput = document.getElementById('edit-profile-avatar');
+
+    const newName = nameInput ? nameInput.value.trim() : '';
+    const newAvatar = avatarInput ? avatarInput.value.trim() : '';
+
+    if (!newName) {
+      if (window.showToast) window.showToast('Tên hiển thị không được để trống!', 'error');
+      return;
+    }
+
+    if (this.currentUser) {
+      this.currentUser.name = newName;
+      if (newAvatar) this.currentUser.avatar = newAvatar;
+      AuthModule.setUserSession(this.currentUser);
+    }
+
+    const modal = document.getElementById('modal-edit-profile');
+    if (modal) modal.classList.remove('open');
+    if (window.showToast) window.showToast('Đã cập nhật tên và ảnh đại diện!', 'success');
   }
 };
