@@ -1260,3 +1260,78 @@ img { max-width: 100%; }
   text-align: center;
   flex-shrink: 0;
 }
+
+/* ─── CERA Model Select Dropdown ─── */
+.cera-model-select {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 8px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+}
+.cera-model-select option {
+  background: #1e1b4b;
+  color: #fff;
+}
+
+/* ─── CERA Image Upload & Preview ─── */
+.cera-img-btn {
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  border: 1.5px solid var(--border);
+  background: var(--bg);
+  color: var(--primary);
+  font-size: 16px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: var(--transition);
+}
+.cera-img-btn:hover {
+  background: var(--primary-light);
+  border-color: var(--primary);
+  transform: scale(1.05);
+}
+
+.cera-image-preview-container {
+  position: relative;
+  margin: 0 12px 6px;
+  padding: 6px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.cera-image-preview {
+  width: 50px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.cera-image-remove-btn {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: var(--danger);
+  color: white;
+  font-size: 11px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+

@@ -4,39 +4,7 @@
  */
 
 import { DB } from './db.js';
-
-const API_KEYS = {
-  cerebras: [
-    'csk-' + 'wr4c85jkpjy2v8c3f6vftcj2j4nekrkm4ye8kpej856yrtwk',
-    'csk-' + 'hcvp52we6htpcyjefe26yj5wmtfk2et2ehv4tw6ptk8cmhep'
-  ],
-  gemini: [
-    'AIzaSy' + 'B4rSYnaBvBl4QWPyefSc_rODRZQ6eTrk8',
-    'AIzaSy' + 'A_YW64oHktvXQALBKurI67x1tdu3LNQ6M',
-    'AIzaSy' + 'ACGSiU_pf21ssY_gqymwGd-_jLqK6qtN8'
-  ],
-  groq: [
-    'gsk_' + '3tflPbwbzb6gaOY6oV85WGdyb3FYBdZ02jP3gpwQTWYuVVTxxi4r',
-    'gsk_' + 'CZnyt64cTM680y3zTuH6WGdyb3FY2Q1b2tLt8JVO3ZC0H47vuQCr',
-    'gsk_' + 'D6W4iEm9lDp6B8XV9PDBWGdyb3FYArXtSZF235AzfsU1zuYiBOZs'
-  ]
-};
-
-class KeyManager {
-  constructor() {
-    this.counters = { cerebras: 0, gemini: 0, groq: 0 };
-  }
-  
-  getKey(provider) {
-    const keys = API_KEYS[provider];
-    if (!keys || keys.length === 0) return '';
-    const key = keys[this.counters[provider] % keys.length];
-    this.counters[provider]++;
-    return key;
-  }
-}
-
-const keys = new KeyManager();
+import { AIPool } from './aiPool.js';
 
 // System prompt base
 const BASE_SYSTEM_PROMPT = `Bạn là chuyên gia giảng dạy môn Quản lý Chất lượng và An toàn Thực phẩm tại Việt Nam.
@@ -66,28 +34,43 @@ const LAYER_PROMPTS = {
 };
 
 export const Generator = {
-  async fromText(text, targetCount, onProgress = null) {
+  async fromText(text, targetCount, onProgress = null, options = {}) {
     const allQuestions = [];
     const chunks = _splitTextIntoChunks(text, 2500); // 2500 chars ~ 500 từ
     
     const countPerChunk = Math.ceil(targetCount / chunks.length);
     const countPerLayer = Math.max(3, Math.ceil(countPerChunk / 3)); 
     
+    const isPremium = options.isPremium || !!options.premiumModelId;
+    const premiumModelId = options.premiumModelId || 'deepseek-r1';
+
     for (let i = 0; i < chunks.length; i++) {
       if (allQuestions.length >= targetCount) break;
       
       const chunk = chunks[i];
-      onProgress && onProgress(Math.round((i / chunks.length) * 80), `Đang quét đoạn ${i+1}/${chunks.length} đa tầng (Cerebras + Gemini)...`);
+      const modeText = isPremium ? `Premium AI (${premiumModelId})` : 'Đa tầng (Cerebras + Gemini + Groq)';
+      onProgress && onProgress(Math.round((i / chunks.length) * 80), `Đang quét đoạn ${i+1}/${chunks.length} với ${modeText}...`);
       
       try {
-          // Chạy 3 luồng song song
+        if (isPremium) {
+          // Gọi Premium Zone qua OpenRouter (Claude 3.5 / DeepSeek R1 / GPT-4o)
+          const userMsg = `Nội dung tài liệu:\n${chunk}\n\nHãy sinh ${countPerChunk} câu hỏi trắc nghiệm theo cấu trúc JSON object { "questions": [...] }. Trả về ĐÚNG chuẩn JSON.`;
+          const rawResp = await AIPool.askPremium({
+            modelId: premiumModelId,
+            userPrompt: userMsg,
+            systemPrompt: BASE_SYSTEM_PROMPT
+          });
+          const qs = _parseJSONString(rawResp);
+          allQuestions.push(...qs);
+        } else {
+          // Chạy 3 luồng song song qua AIPool Question Generation
           const [qL1, qL3, qL4] = await Promise.all([
             _callOpenAIFormat('cerebras', 'gpt-oss-120b', LAYER_PROMPTS.layer1, chunk, countPerLayer, 'groq'),
             _callGemini(LAYER_PROMPTS.layer3, chunk, countPerLayer),
             _callOpenAIFormat('cerebras', 'gpt-oss-120b', LAYER_PROMPTS.layer4, chunk, countPerLayer, 'groq')
           ]);
-          
           allQuestions.push(...qL1, ...qL3, ...qL4);
+        }
       } catch (e) {
           console.error("Lỗi chunk " + i, e);
       }
@@ -101,7 +84,7 @@ export const Generator = {
     // Loại trùng text
     const seen = new Set();
     validQuestions = validQuestions.filter(q => {
-        const hash = q.q.toLowerCase().replace(/\\s+/g, '');
+        const hash = q.q.toLowerCase().replace(/\s+/g, '');
         if (seen.has(hash)) return false;
         seen.add(hash);
         return true;
@@ -123,7 +106,7 @@ export const Generator = {
  */
 async function _callOpenAIFormat(primaryProvider, model, systemPrompt, content, count, fallbackProvider) {
   let provider = primaryProvider;
-  let key = keys.getKey(provider);
+  let key = AIPool.getKey(provider);
   let endpoint = provider === 'cerebras' ? 'https://api.cerebras.ai/v1/chat/completions' : 'https://api.groq.com/openai/v1/chat/completions';
   
   const userMsg = `Nội dung tài liệu:\n${content}\n\nHãy sinh ${count} câu hỏi theo cấu trúc JSON object { "questions": [...] }. Trả lời ĐÚNG chuẩn JSON.`;
@@ -153,7 +136,7 @@ async function _callOpenAIFormat(primaryProvider, model, systemPrompt, content, 
     console.warn(`[Multi-Layer] Lỗi ${provider}, Fallback sang ${fallbackProvider}...`, err);
     if (!fallbackProvider) return [];
     
-    const fbKey = keys.getKey('groq');
+    const fbKey = AIPool.getKey('groq');
     return await attemptCall('groq', fbKey, 'https://api.groq.com/openai/v1/chat/completions', 'openai/gpt-oss-120b').catch(e => {
         console.error('Fallback Groq failed:', e);
         return [];
@@ -165,7 +148,7 @@ async function _callOpenAIFormat(primaryProvider, model, systemPrompt, content, 
  * Gọi API Gemini (Layer 3)
  */
 async function _callGemini(systemPrompt, content, count) {
-  const key = keys.getKey('gemini');
+  const key = AIPool.getKey('gemini');
   const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${key}`;
   
   const userMsg = `Nội dung tài liệu:\n${content}\n\nHãy sinh ${count} câu hỏi theo cấu trúc JSON object { "questions": [...] }. Trả lời ĐÚNG chuẩn JSON.`;
@@ -186,7 +169,7 @@ async function _callGemini(systemPrompt, content, count) {
     return _parseJSONString(data.candidates[0].content.parts[0].text);
   } catch (err) {
     console.warn('[Multi-Layer] Lỗi Gemini, Fallback sang Groq...', err);
-    const fbKey = keys.getKey('groq');
+    const fbKey = AIPool.getKey('groq');
     
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',

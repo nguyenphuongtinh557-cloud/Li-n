@@ -7,7 +7,7 @@ import { DB } from './modules/db.js';
 import { Generator } from './modules/generator.js';
 import { ExamEngine, ExamTimer } from './modules/exam.js';
 import { SEED_QUESTIONS } from './data/seed_questions.js';
-import { ceraChat, verifyAndFixQuestion, setCurrentQuestion } from './modules/cera.js';
+import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion } from './modules/cera.js';
 import { pullFromGitHub, pullAdminEdits } from './modules/sync.js';
 import { initAdminAuth } from './modules/admin.js';
 
@@ -667,10 +667,12 @@ async function handleGenerateQuestions() {
   const titleEl = document.getElementById('source-title');
   const contentEl = document.getElementById('source-content');
   const countEl = document.getElementById('generate-count');
+  const modelTierEl = document.getElementById('generate-model-tier');
 
   const title = titleEl.value.trim() || 'Tài liệu ' + new Date().toLocaleDateString('vi');
   const content = contentEl.value.trim();
   const count = parseInt(countEl.value) || 10;
+  const modelTier = modelTierEl?.value || 'standard';
 
   if (!content || content.length < 50) {
     showToast('Vui lòng nhập nội dung tài liệu (ít nhất 50 ký tự)', 'error');
@@ -688,10 +690,11 @@ async function handleGenerateQuestions() {
   generateBtn.innerHTML = '<span class="spinner"></span> Đang sinh câu hỏi...';
 
   try {
+    const genOptions = modelTier !== 'standard' ? { isPremium: true, premiumModelId: modelTier } : {};
     const questions = await Generator.fromText(content, count, (pct, msg) => {
       progressBar.style.width = pct + '%';
       progressText.textContent = msg;
-    });
+    }, genOptions);
 
     if (!questions.length) {
       showToast('Không thể sinh câu hỏi. Thử lại với nội dung khác.', 'error');
@@ -1187,27 +1190,64 @@ function updateCeraContextUI(q = null) {
   }
 }
 
+let _ceraAttachedBase64 = null;
+
+function handleCeraImageUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    _ceraAttachedBase64 = e.target.result;
+    const previewContainer = document.getElementById('cera-image-preview-container');
+    const previewImg = document.getElementById('cera-image-preview');
+    if (previewContainer && previewImg) {
+      previewImg.src = _ceraAttachedBase64;
+      previewContainer.classList.remove('hidden');
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeCeraAttachedImage() {
+  _ceraAttachedBase64 = null;
+  const previewContainer = document.getElementById('cera-image-preview-container');
+  const previewImg = document.getElementById('cera-image-preview');
+  const fileInput = document.getElementById('cera-file-input');
+  if (previewContainer) previewContainer.classList.add('hidden');
+  if (previewImg) previewImg.src = '';
+  if (fileInput) fileInput.value = '';
+}
+
 async function ceraSend() {
   const input = document.getElementById('cera-input');
   const sendBtn = document.getElementById('cera-send-btn');
   const messages = document.getElementById('cera-messages');
   const statusText = document.getElementById('cera-status-text');
+  const modelSelect = document.getElementById('cera-model-select');
   if (!input || !sendBtn || !messages) return;
 
   const text = input.value.trim();
-  if (!text) return;
+  const attachedImage = _ceraAttachedBase64;
+
+  if (!text && !attachedImage) return;
 
   input.value = '';
   input.style.height = 'auto';
   sendBtn.disabled = true;
 
+  // Render User Message Bubble
   const userMsg = document.createElement('div');
   userMsg.className = 'cera-msg cera-msg-user';
+  let imgHtml = attachedImage ? `<img src="${attachedImage}" style="max-width:180px;max-height:180px;border-radius:8px;margin-bottom:6px;display:block;">` : '';
   userMsg.innerHTML = `
     <div class="cera-msg-avatar"><i class="fa-solid fa-user"></i></div>
-    <div class="cera-msg-bubble"><p>${escapeHtml(text)}</p></div>`;
+    <div class="cera-msg-bubble">${imgHtml}<p>${escapeHtml(text || 'Hãy phân tích hình ảnh này.')}</p></div>`;
   messages.appendChild(userMsg);
   messages.scrollTop = messages.scrollHeight;
+
+  // Clear attached image state
+  removeCeraAttachedImage();
 
   const typingMsg = document.createElement('div');
   typingMsg.className = 'cera-msg cera-msg-bot cera-typing';
@@ -1219,13 +1259,26 @@ async function ceraSend() {
   messages.appendChild(typingMsg);
   messages.scrollTop = messages.scrollHeight;
 
-  if (statusText) statusText.innerHTML = '<span class="cera-dot thinking"></span>Liên đang suy nghĩ...';
+  if (statusText) statusText.innerHTML = '<span class="cera-dot thinking"></span>Liên đang phân tích...';
 
   try {
-    const reply = await ceraChat(text, _ceraHistory);
+    let reply = '';
+    const selectedModel = modelSelect?.value || 'standard';
+
+    if (attachedImage) {
+      // Phân tích hình ảnh / Giải bài tập bằng Vision AI
+      reply = await ceraAnalyzeImage(attachedImage, text, _ceraHistory);
+    } else if (selectedModel !== 'standard') {
+      // Gọi Premium AI Zone
+      reply = await ceraChat(text, _ceraHistory, { isPremium: true, premiumModelId: selectedModel });
+    } else {
+      // Gọi Standard Cera
+      reply = await ceraChat(text, _ceraHistory);
+    }
+
     typingMsg.remove();
 
-    _ceraHistory.push({ role: 'user', content: text });
+    _ceraHistory.push({ role: 'user', content: text || 'Hình ảnh' });
     _ceraHistory.push({ role: 'bot', content: reply });
 
     const botMsg = document.createElement('div');
@@ -1307,6 +1360,8 @@ Object.assign(window, {
   clearCeraChat,
   ceraSend,
   ceraKeyDown,
+  handleCeraImageUpload,
+  removeCeraAttachedImage,
 });
 
 // Boot

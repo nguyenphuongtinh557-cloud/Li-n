@@ -9,22 +9,7 @@
  */
 
 import { DB } from './db.js';
-
-// ─── API Configuration ─────────────────────────────────────────────────────
-const CEREBRAS_KEYS = [
-  'csk-' + 'wr4c85jkpjy2v8c3f6vftcj2j4nekrkm4ye8kpej856yrtwk',
-  'csk-' + 'hcvp52we6htpcyjefe26yj5wmtfk2et2ehv4tw6ptk8cmhep',
-];
-const GROQ_KEYS = [
-  'gsk_' + '3tflPbwbzb6gaOY6oV85WGdyb3FYBdZ02jP3gpwQTWYuVVTxxi4r',
-  'gsk_' + 'CZnyt64cTM680y3zTuH6WGdyb3FY2Q1b2tLt8JVO3ZC0H47vuQCr',
-  'gsk_' + 'D6W4iEm9lDp6B8XV9PDBWGdyb3FYArXtSZF235AzfsU1zuYiBOZs',
-];
-
-let _cerebrasIdx = 0;
-let _groqIdx = 0;
-function getCerebrasKey() { return CEREBRAS_KEYS[_cerebrasIdx++ % CEREBRAS_KEYS.length]; }
-function getGroqKey() { return GROQ_KEYS[_groqIdx++ % GROQ_KEYS.length]; }
+import { AIPool } from './aiPool.js';
 
 // ─── System Prompt ────────────────────────────────────────────────────────────
 const CERA_SYSTEM = `Bạn là Liên — trợ lý AI thông minh của Hệ thống Ôn thi Quản lý Chất lượng (QLCL) và Luật An toàn Thực phẩm (ATTP) Việt Nam, được sáng lập bởi Nguyễn Hoàng Phúc và Dương Ngọc Trâm.
@@ -63,11 +48,10 @@ export function setCurrentQuestion(question) {
 
 // ─── Gọi Groq AI (Dự phòng cực nhanh & miễn phí) ────────────────────────────
 async function callGroq(userMessage, systemPrompt) {
-  // Cập nhật model Groq hiện đang hoạt động
   const models = ['groq/compound-mini', 'openai/gpt-oss-120b'];
   for (const model of models) {
-    for (let attempt = 0; attempt < GROQ_KEYS.length; attempt++) {
-      const key = getGroqKey();
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const key = AIPool.getKey('groq');
       try {
         const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
           method: 'POST',
@@ -97,13 +81,13 @@ async function callGroq(userMessage, systemPrompt) {
   throw new Error('Groq AI Failed');
 }
 
-// ─── Gọi Cerebras (CERA) AI ───────────────────────────────────────────────────
+// ─── Gọi Cerebras (CERA) AI hoặc AIPool ──────────────────────────────────────
 async function askAI(userMessage, systemPrompt = CERA_SYSTEM) {
-  const models = ['gemma-4-31b', 'gpt-oss-120b'];
+  const models = ['gpt-oss-120b'];
 
   for (const model of models) {
-    for (let attempt = 0; attempt < CEREBRAS_KEYS.length; attempt++) {
-      const key = getCerebrasKey();
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const key = AIPool.getKey('cerebras');
       try {
         const res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
           method: 'POST',
@@ -122,7 +106,6 @@ async function askAI(userMessage, systemPrompt = CERA_SYSTEM) {
           }),
         });
         
-        // 402 = Payment Required (Hết tiền). Lập tức nhảy sang Groq.
         if (res.status === 402) {
           console.warn('Cerebras hết quota (402). Tự động chuyển sang Groq AI...');
           return await callGroq(userMessage, systemPrompt);
@@ -138,7 +121,6 @@ async function askAI(userMessage, systemPrompt = CERA_SYSTEM) {
     }
   }
 
-  // Nếu Cerebras rớt mạng hoặc lỗi khác, dùng Groq làm phương án cuối cùng
   try {
     return await callGroq(userMessage, systemPrompt);
   } catch (e) {
@@ -353,8 +335,54 @@ ${q.exp ? q.exp : 'Đáp án này được trích xuất và thẩm định chí
  * @param {Array} history - lịch sử chat
  * @returns {string} - phản hồi từ CERA/Liên
  */
-export async function ceraChat(userText, history = []) {
+/**
+ * Phân tích hình ảnh (bài tập toán, sơ đồ, ảnh chụp đề thi) gửi vào CERA Chatbot
+ * @param {string} base64Data - Dữ liệu ảnh Base64
+ * @param {string} userText - Lời nhắn đi kèm
+ * @param {Array} history - Lịch sử trò chuyện
+ * @returns {string} Phản hồi phân tích từ AI Vision
+ */
+export async function ceraAnalyzeImage(base64Data, userText = 'Hãy giải bài toán hoặc phân tích hình ảnh này giúp tôi.', history = []) {
+  let prompt = userText || 'Hãy đọc và giải chi tiết hình ảnh được đính kèm.';
+  if (_currentContext) {
+    prompt += `\n[Bối cảnh liên quan: Câu hỏi hiện tại: "${_currentContext.q}"]`;
+  }
+  
+  const response = await AIPool.analyzeImage({
+    base64Data,
+    userPrompt: prompt,
+    systemPrompt: CERA_SYSTEM
+  });
+  
+  return `🖼️ **PHÂN TÍCH HÌNH ẢNH AI (VISION OCR)**\n\n${response}`;
+}
+
+// ─── Xử lý tin nhắn chat ─────────────────────────────────────────────────────
+/**
+ * Phân tích ý định của user và xử lý phù hợp
+ * @param {string} userText - tin nhắn của user
+ * @param {Array} history - lịch sử chat
+ * @param {object} options - { isPremium: boolean, premiumModelId: string }
+ * @returns {string} - phản hồi từ CERA/Liên
+ */
+export async function ceraChat(userText, history = [], options = {}) {
   const text = userText.trim().toLowerCase();
+
+  // ── 0. Kiểm tra nếu là Chế độ Premium ─────────────────────────────────────
+  if (options.isPremium || options.premiumModelId) {
+    let contextPrompt = CERA_SYSTEM + '\n\n';
+    if (_currentContext) {
+      contextPrompt += `[Bối cảnh: Sinh viên đang làm câu hỏi: "${_currentContext.q}"]\n\n`;
+    }
+    const modelId = options.premiumModelId || 'deepseek-r1';
+    const resp = await AIPool.askPremium({
+      modelId,
+      userPrompt: userText,
+      systemPrompt: contextPrompt,
+      history
+    });
+    return `💎 **PREMIUM AI (${modelId.toUpperCase()})**\n\n${resp}`;
+  }
 
   // ── 1. Phát hiện báo câu sai → BẮT BUỘC gọi AI xác minh live ────────────
   const reportWrongPattern = /câu\s*(này|đó|trên|số\s*\d+|#?\d+)?\s*(bị\s*)?(sai|lỗi|nhầm|không\s*đúng|không\s*chính\s*xác)/;
@@ -363,7 +391,6 @@ export async function ceraChat(userText, history = []) {
   }
 
   // ── 2. Phát hiện Yêu cầu Hành động đặc biệt (Dịch thuật, Tóm tắt, Giải thích sâu, Ví dụ...) ───
-  // BẮT BUỘC gọi AI xử lý yêu cầu thay vì tự động trả về template câu hỏi trong DB!
   const actionPattern = /(dịch|translate|nghĩa\s*là|nghĩa\s*của|tóm\s*tắt|sâu\s*hơn|ví\s*dụ|tại\s*sao|phân\s*tích|so\s*sánh|cho\s*biết|như\s*thế\s*nào|hướng\s*dẫn)/i;
   if (actionPattern.test(userText)) {
     let contextPrompt = CERA_SYSTEM + '\n\n';
