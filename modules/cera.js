@@ -337,14 +337,14 @@ ${q.exp ? q.exp : 'Đáp án này được trích xuất và thẩm định chí
  * Phân tích ý định của user và xử lý phù hợp
  * @param {string} userText - tin nhắn của user
  * @param {Array} history - lịch sử chat
- * @returns {string} - phản hồi từ CERA/Liên
+ * @returns {string} - phản hồi từ FTECA 24
  */
 // ─── Xử lý tin nhắn chat ─────────────────────────────────────────────────────
 /**
  * Phân tích ý định của user và xử lý phù hợp
  * @param {string} userText - tin nhắn của user
  * @param {Array} history - lịch sử chat
- * @returns {string} - phản hồi từ CERA/Liên
+ * @returns {string} - phản hồi từ FTECA 24
  */
 /**
  * Phân tích hình ảnh (bài tập toán, sơ đồ, ảnh chụp đề thi) gửi vào CERA Chatbot
@@ -374,7 +374,7 @@ export async function ceraAnalyzeImage(base64Data, userText = 'Hãy giải bài 
  * @param {string} userText - tin nhắn của user
  * @param {Array} history - lịch sử chat
  * @param {object} options - { isPremium: boolean, premiumModelId: string }
- * @returns {string} - phản hồi từ CERA/Liên
+ * @returns {string} - phản hồi từ FTECA 24
  */
 export async function ceraChat(userText, history = [], options = {}) {
   const text = userText.trim().toLowerCase();
