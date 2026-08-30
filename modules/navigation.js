@@ -369,8 +369,12 @@ export const NavController = {
     this.openEditAvatarModal();
   },
 
+  tempAvatarData: null,
+
   openEditAvatarModal() {
     this.closeUserPopover();
+    this.tempAvatarData = null;
+
     let modal = document.getElementById('modal-edit-profile');
     if (!modal) {
       modal = document.createElement('div');
@@ -381,19 +385,25 @@ export const NavController = {
         <div class="modal-box text-center" style="max-width: 440px; padding: 24px;">
           <h3 style="font-size: 18px; font-weight: 800; margin-bottom: 16px;">🖼️ Cập Nhật Hồ Sơ & Ảnh Đại Diện</h3>
           
-          <div style="text-align: left;" class="space-y-3">
+          <div style="text-align: left;" class="space-y-4">
+
+            <!-- Avatar Preview & Upload Button -->
+            <div class="text-center" style="margin-bottom: 16px;">
+              <div style="position:relative;width:96px;height:96px;margin:0 auto 12px;">
+                <img id="edit-avatar-preview" src="${this.currentUser?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--primary);box-shadow:var(--shadow-md);">
+                <label for="avatar-file-input" style="position:absolute;bottom:0;right:0;width:32px;height:32px;background:var(--primary);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);" title="Tải ảnh mới từ thiết bị">
+                  <i class="fa-solid fa-camera"></i>
+                </label>
+              </div>
+              <input type="file" id="avatar-file-input" accept="image/*" style="display:none;" onchange="NavController.handleAvatarFileUpload(event)">
+              <button class="btn btn-secondary btn-sm" onclick="document.getElementById('avatar-file-input').click()">
+                <i class="fa-solid fa-upload"></i> Tải Ảnh Từ Máy Tính / Điện Thoại
+              </button>
+            </div>
+
             <div class="form-group">
               <label class="form-label">Tên hiển thị:</label>
               <input type="text" id="edit-profile-name" class="form-input" value="${this.currentUser?.name || ''}">
-            </div>
-
-            <div class="form-group">
-              <label class="form-label">Link Ảnh Đại Diện (Google Photo / Image URL):</label>
-              <input type="url" id="edit-profile-avatar" class="form-input" placeholder="https://lh3.googleusercontent.com/a/..." value="${this.currentUser?.avatar || ''}">
-            </div>
-
-            <div class="text-xs text-muted">
-              💡 Bạn có thể dán link ảnh thật từ Google/Facebook/Imgur hoặc để tự động đồng bộ theo Gmail.
             </div>
           </div>
 
@@ -408,19 +418,67 @@ export const NavController = {
       document.body.appendChild(modal);
     } else {
       const nameInput = document.getElementById('edit-profile-name');
-      const avatarInput = document.getElementById('edit-profile-avatar');
+      const previewImg = document.getElementById('edit-avatar-preview');
       if (nameInput) nameInput.value = this.currentUser?.name || '';
-      if (avatarInput) avatarInput.value = this.currentUser?.avatar || '';
+      if (previewImg && this.currentUser?.avatar) previewImg.src = this.currentUser.avatar;
       modal.classList.add('open');
     }
   },
 
+  handleAvatarFileUpload(event) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      if (window.showToast) window.showToast('Vui lòng chọn file hình ảnh (PNG, JPG, WebP)!', 'error');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const rawDataUrl = e.target.result;
+      
+      // Compress image via Canvas to 250x250 max
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const maxSize = 250;
+        let width = img.width;
+        let height = img.height;
+
+        if (width > height) {
+          if (width > maxSize) {
+            height *= maxSize / width;
+            width = maxSize;
+          }
+        } else {
+          if (height > maxSize) {
+            width *= maxSize / height;
+            height = maxSize;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+        this.tempAvatarData = compressedDataUrl;
+
+        const previewImg = document.getElementById('edit-avatar-preview');
+        if (previewImg) previewImg.src = compressedDataUrl;
+
+        if (window.showToast) window.showToast('Đã chọn ảnh thành công! Bấm Lưu Hồ Sơ để xác nhận.', 'info');
+      };
+      img.src = rawDataUrl;
+    };
+    reader.readAsDataURL(file);
+  },
+
   saveProfileEdit() {
     const nameInput = document.getElementById('edit-profile-name');
-    const avatarInput = document.getElementById('edit-profile-avatar');
-
     const newName = nameInput ? nameInput.value.trim() : '';
-    const newAvatar = avatarInput ? avatarInput.value.trim() : '';
 
     if (!newName) {
       if (window.showToast) window.showToast('Tên hiển thị không được để trống!', 'error');
@@ -429,7 +487,9 @@ export const NavController = {
 
     if (this.currentUser) {
       this.currentUser.name = newName;
-      if (newAvatar) this.currentUser.avatar = newAvatar;
+      if (this.tempAvatarData) {
+        this.currentUser.avatar = this.tempAvatarData;
+      }
       AuthModule.setUserSession(this.currentUser);
     }
 
