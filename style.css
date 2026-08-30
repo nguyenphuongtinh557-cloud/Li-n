@@ -1117,7 +1117,7 @@ img { max-width: 100%; }
   right: 28px;
   width: 380px;
   max-height: 600px;
-  background: var(--card-bg);
+  background: var(--bg-card);
   border: 1px solid var(--border);
   border-radius: 20px;
   display: flex;
@@ -1127,8 +1127,8 @@ img { max-width: 100%; }
   opacity: 0;
   transform: translateY(20px) scale(0.97);
   pointer-events: none;
-  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.34,1.56,0.64,1);
-  backdrop-filter: blur(12px);
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.34,1.56,0.64,1),
+              width 0.3s ease, height 0.3s ease, max-height 0.3s ease;
   overflow: hidden;
   user-select: none;
   touch-action: none;
@@ -1138,8 +1138,16 @@ img { max-width: 100%; }
   transform: translateY(0) scale(1);
   pointer-events: all;
 }
+/* Chế độ mở rộng (phóng to) */
+.cera-panel.expanded {
+  width: min(680px, calc(100vw - 32px));
+  max-height: min(82vh, 760px);
+  bottom: 16px;
+  right: 16px;
+}
 @media (max-width: 480px) {
   .cera-panel { width: calc(100vw - 24px); right: 12px; bottom: 90px; }
+  .cera-panel.expanded { width: calc(100vw - 16px); right: 8px; bottom: 8px; max-height: 92vh; }
   .cera-fab { bottom: 16px; right: 16px; }
 }
 

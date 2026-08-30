@@ -1153,6 +1153,21 @@ function toggleCeraChat() {
   }
 }
 
+function toggleCeraExpand() {
+  const panel = document.getElementById('cera-panel');
+  const icon = document.getElementById('cera-expand-icon');
+  const btn = document.getElementById('cera-expand-btn');
+  if (!panel) return;
+
+  const isExpanded = panel.classList.toggle('expanded');
+  if (icon) {
+    icon.className = isExpanded ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
+  }
+  if (btn) {
+    btn.title = isExpanded ? 'Thu nhỏ' : 'Mở rộng';
+  }
+}
+
 /* ════════════════════════════════════════════════════
    DRAGGABLE CERA CHATBOT (KÉO-THẢ BẤT KỲ ĐÂU MÀN HÌNH)
 ════════════════════════════════════════════════════ */
@@ -1443,6 +1458,7 @@ Object.assign(window, {
   openModal,
   closeModal,
   toggleCeraChat,
+  toggleCeraExpand,
   clearCeraChat,
   ceraSend,
   ceraKeyDown,
