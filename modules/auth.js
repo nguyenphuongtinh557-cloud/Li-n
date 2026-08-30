@@ -110,6 +110,7 @@ export const AuthModule = {
 
   handleAuthError(error) {
     let message = 'Đăng nhập Google thất bại.';
+    const errStr = (error.message || '') + (error.code || '');
 
     if (error.code === 'auth/popup-closed-by-user') {
       message = 'Bạn đã đóng cửa sổ đăng nhập Google.';
@@ -119,6 +120,8 @@ export const AuthModule = {
       message = 'Trình duyệt đã chặn cửa sổ Popup. Vui lòng cho phép popup để đăng nhập Google.';
     } else if (error.code === 'auth/unauthorized-domain') {
       message = `Tên miền (${window.location.hostname}) chưa được thêm vào Authorized Domains trong Google/Firebase Console.`;
+    } else if (errStr.includes('identitytoolkit')) {
+      message = `Dự án Google Cloud chưa bật Identity Toolkit API (Firebase Authentication). Vui lòng vào Google Cloud Console bấm ENABLE API.`;
     } else if (error.code === 'auth/cancelled-popup-request') {
       message = 'Yêu cầu đăng nhập đã bị hủy.';
       return;
