@@ -8,8 +8,8 @@
   /* ── FTECA Brand Palette ── */
   --primary: #00b96b;
   --primary-hover: #00a05c;
-  --primary-light: #e6f9f1;
-  --primary-glow: rgba(0, 185, 107, 0.22);
+  --primary-light: #edfaf3;
+  --primary-glow: rgba(0, 185, 107, 0.20);
 
   --accent: #f59e0b;
   --accent-light: #fef3c7;
@@ -28,28 +28,28 @@
   --diff-hard: #ef4444;
   --diff-hard-light: #fee2e2;
 
-  /* Surface Layers */
-  --bg-base: #f0faf5;
+  /* Surface Layers — trung tính, không pha xanh */
+  --bg-base: #f5f5f5;
   --bg-card: #ffffff;
-  --bg-card-hover: #f7fdf9;
-  --bg-subtle: #e8f5ee;
-  --bg-glass: rgba(255,255,255,0.75);
+  --bg-card-hover: #fafafa;
+  --bg-subtle: #f0f0f0;
+  --bg-glass: rgba(255,255,255,0.80);
 
-  /* Typography */
-  --text-primary: #0a1f14;
-  --text-secondary: #3d6b50;
-  --text-muted: #7aaa8e;
+  /* Typography — xám đen trung tính */
+  --text-primary: #111111;
+  --text-secondary: #555555;
+  --text-muted: #999999;
   --text-on-primary: #ffffff;
 
-  /* Borders */
-  --border: #c8e8d5;
+  /* Borders — xám nhẹ */
+  --border: #e0e0e0;
   --border-focus: var(--primary);
 
   /* Shadows */
-  --shadow-xs: 0 1px 2px rgba(0,100,50,0.04);
-  --shadow-sm: 0 2px 8px rgba(0,100,50,0.06);
-  --shadow-md: 0 4px 16px rgba(0,100,50,0.08);
-  --shadow-lg: 0 8px 32px rgba(0,100,50,0.12);
+  --shadow-xs: 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.12);
   --shadow-primary: 0 4px 16px var(--primary-glow);
 
   /* Border Radius */
@@ -70,23 +70,22 @@
 
 /* ─── Dark Mode ─── */
 [data-theme="dark"] {
-  --bg-base: #080f0c;
-  --bg-card: #0d1f17;
-  --bg-card-hover: #122519;
-  --bg-subtle: #0a1810;
-  --bg-glass: rgba(13,31,23,0.85);
-  --text-primary: #e8f5ee;
-  --text-secondary: #7aaa8e;
-  --text-muted: #3d6b50;
-  --border: #1a3526;
-  --shadow-sm: 0 2px 8px rgba(0,0,0,0.35);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.45);
-  --shadow-lg: 0 8px 32px rgba(0,0,0,0.6);
-  --primary-light: rgba(0, 185, 107, 0.13);
+  --bg-base: #0a0a0a;
+  --bg-card: #111111;
+  --bg-card-hover: #1a1a1a;
+  --bg-subtle: #161616;
+  --bg-glass: rgba(17,17,17,0.88);
+  --text-primary: #f0f0f0;
+  --text-secondary: #a0a0a0;
+  --text-muted: #5a5a5a;
+  --border: #242424;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.5);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.6);
+  --shadow-lg: 0 8px 32px rgba(0,0,0,0.75);
+  --primary-light: rgba(0, 185, 107, 0.12);
   --success-light: rgba(16,185,129,0.15);
   --danger-light: rgba(239,68,68,0.15);
   --accent-light: rgba(245,158,11,0.15);
-  --bg-glass: rgba(13,31,23,0.8);
   --border-focus: #00b96b;
 }
 

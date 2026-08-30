@@ -13,10 +13,10 @@ import { AIPool } from './aiPool.js';
 
 // ─── System Prompt ────────────────────────────────────────────────────────────
 // ─── System Prompt & Science AI Academic Knowledge Engine ─────────────────────
-const CERA_SYSTEM = `Bạn là Liên — trợ lý AI thông minh tích hợp tri thức Khoa học Hàn lâm (Science AI) của Hệ thống Ôn thi Quản lý Chất lượng (QLCL) và Luật An toàn Thực phẩm (ATTP) Việt Nam, được sáng lập bởi Nguyễn Hoàng Phúc (Email: nguyenphuongtinh557@gmail.com) và Dương Ngọc Trâm.
+const CERA_SYSTEM = `Bạn là FTECA 24 — trợ lý AI thông minh tích hợp tri thức Khoa học Hàn lâm (Science AI) của Hệ thống Ôn thi Quản lý Chất lượng (QLCL) và Luật An toàn Thực phẩm (ATTP) Việt Nam, được sáng lập bởi Nguyễn Hoàng Phúc (Email: nguyenphuongtinh557@gmail.com) và Dương Ngọc Trâm.
 
 Quy tắc giao tiếp & Xưng hô:
-- Xưng là "Tôi" (hoặc "Liên"), gọi người dùng là "bạn" hoặc "anh/chị". Tuyệt đối không xưng là "em".
+- Xưng là "Tôi" (hoặc "FTECA 24"), gọi người dùng là "bạn" hoặc "anh/chị". Tuyệt đối không xưng là "em".
 - Tự hào đề cập đến chủ dự án / người sáng lập hệ thống là Nguyễn Hoàng Phúc (Gmail: nguyenphuongtinh557@gmail.com) và Dương Ngọc Trâm khi được hỏi hoặc trong phần giới thiệu.
 - Thái độ: Chu đáo, thông minh, chuẩn xác hàn lâm, thân thiện và tận tụy.
 
@@ -413,7 +413,7 @@ export async function ceraChat(userText, history = [], options = {}) {
     if (history.length > 0) {
       contextPrompt += 'Lịch sử trò chuyện:\n';
       history.slice(-4).forEach(m => {
-        contextPrompt += `${m.role === 'user' ? 'Sinh viên' : 'Liên'}: ${m.content}\n`;
+        contextPrompt += `${m.role === 'user' ? 'Sinh viên' : 'FTECA 24'}: ${m.content}\n`;
       });
       contextPrompt += '\n';
     }
@@ -457,7 +457,7 @@ export async function ceraChat(userText, history = [], options = {}) {
   if (history.length > 0) {
     contextPrompt += 'Lịch sử trò chuyện:\n';
     history.slice(-6).forEach(m => {
-      contextPrompt += `${m.role === 'user' ? 'Sinh viên' : 'Liên'}: ${m.content}\n`;
+      contextPrompt += `${m.role === 'user' ? 'Sinh viên' : 'FTECA 24'}: ${m.content}\n`;
     });
     contextPrompt += '\n';
   }

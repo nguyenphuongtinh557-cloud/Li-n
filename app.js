@@ -105,7 +105,7 @@ async function init() {
     console.warn('[Admin] Không thể kéo admin edits:', e);
   }
 
-  // Kích hoạt tính năng Kéo-Thả cho Chatbot Liên
+  // Kích hoạt tính năng Kéo-Thả cho Chatbot FTECA 24 24
   initDraggableCera();
 
   // Kích hoạt bộ lắng nghe click ẩn 5 lần cho quyền Admin
@@ -1338,14 +1338,14 @@ async function ceraSend() {
   const typingMsg = document.createElement('div');
   typingMsg.className = 'cera-msg cera-msg-bot cera-typing';
   typingMsg.innerHTML = `
-    <div class="cera-msg-avatar"><img src="chatbot.webp" alt="Liên" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
+    <div class="cera-msg-avatar"><img src="chatbot.webp" alt="FTECA 24" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
     <div class="cera-msg-bubble">
       <div class="cera-typing-dots"><span></span><span></span><span></span></div>
     </div>`;
   messages.appendChild(typingMsg);
   messages.scrollTop = messages.scrollHeight;
 
-  if (statusText) statusText.innerHTML = '<span class="cera-dot thinking"></span>Liên đang phân tích...';
+  if (statusText) statusText.innerHTML = '<span class="cera-dot thinking"></span>FTECA 24 đang phân tích...';
 
   try {
     let reply = '';
@@ -1370,7 +1370,7 @@ async function ceraSend() {
     const botMsg = document.createElement('div');
     botMsg.className = 'cera-msg cera-msg-bot';
     botMsg.innerHTML = `
-      <div class="cera-msg-avatar"><img src="chatbot.webp" alt="Liên" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
+      <div class="cera-msg-avatar"><img src="chatbot.webp" alt="FTECA 24" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
       <div class="cera-msg-bubble">${formatCeraReply(reply)}</div>`;
     messages.appendChild(botMsg);
   } catch (err) {
@@ -1378,7 +1378,7 @@ async function ceraSend() {
     const errMsg = document.createElement('div');
     errMsg.className = 'cera-msg cera-msg-bot';
     errMsg.innerHTML = `
-      <div class="cera-msg-avatar"><img src="chatbot.webp" alt="Liên" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
+      <div class="cera-msg-avatar"><img src="chatbot.webp" alt="FTECA 24" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
       <div class="cera-msg-bubble" style="background:#fee2e2;color:#991b1b;"><p>❌ Rất tiếc, đã có lỗi: ${escapeHtml(err.message)}</p></div>`;
     messages.appendChild(errMsg);
   } finally {
