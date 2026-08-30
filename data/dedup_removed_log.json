@@ -1,0 +1,95 @@
+{
+  "timestamp": "2026-08-30T11:57:06.784011",
+  "total_before": 1425,
+  "total_removed": 7,
+  "total_after": 1418,
+  "removed_pass1": [
+    {
+      "chapter": 1,
+      "pass": 1,
+      "ratio": 0.929,
+      "kept_q": "Sự khác biệt chính giữa Validation và Verification trong HACCP là gì?",
+      "removed_q": "Khác biệt giữa Validation và Verification trong HACCP là gì?"
+    },
+    {
+      "chapter": 4,
+      "pass": 1,
+      "ratio": 0.964,
+      "kept_q": "Nguyên tắc 1 của HACCP là gì?",
+      "removed_q": "Nguyên tắc 7 của HACCP là gì?"
+    },
+    {
+      "chapter": 5,
+      "pass": 1,
+      "ratio": 0.986,
+      "kept_q": "Một cơ sở có đàn cá giống thủy sản gồm 100 con. Nếu tỷ lệ lưu hành bệnh ước đoán",
+      "removed_q": "Một cơ sở có đàn cá giống thủy sản gồm 5.000 con. Nếu tỷ lệ lưu hành bệnh ước đo"
+    },
+    {
+      "chapter": 5,
+      "pass": 1,
+      "ratio": 0.951,
+      "kept_q": "Theo Phụ lục VI của Thông tư 26/2016/TT-BNNPTNT, các bệnh nào sau đây được liệt ",
+      "removed_q": "Theo Phụ lục VI của Thông tư 26/2016/TT-BNNPTNT, các bệnh nào sau đây được liệt "
+    },
+    {
+      "chapter": 5,
+      "pass": 1,
+      "ratio": 0.933,
+      "kept_q": "Theo Phụ lục VI của Thông tư 26/2016/TT-BNNPTNT, các bệnh nào sau đây được liệt ",
+      "removed_q": "Theo Phụ lục VI của Thông tư 26/2016/TT-BNNPTNT, bệnh nào sau đây được liệt kê đ"
+    },
+    {
+      "chapter": 5,
+      "pass": 1,
+      "ratio": 0.93,
+      "kept_q": "Theo Phụ lục VI của Thông tư 26/2016/TT-BNNPTNT, các bệnh nào sau đây được liệt ",
+      "removed_q": "Theo Phụ lục VI của Thông tư 26/2016/TT-BNNPTNT, bệnh nào sau đây được liệt kê đ"
+    },
+    {
+      "chapter": 5,
+      "pass": 1,
+      "ratio": 0.929,
+      "kept_q": "Quy chuẩn QCVN 02-09:2009/BNNPTNT quy định phạm vi điều chỉnh nào?",
+      "removed_q": "Quy chuẩn QCVN 02-12:2009/BNNPTNT quy định phạm vi điều chỉnh gì?"
+    }
+  ],
+  "removed_pass2": [],
+  "removed_questions": [
+    {
+      "chapter": 4,
+      "q": "Nguyên tắc 7 của HACCP là gì?",
+      "difficulty": 1
+    },
+    {
+      "chapter": 1,
+      "q": "Khác biệt giữa Validation và Verification trong HACCP là gì?",
+      "difficulty": 1
+    },
+    {
+      "chapter": 5,
+      "q": "Một cơ sở có đàn cá giống thủy sản gồm 5.000 con. Nếu tỷ lệ lưu hành bệnh ước đoán là 2%, theo bảng ",
+      "difficulty": 3
+    },
+    {
+      "chapter": 5,
+      "q": "Theo Phụ lục VI của Thông tư 26/2016/TT-BNNPTNT, các bệnh nào sau đây được liệt kê để giám sát hoặc ",
+      "difficulty": 1
+    },
+    {
+      "chapter": 5,
+      "q": "Theo Phụ lục VI của Thông tư 26/2016/TT-BNNPTNT, bệnh nào sau đây được liệt kê để giám sát hoặc công",
+      "difficulty": 1
+    },
+    {
+      "chapter": 5,
+      "q": "Theo Phụ lục VI của Thông tư 26/2016/TT-BNNPTNT, bệnh nào sau đây được liệt kê để giám sát hoặc công",
+      "difficulty": 1
+    },
+    {
+      "chapter": 5,
+      "q": "Quy chuẩn QCVN 02-12:2009/BNNPTNT quy định phạm vi điều chỉnh gì?",
+      "difficulty": 1
+    }
+  ]
+}
