@@ -282,7 +282,7 @@ export const NavController = {
             <img src="${this.currentUser.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(this.currentUser.name)}" class="popover-avatar">
             <div class="popover-user-info">
               <div class="popover-user-name">${this.currentUser.name}</div>
-              <div class="popover-user-email">${this.currentUser.email || 'macnghich@gmail.com'}</div>
+              <div class="popover-user-email">${this.currentUser.email || 'nguyenphuongtinh557@gmail.com'}</div>
               <span class="badge badge-success" style="font-size:10px;padding:2px 8px;margin-top:4px;">PRO Member</span>
             </div>
           </div>
