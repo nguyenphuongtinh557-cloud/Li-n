@@ -892,6 +892,103 @@
 
   </div>
 
+  <!-- ═══════════════ MODAL BIÊN TẬP & THẨM ĐỊNH ĐỀ THI AI ═══════════════ -->
+  <div id="modal-review-generated-questions" class="modal-overlay" style="z-index: 9999;">
+    <div class="modal-box review-modal-box">
+      <div class="modal-header review-modal-header">
+        <div>
+          <h2 style="font-size:18px;font-weight:800;margin-bottom:2px;">📝 Thẩm Định & Biên Tập Đề Thi AI</h2>
+          <p style="font-size:12.5px;color:var(--text-secondary);margin:0;">
+            Đọc, chỉnh sửa nội dung, đáp án và chọn nơi lưu trước khi đưa vào hệ thống.
+          </p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="btn btn-secondary btn-sm" onclick="addPendingQuestion()" title="Thêm câu hỏi mới thủ công">
+            <i class="fa-solid fa-plus"></i> Thêm câu mới
+          </button>
+          <button class="btn-icon" onclick="closeReviewGeneratedModal()" title="Đóng">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Live Counter & Actions Bar -->
+      <div class="review-status-bar">
+        <div class="flex items-center gap-2">
+          <span class="badge badge-primary" id="review-total-badge">10 Câu hỏi</span>
+          <span class="text-xs text-muted">Bấm vào bất kỳ ô nào để chỉnh sửa nội dung</span>
+        </div>
+      </div>
+
+      <!-- Question Cards Scroll Container -->
+      <div class="modal-body review-modal-body" id="review-questions-container">
+        <!-- Rendered dynamically by app.js -->
+      </div>
+
+      <!-- Save Configuration Footer Box -->
+      <div class="review-modal-footer">
+        <div class="review-save-config-grid">
+          
+          <!-- Nơi Lưu (Môn học / Thư mục) -->
+          <div class="save-config-card">
+            <label class="config-label"><i class="fa-solid fa-folder-open"></i> Nơi lưu trữ (Môn học / Thư mục):</label>
+            <select id="review-save-subject-select" class="form-select" onchange="handleToggleCustomSubjectInput(this.value)">
+              <!-- Populated dynamically -->
+            </select>
+
+            <!-- Khối Nhập Môn Mới (Ẩn mặc định, hiện khi chọn "CREATE_NEW") -->
+            <div id="custom-subject-inputs-wrap" class="custom-subject-box hidden">
+              <div class="grid-2 gap-2 mt-2">
+                <div>
+                  <label class="text-xs font-semibold">Tên môn / Thư mục mới (*):</label>
+                  <input type="text" id="new-subject-name-input" class="form-input text-xs" placeholder="Ví dụ: Công nghệ chế biến sữa">
+                </div>
+                <div>
+                  <label class="text-xs font-semibold">Mã môn mới (*):</label>
+                  <input type="text" id="new-subject-code-input" class="form-input text-xs" placeholder="Ví dụ: FT5001">
+                </div>
+              </div>
+              <p class="text-xs text-muted mt-1" style="font-size:11px;">
+                💡 Môn học mới sẽ được tạo cùng cấp với 35 môn chuẩn và quản lý độc lập 100%.
+              </p>
+            </div>
+          </div>
+
+          <!-- Hình Thức Lưu (Lưu Cá Nhân vs Lưu Công Khai) -->
+          <div class="save-config-card">
+            <label class="config-label"><i class="fa-solid fa-shield-halved"></i> Hình thức lưu trữ:</label>
+            <div class="privacy-option-group">
+              <label class="privacy-option-label active" id="label-save-local">
+                <input type="radio" name="review-save-privacy" value="local" checked onchange="togglePrivacyOptionUI('local')">
+                <div class="privacy-text">
+                  <div class="privacy-title">🔒 Chỉ lưu máy này (Cá nhân)</div>
+                  <div class="privacy-desc">Dữ liệu lưu riêng trong thiết bị của bạn.</div>
+                </div>
+              </label>
+              <label class="privacy-option-label" id="label-save-public">
+                <input type="radio" name="review-save-privacy" value="public" onchange="togglePrivacyOptionUI('public')">
+                <div class="privacy-text">
+                  <div class="privacy-title">🌐 Lưu công khai (Kho chung)</div>
+                  <div class="privacy-desc">Đồng bộ lên Kho đề chính cho cộng đồng cùng dùng.</div>
+                </div>
+              </label>
+            </div>
+          </div>
+
+        </div>
+
+        <div class="flex justify-end gap-3 mt-3">
+          <button class="btn btn-secondary" onclick="closeReviewGeneratedModal()">
+            <i class="fa-solid fa-xmark"></i> Hủy
+          </button>
+          <button class="btn btn-success font-bold" onclick="saveReviewedQuestions()">
+            <i class="fa-solid fa-floppy-disk"></i> Lưu Đề Thi Vào Ngân Hàng
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- ADMIN MODALS -->
   <div id="admin-list-modal" class="modal-overlay" style="z-index: 9999;">
     <div class="modal-box" style="max-width: 900px; width: 95%; max-height: 90vh; display: flex; flex-direction: column;">

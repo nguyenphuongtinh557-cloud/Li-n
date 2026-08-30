@@ -12,9 +12,43 @@ const KEYS = {
   SETTINGS: 'qlcl_settings',
   SEED_LOADED: 'qlcl_seed_loaded_v7',
   ACTIVE_SUBJECT: 'qlcl_active_subject',
+  CUSTOM_SUBJECTS: 'qlcl_custom_subjects',
 };
 
 export const DB = {
+  /** Lấy danh sách Môn học tùy chỉnh do người dùng tạo */
+  getCustomSubjects() {
+    try {
+      return JSON.parse(localStorage.getItem(KEYS.CUSTOM_SUBJECTS) || '[]');
+    } catch { return []; }
+  },
+
+  /** Thêm Môn học tùy chỉnh mới */
+  addCustomSubject(subject) {
+    const list = this.getCustomSubjects();
+    if (!subject.id) subject.id = 'SUB_' + Date.now();
+    if (!subject.code) subject.code = subject.id;
+    if (!subject.blockId) subject.blockId = 'CS_NGANH';
+    if (!subject.credits) subject.credits = 3;
+    if (!subject.semester) subject.semester = 1;
+    subject.isCustom = true;
+
+    const existingIdx = list.findIndex(s => s.id === subject.id || s.code === subject.code);
+    if (existingIdx >= 0) {
+      list[existingIdx] = { ...list[existingIdx], ...subject };
+    } else {
+      list.push(subject);
+    }
+    localStorage.setItem(KEYS.CUSTOM_SUBJECTS, JSON.stringify(list));
+    return subject;
+  },
+
+  /** Xóa Môn học tùy chỉnh */
+  deleteCustomSubject(id) {
+    const list = this.getCustomSubjects().filter(s => s.id !== id && s.code !== id);
+    localStorage.setItem(KEYS.CUSTOM_SUBJECTS, JSON.stringify(list));
+  },
+
   /** Lấy môn học đang chọn (Mặc định 'FT4468') */
   getActiveSubject() {
     return localStorage.getItem(KEYS.ACTIVE_SUBJECT) || 'FT4468';

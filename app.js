@@ -41,6 +41,8 @@ const State = {
   },
   source: {
     generating: false,
+    pendingQuestions: [],
+    pendingMeta: null,
   },
 };
 
@@ -717,26 +719,21 @@ async function handleGenerateQuestions() {
       return;
     }
 
-    // Thêm source flag
-    const taggedQ = questions.map(q => ({
+    // Lưu tạm vào bộ nhớ chờ biên tập (KHÔNG lưu tự động ngay vào DB)
+    State.source.pendingQuestions = questions.map(q => ({
       ...q,
       source: 'ai_generated',
     }));
-
-    const added = DB.addQuestions(taggedQ);
-
-    // Lưu nguồn
-    DB.addSource({ title, content, questionsGenerated: added });
-
-    showToast(`✓ Đã sinh và lưu ${added} câu hỏi mới vào ngân hàng!`, 'success');
-    updateBankCount();
+    State.source.pendingMeta = { title, content };
 
     // Clear form
     titleEl.value = '';
     contentEl.value = '';
 
-    // Refresh source list
-    renderSourceTab();
+    showToast(`✓ AI đã sinh xong ${questions.length} câu hỏi! Mời bạn thẩm định & chọn nơi lưu.`, 'info');
+
+    // Mở Modal Thẩm Định & Biên Tập Đề Thi AI
+    openReviewGeneratedModal();
 
   } catch (err) {
     console.error(err);
@@ -747,6 +744,289 @@ async function handleGenerateQuestions() {
     generateBtn.disabled = false;
     generateBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Sinh Câu Hỏi AI';
   }
+}
+
+/* ════════════════════════════════════════════════════
+   AI QUESTION REVIEW & EDIT MODAL CONTROLLER
+════════════════════════════════════════════════════ */
+
+function openReviewGeneratedModal() {
+  const modal = document.getElementById('modal-review-generated-questions');
+  if (!modal) return;
+
+  // 1. Populate Subject Selector dropdown with all subjects (standard + custom)
+  populateReviewSaveSubjectDropdown();
+
+  // 2. Render questions cards
+  renderReviewQuestionsList();
+
+  // 3. Open modal
+  modal.classList.add('open');
+}
+
+function closeReviewGeneratedModal() {
+  const modal = document.getElementById('modal-review-generated-questions');
+  if (modal) modal.classList.remove('open');
+}
+
+function populateReviewSaveSubjectDropdown() {
+  const select = document.getElementById('review-save-subject-select');
+  if (!select) return;
+
+  const activeSubId = DB.getActiveSubject();
+  const allSubjects = getAllSubjects(); // contains standard + custom subjects
+
+  let html = allSubjects.map(s => {
+    const isSelected = s.id === activeSubId ? 'selected' : '';
+    const tag = s.isCustom ? ' (Tùy chỉnh)' : '';
+    return `<option value="${s.id}" ${isSelected}>📚 ${s.code} - ${s.name}${tag}</option>`;
+  }).join('');
+
+  html += `<option value="CREATE_NEW" style="font-weight:bold;color:var(--primary);">➕ Tạo môn học / thư mục mới cùng cấp...</option>`;
+  select.innerHTML = html;
+
+  // Reset custom input box
+  handleToggleCustomSubjectInput(select.value);
+}
+
+function handleToggleCustomSubjectInput(val) {
+  const wrap = document.getElementById('custom-subject-inputs-wrap');
+  if (!wrap) return;
+
+  if (val === 'CREATE_NEW') {
+    wrap.classList.remove('hidden');
+    document.getElementById('new-subject-name-input')?.focus();
+  } else {
+    wrap.classList.add('hidden');
+  }
+}
+
+function togglePrivacyOptionUI(mode) {
+  const labelLocal = document.getElementById('label-save-local');
+  const labelPublic = document.getElementById('label-save-public');
+  if (mode === 'local') {
+    labelLocal?.classList.add('active');
+    labelPublic?.classList.remove('active');
+  } else {
+    labelPublic?.classList.add('active');
+    labelLocal?.classList.remove('active');
+  }
+}
+
+function renderReviewQuestionsList() {
+  const container = document.getElementById('review-questions-container');
+  const badge = document.getElementById('review-total-badge');
+  const questions = State.source.pendingQuestions || [];
+
+  if (badge) badge.textContent = `${questions.length} Câu hỏi`;
+
+  if (!container) return;
+
+  if (questions.length === 0) {
+    container.innerHTML = `
+      <div class="text-center" style="padding: 40px; color: var(--text-muted);">
+        <div style="font-size: 32px; margin-bottom: 8px;">📭</div>
+        <div>Không có câu hỏi nào trong danh sách chờ.</div>
+        <button class="btn btn-primary btn-sm margin-top-12" onclick="addPendingQuestion()">
+          <i class="fa-solid fa-plus"></i> Thêm câu mới thủ công
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  const labels = ['A', 'B', 'C', 'D'];
+
+  container.innerHTML = questions.map((q, idx) => {
+    const opts = q.options || ['', '', '', ''];
+    const correctIdx = typeof q.correct === 'number' ? q.correct : 0;
+    const diff = q.difficulty || 1;
+    const chapter = q.chapter || 1;
+
+    return `
+      <div class="review-q-card" data-idx="${idx}">
+        <div class="review-q-header">
+          <span class="badge badge-primary font-bold">Câu ${idx + 1}</span>
+          <div class="flex items-center gap-2">
+            <!-- Chọn Độ Khó -->
+            <select class="form-select text-xs" style="padding:3px 8px;border-radius:6px;" onchange="updatePendingQuestion(${idx}, 'difficulty', parseInt(this.value))">
+              <option value="1" ${diff === 1 ? 'selected' : ''}>🟢 Dễ</option>
+              <option value="2" ${diff === 2 ? 'selected' : ''}>🟡 Trung bình</option>
+              <option value="3" ${diff === 3 ? 'selected' : ''}>🔴 Khó</option>
+            </select>
+
+            <!-- Chọn Chương -->
+            <select class="form-select text-xs" style="padding:3px 8px;border-radius:6px;" onchange="updatePendingQuestion(${idx}, 'chapter', parseInt(this.value))">
+              <option value="1" ${chapter === 1 ? 'selected' : ''}>Chương 1</option>
+              <option value="2" ${chapter === 2 ? 'selected' : ''}>Chương 3</option>
+              <option value="3" ${chapter === 3 ? 'selected' : ''}>Chương 3</option>
+              <option value="4" ${chapter === 4 ? 'selected' : ''}>Chương 4</option>
+              <option value="5" ${chapter === 5 ? 'selected' : ''}>Chương 5</option>
+            </select>
+
+            <button class="btn-icon" onclick="deletePendingQuestion(${idx})" title="Xóa câu này" style="color:var(--danger);">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Ô Sửa Tên Câu Hỏi -->
+        <div class="form-group margin-bottom-8">
+          <textarea class="form-input text-sm" rows="2" style="font-weight:600;resize:vertical;" placeholder="Nội dung câu hỏi..." onchange="updatePendingQuestion(${idx}, 'q', this.value)">${q.q || ''}</textarea>
+        </div>
+
+        <!-- 4 Ô Sửa Phương Án & Radio Chọn Đáp Án Đúng -->
+        <div class="review-option-grid">
+          ${opts.map((optText, oIdx) => `
+            <div class="review-option-item ${oIdx === correctIdx ? 'correct' : ''}" id="opt-item-${idx}-${oIdx}">
+              <input type="radio" name="correct-q-${idx}" value="${oIdx}" ${oIdx === correctIdx ? 'checked' : ''} onchange="updatePendingQuestion(${idx}, 'correct', ${oIdx})">
+              <span class="font-bold text-xs" style="width:16px;">${labels[oIdx]}.</span>
+              <input type="text" value="${(optText || '').replace(/"/g, '&quot;')}" placeholder="Phương án ${labels[oIdx]}" onchange="updatePendingOption(${idx}, ${oIdx}, this.value)">
+            </div>
+          `).join('')}
+        </div>
+
+        <!-- Ô Sửa Lời Giải Thích -->
+        <div class="form-group margin-top-8">
+          <input type="text" class="form-input text-xs" placeholder="Lời giải thích (không bắt buộc)..." value="${(q.exp || '').replace(/"/g, '&quot;')}" onchange="updatePendingQuestion(${idx}, 'exp', this.value)">
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function updatePendingQuestion(idx, field, val) {
+  if (!State.source.pendingQuestions[idx]) return;
+  State.source.pendingQuestions[idx][field] = val;
+
+  if (field === 'correct') {
+    // Re-render UI highlight for correct option
+    for (let oIdx = 0; oIdx < 4; oIdx++) {
+      const item = document.getElementById(`opt-item-${idx}-${oIdx}`);
+      if (item) {
+        if (oIdx === val) item.classList.add('correct');
+        else item.classList.remove('correct');
+      }
+    }
+  }
+}
+
+function updatePendingOption(idx, optionIdx, val) {
+  if (!State.source.pendingQuestions[idx]) return;
+  if (!Array.isArray(State.source.pendingQuestions[idx].options)) {
+    State.source.pendingQuestions[idx].options = ['', '', '', ''];
+  }
+  State.source.pendingQuestions[idx].options[optionIdx] = val;
+}
+
+function addPendingQuestion() {
+  if (!Array.isArray(State.source.pendingQuestions)) {
+    State.source.pendingQuestions = [];
+  }
+  State.source.pendingQuestions.push({
+    q: '',
+    options: ['', '', '', ''],
+    correct: 0,
+    difficulty: 1,
+    chapter: 1,
+    exp: '',
+    source: 'ai_generated',
+  });
+  renderReviewQuestionsList();
+
+  // Scroll to bottom of list
+  const container = document.getElementById('review-questions-container');
+  if (container) container.scrollTop = container.scrollHeight;
+}
+
+function deletePendingQuestion(idx) {
+  if (!State.source.pendingQuestions) return;
+  State.source.pendingQuestions.splice(idx, 1);
+  renderReviewQuestionsList();
+}
+
+async function saveReviewedQuestions() {
+  const questions = State.source.pendingQuestions || [];
+  if (!questions.length) {
+    showToast('Danh sách câu hỏi trống!', 'error');
+    return;
+  }
+
+  // 1. Xác định môn học lưu
+  const selectSub = document.getElementById('review-save-subject-select');
+  let targetSubjectId = selectSub ? selectSub.value : DB.getActiveSubject();
+
+  if (targetSubjectId === 'CREATE_NEW') {
+    const nameInput = document.getElementById('new-subject-name-input');
+    const codeInput = document.getElementById('new-subject-code-input');
+    const newName = nameInput ? nameInput.value.trim() : '';
+    const newCode = codeInput ? codeInput.value.trim().toUpperCase() : '';
+
+    if (!newName || !newCode) {
+      showToast('Vui lòng nhập Tên và Mã cho môn học / thư mục mới!', 'error');
+      return;
+    }
+
+    // Khởi tạo môn học tùy chỉnh mới
+    const createdSub = DB.addCustomSubject({
+      id: newCode,
+      code: newCode,
+      name: newName,
+      credits: 3,
+      semester: 1,
+      blockId: 'CS_NGANH'
+    });
+
+    targetSubjectId = createdSub.id;
+    showToast(`✓ Đã tạo môn học mới: "${newCode} - ${newName}"!`, 'info');
+  }
+
+  // 2. Kiểm tra tính hợp lệ
+  const validQuestions = questions.filter(q => q && q.q && q.q.trim() && Array.isArray(q.options) && q.options.length === 4);
+  if (!validQuestions.length) {
+    showToast('Vui lòng kiểm tra lại! Cần ít nhất 1 câu hỏi có nội dung hợp lệ.', 'error');
+    return;
+  }
+
+  // 3. Gán targetSubjectId & flag
+  const privacyRadio = document.querySelector('input[name="review-save-privacy"]:checked');
+  const isPublic = privacyRadio ? privacyRadio.value === 'public' : false;
+
+  const finalQuestions = validQuestions.map(q => ({
+    ...q,
+    subjectId: targetSubjectId,
+    source: 'ai_generated',
+    _seed: false
+  }));
+
+  // 4. Lưu vào DB với subjectId đã chọn
+  DB.setActiveSubject(targetSubjectId);
+  const addedCount = DB.addQuestions(finalQuestions, { skipSync: !isPublic });
+
+  // Lưu nguồn nếu có
+  if (State.source.pendingMeta) {
+    DB.addSource({
+      ...State.source.pendingMeta,
+      subjectId: targetSubjectId,
+      questionsGenerated: addedCount
+    }, { skipSync: !isPublic });
+  }
+
+  // Cập nhật lại dropdown môn học toàn ứng dụng
+  initSubjectSelector();
+  updateSubjectBanner(targetSubjectId);
+  updateBankCount();
+
+  closeReviewGeneratedModal();
+
+  showToast(`🎉 Đã lưu ${addedCount} câu hỏi vào môn [${targetSubjectId}] thành công!`, 'success');
+
+  // Reset state
+  State.source.pendingQuestions = [];
+  State.source.pendingMeta = null;
+
+  // Chuyển thẳng tới tab Ngân hàng đề của môn đó
+  NavController.navigateToPage('ontap', 'bank-tab');
 }
 
 function deleteSource(id) {
@@ -1493,6 +1773,15 @@ Object.assign(window, {
   handleCeraImageUpload,
   removeCeraAttachedImage,
   onBlockFilterChange,
+  openReviewGeneratedModal,
+  closeReviewGeneratedModal,
+  handleToggleCustomSubjectInput,
+  togglePrivacyOptionUI,
+  updatePendingQuestion,
+  updatePendingOption,
+  addPendingQuestion,
+  deletePendingQuestion,
+  saveReviewedQuestions,
   NavController,
   AuthModule,
   navigateToPage: (p, sub) => NavController.navigateToPage(p, sub),

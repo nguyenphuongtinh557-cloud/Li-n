@@ -58,15 +58,26 @@ export const SUBJECTS_REGISTRY = [
 
 export const DEFAULT_SUBJECT_ID = 'FT4468';
 
+function getCustomSubjectsFromStorage() {
+  try {
+    return JSON.parse(localStorage.getItem('qlcl_custom_subjects') || '[]');
+  } catch {
+    return [];
+  }
+}
+
 export function getAllSubjects() {
-  return SUBJECTS_REGISTRY;
+  const custom = getCustomSubjectsFromStorage();
+  return [...SUBJECTS_REGISTRY, ...custom];
 }
 
 export function getSubjectById(id) {
-  return SUBJECTS_REGISTRY.find(s => s.id === id || s.code === id) || SUBJECTS_REGISTRY.find(s => s.id === DEFAULT_SUBJECT_ID);
+  const all = getAllSubjects();
+  return all.find(s => s.id === id || s.code === id) || all.find(s => s.id === DEFAULT_SUBJECT_ID);
 }
 
 export function getSubjectsByBlock(blockId) {
-  if (!blockId || blockId === 'ALL') return SUBJECTS_REGISTRY;
-  return SUBJECTS_REGISTRY.filter(s => s.blockId === blockId);
+  const all = getAllSubjects();
+  if (!blockId || blockId === 'ALL') return all;
+  return all.filter(s => s.blockId === blockId);
 }
