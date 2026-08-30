@@ -795,7 +795,7 @@
 
   <div id="cera-panel" class="cera-panel" role="dialog" aria-label="Trợ lý FTECA 24" aria-hidden="true">
 
-    <!-- Header gọn: avatar | tên + status | actions -->
+    <!-- Header gọn gàng: Avatar | Tên + Status | Nút 3-Gạch & Đóng -->
     <div class="cera-header">
       <div class="cera-header-info">
         <div class="cera-avatar">
@@ -809,29 +809,38 @@
         </div>
       </div>
       <div class="cera-header-actions">
-        <button class="cera-header-btn" onclick="toggleCeraExpand()" id="cera-expand-btn" title="Mở rộng">
-          <i class="fa-solid fa-expand" id="cera-expand-icon"></i>
-        </button>
-        <button class="cera-header-btn" onclick="clearCeraChat()" title="Xóa chat">
-          <i class="fa-solid fa-trash-can"></i>
-        </button>
+        <!-- Nút Menu 3 Gạch Tùy Chọn -->
+        <div class="cera-menu-dropdown-wrap">
+          <button class="cera-header-btn" onclick="toggleCeraMenu()" id="cera-menu-btn" title="Tùy chọn">
+            <i class="fa-solid fa-bars"></i>
+          </button>
+          <div class="cera-menu-dropdown" id="cera-menu-dropdown">
+            <div class="cera-menu-header"><i class="fa-solid fa-microchip"></i> Mô hình AI</div>
+            <select id="cera-model-select" class="cera-model-select" title="Chọn Model AI">
+              <option value="standard">⚡ Tiêu chuẩn</option>
+              <option value="sambanova-llama">🚀 Llama 3.3 70B</option>
+              <option value="mistral-large">🦁 Mistral Large</option>
+              <option value="deepseek-r1">💎 DeepSeek R1</option>
+              <option value="claude-3-5">💎 Claude 3.5</option>
+              <option value="gpt-4o">💎 GPT-4o</option>
+            </select>
+            <div class="cera-menu-divider"></div>
+            <button class="cera-menu-item" onclick="toggleCeraExpand(); hideCeraMenu();">
+              <i class="fa-solid fa-expand" id="cera-expand-icon"></i>
+              <span id="cera-expand-text">Phóng to khung chat</span>
+            </button>
+            <button class="cera-menu-item danger" onclick="clearCeraChat(); hideCeraMenu();">
+              <i class="fa-solid fa-trash-can"></i>
+              <span>Xóa lịch sử chat</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Nút Đóng -->
         <button class="cera-header-btn" onclick="toggleCeraChat()" title="Đóng">
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
-    </div>
-
-    <!-- Model selector toolbar -->
-    <div class="cera-model-toolbar">
-      <i class="fa-solid fa-microchip" style="font-size:11px;opacity:0.7;"></i>
-      <select id="cera-model-select" class="cera-model-select" title="Chọn Model AI">
-        <option value="standard">⚡ Tiêu chuẩn</option>
-        <option value="sambanova-llama">🚀 Llama 3.3 70B</option>
-        <option value="mistral-large">🦁 Mistral Large</option>
-        <option value="deepseek-r1">💎 DeepSeek R1</option>
-        <option value="claude-3-5">💎 Claude 3.5</option>
-        <option value="gpt-4o">💎 GPT-4o</option>
-      </select>
     </div>
 
     <!-- Messages -->
@@ -842,7 +851,7 @@
         </div>
         <div class="cera-msg-bubble">
           <p>Xin chào! Tôi là <strong>FTECA 24</strong> — trợ lý AI ôn thi QLCL & ATTP. 👋</p>
-          <p style="margin-top:6px;font-size:12.5px;">📷 Gửi ảnh bài tập &nbsp;·&nbsp; 📝 Hỏi đáp &nbsp;·&nbsp; 💎 Premium AI (menu trên)</p>
+          <p style="margin-top:4px;font-size:12px;opacity:0.85;">📷 Gửi ảnh bài tập &nbsp;·&nbsp; 📝 Hỏi đáp &nbsp;·&nbsp; ☰ Menu cài đặt góc trên</p>
         </div>
       </div>
     </div>
@@ -863,7 +872,7 @@
 
     <!-- Input area -->
     <div class="cera-input-wrap">
-      <label for="cera-file-input" class="cera-img-btn" title="Đính kèm ảnh">
+      <label for="cera-file-input" class="cera-img-btn" title="Đính kèm ảnh bài tập">
         <i class="fa-solid fa-camera"></i>
         <input type="file" id="cera-file-input" accept="image/*" style="display:none;" onchange="handleCeraImageUpload(event)">
       </label>

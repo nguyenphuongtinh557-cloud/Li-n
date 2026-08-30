@@ -1153,20 +1153,38 @@ function toggleCeraChat() {
   }
 }
 
+function toggleCeraMenu(e) {
+  if (e) e.stopPropagation();
+  const dropdown = document.getElementById('cera-menu-dropdown');
+  if (dropdown) dropdown.classList.toggle('show');
+}
+
+function hideCeraMenu() {
+  const dropdown = document.getElementById('cera-menu-dropdown');
+  if (dropdown) dropdown.classList.remove('show');
+}
+
 function toggleCeraExpand() {
   const panel = document.getElementById('cera-panel');
   const icon = document.getElementById('cera-expand-icon');
-  const btn = document.getElementById('cera-expand-btn');
+  const text = document.getElementById('cera-expand-text');
   if (!panel) return;
 
   const isExpanded = panel.classList.toggle('expanded');
   if (icon) {
     icon.className = isExpanded ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
   }
-  if (btn) {
-    btn.title = isExpanded ? 'Thu nhỏ' : 'Mở rộng';
+  if (text) {
+    text.textContent = isExpanded ? 'Thu nhỏ khung chat' : 'Phóng to khung chat';
   }
 }
+
+// Đóng menu khi click ra ngoài
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.cera-menu-dropdown-wrap')) {
+    hideCeraMenu();
+  }
+});
 
 /* ════════════════════════════════════════════════════
    DRAGGABLE CERA CHATBOT (KÉO-THẢ BẤT KỲ ĐÂU MÀN HÌNH)
@@ -1459,6 +1477,8 @@ Object.assign(window, {
   closeModal,
   toggleCeraChat,
   toggleCeraExpand,
+  toggleCeraMenu,
+  hideCeraMenu,
   clearCeraChat,
   ceraSend,
   ceraKeyDown,

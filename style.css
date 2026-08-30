@@ -1122,14 +1122,13 @@ img { max-width: 100%; }
   border-radius: 20px;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 24px 80px rgba(0,0,0,0.18);
+  box-shadow: 0 24px 80px rgba(0,0,0,0.22);
   z-index: 9998;
   opacity: 0;
   transform: translateY(20px) scale(0.97);
   pointer-events: none;
   transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.34,1.56,0.64,1),
               width 0.3s ease, height 0.3s ease, max-height 0.3s ease;
-  overflow: hidden;
   user-select: none;
   touch-action: none;
 }
@@ -1162,9 +1161,10 @@ img { max-width: 100%; }
   border-radius: 20px 20px 0 0;
   flex-shrink: 0;
   gap: 8px;
+  position: relative;
 }
 .cera-header-info { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
-.cera-header-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.cera-header-actions { display: flex; gap: 6px; flex-shrink: 0; position: relative; }
 .cera-avatar {
   width: 38px;
   height: 38px;
@@ -1208,16 +1208,78 @@ img { max-width: 100%; }
 }
 .cera-header-btn:hover { background: rgba(255,255,255,0.32); }
 
-/* Model Toolbar */
-.cera-model-toolbar {
+/* ─── CERA 3-Gạch Menu Dropdown ─── */
+.cera-menu-dropdown-wrap {
+  position: relative;
+}
+.cera-menu-dropdown {
+  position: absolute;
+  top: 36px;
+  right: 0;
+  width: 210px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  padding: 10px;
+  z-index: 10000;
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  animation: cera-dropdown-in 0.15s ease;
+}
+@keyframes cera-dropdown-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.cera-menu-dropdown.show {
+  display: flex;
+}
+.cera-menu-header {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  letter-spacing: 0.5px;
+  padding: 2px 4px;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 7px 14px;
+  gap: 6px;
+}
+.cera-menu-divider {
+  height: 1px;
+  background: var(--border);
+  margin: 2px 0;
+}
+.cera-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-primary);
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  transition: background 0.15s;
+}
+.cera-menu-item:hover {
   background: var(--bg-subtle);
-  border-bottom: 1px solid var(--border);
-  flex-shrink: 0;
-  color: var(--text-muted);
+}
+.cera-menu-item.danger {
+  color: var(--danger);
+}
+.cera-menu-item.danger:hover {
+  background: var(--danger-light);
+}
+.cera-menu-item i {
+  font-size: 13px;
+  width: 16px;
+  text-align: center;
 }
 
 /* Messages area */
@@ -1231,6 +1293,7 @@ img { max-width: 100%; }
   scroll-behavior: smooth;
   min-height: 200px;
   max-height: 360px;
+  background: var(--bg-card);
 }
 .cera-messages::-webkit-scrollbar { width: 4px; }
 .cera-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
@@ -1258,13 +1321,13 @@ img { max-width: 100%; }
 }
 .cera-msg-bubble {
   max-width: 85%;
-  background: var(--bg);
+  background: var(--bg-subtle);
   border: 1px solid var(--border);
   border-radius: 16px 16px 16px 4px;
   padding: 10px 14px;
   font-size: 13.5px;
   line-height: 1.45;
-  color: var(--text);
+  color: var(--text-primary);
   word-break: break-word;
 }
 .cera-msg-user .cera-msg-bubble {
@@ -1281,7 +1344,7 @@ img { max-width: 100%; }
 
 /* Typing indicator */
 .cera-typing .cera-msg-bubble {
-  background: var(--bg);
+  background: var(--bg-subtle);
   border: 1px solid var(--border);
   padding: 10px 16px;
 }
@@ -1323,7 +1386,7 @@ img { max-width: 100%; }
   align-items: flex-end;
   border-top: 1px solid var(--border);
   flex-shrink: 0;
-  background: var(--card-bg);
+  background: var(--bg-card);
 }
 .cera-input {
   flex: 1;
@@ -1332,8 +1395,8 @@ img { max-width: 100%; }
   padding: 9px 12px;
   font-size: 13.5px;
   font-family: inherit;
-  background: var(--bg);
-  color: var(--text);
+  background: var(--bg-subtle);
+  color: var(--text-primary);
   resize: none;
   outline: none;
   transition: border-color 0.2s;
@@ -1372,12 +1435,12 @@ img { max-width: 100%; }
 
 /* ─── CERA Model Select Dropdown ─── */
 .cera-model-select {
-  flex: 1;
-  background: var(--bg-card);
+  width: 100%;
+  background: var(--bg-subtle);
   color: var(--text-primary);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 4px 8px;
+  padding: 6px 8px;
   font-size: 12px;
   font-weight: 500;
   outline: none;
@@ -1396,7 +1459,7 @@ img { max-width: 100%; }
   height: 38px;
   border-radius: 12px;
   border: 1.5px solid var(--border);
-  background: var(--bg);
+  background: var(--bg-subtle);
   color: var(--primary);
   font-size: 16px;
   cursor: pointer;
