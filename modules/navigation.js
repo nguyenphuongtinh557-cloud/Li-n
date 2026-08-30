@@ -5,12 +5,14 @@
 
 import { SUBJECTS_REGISTRY, getSubjectById, KNOWLEDGE_BLOCKS } from './subjects.js';
 import { DB } from './db.js';
+import { AuthModule } from './auth.js';
 
 export const NavController = {
   activePage: 'ontap',
   currentUser: null,
 
   init() {
+    AuthModule.init();
     this.restoreUserSession();
     this.renderUserAuthZone();
     this.setupSearchShortcut();
@@ -253,7 +255,7 @@ export const NavController = {
   // ─── USER AUTH & PROFILE POPOVER ──────────────────────────────────────────
   restoreUserSession() {
     try {
-      const saved = localStorage.getItem('lien_user_session');
+      const saved = localStorage.getItem('lien_google_user') || localStorage.getItem('lien_user_session');
       if (saved) {
         this.currentUser = JSON.parse(saved);
       }
@@ -355,23 +357,11 @@ export const NavController = {
   },
 
   handleGoogleSignIn() {
-    // Mock Google Sign in session or trigger Auth
-    const mockUser = {
-      name: 'Nguyễn Hoàng Phúc',
-      email: 'hoangphuc.cntp@ftu2.edu.vn',
-      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=HoangPhuc'
-    };
-    this.currentUser = mockUser;
-    localStorage.setItem('lien_user_session', JSON.stringify(mockUser));
-    this.renderUserAuthZone();
-    if (window.showToast) window.showToast('Đăng nhập thành công với tài khoản Google!', 'success');
+    AuthModule.signInWithGoogle();
   },
 
   handleSignOut() {
-    this.currentUser = null;
-    localStorage.removeItem('lien_user_session');
-    this.renderUserAuthZone();
-    if (window.showToast) window.showToast('Đã đăng xuất tài khoản.', 'info');
+    AuthModule.signOut();
   },
 
   openProfileSettingsModal() {
