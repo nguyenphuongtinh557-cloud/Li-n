@@ -11,14 +11,37 @@ const KEYS = {
   HISTORY: 'qlcl_exam_history',
   SETTINGS: 'qlcl_settings',
   SEED_LOADED: 'qlcl_seed_loaded_v7',
+  ACTIVE_SUBJECT: 'qlcl_active_subject',
 };
 
 export const DB = {
-  /** Lấy ngân hàng câu hỏi */
+  /** Lấy môn học đang chọn (Mặc định 'FT4468') */
+  getActiveSubject() {
+    return localStorage.getItem(KEYS.ACTIVE_SUBJECT) || 'FT4468';
+  },
+
+  /** Đặt môn học đang chọn */
+  setActiveSubject(subjectId) {
+    if (subjectId) {
+      localStorage.setItem(KEYS.ACTIVE_SUBJECT, subjectId);
+    }
+  },
+
+  /** Lấy ngân hàng câu hỏi (Tự động gán subjectId mặc định FT4468 nếu chưa có) */
   getBank() {
     try {
-      return JSON.parse(localStorage.getItem(KEYS.BANK) || '[]');
+      const bank = JSON.parse(localStorage.getItem(KEYS.BANK) || '[]');
+      return bank.map(q => ({
+        ...q,
+        subjectId: q.subjectId || 'FT4468'
+      }));
     } catch { return []; }
+  },
+
+  /** Lấy ngân hàng câu hỏi theo môn học */
+  getBankBySubject(subjectId) {
+    const targetSub = subjectId || this.getActiveSubject();
+    return this.getBank().filter(q => (q.subjectId || 'FT4468') === targetSub);
   },
 
   /** Lưu toàn bộ ngân hàng */
@@ -35,14 +58,16 @@ export const DB = {
   addQuestions(newQuestions, options = {}) {
     const existing = this.getBank();
     const seenKeys = new Set(existing.map(q => _hashQ(q.q)));
+    const activeSub = this.getActiveSubject();
     const toAdd = newQuestions.filter(q => !seenKeys.has(_hashQ(q.q)));
 
     if (toAdd.length === 0) return 0;
 
-    // Gán ID cho câu mới
+    // Gán ID và Subject cho câu mới
     let maxId = existing.reduce((m, q) => Math.max(m, q.id || 0), 0);
     toAdd.forEach(q => {
       q.id = ++maxId;
+      q.subjectId = q.subjectId || activeSub;
       if (!q.difficulty) q.difficulty = 1; // default easy
     });
 
@@ -157,9 +182,9 @@ export const DB = {
     localStorage.setItem(KEYS.SEED_LOADED, 'true');
   },
 
-  /** Thống kê nhanh ngân hàng */
-  getBankStats() {
-    const bank = this.getBank();
+  /** Thống kê nhanh ngân hàng (theo môn học) */
+  getBankStats(subjectId) {
+    const bank = subjectId === 'ALL' ? this.getBank() : this.getBankBySubject(subjectId);
     const byChapter = {};
     const byDiff = { 1: 0, 2: 0, 3: 0 };
     bank.forEach(q => {

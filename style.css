@@ -185,6 +185,90 @@ img { max-width: 100%; }
 .nav-btn i { margin-right: 6px; }
 
 .header-actions { display: flex; align-items: center; gap: 8px; }
+.header-subject-select {
+  background: rgba(255,255,255,0.15);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.25);
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  max-width: 240px;
+  text-overflow: ellipsis;
+  outline: none;
+  backdrop-filter: blur(4px);
+  transition: var(--transition);
+}
+.header-subject-select:hover, .header-subject-select:focus {
+  background: rgba(255,255,255,0.25);
+  border-color: rgba(255,255,255,0.4);
+}
+.header-subject-select option {
+  background: #1e1b4b;
+  color: #fff;
+  font-size: 13px;
+  padding: 6px;
+}
+
+/* ─── Subject Banner Bar ─── */
+.subject-banner-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 12px 20px;
+  margin-bottom: 24px;
+  box-shadow: var(--shadow-sm);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.subject-banner-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.subject-banner-badge {
+  background: linear-gradient(135deg, #4f46e5, #7c3aed);
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.5px;
+}
+.subject-banner-name {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+}
+.subject-banner-credits {
+  font-size: 13px;
+  color: var(--primary);
+  font-weight: 600;
+}
+.subject-banner-filter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.block-filter-select {
+  background: var(--surface-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--text);
+  font-weight: 500;
+  outline: none;
+  transition: var(--transition);
+}
+.block-filter-select:hover, .block-filter-select:focus {
+  border-color: var(--primary);
+}
 .btn-icon {
   width: 36px; height: 36px;
   border-radius: var(--radius-md);

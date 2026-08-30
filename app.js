@@ -10,6 +10,7 @@ import { SEED_QUESTIONS } from './data/seed_questions.js';
 import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion } from './modules/cera.js';
 import { pullFromGitHub, pullAdminEdits } from './modules/sync.js';
 import { initAdminAuth } from './modules/admin.js';
+import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js';
 
 /* ════════════════════════════════════════════════════
    APP STATE
@@ -75,6 +76,7 @@ async function init() {
   }
 
   updateBankCount();
+  initSubjectSelector();
   switchTab('exam-tab');
 
   // Kéo bản vá của admin từ server về và patch lên DB local
@@ -542,7 +544,9 @@ function renderBankList() {
   const { page, pageSize, filterChapter, filterDiff, searchText } = State.bank;
   const labels = ['A', 'B', 'C', 'D'];
 
-  let bank = DB.getBank();
+  // Lọc theo môn học đang chọn (Active Subject)
+  const activeSubjectId = DB.getActiveSubject();
+  let bank = activeSubjectId === 'ALL' ? DB.getBank() : DB.getBankBySubject(activeSubjectId);
 
   // Filters
   if (filterChapter > 0) bank = bank.filter(q => q.chapter === filterChapter);
@@ -561,7 +565,7 @@ function renderBankList() {
   const items = bank.slice(start, start + pageSize);
 
   document.getElementById('bank-count-text').textContent =
-    `Hiển thị ${items.length}/${total} câu (Tổng: ${DB.getBank().length})`;
+    `Hiển thị ${items.length}/${total} câu · Môn: ${DB.getBankStats(activeSubjectId).total} câu`;
   document.getElementById('bank-page-info').textContent = `Trang ${State.bank.page}/${totalPages}`;
   document.getElementById('bank-prev-btn').disabled = State.bank.page <= 1;
   document.getElementById('bank-next-btn').disabled = State.bank.page >= totalPages;
@@ -630,11 +634,12 @@ function onBankFilter() {
 function renderSourceTab() {
   const sources = DB.getSources();
   const list = document.getElementById('source-list');
-  const stats = DB.getBankStats();
+  const activeSubjectId = DB.getActiveSubject();
+  const stats = DB.getBankStats(activeSubjectId);
 
   document.getElementById('source-bank-count').textContent = stats.total;
   document.getElementById('source-ai-count').textContent =
-    DB.getBank().filter(q => q.source === 'ai_generated' || q.source === 'local_generated').length;
+    DB.getBankBySubject(activeSubjectId).filter(q => q.source === 'ai_generated' || q.source === 'local_generated').length;
 
   if (!sources.length) {
     list.innerHTML = `<div class="empty-state">
@@ -944,8 +949,86 @@ function showToast(message, type = 'info', duration = 3500) {
 /* ════════════════════════════════════════════════════
    HELPERS
 ════════════════════════════════════════════════════ */
+
+/* ─── Subject Selector ─── */
+function initSubjectSelector() {
+  const select = document.getElementById('global-subject-select');
+  if (!select) return;
+
+  // Build grouped options by block
+  const blockOrder = ['CS_NGANH', 'DC_CHUNG', 'DC_TUCHON', 'GDQP'];
+  const blockLabels = {
+    CS_NGANH: '🧪 Cơ sở ngành',
+    DC_CHUNG: '📚 Đại cương bắt buộc',
+    DC_TUCHON: '💡 Đại cương tự chọn',
+    GDQP: '🎖️ Quốc phòng & An ninh'
+  };
+
+  select.innerHTML = '';
+  for (const blockId of blockOrder) {
+    const subjects = getSubjectsByBlock(blockId);
+    if (subjects.length === 0) continue;
+    const group = document.createElement('optgroup');
+    group.label = blockLabels[blockId] || blockId;
+    subjects.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s.id;
+      opt.textContent = `${s.code} · ${s.name}`;
+      group.appendChild(opt);
+    });
+    select.appendChild(group);
+  }
+
+  // Restore saved subject
+  const saved = DB.getActiveSubject();
+  if (saved) select.value = saved;
+
+  // On change
+  select.addEventListener('change', () => {
+    const subjectId = select.value;
+    DB.setActiveSubject(subjectId);
+    updateSubjectBanner(subjectId);
+    updateBankCount();
+    // Re-render active tab if needed
+    if (State.currentTab === 'bank-tab') renderBank();
+  });
+
+  // Init banner
+  updateSubjectBanner(saved);
+}
+
+function updateSubjectBanner(subjectId) {
+  const subject = getSubjectById(subjectId);
+  const codeEl = document.getElementById('active-subject-code');
+  const nameEl = document.getElementById('active-subject-name');
+  const creditsEl = document.getElementById('active-subject-credits');
+  if (codeEl) codeEl.textContent = subject.code;
+  if (nameEl) nameEl.textContent = subject.name;
+  if (creditsEl) creditsEl.textContent = `(${subject.credits} Tín chỉ)`;
+
+  // Sync global select in case banner was changed from block filter
+  const select = document.getElementById('global-subject-select');
+  if (select && select.value !== subjectId) select.value = subjectId;
+}
+
+function onBlockFilterChange(blockId) {
+  // Filter the global subject dropdown by the chosen block
+  const select = document.getElementById('global-subject-select');
+  if (!select) return;
+  const subjects = getSubjectsByBlock(blockId);
+  if (subjects.length === 0) return;
+  // Select first subject of the block and apply
+  const firstId = subjects[0].id;
+  select.value = firstId;
+  DB.setActiveSubject(firstId);
+  updateSubjectBanner(firstId);
+  updateBankCount();
+  if (State.currentTab === 'bank-tab') renderBank();
+}
+
 function updateBankCount() {
-  const stats = DB.getBankStats();
+  const activeSubjectId = DB.getActiveSubject();
+  const stats = DB.getBankStats(activeSubjectId);
   const el = document.getElementById('header-bank-count');
   if (el) el.textContent = stats.total;
 }
@@ -1362,6 +1445,7 @@ Object.assign(window, {
   ceraKeyDown,
   handleCeraImageUpload,
   removeCeraAttachedImage,
+  onBlockFilterChange,
 });
 
 // Boot

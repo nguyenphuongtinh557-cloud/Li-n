@@ -52,6 +52,9 @@
 
       <!-- Actions -->
       <div class="header-actions">
+        <select id="global-subject-select" class="header-subject-select" title="Chọn Học Phần Ôn Tập">
+          <!-- Populated dynamically from subjects.js -->
+        </select>
         <button id="btn-theme" class="btn-icon" onclick="toggleTheme()" title="Chuyển chế độ tối/sáng" aria-label="Toggle theme">
           <i class="fa-solid fa-moon"></i>
         </button>
@@ -64,6 +67,25 @@
 
   <!-- ═══════════════ MAIN ═══════════════ -->
   <main class="app-main" id="app-main">
+
+    <!-- Active Subject Banner Bar -->
+    <div id="subject-banner-bar" class="subject-banner-bar">
+      <div class="subject-banner-info">
+        <span class="subject-banner-badge" id="active-subject-code">FT4468</span>
+        <span class="subject-banner-name" id="active-subject-name">Quản lý chất lượng và luật thực phẩm</span>
+        <span class="subject-banner-credits" id="active-subject-credits">(3 Tín chỉ)</span>
+      </div>
+      <div class="subject-banner-filter">
+        <label for="block-filter-select" style="font-weight:600;font-size:13px;color:var(--text-secondary);">Khối kiến thức:</label>
+        <select id="block-filter-select" class="block-filter-select" onchange="onBlockFilterChange(this.value)">
+          <option value="ALL">🌟 Tất cả Khối kiến thức (35 Môn)</option>
+          <option value="CS_NGANH">🧪 Cơ sở ngành (17 Môn)</option>
+          <option value="DC_CHUNG">📚 Đại cương bắt buộc (12 Môn)</option>
+          <option value="DC_TUCHON">💡 Đại cương tự chọn (3 Môn)</option>
+          <option value="GDQP">🎖️ Quốc phòng & An ninh (4 Môn)</option>
+        </select>
+      </div>
+    </div>
 
     <!-- ══════ TAB 1: THI THỬ ══════ -->
     <section id="exam-tab" class="tab-content" role="main" aria-label="Thi thử">

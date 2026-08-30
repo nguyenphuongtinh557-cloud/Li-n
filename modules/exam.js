@@ -17,9 +17,10 @@ export const ExamEngine = {
     const settings = DB.getSettings();
     const r = ratio || settings.diffRatio || { easy: 0.5, medium: 0.3, hard: 0.2 };
 
-    const bank = DB.getBank().filter(q =>
-      chapterFilter === 0 || q.chapter === chapterFilter
-    );
+    // Lọc bank theo môn học đang chọn
+    const activeSubjectId = DB.getActiveSubject();
+    const bank = (activeSubjectId === 'ALL' ? DB.getBank() : DB.getBankBySubject(activeSubjectId))
+      .filter(q => chapterFilter === 0 || q.chapter === chapterFilter);
 
     // Nhóm theo độ khó
     const byDiff = {
@@ -75,9 +76,10 @@ export const ExamEngine = {
 
   /** Tạo bộ đề luyện tập (không cân bằng độ khó) */
   buildPracticePaper(count, chapterFilter = 0) {
-    const bank = DB.getBank().filter(q =>
-      chapterFilter === 0 || q.chapter === chapterFilter
-    );
+    // Lọc bank theo môn học đang chọn
+    const activeSubjectId = DB.getActiveSubject();
+    const bank = (activeSubjectId === 'ALL' ? DB.getBank() : DB.getBankBySubject(activeSubjectId))
+      .filter(q => chapterFilter === 0 || q.chapter === chapterFilter);
     const shuffled = _shuffle(bank).slice(0, count);
     return shuffled.map(q => _shuffleOptions(q));
   },
