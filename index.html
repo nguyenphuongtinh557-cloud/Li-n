@@ -794,26 +794,22 @@
   </button>
 
   <div id="cera-panel" class="cera-panel" role="dialog" aria-label="Trợ lý FTECA 24" aria-hidden="true">
+
+    <!-- Header gọn: avatar | tên + status | actions -->
     <div class="cera-header">
       <div class="cera-header-info">
-        <div class="cera-avatar"><img src="chatbot.webp" alt="FTECA 24" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
+        <div class="cera-avatar">
+          <img src="chatbot.webp" alt="FTECA 24" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+        </div>
         <div>
-          <div class="cera-name" style="display:flex;align-items:center;gap:6px;">
-            Trợ lý FTECA 24
-            <select id="cera-model-select" class="cera-model-select" title="Chọn Model AI">
-              <option value="standard">⚡ Tiêu chuẩn (Cera)</option>
-              <option value="sambanova-llama">🚀 SambaNova Llama 3.3 70B (Siêu Tốc)</option>
-              <option value="mistral-large">🦁 Mistral Large (Độ chính xác cao)</option>
-              <option value="deepseek-r1">💎 DeepSeek R1 (Tư duy toán)</option>
-              <option value="claude-3-5">💎 Claude 3.5 Sonnet</option>
-              <option value="gpt-4o">💎 OpenAI GPT-4o</option>
-            </select>
+          <div class="cera-name">FTECA 24</div>
+          <div class="cera-status" id="cera-status-text">
+            <span class="cera-dot"></span>Sẵn sàng hỗ trợ
           </div>
-          <div class="cera-status" id="cera-status-text"><span class="cera-dot"></span>Sẵn sàng hỗ trợ & phân tích ảnh</div>
         </div>
       </div>
-      <div style="display:flex;gap:8px;">
-        <button class="cera-header-btn" onclick="clearCeraChat()" title="Xóa lịch sử chat">
+      <div class="cera-header-actions">
+        <button class="cera-header-btn" onclick="clearCeraChat()" title="Xóa chat">
           <i class="fa-solid fa-trash-can"></i>
         </button>
         <button class="cera-header-btn" onclick="toggleCeraChat()" title="Đóng">
@@ -822,41 +818,56 @@
       </div>
     </div>
 
+    <!-- Model selector toolbar -->
+    <div class="cera-model-toolbar">
+      <i class="fa-solid fa-microchip" style="font-size:11px;opacity:0.7;"></i>
+      <select id="cera-model-select" class="cera-model-select" title="Chọn Model AI">
+        <option value="standard">⚡ Tiêu chuẩn</option>
+        <option value="sambanova-llama">🚀 Llama 3.3 70B</option>
+        <option value="mistral-large">🦁 Mistral Large</option>
+        <option value="deepseek-r1">💎 DeepSeek R1</option>
+        <option value="claude-3-5">💎 Claude 3.5</option>
+        <option value="gpt-4o">💎 GPT-4o</option>
+      </select>
+    </div>
+
+    <!-- Messages -->
     <div class="cera-messages" id="cera-messages">
       <div class="cera-msg cera-msg-bot">
-        <div class="cera-msg-avatar"><img src="chatbot.webp" alt="FTECA 24" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
+        <div class="cera-msg-avatar">
+          <img src="chatbot.webp" alt="FTECA 24" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+        </div>
         <div class="cera-msg-bubble">
-          <p>Xin chào bạn! Tôi là <strong>FTECA 24</strong> — trợ lý AI của Hệ thống Ôn thi <strong>QLCL & ATTP</strong>, sáng lập bởi <strong>Nguyễn Hoàng Phúc</strong> và <strong>Dương Ngọc Trâm</strong>. 🌸</p>
-          <p>Tôi đã được nâng cấp 3 nhóm AI chuyên biệt:</p>
-          <ul>
-            <li>📷 <strong>Phân tích hình ảnh / Giải bài tập toán</strong> (Nút camera góc dưới)</li>
-            <li>📝 <strong>Hỗ trợ ra đề & ôn luyện tiếng Việt</strong></li>
-            <li>💎 <strong>Khu vực Premium AI</strong> (DeepSeek R1, Claude 3.5, GPT-4o)</li>
-          </ul>
-          <p style="font-size:12px;opacity:0.8;margin-top:4px;">Bạn có thể tải ảnh bài tập/sơ đồ hoặc gõ <em>"giải thích câu này"</em> bất cứ lúc nào nhé!</p>
+          <p>Xin chào! Tôi là <strong>FTECA 24</strong> — trợ lý AI ôn thi QLCL & ATTP. 👋</p>
+          <p style="margin-top:6px;font-size:12.5px;">📷 Gửi ảnh bài tập &nbsp;·&nbsp; 📝 Hỏi đáp &nbsp;·&nbsp; 💎 Premium AI (menu trên)</p>
         </div>
       </div>
     </div>
 
+    <!-- Context bar -->
     <div class="cera-context" id="cera-context" style="display:none">
       <i class="fa-solid fa-eye"></i>
       <span id="cera-context-text">Đang xem câu: ...</span>
     </div>
 
+    <!-- Image preview -->
     <div id="cera-image-preview-container" class="cera-image-preview-container hidden">
       <img id="cera-image-preview" src="" alt="Ảnh đính kèm" class="cera-image-preview">
-      <button class="cera-image-remove-btn" onclick="removeCeraAttachedImage()" title="Xóa ảnh"><i class="fa-solid fa-xmark"></i></button>
+      <button class="cera-image-remove-btn" onclick="removeCeraAttachedImage()" title="Xóa ảnh">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </div>
 
+    <!-- Input area -->
     <div class="cera-input-wrap">
-      <label for="cera-file-input" class="cera-img-btn" title="Đính kèm hình ảnh">
+      <label for="cera-file-input" class="cera-img-btn" title="Đính kèm ảnh">
         <i class="fa-solid fa-camera"></i>
         <input type="file" id="cera-file-input" accept="image/*" style="display:none;" onchange="handleCeraImageUpload(event)">
       </label>
       <textarea
         id="cera-input"
         class="cera-input"
-        placeholder="Hỏi FTECA 24, gửi ảnh bài tập toán hoặc chọn Premium AI..."
+        placeholder="Nhắn tin cho FTECA 24..."
         rows="1"
         onkeydown="ceraKeyDown(event)"
         oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"
@@ -866,6 +877,7 @@
         <i class="fa-solid fa-paper-plane"></i>
       </button>
     </div>
+
   </div>
 
   <!-- ADMIN MODALS -->

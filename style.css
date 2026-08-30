@@ -1148,32 +1148,36 @@ img { max-width: 100%; }
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 16px;
+  padding: 12px 14px;
   background: linear-gradient(135deg, #008f4f, #00b96b);
   color: white;
   border-radius: 20px 20px 0 0;
   flex-shrink: 0;
+  gap: 8px;
 }
-.cera-header-info { display: flex; align-items: center; gap: 12px; }
+.cera-header-info { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+.cera-header-actions { display: flex; gap: 6px; flex-shrink: 0; }
 .cera-avatar {
-  width: 40px;
-  height: 40px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
   background: rgba(255,255,255,0.25);
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 18px;
+  flex-shrink: 0;
 }
-.cera-name { font-size: 16px; font-weight: 700; letter-spacing: 0.5px; }
-.cera-status { font-size: 11px; opacity: 0.85; display: flex; align-items: center; gap: 5px; margin-top: 2px; }
+.cera-name { font-size: 15px; font-weight: 700; letter-spacing: 0.3px; white-space: nowrap; }
+.cera-status { font-size: 11px; opacity: 0.85; display: flex; align-items: center; gap: 5px; margin-top: 1px; }
 .cera-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   background: #4ade80;
   border-radius: 50%;
   display: inline-block;
   animation: pulse-dot 2s ease-in-out infinite;
+  flex-shrink: 0;
 }
 .cera-dot.thinking { background: #fbbf24; }
 @keyframes pulse-dot {
@@ -1181,20 +1185,32 @@ img { max-width: 100%; }
   50% { opacity: 0.4; }
 }
 .cera-header-btn {
-  width: 32px;
-  height: 32px;
+  width: 30px;
+  height: 30px;
   border: none;
-  background: rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.18);
   color: white;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 13px;
   transition: background 0.15s;
   display: flex;
   align-items: center;
   justify-content: center;
 }
-.cera-header-btn:hover { background: rgba(255,255,255,0.35); }
+.cera-header-btn:hover { background: rgba(255,255,255,0.32); }
+
+/* Model Toolbar */
+.cera-model-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
 
 /* Messages area */
 .cera-messages {
@@ -1348,19 +1364,22 @@ img { max-width: 100%; }
 
 /* ─── CERA Model Select Dropdown ─── */
 .cera-model-select {
-  background: rgba(255, 255, 255, 0.2);
-  color: #fff;
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  flex: 1;
+  background: var(--bg-card);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 2px 6px;
-  font-size: 11px;
-  font-weight: 600;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 500;
   outline: none;
   cursor: pointer;
+  transition: border-color 0.15s;
 }
+.cera-model-select:focus { border-color: var(--primary); }
 .cera-model-select option {
-  background: #1e1b4b;
-  color: #fff;
+  background: var(--bg-card);
+  color: var(--text-primary);
 }
 
 /* ─── CERA Image Upload & Preview ─── */
