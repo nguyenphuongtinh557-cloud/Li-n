@@ -1,0 +1,393 @@
+/**
+ * navigation.js — Application Navigation & UI Layout Controller
+ * Manages Sidebar, Top Header Search, Page Navigation, Subject Detail, and Auth Popover
+ */
+
+import { SUBJECTS_REGISTRY, getSubjectById, KNOWLEDGE_BLOCKS } from './subjects.js';
+import { DB } from './db.js';
+
+export const NavController = {
+  activePage: 'ontap',
+  currentUser: null,
+
+  init() {
+    this.restoreUserSession();
+    this.renderUserAuthZone();
+    this.setupSearchShortcut();
+  },
+
+  toggleSidebar() {
+    const sidebar = document.getElementById('app-sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (sidebar) sidebar.classList.toggle('open');
+    if (overlay) overlay.classList.toggle('open');
+  },
+
+  // ─── PAGE NAVIGATION ────────────────────────────────────────────────────────
+  navigateToPage(pageId) {
+    this.activePage = pageId;
+
+    // 1. Highlight active sidebar item
+    document.querySelectorAll('.sidebar-nav-item').forEach(item => {
+      item.classList.remove('active');
+    });
+    const activeNav = document.getElementById(`snav-${pageId}`);
+    if (activeNav) activeNav.classList.add('active');
+
+    // 2. Hide all page containers and show selected
+    document.querySelectorAll('.page-container').forEach(page => {
+      page.classList.add('hidden');
+    });
+
+    const targetPage = document.getElementById(`page-${pageId}`);
+    if (targetPage) {
+      targetPage.classList.remove('hidden');
+    }
+
+    // Close mobile sidebar if open
+    const sidebar = document.getElementById('app-sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    if (sidebar && sidebar.classList.contains('open')) {
+      sidebar.classList.remove('open');
+      if (overlay) overlay.classList.remove('open');
+    }
+
+    // Scroll to top
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  },
+
+  // ─── LIVE SUBJECT SEARCH ──────────────────────────────────────────────────
+  searchSubjects(query) {
+    const q = (query || '').trim().toLowerCase();
+    const dropdown = document.getElementById('search-results-dropdown');
+    const list = document.getElementById('search-results-list');
+    const countBadge = document.getElementById('search-count-badge');
+
+    if (!dropdown || !list) return;
+
+    if (!q) {
+      // Show all subjects grouped or top list
+      this.renderSearchResults(SUBJECTS_REGISTRY);
+      dropdown.classList.remove('hidden');
+      return;
+    }
+
+    const filtered = SUBJECTS_REGISTRY.filter(s =>
+      s.name.toLowerCase().includes(q) ||
+      s.code.toLowerCase().includes(q) ||
+      (KNOWLEDGE_BLOCKS[s.blockId]?.name || '').toLowerCase().includes(q)
+    );
+
+    if (countBadge) countBadge.textContent = `${filtered.length} môn`;
+    this.renderSearchResults(filtered);
+    dropdown.classList.remove('hidden');
+  },
+
+  renderSearchResults(subjects) {
+    const list = document.getElementById('search-results-list');
+    if (!list) return;
+
+    if (subjects.length === 0) {
+      list.innerHTML = `
+        <div class="search-empty-state">
+          <div style="font-size:24px;margin-bottom:4px;">🔍</div>
+          <div>Không tìm thấy môn học nào phù hợp</div>
+          <div style="font-size:11px;color:var(--text-muted);">Thử tìm theo mã môn (vd: FT4468, GE4091)</div>
+        </div>
+      `;
+      return;
+    }
+
+    list.innerHTML = subjects.map(s => {
+      const block = KNOWLEDGE_BLOCKS[s.blockId] || { icon: '📚', name: '' };
+      return `
+        <div class="search-result-item" onclick="NavController.openSubjectDetail('${s.id}')">
+          <div class="search-item-left">
+            <span class="search-item-code">${s.code}</span>
+            <div class="search-item-info">
+              <div class="search-item-name">${s.name}</div>
+              <div class="search-item-meta">${block.icon} ${block.name} · Học kỳ ${s.semester}</div>
+            </div>
+          </div>
+          <div class="search-item-right">
+            <span class="badge badge-subtle">${s.credits} Tín chỉ</span>
+            <i class="fa-solid fa-chevron-right text-xs" style="color:var(--text-muted);"></i>
+          </div>
+        </div>
+      `;
+    }).join('');
+  },
+
+  closeSearchDropdown() {
+    const dropdown = document.getElementById('search-results-dropdown');
+    if (dropdown) dropdown.classList.add('hidden');
+  },
+
+  setupSearchShortcut() {
+    document.addEventListener('keydown', (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        const searchInput = document.getElementById('subject-search-input');
+        if (searchInput) {
+          searchInput.focus();
+          this.searchSubjects(searchInput.value);
+        }
+      }
+      if (e.key === 'Escape') {
+        this.closeSearchDropdown();
+        this.closeUserPopover();
+      }
+    });
+
+    // Click outside to close
+    document.addEventListener('click', (e) => {
+      const searchContainer = document.querySelector('.search-bar-container');
+      if (searchContainer && !searchContainer.contains(e.target)) {
+        this.closeSearchDropdown();
+      }
+      const userZone = document.getElementById('user-auth-zone');
+      if (userZone && !userZone.contains(e.target)) {
+        this.closeUserPopover();
+      }
+    });
+  },
+
+  // ─── SUBJECT DETAIL PAGE ──────────────────────────────────────────────────
+  openSubjectDetail(subjectId) {
+    const s = getSubjectById(subjectId);
+    if (!s) return;
+
+    this.closeSearchDropdown();
+
+    const block = KNOWLEDGE_BLOCKS[s.blockId] || { icon: '📚', name: 'Đại cương' };
+    const detailContainer = document.getElementById('page-subject-detail');
+
+    if (!detailContainer) return;
+
+    detailContainer.innerHTML = `
+      <div class="subject-detail-hero">
+        <button class="btn btn-secondary btn-sm" onclick="NavController.navigateToPage('ontap')" style="margin-bottom:16px;">
+          <i class="fa-solid fa-arrow-left"></i> Quay lại
+        </button>
+        <div class="flex items-center gap-3 margin-bottom-8">
+          <span class="subject-detail-badge">${s.code}</span>
+          <span class="badge badge-primary">${block.icon} ${block.name}</span>
+          <span class="badge badge-subtle">${s.credits} Tín chỉ</span>
+          <span class="badge badge-subtle">Học kỳ ${s.semester}</span>
+        </div>
+        <h1 class="subject-detail-title">${s.name}</h1>
+        <p class="text-secondary text-sm" style="max-width:720px;margin-top:8px;">
+          Chương trình ôn tập chuẩn hóa thuộc khung đào tạo Ngành Công nghệ Thực phẩm. Chọn các danh mục bên dưới để bắt đầu ôn luyện.
+        </p>
+      </div>
+
+      <div class="subject-detail-grid">
+        <!-- Card 1: Thông tin môn học -->
+        <div class="subject-card card">
+          <div class="subject-card-icon" style="background:rgba(79, 70, 229, 0.1);color:var(--primary);">ℹ️</div>
+          <div class="subject-card-content">
+            <h3>Thông tin môn học</h3>
+            <p class="text-secondary text-sm">Đề cương chi tiết, giảng viên đảm nhận, mục tiêu học phần và tài liệu tham khảo.</p>
+            <div class="subject-card-status"><span>⏳ Cập nhật sau</span></div>
+          </div>
+        </div>
+
+        <!-- Card 2: Bài giảng ôn tập -->
+        <div class="subject-card card">
+          <div class="subject-card-icon" style="background:rgba(16, 185, 129, 0.1);color:var(--success);">📖</div>
+          <div class="subject-card-content">
+            <h3>Bài giảng ôn tập</h3>
+            <p class="text-secondary text-sm">Slide bài giảng tổng hợp, tóm tắt lý thuyết trọng tâm từng chương và sơ đồ tư duy.</p>
+            <div class="subject-card-status"><span>⏳ Cập nhật sau</span></div>
+          </div>
+        </div>
+
+        <!-- Card 3: Đề thi các năm -->
+        <div class="subject-card card">
+          <div class="subject-card-icon" style="background:rgba(245, 158, 11, 0.1);color:var(--warning);">📝</div>
+          <div class="subject-card-content">
+            <h3>Đề thi các năm</h3>
+            <p class="text-secondary text-sm">Tuyển tập đề thi giữa kỳ, cuối kỳ chính thức các khóa trước có đáp án chi tiết.</p>
+            <div class="subject-card-status"><span>⏳ Cập nhật đề thi sau</span></div>
+          </div>
+        </div>
+
+        <!-- Card 4: Kiểm tra ôn tập (ACTIVE FUNCTIONALITY) -->
+        <div class="subject-card card active-card" onclick="NavController.startSubjectExam('${s.id}')">
+          <div class="subject-card-icon" style="background:rgba(0, 220, 130, 0.15);color:#00dc82;">🎯</div>
+          <div class="subject-card-content">
+            <h3>Kiểm tra ôn tập</h3>
+            <p class="text-secondary text-sm">Thi thử, luyện tập trắc nghiệm và ngân hàng câu hỏi AI chuẩn hóa theo độ khó.</p>
+            <div class="subject-card-action">
+              <button class="btn btn-success btn-sm">
+                <i class="fa-solid fa-play"></i> Bắt đầu Ôn Tập Ngay
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    this.navigateToPage('subject-detail');
+  },
+
+  startSubjectExam(subjectId) {
+    // 1. Set active subject in DB
+    DB.setActiveSubject(subjectId);
+    
+    // 2. Trigger global selector updates
+    const select = document.getElementById('global-subject-select');
+    if (select) select.value = subjectId;
+
+    if (window.updateSubjectBanner) {
+      window.updateSubjectBanner(subjectId);
+    }
+    if (window.updateBankCount) {
+      window.updateBankCount();
+    }
+
+    // 3. Navigate to Ontap page
+    this.navigateToPage('ontap');
+  },
+
+  // ─── USER AUTH & PROFILE POPOVER ──────────────────────────────────────────
+  restoreUserSession() {
+    try {
+      const saved = localStorage.getItem('lien_user_session');
+      if (saved) {
+        this.currentUser = JSON.parse(saved);
+      }
+    } catch (e) {
+      this.currentUser = null;
+    }
+  },
+
+  renderUserAuthZone() {
+    const container = document.getElementById('user-auth-zone');
+    if (!container) return;
+
+    if (this.currentUser) {
+      container.innerHTML = `
+        <button class="user-avatar-btn" onclick="NavController.toggleUserPopover()" title="${this.currentUser.name}">
+          <img src="${this.currentUser.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(this.currentUser.name)}" alt="Avatar" class="user-avatar-img">
+          <span class="user-avatar-name">${this.currentUser.name}</span>
+          <i class="fa-solid fa-chevron-down text-xs" style="color:var(--text-muted);margin-left:4px;"></i>
+        </button>
+
+        <!-- User Dropdown Popover (Hình 3) -->
+        <div id="user-profile-popover" class="user-popover hidden">
+          <div class="popover-header">
+            <img src="${this.currentUser.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(this.currentUser.name)}" class="popover-avatar">
+            <div class="popover-user-info">
+              <div class="popover-user-name">${this.currentUser.name}</div>
+              <div class="popover-user-email">${this.currentUser.email || 'user@student.ftu2.edu.vn'}</div>
+              <span class="badge badge-success" style="font-size:10px;padding:2px 8px;margin-top:4px;">PRO Member</span>
+            </div>
+          </div>
+
+          <div class="popover-divider"></div>
+
+          <!-- Wallet & Quota -->
+          <div class="popover-wallet-box">
+            <div class="wallet-row">
+              <span>💳 AI Tokens Quota:</span>
+              <span class="font-bold" style="color:var(--success);">Không giới hạn</span>
+            </div>
+            <div class="wallet-row">
+              <span>⚡ Premium Models:</span>
+              <span class="font-bold" style="color:var(--primary);">DeepSeek R1 / Claude</span>
+            </div>
+          </div>
+
+          <div class="popover-divider"></div>
+
+          <div class="popover-menu">
+            <button class="popover-menu-item" onclick="NavController.openProfileSettingsModal()">
+              <i class="fa-solid fa-id-card"></i> <span>Cài đặt & Hồ sơ</span>
+            </button>
+            <button class="popover-menu-item" onclick="NavController.openEditAvatarModal()">
+              <i class="fa-solid fa-pen-to-square"></i> <span>Đổi tên & Avatar</span>
+            </button>
+            <button class="popover-menu-item" onclick="NavController.navigateToPage('upgrade')">
+              <i class="fa-solid fa-wallet"></i> <span>Ví & Gói dịch vụ</span>
+            </button>
+            <button class="popover-menu-item" onclick="toggleTheme()">
+              <i class="fa-solid fa-circle-half-stroke"></i> <span>Đổi Giao diện</span>
+            </button>
+          </div>
+
+          <div class="popover-divider"></div>
+
+          <div class="popover-footer">
+            <button class="popover-signout-btn" onclick="NavController.handleSignOut()">
+              <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
+            </button>
+          </div>
+        </div>
+      `;
+    } else {
+      container.innerHTML = `
+        <button class="btn-google-signin" onclick="NavController.handleGoogleSignIn()">
+          <svg class="google-icon" viewBox="0 0 24 24" width="18" height="18">
+            <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+            <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+            <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+            <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+          </svg>
+          <span>Đăng nhập với Google</span>
+        </button>
+      `;
+    }
+  },
+
+  toggleUserPopover() {
+    const popover = document.getElementById('user-profile-popover');
+    if (popover) {
+      popover.classList.toggle('hidden');
+    }
+  },
+
+  closeUserPopover() {
+    const popover = document.getElementById('user-profile-popover');
+    if (popover) {
+      popover.classList.add('hidden');
+    }
+  },
+
+  handleGoogleSignIn() {
+    // Mock Google Sign in session or trigger Auth
+    const mockUser = {
+      name: 'Nguyễn Hoàng Phúc',
+      email: 'hoangphuc.cntp@ftu2.edu.vn',
+      avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=HoangPhuc'
+    };
+    this.currentUser = mockUser;
+    localStorage.setItem('lien_user_session', JSON.stringify(mockUser));
+    this.renderUserAuthZone();
+    if (window.showToast) window.showToast('Đăng nhập thành công với tài khoản Google!', 'success');
+  },
+
+  handleSignOut() {
+    this.currentUser = null;
+    localStorage.removeItem('lien_user_session');
+    this.renderUserAuthZone();
+    if (window.showToast) window.showToast('Đã đăng xuất tài khoản.', 'info');
+  },
+
+  openProfileSettingsModal() {
+    this.closeUserPopover();
+    if (window.showToast) window.showToast('Tính năng Cài đặt Hồ sơ cá nhân', 'info');
+  },
+
+  openEditAvatarModal() {
+    this.closeUserPopover();
+    const newName = prompt('Nhập tên hiển thị mới:', this.currentUser?.name || '');
+    if (newName && newName.trim()) {
+      this.currentUser.name = newName.trim();
+      this.currentUser.avatar = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(newName)}`;
+      localStorage.setItem('lien_user_session', JSON.stringify(this.currentUser));
+      this.renderUserAuthZone();
+      if (window.showToast) window.showToast('Đã cập nhật thông tin thành công!', 'success');
+    }
+  }
+};

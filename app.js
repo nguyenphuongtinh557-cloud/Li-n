@@ -11,6 +11,7 @@ import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion } 
 import { pullFromGitHub, pullAdminEdits } from './modules/sync.js';
 import { initAdminAuth } from './modules/admin.js';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js';
+import { NavController } from './modules/navigation.js';
 
 /* ════════════════════════════════════════════════════
    APP STATE
@@ -77,6 +78,7 @@ async function init() {
 
   updateBankCount();
   initSubjectSelector();
+  NavController.init();
   switchTab('exam-tab');
 
   // Kéo bản vá của admin từ server về và patch lên DB local
@@ -1446,6 +1448,9 @@ Object.assign(window, {
   handleCeraImageUpload,
   removeCeraAttachedImage,
   onBlockFilterChange,
+  NavController,
+  navigateToPage: (p) => NavController.navigateToPage(p),
+  openSubjectPage: (s) => NavController.openSubjectDetail(s),
 });
 
 // Boot
