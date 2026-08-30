@@ -1175,7 +1175,7 @@ function toggleCeraExpand() {
     icon.className = isExpanded ? 'fa-solid fa-compress' : 'fa-solid fa-expand';
   }
   if (text) {
-    text.textContent = isExpanded ? 'Thu nhỏ khung chat' : 'Phóng to khung chat';
+    text.textContent = isExpanded ? 'Thu nhỏ màn hình' : 'Toàn màn hình';
   }
 }
 

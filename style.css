@@ -1137,16 +1137,34 @@ img { max-width: 100%; }
   transform: translateY(0) scale(1);
   pointer-events: all;
 }
-/* Chế độ mở rộng (phóng to) */
+/* Chế độ Phóng Toàn Màn Hình (Full Screen) */
 .cera-panel.expanded {
-  width: min(680px, calc(100vw - 32px));
-  max-height: min(82vh, 760px);
-  bottom: 16px;
-  right: 16px;
+  top: 16px !important;
+  left: 16px !important;
+  right: 16px !important;
+  bottom: 16px !important;
+  width: calc(100vw - 32px) !important;
+  height: calc(100vh - 32px) !important;
+  max-height: none !important;
+  border-radius: 20px;
+  box-shadow: 0 32px 100px rgba(0,0,0,0.4);
+  z-index: 10000;
+}
+.cera-panel.expanded .cera-messages {
+  max-height: none !important;
+  flex: 1;
 }
 @media (max-width: 480px) {
   .cera-panel { width: calc(100vw - 24px); right: 12px; bottom: 90px; }
-  .cera-panel.expanded { width: calc(100vw - 16px); right: 8px; bottom: 8px; max-height: 92vh; }
+  .cera-panel.expanded {
+    top: 8px !important;
+    left: 8px !important;
+    right: 8px !important;
+    bottom: 8px !important;
+    width: calc(100vw - 16px) !important;
+    height: calc(100vh - 16px) !important;
+    border-radius: 16px;
+  }
   .cera-fab { bottom: 16px; right: 16px; }
 }
 
