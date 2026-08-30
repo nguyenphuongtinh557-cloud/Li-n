@@ -7,14 +7,19 @@
  */
 
 // ─── DANH SÁCH BỘ KEY HỆ THỐNG ────────────────────────────────────────────────
+// ─── DANH SÁCH BỘ KEY HỆ THỐNG ────────────────────────────────────────────────
 export const RAW_KEYS = {
   openrouter: [
     'sk-or-v1-' + 'fc62ec203093fc832fae79333a82c7595f1925994974dd99a53f0bad49c34b43'
   ],
-  auxiliaryTokens: [
-    'fc503675-a3a6-4bdc-96da-f53dce1b168e',
-    'ctQLRhxYqlTwgJ1Cmsp8eW803O532cpR',
-    'a50d5c567df596509ba1d9bfa41a0bdd'
+  sambanova: [
+    'fc503675-a3a6-4bdc-96da-f53dce1b168e' // SambaNova Cloud API Key (Ultra-Fast Llama 3.3 / DeepSeek R1)
+  ],
+  mistral: [
+    'ctQLRhxYqlTwgJ1Cmsp8eW803O532cpR' // Mistral AI API Key (Mistral Large / Pixtral Vision)
+  ],
+  cloudflare: [
+    'a50d5c567df596509ba1d9bfa41a0bdd' // Cloudflare Workers AI API Token
   ],
   cerebras: [
     'csk-' + 'wr4c85jkpjy2v8c3f6vftcj2j4nekrkm4ye8kpej856yrtwk',
@@ -37,6 +42,7 @@ export const POOL_MODELS = {
   // 1. Phân tích hình ảnh (Giải bài tập toán / OCR / Phân tích ảnh)
   IMAGE_ANALYSIS: [
     { provider: 'gemini', model: 'gemini-3.6-flash', type: 'native' },
+    { provider: 'mistral', model: 'pixtral-12b-2409', type: 'mistral-vision' },
     { provider: 'openrouter', model: 'google/gemini-2.5-flash', type: 'openrouter' },
     { provider: 'openrouter', model: 'qwen/qwen-2.5-vl-72b-instruct', type: 'openrouter' },
     { provider: 'openrouter', model: 'openai/gpt-4o-mini', type: 'openrouter' }
@@ -45,18 +51,20 @@ export const POOL_MODELS = {
   // 2. Ra đề & Tạo câu hỏi trắc nghiệm (Tiếng Việt tốt, Quota hồi liên tục, Tốc độ cao)
   QUESTION_GENERATION: [
     { provider: 'cerebras', model: 'gpt-oss-120b', type: 'openai-compat', endpoint: 'https://api.cerebras.ai/v1/chat/completions' },
+    { provider: 'sambanova', model: 'Meta-Llama-3.3-70B-Instruct', type: 'openai-compat', endpoint: 'https://api.sambanova.ai/v1/chat/completions' },
     { provider: 'groq', model: 'openai/gpt-oss-120b', type: 'openai-compat', endpoint: 'https://api.groq.com/openai/v1/chat/completions' },
     { provider: 'gemini', model: 'gemini-3.6-flash', type: 'gemini-native' },
-    { provider: 'groq', model: 'groq/compound-mini', type: 'openai-compat', endpoint: 'https://api.groq.com/openai/v1/chat/completions' }
+    { provider: 'mistral', model: 'mistral-small-latest', type: 'openai-compat', endpoint: 'https://api.mistral.ai/v1/chat/completions' }
   ],
 
   // 3. Khu vực Premium (Dành cho nội dung nâng cao, suy luận logic phức tạp)
   PREMIUM_ZONE: [
     { id: 'deepseek-r1', name: 'DeepSeek R1 (Tư duy & Giải toán nâng cao)', provider: 'openrouter', model: 'deepseek/deepseek-r1' },
     { id: 'claude-3-5', name: 'Claude 3.5 Sonnet (Chuyên gia Phân tích)', provider: 'openrouter', model: 'anthropic/claude-3.5-sonnet' },
+    { id: 'sambanova-llama', name: 'SambaNova Llama 3.3 70B (Siêu Tốc)', provider: 'sambanova', model: 'Meta-Llama-3.3-70B-Instruct' },
+    { id: 'mistral-large', name: 'Mistral Large (Chính Xác & Đa Ngôn Ngữ)', provider: 'mistral', model: 'mistral-large-latest' },
     { id: 'gpt-4o', name: 'OpenAI GPT-4o (Đa năng cao cấp)', provider: 'openrouter', model: 'openai/gpt-4o' },
-    { id: 'gemini-2-pro', name: 'Gemini 2.0 Pro (Hàn lâm & Đa ngôn ngữ)', provider: 'openrouter', model: 'google/gemini-2.0-pro-exp-02-05' },
-    { id: 'llama-3-3', name: 'Llama 3.3 70B (Open-Source Flagship)', provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct' }
+    { id: 'gemini-2-pro', name: 'Gemini 2.0 Pro (Hàn lâm & Đa ngôn ngữ)', provider: 'openrouter', model: 'google/gemini-2.0-pro-exp-02-05' }
   ]
 };
 
@@ -64,7 +72,9 @@ class KeyRotator {
   constructor() {
     this.counters = {
       openrouter: 0,
-      auxiliaryTokens: 0,
+      sambanova: 0,
+      mistral: 0,
+      cloudflare: 0,
       cerebras: 0,
       gemini: 0,
       groq: 0
