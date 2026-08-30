@@ -12,6 +12,7 @@ import { pullFromGitHub, pullAdminEdits } from './modules/sync.js';
 import { initAdminAuth } from './modules/admin.js';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js';
 import { NavController } from './modules/navigation.js';
+import { AuthModule } from './modules/auth.js';
 
 /* ════════════════════════════════════════════════════
    APP STATE
@@ -1449,6 +1450,7 @@ Object.assign(window, {
   removeCeraAttachedImage,
   onBlockFilterChange,
   NavController,
+  AuthModule,
   navigateToPage: (p) => NavController.navigateToPage(p),
   openSubjectPage: (s) => NavController.openSubjectDetail(s),
 });
