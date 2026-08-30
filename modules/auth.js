@@ -9,12 +9,12 @@ import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOu
 
 // Firebase Web Config
 const firebaseConfig = {
-  apiKey: "AIzaSy" + "B4rSYnaBvBl4QWPyefSc_rODRZQ6eTrk8",
+  apiKey: "AIzaSyCcwxsxREppsp3KbCDnQ4ixvz3VC5lxqM4",
   authDomain: "fifth-chalice-507108-c5.firebaseapp.com",
   projectId: "fifth-chalice-507108-c5",
   storageBucket: "fifth-chalice-507108-c5.appspot.com",
-  messagingSenderId: "853432770079",
-  appId: "1:853432770079:web:a1b2c3d4e5f6"
+  messagingSenderId: "643168500906",
+  appId: "1:643168500906:web:a1b2c3d4e5f6"
 };
 
 let app = null;
