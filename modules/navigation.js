@@ -486,11 +486,7 @@ export const NavController = {
     }
 
     if (this.currentUser) {
-      this.currentUser.name = newName;
-      if (this.tempAvatarData) {
-        this.currentUser.avatar = this.tempAvatarData;
-      }
-      AuthModule.setUserSession(this.currentUser);
+      AuthModule.updateCustomProfile(newName, this.tempAvatarData);
     }
 
     const modal = document.getElementById('modal-edit-profile');

@@ -43,11 +43,14 @@ export const AuthModule = {
     if (auth) {
       onAuthStateChanged(auth, (firebaseUser) => {
         if (firebaseUser) {
+          const customAvatar = localStorage.getItem(`lien_custom_avatar_${firebaseUser.uid}`);
+          const customName = localStorage.getItem(`lien_custom_name_${firebaseUser.uid}`);
+
           const realUser = {
             uid: firebaseUser.uid,
-            name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+            name: customName || firebaseUser.displayName || firebaseUser.email.split('@')[0],
             email: firebaseUser.email,
-            avatar: firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(firebaseUser.email)}`,
+            avatar: customAvatar || firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(firebaseUser.email)}`,
             emailVerified: firebaseUser.emailVerified,
             provider: 'google.com',
             signedInAt: new Date().toISOString()
@@ -155,6 +158,22 @@ export const AuthModule = {
     }
 
     this.notifyListeners(user);
+  },
+
+  updateCustomProfile(name, avatar) {
+    if (!this.user) return;
+
+    const uidKey = this.user.uid || this.user.email;
+    if (name) {
+      this.user.name = name;
+      localStorage.setItem(`lien_custom_name_${uidKey}`, name);
+    }
+    if (avatar) {
+      this.user.avatar = avatar;
+      localStorage.setItem(`lien_custom_avatar_${uidKey}`, avatar);
+    }
+
+    this.setUserSession(this.user, false);
   },
 
   async signOut() {
