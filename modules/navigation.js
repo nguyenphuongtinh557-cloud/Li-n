@@ -26,14 +26,29 @@ export const NavController = {
   },
 
   // ─── PAGE NAVIGATION ────────────────────────────────────────────────────────
-  navigateToPage(pageId) {
+  navigateToPage(pageId, subTabId = null) {
+    // Tự động đồng bộ các trang con về Ôn tập & Kiểm tra (ontap)
+    if (pageId === 'aigen') {
+      pageId = 'ontap';
+      subTabId = 'source-tab';
+    }
+    if (pageId === 'history') {
+      pageId = 'ontap';
+      subTabId = 'history-tab';
+    }
+
     this.activePage = pageId;
 
     // 1. Highlight active sidebar item
     document.querySelectorAll('.sidebar-nav-item').forEach(item => {
       item.classList.remove('active');
     });
-    const activeNav = document.getElementById(`snav-${pageId}`);
+
+    let snavId = `snav-${pageId}`;
+    if (subTabId === 'source-tab') snavId = 'snav-aigen';
+    if (subTabId === 'history-tab') snavId = 'snav-history';
+
+    const activeNav = document.getElementById(snavId) || document.getElementById(`snav-${pageId}`);
     if (activeNav) activeNav.classList.add('active');
 
     // 2. Hide all page containers and show selected
@@ -44,6 +59,11 @@ export const NavController = {
     const targetPage = document.getElementById(`page-${pageId}`);
     if (targetPage) {
       targetPage.classList.remove('hidden');
+    }
+
+    // 3. Chuyển tab con nếu có
+    if (subTabId && window.switchTab) {
+      window.switchTab(subTabId);
     }
 
     // Close mobile sidebar if open

@@ -117,7 +117,7 @@ async function init() {
 ════════════════════════════════════════════════════ */
 function switchTab(tabId) {
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tab-pill-btn').forEach(btn => btn.classList.remove('active'));
 
   const el = document.getElementById(tabId);
   if (el) el.classList.add('active');
@@ -131,6 +131,14 @@ function switchTab(tabId) {
   };
   const navEl = document.getElementById(navMap[tabId]);
   if (navEl) navEl.classList.add('active');
+
+  // Đồng bộ highlight Sidebar
+  document.querySelectorAll('.sidebar-nav-item').forEach(item => item.classList.remove('active'));
+  let snavId = 'snav-ontap';
+  if (tabId === 'source-tab') snavId = 'snav-aigen';
+  if (tabId === 'history-tab') snavId = 'snav-history';
+  const snavEl = document.getElementById(snavId);
+  if (snavEl) snavEl.classList.add('active');
 
   State.currentTab = tabId;
 
@@ -1487,7 +1495,7 @@ Object.assign(window, {
   onBlockFilterChange,
   NavController,
   AuthModule,
-  navigateToPage: (p) => NavController.navigateToPage(p),
+  navigateToPage: (p, sub) => NavController.navigateToPage(p, sub),
   openSubjectPage: (s) => NavController.openSubjectDetail(s),
 });
 
