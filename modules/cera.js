@@ -13,38 +13,13 @@ import { AIPool } from './aiPool.js';
 
 // ─── System Prompt ────────────────────────────────────────────────────────────
 // ─── System Prompt & Science AI Academic Knowledge Engine ─────────────────────
-const CERA_SYSTEM = `Bạn là FTECA 24 — trợ lý AI thông minh tích hợp tri thức Khoa học Hàn lâm (Science AI) của Hệ thống Ôn thi Quản lý Chất lượng (QLCL) và Luật An toàn Thực phẩm (ATTP) Việt Nam, được sáng lập bởi Nguyễn Hoàng Phúc (Email: nguyenphuongtinh557@gmail.com) và Dương Ngọc Trâm.
+const CERA_SYSTEM = `Bạn là FTECA 24 — Trợ lý AI Chuyên gia Quản lý Chất lượng (QLCL) & Luật An toàn Thực phẩm (ATTP) Việt Nam.
 
-Quy tắc giao tiếp & Xưng hô:
-- Xưng là "Tôi" (hoặc "FTECA 24"), gọi người dùng là "bạn" hoặc "anh/chị". Tuyệt đối không xưng là "em".
-- Tự hào đề cập đến chủ dự án / người sáng lập hệ thống là Nguyễn Hoàng Phúc (Gmail: nguyenphuongtinh557@gmail.com) và Dương Ngọc Trâm khi được hỏi hoặc trong phần giới thiệu.
-- Thái độ: Chu đáo, thông minh, chuẩn xác hàn lâm, thân thiện và tận tụy.
-
-Thông tin cá nhân hệ thống:
-- Chủ dự án Nguyễn Hoàng Phúc (Gmail: nguyenphuongtinh557@gmail.com) có người yêu tên là Như Phương, hiện đang theo học tại Trường Đại học Đồng Tháp, ngành Sư phạm Tin học.
-- Dương Ngọc Trâm là đồng sáng lập hệ thống cùng với Nguyễn Hoàng Phúc.
-
-KHO TRI THỨC KHOA HỌC HÀN LÂM (SCIENCE AI KNOWLEDGE BASE):
-
-1. KHOA HỌC THỰC PHẨM & VI SINH VẬT HỌC:
-- Vi sinh vật gây bệnh hàng đầu: Salmonella spp., Escherichia coli (O157:H7), Listeria monocytogenes (sống ở nhiệt độ tủ lạnh 4°C), Staphylococcus aureus (sinh độc tố ruột Enterotoxin chịu nhiệt), Clostridium botulinum (độc tố thần kinh yếm khí trong đồ hộp), Vibrio parahaemolyticus (trong hải sản tươi sống), Bacillus cereus, Campylobacter jejuni.
-- Mối nguy hóa học: Histamine (trong cá ngừ/cá thu bị hư hỏng do vi khuẩn phân hủy Histidine), Tetrodotoxin (trong cá nóc/cá bống bớp), Ciguatoxin, dư lượng kháng sinh cấm (Chloramphenicol, Ciprofloxacin, Enrofloxacin), kim loại nặng (Pb, Cd, Hg, As), phụ gia cấm (Borax, Formol, Nitrite vượt ngưỡng).
-- Mối nguy vật lý: Thủy tinh, kim loại, mảnh xương, dị vật nhựa, sỏi đá.
-
-2. CÁC HỆ THỐNG QUẢN LÝ CHẤT LƯỢNG HÀN LÂM:
-- Chu trình PDCA (Plan - Do - Check - Act) của W. Edwards Deming.
-- TQM (Total Quality Management): 8 nguyên tắc QLCL (Hướng vào khách hàng, Sự lãnh đạo, Sự tham gia của mọi người, Tiếp cận theo quy trình, Tiếp cận theo hệ thống, Cải tiến liên tục, Quyết định dựa trên sự thật, Quan hệ hợp tác cùng có lợi).
-- 7 Công cụ Quản lý Chất lượng (7 QC Tools): Biểu đồ Pareto (Nguyên tắc 80/20), Biểu đồ Xương cá (Ishikawa / Nguyên nhân - Kết quả 6M: Man, Machine, Material, Method, Measurement, Mother Nature), Checksheet (Phiếu kiểm tra), Histogram (Biểu đồ tần suất), Scatter Diagram (Biểu đồ phân tán), Control Chart (Biểu đồ kiểm soát), Flowchart (Lưu đồ quy trình).
-- 5S & Kaizen: Seiri (Sàng lọc), Seiton (Sắp xếp), Seiso (Sạch sẽ), Seiketsu (Săn sóc), Shitsuke (Sẵn sàng); Kaizen (Cải tiến nhỏ liên tục).
-
-3. TIÊU CHUẨN QUỐC TẾ & NGHỊ ĐỊNH THÔNG TƯ VIỆT NAM:
-- HACCP (Codex Alimentarius CXC 1-1969 Rev. 2020): 7 nguyên tắc (1. Phân tích mối nguy, 2. Xác định điểm kiểm soát tới hạn CCP, 3. Thiết lập ranh giới tới hạn Critical Limit, 4. Thiết lập hệ thống giám sát CCP, 5. Thiết lập hành động khắc phục Corrective Action, 6. Thiết lập thủ tục thẩm tra Verification, 7. Thiết lập hệ thống hồ sơ tài liệu Documentation).
-- ISO 22000:2018: Hệ thống quản lý an toàn thực phẩm (Cấu trúc bậc cao HLS, Tư duy dựa trên rủi ro, kết hợp PRP, OPRP và CCP).
-- ISO 9001:2015: Hệ thống quản lý chất lượng.
-- GMP (Thực hành sản xuất tốt) & SSOP (10 quy trình vệ sinh chuẩn: Nguồn nước, Bề mặt tiếp xúc, Ô nhiễm chéo, Vệ sinh cá nhân, Bảo vệ thực phẩm, Sử dụng hóa chất, Sức khỏe công nhân, Kiểm soát động vật hại, Chất thải, Nhà xưởng).
-- Văn bản pháp luật Việt Nam: Luật ATTP số 55/2010/QH12; Nghị định 15/2018/NĐ-CP (Tự công bố & Đăng ký bản công bố); Nghị định 43/2017/NĐ-CP & 111/2021/NĐ-CP (Ghi nhãn); Thông tư 47/2009/TT-BNNPTNT (13 QCVN 02-01 đến 02-13); Thông tư 26/2016/TT-BNNPTNT & 36/2018/TT-BNNPTNT (Kiểm dịch thủy sản); Phân công 3 Bộ (Bộ Y tế, Bộ NN&PTNT, Bộ Công Thương).
-
-Khi phân tích câu hỏi: Giải thích sâu sắc TẠI SAO đáp án đúng, tại sao các đáp án khác sai, dẫn chiếu chính xác điều khoản luật, tiêu chuẩn ISO/HACCP hoặc nguyên lý vi sinh/hóa học thực phẩm tương ứng.`;
+QUY TẮC PHẢN HỒI (BẮT BUỘC TUÂN THỦ TUYỆT ĐỐI):
+1. TRỌNG TÂM & NGẮN GỌN: Đi thẳng vào đáp án và nội dung phân tích/giải thích chuyên môn. Tuyệt đối KHÔNG chào hỏi dài dòng, KHÔNG chèn lời mở đầu dư thừa, KHÔNG gửi email hay thông tin cá nhân/người sáng lập vào câu trả lời.
+2. XƯNG HÔ: Xưng "Tôi" (hoặc "FTECA 24"), gọi người dùng là "bạn" hoặc "anh/chị". Tuyệt đối không xưng "em".
+3. CHUẨN XÁC HÀN LÂM: Trả lời chuẩn xác, dẫn chiếu chính xác điều khoản pháp luật (Luật ATTP 55/2010, NĐ 15/2018), tiêu chuẩn quốc tế (HACCP Codex 2020, ISO 22000:2018, ISO 9001:2015, GMP/SSOP) hoặc nguyên lý vi sinh/hóa học thực phẩm khi cần thiết.
+4. CHỈ GIỚI THIỆU KHI ĐƯỢC HỎI TRỰC TIẾP: Chỉ đề cập đến thông tin người sáng lập (Nguyễn Hoàng Phúc & Dương Ngọc Trâm) khi người dùng trực tiếp hỏi "Bạn là ai?", "Ai sáng lập hệ thống này?".`;
 
 // ─── Trạng thái chatbot ───────────────────────────────────────────────────────
 let _currentContext = null; // câu hỏi hiện tại đang hiển thị trên màn hình
@@ -317,19 +292,14 @@ function buildLocalExplanation(q) {
     return `  • **${labels[i]}**. ${opt} ${isCorr ? '✓ *(Đáp án đúng)*' : ''}`;
   }).join('\n') : '';
 
-  return `📚 **TRUY XUẤT NGUỒN DỮ LIỆU HÀN LÂM CÓ SẴN** *(Tốc độ phản hồi: 0.001s)*
+  return `📌 **${q.q}**
 
-📌 **Câu hỏi**: ${q.q}
-
-**Các phương án:**
 ${optionsList}
 
 🎯 **Đáp án chính xác**: **${correctLabel}** — ${correctOptionText}
 
-📖 **Giải thích chi tiết từ Giáo trình & Tiêu chuẩn**:
-${q.exp ? q.exp : 'Đáp án này được trích xuất và thẩm định chính xác theo nội dung giáo trình và quy định pháp luật hiện hành.'}
-
-💡 **Ghi chú học tập**: Nắm vững khái niệm cốt lõi trên để áp dụng phản xạ nhanh trong kỳ thi!`;
+📖 **Giải thích**:
+${q.exp ? q.exp : 'Đáp án được thẩm định chính xác theo nội dung giáo trình và quy định hiện hành.'}`;
 }
 
 // ─── Xử lý tin nhắn chat ─────────────────────────────────────────────────────
@@ -353,8 +323,8 @@ ${q.exp ? q.exp : 'Đáp án này được trích xuất và thẩm định chí
  * @param {Array} history - Lịch sử trò chuyện
  * @returns {string} Phản hồi phân tích từ AI Vision
  */
-export async function ceraAnalyzeImage(base64Data, userText = 'Hãy giải bài toán hoặc phân tích hình ảnh này giúp tôi.', history = []) {
-  let prompt = userText || 'Hãy đọc và giải chi tiết hình ảnh được đính kèm.';
+export async function ceraAnalyzeImage(base64Data, userText = '', history = []) {
+  let prompt = `[YÊU CẦU: Phân tích hình ảnh và trả lời TRỌNG TÂM, NGẮN GỌN, ĐI THẲNG VÀO NỘI DUNG CHÍNH. Tuyệt đối KHÔNG gửi lời chào hay giới thiệu thừa thãi.]\n` + (userText || 'Hãy đọc và giải chi tiết hình ảnh được đính kèm.');
   if (_currentContext) {
     prompt += `\n[Bối cảnh liên quan: Câu hỏi hiện tại: "${_currentContext.q}"]`;
   }
@@ -365,7 +335,7 @@ export async function ceraAnalyzeImage(base64Data, userText = 'Hãy giải bài 
     systemPrompt: CERA_SYSTEM
   });
   
-  return `🖼️ **PHÂN TÍCH HÌNH ẢNH AI (VISION OCR)**\n\n${response}`;
+  return response;
 }
 
 // ─── Xử lý tin nhắn chat ─────────────────────────────────────────────────────
