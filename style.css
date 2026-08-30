@@ -1137,7 +1137,7 @@ img { max-width: 100%; }
   transform: translateY(0) scale(1);
   pointer-events: all;
 }
-/* Chế độ Phóng Toàn Màn Hình (Full Screen) */
+/* Chế độ Phóng Toàn Màn Hình (Full Screen) & Tăng kích thước 1.5 lần */
 .cera-panel.expanded {
   top: 16px !important;
   left: 16px !important;
@@ -1146,14 +1146,74 @@ img { max-width: 100%; }
   width: calc(100vw - 32px) !important;
   height: calc(100vh - 32px) !important;
   max-height: none !important;
-  border-radius: 20px;
+  border-radius: 24px;
   box-shadow: 0 32px 100px rgba(0,0,0,0.4);
   z-index: 10000;
 }
+
+/* Scale up 1.5x các đối tượng bên trong khi phóng to */
+.cera-panel.expanded .cera-header {
+  padding: 16px 20px;
+}
+.cera-panel.expanded .cera-avatar {
+  width: 52px;
+  height: 52px;
+  font-size: 24px;
+}
+.cera-panel.expanded .cera-name {
+  font-size: 20px;
+}
+.cera-panel.expanded .cera-status {
+  font-size: 13.5px;
+}
+.cera-panel.expanded .cera-header-btn {
+  width: 42px;
+  height: 42px;
+  font-size: 18px;
+}
+
 .cera-panel.expanded .cera-messages {
   max-height: none !important;
   flex: 1;
+  padding: 24px 20px;
+  gap: 20px;
 }
+.cera-panel.expanded .cera-msg-avatar {
+  width: 42px;
+  height: 42px;
+  font-size: 18px;
+}
+.cera-panel.expanded .cera-msg-bubble {
+  font-size: 18px;
+  line-height: 1.55;
+  padding: 14px 20px;
+  border-radius: 20px 20px 20px 6px;
+}
+.cera-panel.expanded .cera-msg-user .cera-msg-bubble {
+  border-radius: 20px 20px 6px 20px;
+}
+.cera-panel.expanded .cera-msg-bubble p {
+  margin-bottom: 8px;
+}
+
+.cera-panel.expanded .cera-input-wrap {
+  padding: 16px 20px 20px;
+  gap: 12px;
+}
+.cera-panel.expanded .cera-img-btn,
+.cera-panel.expanded .cera-send-btn {
+  width: 52px;
+  height: 52px;
+  font-size: 22px;
+  border-radius: 16px;
+}
+.cera-panel.expanded .cera-input {
+  font-size: 18px;
+  padding: 13px 18px;
+  border-radius: 16px;
+  min-height: 52px;
+}
+
 @media (max-width: 480px) {
   .cera-panel { width: calc(100vw - 24px); right: 12px; bottom: 90px; }
   .cera-panel.expanded {
@@ -1164,6 +1224,13 @@ img { max-width: 100%; }
     width: calc(100vw - 16px) !important;
     height: calc(100vh - 16px) !important;
     border-radius: 16px;
+  }
+  .cera-panel.expanded .cera-msg-bubble {
+    font-size: 15px;
+    padding: 12px 14px;
+  }
+  .cera-panel.expanded .cera-input {
+    font-size: 15px;
   }
   .cera-fab { bottom: 16px; right: 16px; }
 }
