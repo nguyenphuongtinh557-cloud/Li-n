@@ -204,23 +204,6 @@ export const NavController = {
 
     if (!detailContainer) return;
 
-    detailContainer.innerHTML = `
-      <div class="subject-detail-hero">
-        <button class="btn btn-secondary btn-sm" onclick="NavController.navigateToPage('ontap')" style="margin-bottom:16px;">
-          <i class="fa-solid fa-arrow-left"></i> Quay lại
-        </button>
-        <div class="flex items-center gap-3 margin-bottom-8">
-          <span class="subject-detail-badge">${s.code}</span>
-          <span class="badge badge-primary">${block.icon} ${block.name}</span>
-          <span class="badge badge-subtle">${s.credits} Tín chỉ</span>
-          <span class="badge badge-subtle">Học kỳ ${s.semester}</span>
-        </div>
-        <h1 class="subject-detail-title">${s.name}</h1>
-        <p class="text-secondary text-sm" style="max-width:720px;margin-top:8px;">
-          Chương trình ôn tập chuẩn hóa thuộc khung đào tạo Ngành Công nghệ Thực phẩm. Chọn các danh mục bên dưới để bắt đầu ôn luyện.
-        </p>
-      </div>
-
     const allResources = DB.getResources(s.id);
     const infoResources = allResources.filter(r => r.type === 'info');
     const lectureResources = allResources.filter(r => r.type === 'lecture');
