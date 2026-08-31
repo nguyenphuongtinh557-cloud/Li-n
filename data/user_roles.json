@@ -1,5 +1,7 @@
 {
-  "premiumEmails": [],
+  "premiumEmails": [
+    "nguyenhoangphuc17052006@gmail.com"
+  ],
   "users": [
     {
       "name": "Nguyễn Phúc",
@@ -18,5 +20,5 @@
       "firstSeen": "2026-08-31T03:14:25.574Z"
     }
   ],
-  "updatedAt": "2026-08-31T03:16:51.013Z"
+  "updatedAt": "2026-08-31T03:18:17.027Z"
 }
