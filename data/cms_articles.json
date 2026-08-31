@@ -72,14 +72,18 @@
   {
     "id": "art_protein_thuc_vat",
     "title": "Protein thực vật – Nguồn dinh dưỡng bền vững",
-    "category": "Dinh dưỡng",
     "excerpt": "Protein thực vật đang trở thành lựa chọn hàng đầu cho sức khỏe và môi trường.",
-    "cover": "https://images.unsplash.com/photo-1540420773420-3366772f4999?w=900&auto=format&fit=crop",
-    "date": "18/05/2024",
-    "readTime": "3 phút đọc",
-    "views": 0,
+    "content": "<p>Sự gia tăng nhu cầu về chế độ ăn lành mạnh và giảm phát thải carbon đang biến protein thực vật thành trung tâm của ngành thực phẩm tương lai.</p><h2>1. Đột phá công nghệ thịt thực vật</h2><p>Ứng dụng công nghệ đùn ép nhiệt giúp tái tạo cấu trúc sợi cơ của thịt từ đạm đậu nành và hạt đậu Hà Lan.</p>",
+    "category": "Dinh dưỡng",
+    "status": "published",
     "featured": false,
-    "content": "\n      <p class=\"article-lead\">Sự gia tăng nhu cầu về chế độ ăn lành mạnh và giảm phát thải carbon đang biến protein thực vật thành trung tâm của ngành thực phẩm tương lai.</p>\n      <h2 id=\"toc-1\">1. Đột phá công nghệ thịt thực vật</h2>\n      <p>Ứng dụng công nghệ đùn ép nhiệt giúp tái tạo cấu trúc sợi cơ của thịt từ đạm đậu nành và hạt đậu Hà Lan.</p>\n    "
+    "cover": "https://cdn.phototourl.com/free/2026-08-31-faae2526-5ef3-4822-af6d-67844cbdfa14.jpg",
+    "date": "18/05/2024",
+    "readTime": "2 phút đọc",
+    "views": 0,
+    "tags": [],
+    "author": "Nghịch Mặc",
+    "updatedAt": "2026-08-31T12:42:14.624Z"
   },
   {
     "id": "art_an_toan_chuoi_cung_ung",
