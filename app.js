@@ -1798,11 +1798,206 @@ Object.assign(window, {
   addPendingQuestion,
   deletePendingQuestion,
   saveReviewedQuestions,
+  renderAdminDashboard,
+  switchAdminSubTab,
+  filterAdminUserList,
+  grantAdminUserPremium,
+  revokeAdminUserPremium,
+  handleAdminImportJSON,
+  handleAdminPostAnnouncement,
   NavController,
   AuthModule,
   navigateToPage: (p, sub) => NavController.navigateToPage(p, sub),
   openSubjectPage: (s) => NavController.openSubjectDetail(s),
 });
+
+/* ════════════════════════════════════════════════════
+   ADMIN DASHBOARD & 3-TIER ROLE MANAGEMENT CONTROLLER
+════════════════════════════════════════════════════ */
+
+function renderAdminDashboard() {
+  const statUsers = document.getElementById('stat-total-users');
+  const statPremium = document.getElementById('stat-premium-users');
+  const statQuestions = document.getElementById('stat-total-questions');
+  const statSubjects = document.getElementById('stat-total-subjects');
+
+  const users = DB.getAllRegisteredUsers();
+  const premiumEmails = DB.getPremiumEmails().map(e => (e || '').toLowerCase());
+  const bank = DB.getBank();
+  const subjects = getAllSubjects();
+
+  if (statUsers) statUsers.textContent = users.length || 1;
+  if (statPremium) statPremium.textContent = premiumEmails.length || 0;
+  if (statQuestions) statQuestions.textContent = bank.length || 0;
+  if (statSubjects) statSubjects.textContent = subjects.length || 35;
+
+  renderAdminUserList();
+}
+
+function switchAdminSubTab(tabName) {
+  const tabs = ['users', 'bank', 'announcement'];
+  tabs.forEach(t => {
+    const btn = document.getElementById(`admin-${t}-tab-btn`);
+    const content = document.getElementById(`admin-subtab-${t}`);
+    if (btn) btn.classList.remove('active');
+    if (content) content.classList.add('hidden');
+  });
+
+  const activeBtn = document.getElementById(`admin-${tabName}-tab-btn`);
+  const activeContent = document.getElementById(`admin-subtab-${tabName}`);
+  if (activeBtn) activeBtn.classList.add('active');
+  if (activeContent) activeContent.classList.remove('hidden');
+}
+
+function renderAdminUserList(filterText = '') {
+  const tbody = document.getElementById('admin-users-table-body');
+  if (!tbody) return;
+
+  const users = DB.getAllRegisteredUsers();
+  const superAdmins = ['nguyenphuongtinh557@gmail.com', 'macnghich@gmail.com'];
+  const premiumEmails = DB.getPremiumEmails().map(e => (e || '').toLowerCase());
+
+  // Merge current user if not in list
+  if (NavController.currentUser && NavController.currentUser.email) {
+    const exists = users.some(u => u.email.toLowerCase() === NavController.currentUser.email.toLowerCase());
+    if (!exists) {
+      users.unshift({
+        name: NavController.currentUser.name,
+        email: NavController.currentUser.email,
+        avatar: NavController.currentUser.avatar,
+        lastLogin: new Date().toISOString()
+      });
+    }
+  }
+
+  const keyword = filterText.trim().toLowerCase();
+  const filteredUsers = users.filter(u => {
+    if (!keyword) return true;
+    return (u.name || '').toLowerCase().includes(keyword) || (u.email || '').toLowerCase().includes(keyword);
+  });
+
+  if (filteredUsers.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Không tìm thấy học viên nào phù hợp.</td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filteredUsers.map((u, idx) => {
+    const emailLower = (u.email || '').toLowerCase();
+    const isSuperAdmin = superAdmins.includes(emailLower);
+    const isPremium = premiumEmails.includes(emailLower);
+
+    let roleBadge = '<span class="badge badge-newbie">🌱 NEWBIE</span>';
+    if (isSuperAdmin) {
+      roleBadge = '<span class="badge badge-admin"><i class="fa-solid fa-shield-halved"></i> SUPER ADMIN</span>';
+    } else if (isPremium) {
+      roleBadge = '<span class="badge badge-premium"><i class="fa-solid fa-crown"></i> PREMIUM</span>';
+    }
+
+    const actionBtn = isSuperAdmin ? `
+      <span class="text-xs text-muted font-bold">🛡️ Quản trị viên Tối cao</span>
+    ` : (isPremium ? `
+      <button class="btn btn-secondary btn-xs" onclick="revokeAdminUserPremium('${u.email}')">
+        <i class="fa-solid fa-user-minus"></i> Hạ xuống Newbie
+      </button>
+    ` : `
+      <button class="btn btn-success btn-xs font-bold" onclick="grantAdminUserPremium('${u.email}')">
+        <i class="fa-solid fa-crown"></i> Cấp Quyền PREMIUM
+      </button>
+    `);
+
+    const formattedDate = u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('vi-VN') + ' ' + new Date(u.lastLogin).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong';
+
+    return `
+      <tr>
+        <td class="font-bold">${idx + 1}</td>
+        <td>
+          <div class="flex items-center gap-2">
+            <img src="${u.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(u.name || 'User')}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;">
+            <span class="font-semibold">${escapeHtml(u.name || 'Học viên')}</span>
+          </div>
+        </td>
+        <td class="font-mono text-xs">${escapeHtml(u.email || '')}</td>
+        <td>${roleBadge}</td>
+        <td class="text-xs text-muted">${formattedDate}</td>
+        <td style="text-align:right;">${actionBtn}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function filterAdminUserList(keyword) {
+  renderAdminUserList(keyword);
+}
+
+function grantAdminUserPremium(email) {
+  if (!email) return;
+  DB.grantPremium(email);
+  showToast(`🎉 Đã cấp quyền PREMIUM cho tài khoản [${email}] thành công! Dữ liệu đã đồng bộ lên Server Cloud.`, 'success');
+  renderAdminDashboard();
+  if (NavController.currentUser && NavController.currentUser.email.toLowerCase() === email.toLowerCase()) {
+    NavController.renderUserAuthZone();
+  }
+}
+
+function revokeAdminUserPremium(email) {
+  if (!email) return;
+  DB.revokePremium(email);
+  showToast(`ℹ️ Đã hạ tài khoản [${email}] xuống cấp độ NEWBIE. Dữ liệu đã đồng bộ lên Server Cloud.`, 'info');
+  renderAdminDashboard();
+  if (NavController.currentUser && NavController.currentUser.email.toLowerCase() === email.toLowerCase()) {
+    NavController.renderUserAuthZone();
+  }
+}
+
+async function handleAdminImportJSON() {
+  const fileInput = document.getElementById('admin-import-json-file');
+  if (!fileInput || !fileInput.files.length) {
+    showToast('Vui lòng chọn 1 file .json chứa ngân hàng câu hỏi!', 'error');
+    return;
+  }
+
+  const file = fileInput.files[0];
+  const reader = new FileReader();
+  reader.onload = async (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!Array.isArray(data)) {
+        showToast('File JSON không hợp lệ. Phải là một mảng mảng câu hỏi [...]', 'error');
+        return;
+      }
+
+      const added = DB.addQuestions(data, { skipSync: false });
+      showToast(`🎉 Đã nạp thành công ${added} câu hỏi vào hệ thống và đồng bộ Server Cloud!`, 'success');
+      fileInput.value = '';
+      updateBankCount();
+      renderAdminDashboard();
+    } catch (err) {
+      showToast('Lỗi đọc file JSON: ' + err.message, 'error');
+    }
+  };
+  reader.readAsText(file);
+}
+
+function handleAdminPostAnnouncement() {
+  const titleInput = document.getElementById('admin-announcement-title');
+  const typeSelect = document.getElementById('admin-announcement-type');
+  const contentInput = document.getElementById('admin-announcement-content');
+
+  const title = titleInput ? titleInput.value.trim() : '';
+  const type = typeSelect ? typeSelect.value : 'info';
+  const content = contentInput ? contentInput.value.trim() : '';
+
+  if (!title || !content) {
+    showToast('Vui lòng nhập đầy đủ Tiêu đề và Nội dung thông báo!', 'error');
+    return;
+  }
+
+  DB.addAnnouncement({ title, type, content, author: 'Admin' }, false);
+  showToast('📢 Đã phát thông báo hệ thống lên Server Cloud thành công!', 'success');
+
+  titleInput.value = '';
+  contentInput.value = '';
+}
 
 // Boot
 document.addEventListener('DOMContentLoaded', init);

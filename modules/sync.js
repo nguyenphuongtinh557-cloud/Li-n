@@ -18,8 +18,10 @@ const SYNC_CONFIG = {
   token: 'ghp_LiuU4uWqr' + 'XdxHFRoUhUOkgF8Y4EQQk0BRVXf',
   questionsFile: 'data/community.json',
   sourcesFile: 'data/community_sources.json',
-  // File chỉnh sửa Admin — chỉ bạn mới có quyền ghi
   adminEditsFile: 'data/admin_edits.json',
+  userRolesFile: 'data/user_roles.json',
+  customSubjectsFile: 'data/custom_subjects.json',
+  announcementsFile: 'data/system_announcements.json',
 };
 
 const RAW_BASE = `https://raw.githubusercontent.com/${SYNC_CONFIG.owner}/${SYNC_CONFIG.repo}/${SYNC_CONFIG.branch}`;
@@ -185,4 +187,31 @@ export async function pushAdminEdits(edits = []) {
  */
 export async function pullAdminEdits() {
   return await fetchRaw(SYNC_CONFIG.adminEditsFile);
+}
+
+// ─── Đồng bộ Phân quyền User Roles (Premium Users & User Registry) ─────────
+export async function pushUserRolesToServer(rolesData) {
+  return await pushFile(SYNC_CONFIG.userRolesFile, rolesData);
+}
+
+export async function pullUserRolesFromServer() {
+  return await fetchRaw(SYNC_CONFIG.userRolesFile);
+}
+
+// ─── Đồng bộ Môn học Tùy chỉnh (Custom Subjects) ───────────────────────────
+export async function pushCustomSubjectsToServer(subjects) {
+  return await pushFile(SYNC_CONFIG.customSubjectsFile, subjects);
+}
+
+export async function pullCustomSubjectsFromServer() {
+  return await fetchRaw(SYNC_CONFIG.customSubjectsFile);
+}
+
+// ─── Đồng bộ Thông báo Hệ thống (System Announcements) ─────────────────────
+export async function pushAnnouncementsToServer(announcements) {
+  return await pushFile(SYNC_CONFIG.announcementsFile, announcements);
+}
+
+export async function pullAnnouncementsFromServer() {
+  return await fetchRaw(SYNC_CONFIG.announcementsFile);
 }

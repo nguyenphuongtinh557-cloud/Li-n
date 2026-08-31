@@ -5,7 +5,7 @@
 
 import { SUBJECTS_REGISTRY, getSubjectById, KNOWLEDGE_BLOCKS } from './subjects.js';
 import { DB } from './db.js';
-import { AuthModule } from './auth.js';
+import { AuthModule, SUPER_ADMIN_EMAILS, getUserRole } from './auth.js';
 
 export const NavController = {
   activePage: 'ontap',
@@ -38,6 +38,19 @@ export const NavController = {
     }
     if (pageId === 'ontap' && !subTabId) {
       subTabId = 'exam-tab';
+    }
+
+    // Bảo mật trang Admin: Chỉ 2 Gmail Admin mới truy cập được
+    if (pageId === 'admin') {
+      const user = this.currentUser;
+      const isSuperAdmin = user && user.email && SUPER_ADMIN_EMAILS.map(e => e.toLowerCase()).includes(user.email.toLowerCase());
+      if (!isSuperAdmin) {
+        if (window.showToast) window.showToast('⛔ Trang Quản Trị Admin chỉ dành riêng cho Quản trị viên hệ thống!', 'error');
+        pageId = 'ontap';
+        subTabId = 'exam-tab';
+      } else {
+        if (window.renderAdminDashboard) window.renderAdminDashboard();
+      }
     }
 
     this.activePage = pageId;
@@ -289,9 +302,30 @@ export const NavController = {
 
   renderUserAuthZone() {
     const container = document.getElementById('user-auth-zone');
+    const adminNavBtn = document.getElementById('snav-admin');
+
+    // 1. Kiểm tra 2 Gmail Super Admin để ẩn/hiện nút Admin Sidebar
+    const isSuperAdmin = this.currentUser && this.currentUser.email && SUPER_ADMIN_EMAILS.map(e => e.toLowerCase()).includes(this.currentUser.email.toLowerCase());
+
+    if (adminNavBtn) {
+      if (isSuperAdmin) {
+        adminNavBtn.classList.remove('hidden');
+      } else {
+        adminNavBtn.classList.add('hidden');
+      }
+    }
+
     if (!container) return;
 
     if (this.currentUser) {
+      const role = getUserRole(this.currentUser.email);
+      let roleBadgeHtml = '<span class="badge badge-newbie">🌱 NEWBIE MEMBER</span>';
+      if (role === 'ADMIN') {
+        roleBadgeHtml = '<span class="badge badge-admin"><i class="fa-solid fa-shield-halved"></i> ADMIN SYSTEM</span>';
+      } else if (role === 'PREMIUM') {
+        roleBadgeHtml = '<span class="badge badge-premium"><i class="fa-solid fa-crown"></i> PREMIUM MEMBER</span>';
+      }
+
       container.innerHTML = `
         <button class="user-avatar-btn" onclick="NavController.toggleUserPopover()" title="${this.currentUser.name}">
           <img src="${this.currentUser.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(this.currentUser.name)}" alt="Avatar" class="user-avatar-img">
@@ -299,14 +333,14 @@ export const NavController = {
           <i class="fa-solid fa-chevron-down text-xs" style="color:var(--text-muted);margin-left:4px;"></i>
         </button>
 
-        <!-- User Dropdown Popover (Hình 3) -->
+        <!-- User Dropdown Popover -->
         <div id="user-profile-popover" class="user-popover hidden">
           <div class="popover-header">
             <img src="${this.currentUser.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(this.currentUser.name)}" class="popover-avatar">
             <div class="popover-user-info">
               <div class="popover-user-name">${this.currentUser.name}</div>
-              <div class="popover-user-email">${this.currentUser.email || 'nguyenphuongtinh557@gmail.com'}</div>
-              <span class="badge badge-success" style="font-size:10px;padding:2px 8px;margin-top:4px;">PRO Member</span>
+              <div class="popover-user-email">${this.currentUser.email || ''}</div>
+              <div class="mt-1">${roleBadgeHtml}</div>
             </div>
           </div>
 
@@ -315,18 +349,23 @@ export const NavController = {
           <!-- Wallet & Quota -->
           <div class="popover-wallet-box">
             <div class="wallet-row">
-              <span>💳 AI Tokens Quota:</span>
-              <span class="font-bold" style="color:var(--success);">Không giới hạn</span>
+              <span>💳 Quyền Hạn AI:</span>
+              <span class="font-bold" style="color:var(--success);">${role === 'NEWBIE' ? 'Cơ bản (Cera Standard)' : 'Không giới hạn (VIP AI)'}</span>
             </div>
             <div class="wallet-row">
-              <span>⚡ Premium Models:</span>
-              <span class="font-bold" style="color:var(--primary);">DeepSeek R1 / Claude</span>
+              <span>⚡ Mô Hình AI:</span>
+              <span class="font-bold" style="color:var(--primary);">${role === 'NEWBIE' ? 'Standard Tier' : 'DeepSeek R1 / Claude 3.5'}</span>
             </div>
           </div>
 
           <div class="popover-divider"></div>
 
           <div class="popover-menu">
+            ${isSuperAdmin ? `
+              <button class="popover-menu-item" onclick="NavController.navigateToPage('admin')" style="color:#ef4444;font-weight:700;">
+                <i class="fa-solid fa-shield-halved"></i> <span>🛡️ Quản trị Admin System</span>
+              </button>
+            ` : ''}
             <button class="popover-menu-item" onclick="NavController.openProfileSettingsModal()">
               <i class="fa-solid fa-id-card"></i> <span>Cài đặt & Hồ sơ</span>
             </button>

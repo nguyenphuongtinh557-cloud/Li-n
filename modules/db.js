@@ -3,7 +3,7 @@
  * Quản lý toàn bộ dữ liệu qua localStorage + Gọi module Sync để đẩy lên GitHub
  */
 
-import { pushToGitHub } from './sync.js';
+import { pushToGitHub, pushUserRolesToServer, pushCustomSubjectsToServer, pushAnnouncementsToServer } from './sync.js';
 
 const KEYS = {
   BANK: 'qlcl_question_bank',
@@ -13,9 +13,100 @@ const KEYS = {
   SEED_LOADED: 'qlcl_seed_loaded_v7',
   ACTIVE_SUBJECT: 'qlcl_active_subject',
   CUSTOM_SUBJECTS: 'qlcl_custom_subjects',
+  PREMIUM_EMAILS: 'qlcl_premium_emails',
+  USER_REGISTRY: 'qlcl_user_registry',
+  ANNOUNCEMENTS: 'qlcl_system_announcements',
 };
 
 export const DB = {
+  /** Danh sách Email Premium */
+  getPremiumEmails() {
+    try {
+      return JSON.parse(localStorage.getItem(KEYS.PREMIUM_EMAILS) || '[]');
+    } catch { return []; }
+  },
+
+  setPremiumEmails(emails = [], skipSync = false) {
+    localStorage.setItem(KEYS.PREMIUM_EMAILS, JSON.stringify(emails));
+    if (!skipSync) {
+      pushUserRolesToServer({ premiumEmails: emails, users: this.getAllRegisteredUsers(), updatedAt: new Date().toISOString() });
+    }
+  },
+
+  grantPremium(email) {
+    if (!email) return;
+    const cleanEmail = email.trim().toLowerCase();
+    const list = this.getPremiumEmails();
+    if (!list.includes(cleanEmail)) {
+      list.push(cleanEmail);
+      this.setPremiumEmails(list);
+    }
+  },
+
+  revokePremium(email) {
+    if (!email) return;
+    const cleanEmail = email.trim().toLowerCase();
+    const list = this.getPremiumEmails().filter(e => e !== cleanEmail);
+    this.setPremiumEmails(list);
+  },
+
+  /** Danh sách Học Viên Registered */
+  getAllRegisteredUsers() {
+    try {
+      return JSON.parse(localStorage.getItem(KEYS.USER_REGISTRY) || '[]');
+    } catch { return []; }
+  },
+
+  saveUserToRegistry(user, skipSync = false) {
+    if (!user || !user.email) return;
+    const list = this.getAllRegisteredUsers();
+    const idx = list.findIndex(u => u.email.toLowerCase() === user.email.toLowerCase());
+    const userData = {
+      name: user.name || user.displayName || user.email.split('@')[0],
+      email: user.email.toLowerCase(),
+      avatar: user.avatar || user.photoURL,
+      lastLogin: new Date().toISOString(),
+      provider: user.provider || 'google.com'
+    };
+
+    if (idx >= 0) {
+      list[idx] = { ...list[idx], ...userData };
+    } else {
+      userData.firstSeen = new Date().toISOString();
+      list.push(userData);
+    }
+
+    localStorage.setItem(KEYS.USER_REGISTRY, JSON.stringify(list));
+    if (!skipSync) {
+      pushUserRolesToServer({ premiumEmails: this.getPremiumEmails(), users: list, updatedAt: new Date().toISOString() });
+    }
+  },
+
+  /** Thông báo Hệ Thống */
+  getAnnouncements() {
+    try {
+      return JSON.parse(localStorage.getItem(KEYS.ANNOUNCEMENTS) || '[]');
+    } catch { return []; }
+  },
+
+  addAnnouncement(announcement, skipSync = false) {
+    const list = this.getAnnouncements();
+    const item = {
+      id: 'ANN_' + Date.now(),
+      title: announcement.title || 'Thông báo hệ thống',
+      content: announcement.content || '',
+      type: announcement.type || 'info',
+      createdAt: new Date().toISOString(),
+      author: announcement.author || 'Admin'
+    };
+    list.unshift(item);
+    localStorage.setItem(KEYS.ANNOUNCEMENTS, JSON.stringify(list));
+    if (!skipSync) {
+      pushAnnouncementsToServer(list);
+    }
+    return item;
+  },
+
   /** Lấy danh sách Môn học tùy chỉnh do người dùng tạo */
   getCustomSubjects() {
     try {

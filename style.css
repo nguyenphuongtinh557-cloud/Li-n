@@ -2513,3 +2513,50 @@ img { max-width: 100%; }
   }
 }
 
+/* ─── ROLE BADGES & ADMIN DASHBOARD ─── */
+.badge-admin {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: #ffffff !important;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  letter-spacing: 0.5px;
+}
+.badge-premium {
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #ffffff !important;
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  letter-spacing: 0.5px;
+}
+.badge-newbie {
+  background: var(--bg-subtle);
+  color: var(--text-muted) !important;
+  border: 1px solid var(--border);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 9999px;
+}
+.admin-page-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px 22px;
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  margin-bottom: 16px;
+}
+.admin-stat-card {
+  transition: var(--transition);
+  border: 1px solid var(--border);
+}
+.admin-stat-card:hover {
+  border-color: var(--primary);
+  transform: translateY(-2px);
+}
+

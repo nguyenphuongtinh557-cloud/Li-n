@@ -31,12 +31,43 @@ try {
   console.error('Lỗi khởi tạo Firebase Auth:', e);
 }
 
+import { DB } from './db.js';
+import { pullUserRolesFromServer } from './sync.js';
+
+export const SUPER_ADMIN_EMAILS = [
+  'nguyenphuongtinh557@gmail.com',
+  'macnghich@gmail.com'
+];
+
+export function getUserRole(email) {
+  if (!email) return 'NEWBIE';
+  const cleanEmail = email.trim().toLowerCase();
+  if (SUPER_ADMIN_EMAILS.map(e => e.toLowerCase()).includes(cleanEmail)) {
+    return 'ADMIN';
+  }
+  const premiumList = DB.getPremiumEmails().map(e => (e || '').toLowerCase());
+  if (premiumList.includes(cleanEmail)) {
+    return 'PREMIUM';
+  }
+  return 'NEWBIE';
+}
+
 let authListeners = [];
 
 export const AuthModule = {
   user: null,
 
-  init() {
+  async init() {
+    // 1. Đồng bộ danh sách User Roles mới nhất từ Server Cloud
+    try {
+      const serverRoles = await pullUserRolesFromServer();
+      if (serverRoles && Array.isArray(serverRoles.premiumEmails)) {
+        DB.setPremiumEmails(serverRoles.premiumEmails, true);
+      }
+    } catch (e) {
+      console.warn('[Auth] Không thể pull User Roles từ Server:', e);
+    }
+
     this.restoreSession();
 
     // Listen for Firebase Auth state changes
@@ -66,6 +97,9 @@ export const AuthModule = {
       const saved = localStorage.getItem('lien_google_user');
       if (saved) {
         this.user = JSON.parse(saved);
+        if (this.user && this.user.email) {
+          this.user.role = getUserRole(this.user.email);
+        }
       }
     } catch (e) {
       console.error('Lỗi khôi phục phiên đăng nhập:', e);
@@ -140,12 +174,17 @@ export const AuthModule = {
   },
 
   setUserSession(user, showNotification = true) {
+    if (user && user.email) {
+      user.role = getUserRole(user.email);
+      DB.saveUserToRegistry(user);
+    }
     this.user = user;
     localStorage.setItem('lien_google_user', JSON.stringify(user));
     localStorage.setItem('lien_user_session', JSON.stringify({
       name: user.name,
       email: user.email,
-      avatar: user.avatar
+      avatar: user.avatar,
+      role: user ? user.role : 'NEWBIE'
     }));
 
     if (window.NavController) {
@@ -154,7 +193,8 @@ export const AuthModule = {
     }
 
     if (showNotification && window.showToast) {
-      window.showToast(`Xin chào ${user.name}! Đã đăng nhập bằng tài khoản Google (${user.email}).`, 'success');
+      const roleBadge = user.role === 'ADMIN' ? '🛡️ ADMIN' : (user.role === 'PREMIUM' ? '💎 PREMIUM' : '🌱 NEWBIE');
+      window.showToast(`Xin chào ${user.name}! [${roleBadge}] Đã đăng nhập tài khoản Google (${user.email}).`, 'success');
     }
 
     this.notifyListeners(user);

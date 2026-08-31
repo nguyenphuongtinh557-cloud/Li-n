@@ -77,6 +77,10 @@
             <i class="fa-solid fa-crown"></i> <span>Nâng cấp tài khoản</span>
             <span class="badge-pro">PRO</span>
           </button>
+          <button id="snav-admin" class="sidebar-nav-item admin-nav-item hidden" onclick="NavController.navigateToPage('admin')">
+            <i class="fa-solid fa-shield-halved" style="color: #ef4444;"></i> <span style="font-weight: 700; color: #ef4444;">Quản trị Admin</span>
+            <span class="badge-admin">ADMIN</span>
+          </button>
         </div>
       </nav>
     </aside>
@@ -712,6 +716,146 @@
               <i class="fa-solid fa-crown"></i> Kích Hoạt Gói VIP PRO
             </button>
           </div>
+        <!-- ══════ PAGE 9: TRANG QUẢN TRỊ ADMIN CONTROL CENTER ══════ -->
+        <section id="page-admin" class="page-container hidden">
+          <!-- Header Banner -->
+          <div class="admin-page-banner">
+            <div>
+              <div class="flex items-center gap-2 mb-1">
+                <span class="badge badge-admin font-bold"><i class="fa-solid fa-shield-halved"></i> ADMIN CONTROL CENTER</span>
+                <span class="text-xs text-muted" id="admin-server-sync-status">🟢 Server Cloud Sync Active (`nguyenphuongtinh557-cloud/Li-n`)</span>
+              </div>
+              <h1 class="text-2xl font-extrabold">Bảng Điều Khiển & Phân Quyền Quản Trị Hệ Thống</h1>
+              <p class="text-xs text-muted mt-1">Giám sát real-time, quản lý phân quyền 3 cấp (Admin - Premium - Newbie), nạp ngân hàng đề & phát thông báo toàn server.</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <button class="btn btn-secondary btn-sm" onclick="renderAdminDashboard()"><i class="fa-solid fa-rotate"></i> Làm mới</button>
+            </div>
+          </div>
+
+          <!-- Top 4 Stats Metric Cards -->
+          <div class="grid-4 gap-3 my-4">
+            <div class="card card-sm admin-stat-card">
+              <div class="text-xs text-muted font-semibold">TỔNG HỌC VIÊN DÙNG WEB</div>
+              <div class="text-2xl font-extrabold text-primary mt-1" id="stat-total-users">0</div>
+              <div class="text-xs text-muted mt-1"><i class="fa-solid fa-users"></i> Đã đăng nhập hệ thống</div>
+            </div>
+            <div class="card card-sm admin-stat-card">
+              <div class="text-xs text-muted font-semibold">TÀI KHOẢN PREMIUM (VIP)</div>
+              <div class="text-2xl font-extrabold text-success mt-1" id="stat-premium-users">0</div>
+              <div class="text-xs text-muted mt-1"><i class="fa-solid fa-crown"></i> Mở khóa toàn bộ AI Models</div>
+            </div>
+            <div class="card card-sm admin-stat-card">
+              <div class="text-xs text-muted font-semibold">TỔNG CÂU HỎI TRONG NGÂN HÀNG</div>
+              <div class="text-2xl font-extrabold text-accent mt-1" id="stat-total-questions">0</div>
+              <div class="text-xs text-muted mt-1"><i class="fa-solid fa-database"></i> 35 Môn học + Môn tùy chỉnh</div>
+            </div>
+            <div class="card card-sm admin-stat-card">
+              <div class="text-xs text-muted font-semibold">MÔN HỌC & THƯ MỤC CÙNG CẤP</div>
+              <div class="text-2xl font-extrabold text-purple mt-1" id="stat-total-subjects">0</div>
+              <div class="text-xs text-muted mt-1"><i class="fa-solid fa-folder-tree"></i> Độc lập & Cách ly 100%</div>
+            </div>
+          </div>
+
+          <!-- Section Tabs (Quản lý User | Quản lý Đề & Nạp Data | Thông Báo System) -->
+          <div class="sub-tab-bar margin-bottom-16">
+            <button class="sub-tab-btn active" id="admin-users-tab-btn" onclick="switchAdminSubTab('users')">
+              <i class="fa-solid fa-user-shield"></i> Quản Lý Học Viên & Quyền Premium
+            </button>
+            <button class="sub-tab-btn" id="admin-bank-tab-btn" onclick="switchAdminSubTab('bank')">
+              <i class="fa-solid fa-file-export"></i> Nạp Ngân Hàng Đề Hàng Loạt
+            </button>
+            <button class="sub-tab-btn" id="admin-announcement-tab-btn" onclick="switchAdminSubTab('announcement')">
+              <i class="fa-solid fa-bullhorn"></i> Phát Thông Báo Hệ Thống
+            </button>
+          </div>
+
+          <!-- Tab 1: Quản Lý Học Viên & Cấp Quyền Premium 1-Click -->
+          <div id="admin-subtab-users" class="admin-subtab-content">
+            <div class="card">
+              <div class="flex justify-between items-center mb-3">
+                <div>
+                  <h3 class="font-bold text-md">👥 Danh Sách Học Viên & Cấp Quyền 3 Cấp Độ</h3>
+                  <p class="text-xs text-muted">Admin có thể kích hoạt/hạ quyền **PREMIUM** trực tiếp bằng 1-Click. Dữ liệu sẽ đồng bộ tức thì lên Server Cloud.</p>
+                </div>
+                <input type="text" id="admin-user-search" class="form-input text-xs" style="max-width:250px;" placeholder="🔍 Tìm Email / Tên học viên..." oninput="filterAdminUserList(this.value)">
+              </div>
+
+              <div class="table-responsive">
+                <table class="history-table text-xs">
+                  <thead>
+                    <tr>
+                      <th>STT</th>
+                      <th>Học Viên</th>
+                      <th>Email Gmail</th>
+                      <th>Cấp Độ Hiện Tại</th>
+                      <th>Lần Đăng Nhập Cuối</th>
+                      <th style="text-align:right;">Thao Tác Cấp Quyền</th>
+                    </tr>
+                  </thead>
+                  <tbody id="admin-users-table-body">
+                    <!-- Populated dynamically -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Nạp Ngân Hàng Đề Hàng Loạt & AI Data Ingestion -->
+          <div id="admin-subtab-bank" class="admin-subtab-content hidden">
+            <div class="card">
+              <h3 class="font-bold text-md mb-2">📥 Nạp Dữ Liệu Ngân Hàng Đề Thi Hàng Loạt (PDF / Word / JSON)</h3>
+              <p class="text-xs text-muted mb-4">Nạp trắc nghiệm nhanh trực tiếp vào cơ sở dữ liệu server và cách ly theo đúng môn học lựa chọn.</p>
+
+              <div class="grid-2 gap-4">
+                <div class="p-3 border rounded-lg bg-subtle">
+                  <h4 class="font-bold text-sm mb-2"><i class="fa-solid fa-code"></i> Nạp qua file JSON Cấu trúc chuẩn</h4>
+                  <p class="text-xs text-muted mb-2">Định dạng `[ { q: "...", options: ["A","B","C","D"], correct: 0, subjectId: "FT4468" } ]`</p>
+                  <input type="file" id="admin-import-json-file" accept=".json" class="form-input text-xs mb-2">
+                  <button class="btn btn-primary btn-sm" onclick="handleAdminImportJSON()"><i class="fa-solid fa-upload"></i> Đẩy JSON Lên Server Cloud</button>
+                </div>
+
+                <div class="p-3 border rounded-lg bg-subtle">
+                  <h4 class="font-bold text-sm mb-2"><i class="fa-solid fa-file-pdf"></i> Bóc Tách PDF/DOCX Tự Động</h4>
+                  <p class="text-xs text-muted mb-2">Chuyển sang trang AI Sinh Câu Hỏi để tự động phân tích và thẩm định bằng AI.</p>
+
+                  <button class="btn btn-success btn-sm" onclick="NavController.navigateToPage('aigen')"><i class="fa-solid fa-wand-magic-sparkles"></i> Mở Trợ Lý AI Sinh Đề</button>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 3: Phát Thông Báo Hệ Thống -->
+          <div id="admin-subtab-announcement" class="admin-subtab-content hidden">
+            <div class="card" style="max-width:700px;">
+              <h3 class="font-bold text-md mb-2">📢 Soạn Thảo & Phát Thông Báo Hệ Thống</h3>
+              <p class="text-xs text-muted mb-4">Thông báo sẽ xuất hiện trên màn hình của tất cả sinh viên đăng nhập hệ thống.</p>
+              
+              <div class="form-group mb-3">
+                <label class="text-xs font-bold">Tiêu đề thông báo (*):</label>
+                <input type="text" id="admin-announcement-title" class="form-input text-sm" placeholder="Ví dụ: Cập nhật bộ đề thi thử môn Vi Sinh Thực Phẩm 2026">
+              </div>
+
+              <div class="form-group mb-3">
+                <label class="text-xs font-bold">Loại thông báo:</label>
+                <select id="admin-announcement-type" class="form-select text-xs">
+                  <option value="info">💡 Thông tin chung</option>
+                  <option value="update">🚀 Cập nhật tính năng mới</option>
+                  <option value="alert">⚠️ Nhắc nhở thi thử</option>
+                </select>
+              </div>
+
+              <div class="form-group mb-3">
+                <label class="text-xs font-bold">Nội dung chi tiết (*):</label>
+                <textarea id="admin-announcement-content" class="form-input text-xs" rows="4" placeholder="Nhập nội dung thông báo gửi toàn thể sinh viên..."></textarea>
+              </div>
+
+              <button class="btn btn-success font-bold" onclick="handleAdminPostAnnouncement()">
+                <i class="fa-solid fa-paper-plane"></i> Gửi Thông Báo Lên Server Cloud
+              </button>
+            </div>
+          </div>
+
         </section>
 
       </main>
