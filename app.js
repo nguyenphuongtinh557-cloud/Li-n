@@ -1,4 +1,4 @@
-/**
+﻿/**
  * app.js — Main Application Controller
  * Điều phối toàn bộ logic của ứng dụng
  */
@@ -13,6 +13,7 @@ import { initAdminAuth } from './modules/admin.js';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js';
 import { NavController } from './modules/navigation.js';
 import { AuthModule } from './modules/auth.js';
+import { ArticlesModule } from './modules/articles.js';
 
 /* ════════════════════════════════════════════════════
    APP STATE
@@ -1664,7 +1665,7 @@ async function ceraSend() {
   let imgHtml = attachedImage ? `<img src="${attachedImage}" style="max-width:180px;max-height:180px;border-radius:8px;margin-bottom:6px;display:block;">` : '';
   const userAvatar = getUserAvatarUrl();
   userMsg.innerHTML = `
-    <div class="cera-msg-avatar"><img src="${userAvatar}" alt="User Avatar"></div>
+    <div class="cera-msg-avatar"><img src="${userAvatar}" alt="User Avatar" referrerpolicy="no-referrer"></div>
     <div class="cera-msg-bubble">${imgHtml}<p>${escapeHtml(text || 'Hãy phân tích hình ảnh này.')}</p></div>`;
   messages.appendChild(userMsg);
   messages.scrollTop = messages.scrollHeight;
@@ -1810,6 +1811,7 @@ Object.assign(window, {
   adminCloseArticleEditor,
   adminSaveArticle,
   adminDeleteArticle,
+  adminTogglePinArticle,
   // Feedback Inbox
   renderAdminFeedbackInbox,
   adminMarkFeedback,
@@ -1839,6 +1841,33 @@ Object.assign(window, {
    ADMIN DASHBOARD & 3-TIER ROLE MANAGEMENT CONTROLLER
 ════════════════════════════════════════════════════ */
 
+
+/* --- ADMIN SUB-TAB SWITCHER --- */
+function switchAdminSubTab(tabName) {
+  // Hide all subtab content panels
+  var allSubtabs = document.querySelectorAll('.admin-subtab-content');
+  allSubtabs.forEach(function(el) { el.classList.add('hidden'); });
+
+  // Remove active from all zone buttons
+  var allBtns = document.querySelectorAll('.admin-zone-btn');
+  allBtns.forEach(function(btn) { btn.classList.remove('active'); });
+
+  // Show selected subtab
+  var targetTab = document.getElementById('admin-subtab-' + tabName);
+  if (targetTab) targetTab.classList.remove('hidden');
+
+  // Activate matching button
+  var targetBtn = document.getElementById('admin-' + tabName + '-tab-btn');
+  if (targetBtn) targetBtn.classList.add('active');
+
+  // Render content per tab
+  if (tabName === 'users') { renderAdminUserList(); }
+  else if (tabName === 'cms') { renderAdminArticleList(); }
+  else if (tabName === 'announcement') { renderAdminAnnouncementList(); }
+  else if (tabName === 'feedback') { renderAdminFeedbackInbox(); }
+  else if (tabName === 'resources') { renderAdminResourceList(); }
+  else if (tabName === 'bank') { _populateBankSubjectDropdown(); }
+}
 function renderAdminDashboard() {
   const statUsers = document.getElementById('stat-total-users');
   const statPremium = document.getElementById('stat-premium-users');
@@ -1923,7 +1952,7 @@ function renderAdminUserList(filterText = '') {
         <td class="font-bold">${idx + 1}</td>
         <td>
           <div class="flex items-center gap-2">
-            <img src="${u.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(u.name || 'User')}" style="width:26px;height:26px;border-radius:50%;object-fit:cover;">
+            <img src="${u.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(u.name || 'User')}" referrerpolicy="no-referrer" style="width:26px;height:26px;border-radius:50%;object-fit:cover;">
             <span class="font-semibold">${escapeHtml(u.name || 'Học viên')}</span>
           </div>
         </td>
@@ -1992,94 +2021,35 @@ async function handleAdminImportJSON() {
 
 
 /* ════════════════════════════════════════════════════
-   ADMIN CMS — BÀI VIẾT (QUILL EDITOR)
-════════════════════════════════════════════════════ */
-
-let _adminQuillArticle = null;
-let _adminQuillAnnouncement = null;
-let _adminQuillResource = null;
-
-function _initQuillEditors() {
-  if (typeof Quill === 'undefined') return;
-  const toolbarOptions = [
-    [{ 'header': [1, 2, 3, false] }],
-    ['bold', 'italic', 'underline', 'strike'],
-    [{ 'color': [] }, { 'background': [] }],
-    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
-    ['link', 'image', 'video'],
-    ['blockquote', 'code-block'],
-    ['clean']
-  ];
-  const articleEl = document.getElementById('admin-quill-article');
-  if (articleEl && !_adminQuillArticle) {
-    _adminQuillArticle = new Quill('#admin-quill-article', { theme: 'snow', modules: { toolbar: toolbarOptions }, placeholder: 'Soạn nội dung bài viết tại đây...' });
+   ADMIN CMS �function _formatDateForDateInput(dateStr) {
+  if (!dateStr) return new Date().toISOString().split('T')[0];
+  if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) return dateStr;
+  const parts = dateStr.split('/');
+  if (parts.length === 3) {
+    return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
   }
-  const annEl = document.getElementById('admin-quill-announcement');
-  if (annEl && !_adminQuillAnnouncement) {
-    _adminQuillAnnouncement = new Quill('#admin-quill-announcement', { theme: 'snow', modules: { toolbar: [['bold','italic','underline'],['link','image'],['clean']] }, placeholder: 'Soạn nội dung thông báo tại đây...' });
-  }
-  const resEl = document.getElementById('admin-quill-resource');
-  if (resEl && !_adminQuillResource) {
-    _adminQuillResource = new Quill('#admin-quill-resource', { theme: 'snow', modules: { toolbar: toolbarOptions }, placeholder: 'Soạn đề cương, tóm tắt bài giảng, ghi chú môn học tại đây...' });
-  }
+  return new Date().toISOString().split('T')[0];
 }
 
-function switchAdminSubTab(tabName) {
-  const allTabs = ['users', 'cms', 'announcement', 'feedback', 'resources', 'bank'];
-  allTabs.forEach(t => {
-    const btn = document.getElementById(`admin-${t}-tab-btn`);
-    const content = document.getElementById(`admin-subtab-${t}`);
-    if (btn) btn.classList.remove('active');
-    if (content) content.classList.add('hidden');
-  });
-  const activeBtn = document.getElementById(`admin-${tabName}-tab-btn`);
-  const activeContent = document.getElementById(`admin-subtab-${tabName}`);
-  if (activeBtn) activeBtn.classList.add('active');
-  if (activeContent) activeContent.classList.remove('hidden');
-
-  // Lazy init Quill + populate dropdowns
-  if (tabName === 'cms' || tabName === 'announcement' || tabName === 'resources') {
-    setTimeout(() => _initQuillEditors(), 50);
+function _formatInputDateForDisplay(dateStr) {
+  if (!dateStr) return new Date().toLocaleDateString('vi-VN');
+  if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) {
+    const [y, m, d] = dateStr.split('-');
+    return `${d}/${m}/${y}`;
   }
-  if (tabName === 'cms') renderAdminArticleList();
-  if (tabName === 'announcement') renderAdminAnnouncementList();
-  if (tabName === 'feedback') renderAdminFeedbackInbox();
-  if (tabName === 'resources') { _populateResourceSubjectDropdown(); renderAdminResourceList(); }
-  if (tabName === 'bank') _populateBankSubjectDropdown();
-}
-
-/* ─── CMS ARTICLE LIST ─────────────────────────────────────────────────────── */
-function renderAdminArticleList() {
-  const el = document.getElementById('admin-article-list');
-  if (!el) return;
-  const articles = DB.getArticles();
-  if (!articles.length) {
-    el.innerHTML = `<div class="text-center text-muted py-4 text-xs">Chưa có bài viết nào. Nhấn "+ Viết bài mới" để bắt đầu.</div>`;
-    return;
-  }
-  const catIcon = { news: '📰', scholarship: '🎓', event: '🎉', knowledge: '🧪', announcement: '📢' };
-  el.innerHTML = articles.map(a => `
-    <div class="article-card-admin" onclick="adminEditArticle('${a.id}')">
-      <img class="article-thumb" src="${escapeHtml(a.cover || 'https://placehold.co/56x56/00b96b/fff?text=📝')}" alt="cover" onerror="this.src='https://placehold.co/56x56/00b96b/fff?text=📝'">
-      <div class="article-info">
-        <h4>${escapeHtml(a.title || 'Không có tiêu đề')}</h4>
-        <div class="article-meta">
-          ${catIcon[a.category] || '📄'} ${a.category || 'news'} &middot; 
-          ${new Date(a.updatedAt || a.createdAt).toLocaleDateString('vi-VN')}
-          &middot; <span class="article-status-badge ${a.status || 'draft'}">${a.status === 'published' ? '✅ Đã đăng' : a.status === 'pinned' ? '📌 Ghim' : '📝 Nháp'}</span>
-        </div>
-      </div>
-      <button class="btn btn-danger btn-xs" onclick="event.stopPropagation();adminDeleteArticle('${a.id}')" style="margin-left:auto;flex-shrink:0;"><i class="fa-solid fa-trash"></i></button>
-    </div>
-  `).join('');
+  return dateStr;
 }
 
 function adminOpenArticleEditor() {
   document.getElementById('admin-article-id').value = '';
   document.getElementById('admin-article-title').value = '';
   document.getElementById('admin-article-cover').value = '';
+  const excerptInput = document.getElementById('admin-article-excerpt');
+  if (excerptInput) excerptInput.value = '';
+  const dateInput = document.getElementById('admin-article-date');
+  if (dateInput) dateInput.value = new Date().toISOString().split('T')[0];
   document.getElementById('admin-article-tags').value = '';
-  document.getElementById('admin-article-category').value = 'news';
+  document.getElementById('admin-article-category').value = 'Công nghệ chế biến';
   document.getElementById('admin-article-status').value = 'published';
   document.getElementById('admin-editor-title-label').textContent = '✏️ Soạn Thảo Bài Viết Mới';
   if (_adminQuillArticle) _adminQuillArticle.setContents([]);
@@ -2088,16 +2058,26 @@ function adminOpenArticleEditor() {
 }
 
 function adminEditArticle(id) {
-  const article = DB.getArticles().find(a => a.id === id);
+  let articles = DB.getArticles();
+  if (!articles || !articles.length) {
+    if (window.ArticlesModule) articles = window.ArticlesModule.getArticlesData();
+  }
+  const article = articles.find(a => a.id === id);
   if (!article) return;
+
   document.getElementById('admin-article-id').value = id;
   document.getElementById('admin-article-title').value = article.title || '';
   document.getElementById('admin-article-cover').value = article.cover || '';
+  const excerptInput = document.getElementById('admin-article-excerpt');
+  if (excerptInput) excerptInput.value = article.excerpt || '';
+  const dateInput = document.getElementById('admin-article-date');
+  if (dateInput) dateInput.value = _formatDateForDateInput(article.date);
   document.getElementById('admin-article-tags').value = (article.tags || []).join(', ');
-  document.getElementById('admin-article-category').value = article.category || 'news';
-  document.getElementById('admin-article-status').value = article.status || 'draft';
-  document.getElementById('admin-editor-title-label').textContent = '✏️ Chỉnh Sửa Bài Viết';
+  document.getElementById('admin-article-category').value = article.category || 'Công nghệ chế biến';
+  document.getElementById('admin-article-status').value = article.status || (article.featured ? 'pinned' : 'published');
+  document.getElementById('admin-editor-title-label').textContent = `✏️ Chỉnh Sửa Bài Viết: ${article.title}`;
   document.getElementById('admin-article-editor').style.display = '';
+
   setTimeout(() => {
     _initQuillEditors();
     if (_adminQuillArticle && article.content) {
@@ -2118,28 +2098,200 @@ function adminSaveArticle(forceStatus) {
   if (!textContent) { showToast('Nội dung bài viết không được để trống!', 'error'); return; }
 
   const status = forceStatus || document.getElementById('admin-article-status').value;
+  const excerptInput = document.getElementById('admin-article-excerpt');
+  const excerpt = excerptInput ? excerptInput.value.trim() : (textContent.slice(0, 140) + '...');
+  const coverUrl = document.getElementById('admin-article-cover').value.trim() || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&auto=format&fit=crop';
+
+  const articleId = document.getElementById('admin-article-id').value || ('art_' + Date.now());
+
+  // Preserve existing views count or default to 0
+  const existingArticle = DB.getArticles().find(a => a.id === articleId);
+  const currentViews = existingArticle ? (existingArticle.views || 0) : 0;
+
+  const dateInput = document.getElementById('admin-article-date');
+  // Auto timestamp: new article gets today's publish date automatically
+  let formattedDate;
+  if (!existingArticle) {
+    // Brand new article: use today as publish date
+    formattedDate = new Date().toLocaleDateString('vi-VN');
+  } else if (dateInput && dateInput.value) {
+    // Existing article edit: respect admin's date choice
+    formattedDate = _formatInputDateForDisplay(dateInput.value);
+  } else {
+    // Fallback: keep existing date
+    formattedDate = existingArticle.date || new Date().toLocaleDateString('vi-VN');
+  }
+
   const article = {
-    id: document.getElementById('admin-article-id').value || null,
+    id: articleId,
     title,
+    excerpt,
     content,
-    category: document.getElementById('admin-article-category').value,
+    category: document.getElementById('admin-article-category').value || 'Công nghệ chế biến',
     status,
-    cover: document.getElementById('admin-article-cover').value.trim(),
+    featured: status === 'pinned',
+    cover: coverUrl,
+    date: formattedDate,
+    readTime: `${Math.max(2, Math.ceil(textContent.length / 500))} phút đọc`,
+    views: currentViews,
     tags: document.getElementById('admin-article-tags').value.split(',').map(t => t.trim()).filter(Boolean),
-    author: NavController.currentUser?.name || 'Admin',
+    author: NavController.currentUser?.name || 'Admin System',
   };
 
   DB.saveArticle(article);
   adminCloseArticleEditor();
   renderAdminArticleList();
-  showToast(status === 'draft' ? '📝 Đã lưu nháp!' : '🎉 Đã đăng bài viết lên Server Cloud!', 'success');
+
+  if (window.ArticlesModule && window.ArticlesModule.renderArticlesView) {
+    window.ArticlesModule.renderArticlesView();
+  }
+
+  showToast(status === 'draft' ? '📝 Đã lưu nháp bài viết!' : '🎉 Đã đăng bài viết và đồng bộ thành công!', 'success');
+}images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=300&auto=format&fit=crop'">
+      <div class="article-info">
+        <h4>${escapeHtml(a.title || 'Không có tiêu đề')}</h4>
+        <p class="article-excerpt-preview">${escapeHtml(a.excerpt || 'Bài viết chưa có mô tả trích dẫn.')}</p>
+        <div class="article-meta text-xs text-muted">
+          <span>${categoryIcons[a.category] || '📄'} <strong>${escapeHtml(a.category || 'Công nghệ chế biến')}</strong></span>
+          &middot; <span>📅 ${a.date || new Date(a.updatedAt || Date.now()).toLocaleDateString('vi-VN')}</span>
+          &middot; <span>👁️ ${a.views || 0} lượt xem</span>
+          &middot; <span class="badge ${a.status === 'pinned' || a.featured ? 'badge-warning' : (a.status === 'published' ? 'badge-success' : 'badge-secondary')}">${a.status === 'pinned' || a.featured ? '📌 Ghim Hero' : (a.status === 'published' ? '✅ Đã đăng' : '📝 Nháp')}</span>
+        </div>
+      </div>
+      <div class="article-actions-row" onclick="event.stopPropagation()">
+        <button class="btn ${a.status === 'pinned' || a.featured ? 'btn-warning' : 'btn-secondary'} btn-xs" onclick="adminTogglePinArticle('${a.id}')" title="Ghim/Nổi bật trên Hero trang chủ">
+          <i class="fa-solid fa-thumbtack"></i> ${a.status === 'pinned' || a.featured ? 'Bỏ ghim' : 'Ghim Hero'}
+        </button>
+        <button class="btn btn-primary btn-xs" onclick="adminEditArticle('${a.id}')" title="Chỉnh sửa bài viết">
+          <i class="fa-solid fa-pen-to-square"></i> Sửa
+        </button>
+        <button class="btn btn-danger btn-xs" onclick="adminDeleteArticle('${a.id}')" title="Xóa bài viết">
+          <i class="fa-solid fa-trash"></i> Xóa
+        </button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function adminOpenArticleEditor() {
+  document.getElementById('admin-article-id').value = '';
+  document.getElementById('admin-article-title').value = '';
+  document.getElementById('admin-article-cover').value = '';
+  const excerptInput = document.getElementById('admin-article-excerpt');
+  if (excerptInput) excerptInput.value = '';
+  document.getElementById('admin-article-tags').value = '';
+  document.getElementById('admin-article-category').value = 'Công nghệ chế biến';
+  document.getElementById('admin-article-status').value = 'published';
+  document.getElementById('admin-editor-title-label').textContent = '✏️ Soạn Thảo Bài Viết Mới';
+  if (_adminQuillArticle) _adminQuillArticle.setContents([]);
+  document.getElementById('admin-article-editor').style.display = '';
+  setTimeout(() => _initQuillEditors(), 80);
+}
+
+function adminEditArticle(id) {
+  let articles = DB.getArticles();
+  if (!articles || !articles.length) {
+    if (window.ArticlesModule) articles = window.ArticlesModule.getArticlesData();
+  }
+  const article = articles.find(a => a.id === id);
+  if (!article) return;
+
+  document.getElementById('admin-article-id').value = id;
+  document.getElementById('admin-article-title').value = article.title || '';
+  document.getElementById('admin-article-cover').value = article.cover || '';
+  const excerptInput = document.getElementById('admin-article-excerpt');
+  if (excerptInput) excerptInput.value = article.excerpt || '';
+  document.getElementById('admin-article-tags').value = (article.tags || []).join(', ');
+  document.getElementById('admin-article-category').value = article.category || 'Công nghệ chế biến';
+  document.getElementById('admin-article-status').value = article.status || (article.featured ? 'pinned' : 'published');
+  document.getElementById('admin-editor-title-label').textContent = `✏️ Chỉnh Sửa Bài Viết: ${article.title}`;
+  document.getElementById('admin-article-editor').style.display = '';
+
+  setTimeout(() => {
+    _initQuillEditors();
+    if (_adminQuillArticle && article.content) {
+      _adminQuillArticle.clipboard.dangerouslyPasteHTML(article.content);
+    }
+  }, 80);
+}
+
+function adminCloseArticleEditor() {
+  document.getElementById('admin-article-editor').style.display = 'none';
+}
+
+function adminSaveArticle(forceStatus) {
+  const title = document.getElementById('admin-article-title').value.trim();
+  if (!title) { showToast('Vui lòng nhập tiêu đề bài viết!', 'error'); return; }
+  const content = _adminQuillArticle ? _adminQuillArticle.root.innerHTML : '';
+  const textContent = _adminQuillArticle ? _adminQuillArticle.getText().trim() : '';
+  if (!textContent) { showToast('Nội dung bài viết không được để trống!', 'error'); return; }
+
+  const status = forceStatus || document.getElementById('admin-article-status').value;
+  const excerptInput = document.getElementById('admin-article-excerpt');
+  const excerpt = excerptInput ? excerptInput.value.trim() : (textContent.slice(0, 140) + '...');
+  const coverUrl = document.getElementById('admin-article-cover').value.trim() || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&auto=format&fit=crop';
+
+  const articleId = document.getElementById('admin-article-id').value || ('art_' + Date.now());
+
+  const article = {
+    id: articleId,
+    title,
+    excerpt,
+    content,
+    category: document.getElementById('admin-article-category').value || 'Công nghệ chế biến',
+    status,
+    featured: status === 'pinned',
+    cover: coverUrl,
+    date: new Date().toLocaleDateString('vi-VN'),
+    readTime: `${Math.max(2, Math.ceil(textContent.length / 500))} phút đọc`,
+    views: 1,
+    tags: document.getElementById('admin-article-tags').value.split(',').map(t => t.trim()).filter(Boolean),
+    author: NavController.currentUser?.name || 'Admin System',
+  };
+
+  DB.saveArticle(article);
+  adminCloseArticleEditor();
+  renderAdminArticleList();
+
+  if (window.ArticlesModule && window.ArticlesModule.renderArticlesView) {
+    window.ArticlesModule.renderArticlesView();
+  }
+
+  showToast(status === 'draft' ? '📝 Đã lưu nháp bài viết!' : '🎉 Đã đăng bài viết và đồng bộ thành công!', 'success');
 }
 
 function adminDeleteArticle(id) {
-  if (!confirm('Xóa bài viết này?')) return;
+  if (!confirm('Bạn có chắc chắn muốn xóa bài viết này khỏi hệ thống?')) return;
   DB.deleteArticle(id);
   renderAdminArticleList();
-  showToast('Đã xóa bài viết.', 'info');
+
+  if (window.ArticlesModule && window.ArticlesModule.renderArticlesView) {
+    window.ArticlesModule.renderArticlesView();
+  }
+
+  showToast('🗑️ Đã xóa bài viết thành công.', 'info');
+}
+
+function adminTogglePinArticle(id) {
+  let articles = DB.getArticles();
+  if (!articles || !articles.length) {
+    if (window.ArticlesModule) articles = window.ArticlesModule.getArticlesData();
+  }
+  const article = articles.find(a => a.id === id);
+  if (!article) return;
+
+  const isCurrentlyPinned = article.status === 'pinned' || article.featured;
+  article.status = isCurrentlyPinned ? 'published' : 'pinned';
+  article.featured = !isCurrentlyPinned;
+
+  DB.saveArticle(article);
+  renderAdminArticleList();
+
+  if (window.ArticlesModule && window.ArticlesModule.renderArticlesView) {
+    window.ArticlesModule.renderArticlesView();
+  }
+
+  showToast(article.featured ? '📌 Đã ghim bài viết lên vị trí Nổi Bật (Hero)!' : 'ℹ️ Đã bỏ ghim bài viết.', 'info');
 }
 
 /* ─── RICH ANNOUNCEMENT ────────────────────────────────────────────────────── */
