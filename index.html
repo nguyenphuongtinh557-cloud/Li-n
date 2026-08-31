@@ -965,42 +965,73 @@
           <!-- Tab 5: Tài Nguyên Học Tập theo Môn -->
           <div id="admin-subtab-resources" class="admin-subtab-content hidden">
             <div class="admin-resources-layout">
-              <div class="card" style="min-width:260px;">
-                <h4 class="font-bold text-sm mb-2">📚 Thêm Tài Nguyên Học Tập</h4>
-                <div class="form-group mb-2">
-                  <label class="text-xs font-bold">Chọn Môn học</label>
-                  <select id="admin-resource-subject" class="form-select text-xs" onchange="renderAdminResourceList()">
-                    <!-- populated dynamically -->
-                  </select>
+              <div class="card" style="min-width:320px;flex:1;">
+                <h4 class="font-bold text-sm mb-2">📚 Đăng Tải / Soạn Thảo Tài Nguyên Học Tập</h4>
+                <p class="text-xs text-muted mb-3">Nội dung sẽ được tự động hiển thị lên 1 trong 4 Thẻ Chi Tiết Môn Học tương ứng cho sinh viên đọc.</p>
+
+                <div class="grid-2 gap-2 mb-2">
+                  <div>
+                    <label class="text-xs font-bold">Chọn Môn học (*)</label>
+                    <select id="admin-resource-subject" class="form-select text-xs" onchange="renderAdminResourceList()">
+                      <!-- populated dynamically -->
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-xs font-bold">Mục đăng tải (Khớp 4 Thẻ) (*)</label>
+                    <select id="admin-resource-type" class="form-select text-xs">
+                      <option value="info">ℹ️ 1. Thông tin môn học (Đề cương & Giảng viên)</option>
+                      <option value="lecture">📖 2. Bài giảng ôn tập (Slide & Lý thuyết & Video)</option>
+                      <option value="exam">📝 3. Đề thi các năm (Giữa kỳ & Cuối kỳ)</option>
+                      <option value="quiz">🎯 4. Kiểm tra ôn tập (Ngân hàng đề & Thi thử)</option>
+                    </select>
+                  </div>
                 </div>
+
                 <div class="form-group mb-2">
-                  <label class="text-xs font-bold">Mục đăng tải (Khớp 4 Thẻ Chi Tiết Môn Học) (*)</label>
-                  <select id="admin-resource-type" class="form-select text-xs">
-                    <option value="info">ℹ️ 1. Thông tin môn học (Đề cương & Giảng viên)</option>
-                    <option value="lecture">📖 2. Bài giảng ôn tập (Slide & Lý thuyết & Video)</option>
-                    <option value="exam">📝 3. Đề thi các năm (Giữa kỳ & Cuối kỳ)</option>
-                    <option value="quiz">🎯 4. Kiểm tra ôn tập (Ngân hàng đề & Thi thử)</option>
-                  </select>
+                  <label class="text-xs font-bold">Tên / Tiêu đề Tài nguyên (*)</label>
+                  <input type="text" id="admin-resource-name" class="form-input text-xs" placeholder="VD: Đề cương chi tiết & Thông tin giảng viên môn FT4468">
                 </div>
+
                 <div class="form-group mb-2">
-                  <label class="text-xs font-bold">Tên / Mô tả (*)</label>
-                  <input type="text" id="admin-resource-name" class="form-input text-xs" placeholder="VD: Slide chương 3 - Vi sinh TP">
-                </div>
-                <div class="form-group mb-2">
-                  <label class="text-xs font-bold">URL liên kết (*)</label>
-                  <input type="url" id="admin-resource-url" class="form-input text-xs" placeholder="https://drive.google.com/...">
-                </div>
-                <div class="form-group mb-3">
-                  <label class="text-xs font-bold">Năm học (nếu là đề thi)</label>
+                  <label class="text-xs font-bold">Năm học (nếu có)</label>
                   <input type="text" id="admin-resource-year" class="form-input text-xs" placeholder="VD: 2023-2024">
                 </div>
+
+                <!-- Input Mode Selector -->
+                <div class="source-mode-tabs mb-3">
+                  <button class="source-mode-btn active" id="resmode-url" onclick="switchResourceInputMode('url')"><i class="fa-solid fa-link"></i> 1. Nhập Link URL</button>
+                  <button class="source-mode-btn" id="resmode-file" onclick="switchResourceInputMode('file')"><i class="fa-solid fa-file-arrow-up"></i> 2. Upload File trực tiếp</button>
+                  <button class="source-mode-btn" id="resmode-editor" onclick="switchResourceInputMode('editor')"><i class="fa-solid fa-pen-nib"></i> 3. Soạn Rich-Text</button>
+                </div>
+
+                <!-- Mode 1: URL Link -->
+                <div id="resinput-url" class="form-group mb-3">
+                  <label class="text-xs font-bold">URL liên kết (Google Drive / YouTube / File PDF online)</label>
+                  <input type="url" id="admin-resource-url" class="form-input text-xs" placeholder="https://drive.google.com/file/d/...">
+                </div>
+
+                <!-- Mode 2: Direct File Upload -->
+                <div id="resinput-file" class="form-group mb-3" style="display:none;">
+                  <label class="text-xs font-bold">Chọn File tài liệu (PDF, DOCX, PPTX, TXT, Ảnh)</label>
+                  <input type="file" id="admin-resource-file-input" class="form-input text-xs mb-1" accept=".pdf,.docx,.doc,.pptx,.ppt,.txt,.png,.jpg,.jpeg">
+                  <span class="text-xs text-muted" id="admin-resource-file-status">Hệ thống sẽ đọc và lưu trữ thông tin file lên Cloud.</span>
+                </div>
+
+                <!-- Mode 3: Quill Rich-Text Editor -->
+                <div id="resinput-editor" class="form-group mb-3" style="display:none;">
+                  <label class="text-xs font-bold mb-1 block">Nội dung chi tiết (Rich-Text Editor, hỗ trợ format, chèn ảnh, bảng)</label>
+                  <div id="admin-quill-resource" style="height:220px;margin-bottom:12px;border-radius:8px;overflow:hidden;"></div>
+                </div>
+
                 <button class="btn btn-success btn-full font-bold" onclick="adminSaveResource()">
-                  <i class="fa-solid fa-cloud-arrow-up"></i> Lưu & Đồng Bộ Cloud
+                  <i class="fa-solid fa-cloud-arrow-up"></i> Lưu & Đồng Bộ Lên Server Cloud
                 </button>
               </div>
+
+              <!-- Danh sách tài nguyên -->
               <div class="card" style="flex:1;">
                 <div class="flex justify-between items-center mb-3">
-                  <h4 class="font-bold text-sm">📂 Danh Sách Tài Nguyên</h4>
+                  <h4 class="font-bold text-sm">📂 Danh Sách Tài Nguyên Đã Đăng</h4>
                 </div>
                 <div id="admin-resource-list"><!-- dynamic --></div>
               </div>
@@ -1520,6 +1551,6 @@
       document.getElementById('exam-duration-text').textContent = count + ' phút';
     }
   </script>
-  <script type="module" src="app.js?v=20260831e"></script>
+  <script type="module" src="app.js?v=20260831f"></script>
 </body>
 </html>

@@ -1818,6 +1818,7 @@ Object.assign(window, {
   adminSaveResource,
   adminDeleteResource,
   renderAdminResourceList,
+  switchResourceInputMode,
   openUserResourceViewer,
   // Bank AI 4-step
   switchBankSourceMode,
@@ -1996,6 +1997,7 @@ async function handleAdminImportJSON() {
 
 let _adminQuillArticle = null;
 let _adminQuillAnnouncement = null;
+let _adminQuillResource = null;
 
 function _initQuillEditors() {
   if (typeof Quill === 'undefined') return;
@@ -2016,6 +2018,10 @@ function _initQuillEditors() {
   if (annEl && !_adminQuillAnnouncement) {
     _adminQuillAnnouncement = new Quill('#admin-quill-announcement', { theme: 'snow', modules: { toolbar: [['bold','italic','underline'],['link','image'],['clean']] }, placeholder: 'Soạn nội dung thông báo tại đây...' });
   }
+  const resEl = document.getElementById('admin-quill-resource');
+  if (resEl && !_adminQuillResource) {
+    _adminQuillResource = new Quill('#admin-quill-resource', { theme: 'snow', modules: { toolbar: toolbarOptions }, placeholder: 'Soạn đề cương, tóm tắt bài giảng, ghi chú môn học tại đây...' });
+  }
 }
 
 function switchAdminSubTab(tabName) {
@@ -2032,7 +2038,7 @@ function switchAdminSubTab(tabName) {
   if (activeContent) activeContent.classList.remove('hidden');
 
   // Lazy init Quill + populate dropdowns
-  if (tabName === 'cms' || tabName === 'announcement') {
+  if (tabName === 'cms' || tabName === 'announcement' || tabName === 'resources') {
     setTimeout(() => _initQuillEditors(), 50);
   }
   if (tabName === 'cms') renderAdminArticleList();
@@ -2276,20 +2282,82 @@ function renderAdminResourceList() {
   `).join('');
 }
 
-function adminSaveResource() {
+let _currentResourceInputMode = 'url';
+function switchResourceInputMode(mode) {
+  _currentResourceInputMode = mode;
+  ['url', 'file', 'editor'].forEach(m => {
+    const box = document.getElementById(`resinput-${m}`);
+    const btn = document.getElementById(`resmode-${m}`);
+    if (box) box.style.display = m === mode ? '' : 'none';
+    if (btn) btn.classList.toggle('active', m === mode);
+  });
+  if (mode === 'editor') {
+    setTimeout(() => _initQuillEditors(), 50);
+  }
+}
+
+async function adminSaveResource() {
   const subjectId = document.getElementById('admin-resource-subject')?.value;
   const type = document.getElementById('admin-resource-type')?.value;
   const name = document.getElementById('admin-resource-name')?.value.trim();
-  const url = document.getElementById('admin-resource-url')?.value.trim();
   const year = document.getElementById('admin-resource-year')?.value.trim();
 
-  if (!subjectId || !name || !url) { showToast('Vui lòng điền đầy đủ Môn học, Tên và URL!', 'error'); return; }
+  if (!subjectId || !name) { showToast('Vui lòng chọn Môn học và nhập Tên tài nguyên!', 'error'); return; }
 
-  DB.saveResource({ subjectId, type, name, url, year });
-  showToast('🎉 Đã lưu tài nguyên và đồng bộ lên Server Cloud!', 'success');
+  let url = '';
+  let content = '';
+  let fileName = '';
+
+  if (_currentResourceInputMode === 'url') {
+    url = document.getElementById('admin-resource-url')?.value.trim();
+    if (!url) { showToast('Vui lòng nhập Link URL tài nguyên!', 'error'); return; }
+  } else if (_currentResourceInputMode === 'file') {
+    const fileInput = document.getElementById('admin-resource-file-input');
+    if (fileInput && fileInput.files && fileInput.files.length) {
+      const file = fileInput.files[0];
+      fileName = file.name;
+      try {
+        const dataUrl = await new Promise((res, rej) => {
+          const r = new FileReader();
+          r.onload = e => res(e.target.result);
+          r.onerror = rej;
+          r.readAsDataURL(file);
+        });
+        url = dataUrl;
+      } catch {
+        url = '';
+      }
+    } else {
+      showToast('Vui lòng chọn File tài liệu tải lên!', 'error'); return;
+    }
+  } else if (_currentResourceInputMode === 'editor') {
+    if (_adminQuillResource) {
+      content = _adminQuillResource.root.innerHTML;
+      if (!_adminQuillResource.getText().trim()) {
+        showToast('Nội dung soạn thảo không được để trống!', 'error'); return;
+      }
+    }
+  }
+
+  DB.saveResource({
+    subjectId,
+    type,
+    name,
+    url,
+    content,
+    fileName,
+    year,
+    inputMode: _currentResourceInputMode,
+    author: NavController.currentUser?.name || 'Admin'
+  });
+
+  showToast('🎉 Đã lưu tài nguyên và đồng bộ 100% lên Server Cloud!', 'success');
   document.getElementById('admin-resource-name').value = '';
   document.getElementById('admin-resource-url').value = '';
   document.getElementById('admin-resource-year').value = '';
+  if (_adminQuillResource) _adminQuillResource.setContents([]);
+  const fileInput = document.getElementById('admin-resource-file-input');
+  if (fileInput) fileInput.value = '';
   renderAdminResourceList();
 }
 
@@ -2647,14 +2715,16 @@ function openUserResourceViewer(subjectId, category) {
               <div class="text-xs text-muted mt-1">
                 📅 Đăng ngày: ${new Date(r.createdAt).toLocaleDateString('vi-VN')}
                 ${r.year ? ` &middot; Năm học: <strong>${escapeHtml(r.year)}</strong>` : ''}
+                ${r.author ? ` &middot; Người đăng: <strong>${escapeHtml(r.author)}</strong>` : ''}
               </div>
             </div>
             ${r.url ? `
-              <a href="${escapeHtml(r.url)}" target="_blank" rel="noopener" class="btn btn-primary btn-xs font-bold">
-                <i class="fa-solid fa-arrow-up-right-from-square"></i> Mở File / Link
+              <a href="${escapeHtml(r.url)}" download="${escapeHtml(r.fileName || r.name)}" target="_blank" rel="noopener" class="btn btn-primary btn-xs font-bold" style="white-space:nowrap;">
+                <i class="${r.inputMode === 'file' ? 'fa-solid fa-download' : 'fa-solid fa-arrow-up-right-from-square'}"></i> ${r.inputMode === 'file' ? 'Tải File Về' : 'Mở Link / Xem File'}
               </a>
             ` : ''}
           </div>
+          ${r.content ? `<div class="rich-resource-body mt-3 p-3 border rounded-lg bg-card" style="font-size:13px;line-height:1.6;border-radius:8px;overflow-x:auto;">${r.content}</div>` : ''}
           ${r.description ? `<p class="text-xs text-secondary mt-2">${escapeHtml(r.description)}</p>` : ''}
         </div>
       `).join('');
