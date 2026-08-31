@@ -22,6 +22,9 @@ const SYNC_CONFIG = {
   userRolesFile: 'data/user_roles.json',
   customSubjectsFile: 'data/custom_subjects.json',
   announcementsFile: 'data/system_announcements.json',
+  articlesFile: 'data/cms_articles.json',
+  resourcesFile: 'data/learning_resources.json',
+  feedbacksFile: 'data/user_feedbacks.json',
 };
 
 const RAW_BASE = `https://raw.githubusercontent.com/${SYNC_CONFIG.owner}/${SYNC_CONFIG.repo}/${SYNC_CONFIG.branch}`;
@@ -214,4 +217,55 @@ export async function pushAnnouncementsToServer(announcements) {
 
 export async function pullAnnouncementsFromServer() {
   return await fetchRaw(SYNC_CONFIG.announcementsFile);
+}
+
+// ─── CMS Articles (Bài Viết Giới Thiệu Ngành) ─────────────────────────────
+export async function pushArticlesToServer(articles) {
+  return await pushFile(SYNC_CONFIG.articlesFile, articles);
+}
+
+export async function pullArticlesFromServer() {
+  return await fetchRaw(SYNC_CONFIG.articlesFile);
+}
+
+// ─── Learning Resources (Tài Nguyên Học Tập) ──────────────────────────────
+export async function pushResourcesToServer(resources) {
+  return await pushFile(SYNC_CONFIG.resourcesFile, resources);
+}
+
+export async function pullResourcesFromServer() {
+  return await fetchRaw(SYNC_CONFIG.resourcesFile);
+}
+
+// ─── User Feedbacks (Phản Hồi Học Viên) ───────────────────────────────────
+export async function pushFeedbacksToServer(feedbacks) {
+  return await pushFile(SYNC_CONFIG.feedbacksFile, feedbacks);
+}
+
+export async function pullFeedbacksFromServer() {
+  return await fetchRaw(SYNC_CONFIG.feedbacksFile);
+}
+
+// ─── Jina AI Web Reader (Cào nội dung từ URL như SciSpace) ────────────────
+/**
+ * Dùng Jina AI Reader API (r.jina.ai) để đọc nội dung bất kỳ URL nào
+ * Bypass CORS hoàn toàn, trả về markdown text sạch
+ * @param {string} url - URL trang web cần đọc
+ * @returns {string} markdown text content
+ */
+export async function fetchWebContent(url) {
+  try {
+    const jinaUrl = `https://r.jina.ai/${encodeURIComponent(url)}`;
+    const res = await fetch(jinaUrl, {
+      headers: { 'Accept': 'text/plain, text/markdown' },
+      cache: 'no-store',
+    });
+    if (!res.ok) throw new Error(`Jina AI trả về lỗi ${res.status}`);
+    const text = await res.text();
+    // Giới hạn 80000 ký tự để tránh quá dài
+    return text.slice(0, 80000);
+  } catch (e) {
+    console.warn('[Sync] fetchWebContent thất bại:', e);
+    throw e;
+  }
 }

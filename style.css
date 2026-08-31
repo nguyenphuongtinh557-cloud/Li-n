@@ -2560,3 +2560,162 @@ img { max-width: 100%; }
   transform: translateY(-2px);
 }
 
+/* ──────────────────────────────────────────────────────
+   ADMIN CMS — ARTICLES LAYOUT
+────────────────────────────────────────────────────── */
+.admin-cms-layout {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 16px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .admin-cms-layout { grid-template-columns: 1fr; }
+}
+.admin-article-list .article-card-admin {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  margin-bottom: 8px;
+  transition: var(--transition);
+  cursor: pointer;
+}
+.admin-article-list .article-card-admin:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.article-card-admin .article-thumb {
+  width: 56px; height: 56px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: var(--bg-subtle);
+  flex-shrink: 0;
+}
+.article-card-admin .article-info { flex: 1; min-width: 0; }
+.article-card-admin .article-info h4 { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px; }
+.article-card-admin .article-info .article-meta { font-size: 11px; color: var(--text-muted); }
+.article-status-badge {
+  display: inline-block; padding: 1px 7px; border-radius: 20px; font-size: 10px; font-weight: 700;
+}
+.article-status-badge.published { background: var(--success-light); color: var(--success); }
+.article-status-badge.draft { background: var(--accent-light); color: var(--accent); }
+.article-status-badge.pinned { background: #ede9fe; color: #7c3aed; }
+
+/* Quill.js editor override */
+.ql-container { font-family: var(--font-ui); font-size: 14px; }
+.ql-toolbar.ql-snow { border: 1px solid var(--border); border-radius: var(--radius-md) var(--radius-md) 0 0; background: var(--bg-subtle); }
+.ql-container.ql-snow { border: 1px solid var(--border); border-top: none; border-radius: 0 0 var(--radius-md) var(--radius-md); }
+[data-theme="dark"] .ql-toolbar.ql-snow,
+[data-theme="dark"] .ql-container.ql-snow { border-color: var(--border); background: var(--bg-card); color: var(--text-primary); }
+[data-theme="dark"] .ql-picker, [data-theme="dark"] .ql-stroke { stroke: var(--text-primary) !important; }
+[data-theme="dark"] .ql-fill { fill: var(--text-primary) !important; }
+
+/* ──────────────────────────────────────────────────────
+   ADMIN FEEDBACK INBOX
+────────────────────────────────────────────────────── */
+.feedback-item {
+  display: flex; gap: 12px; padding: 14px 16px;
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  margin-bottom: 8px; transition: var(--transition);
+}
+.feedback-item.unread { border-left: 3px solid var(--danger); background: var(--danger-light); }
+.feedback-item.resolved { opacity: 0.6; }
+.feedback-item .fb-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+.feedback-item .fb-body { flex: 1; min-width: 0; }
+.feedback-item .fb-body h5 { font-size: 13px; font-weight: 700; margin-bottom: 2px; }
+.feedback-item .fb-body p { font-size: 12px; color: var(--text-muted); margin-bottom: 4px; }
+.feedback-item .fb-actions { display: flex; gap: 6px; align-items: center; }
+.badge-unread {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 16px; height: 16px; border-radius: 8px;
+  background: var(--danger); color: white; font-size: 10px; font-weight: 700;
+  padding: 0 4px; margin-left: 4px;
+}
+
+/* ──────────────────────────────────────────────────────
+   ADMIN RESOURCES LAYOUT
+────────────────────────────────────────────────────── */
+.admin-resources-layout {
+  display: flex; gap: 16px; align-items: flex-start;
+}
+@media (max-width: 800px) { .admin-resources-layout { flex-direction: column; } }
+.resource-item {
+  display: flex; gap: 10px; padding: 10px 14px;
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  margin-bottom: 8px; transition: var(--transition);
+}
+.resource-item:hover { border-color: var(--primary); }
+.resource-item .res-icon { font-size: 20px; flex-shrink: 0; margin-top: 2px; }
+.resource-item .res-body { flex: 1; min-width: 0; }
+.resource-item .res-body a { font-size: 13px; font-weight: 600; color: var(--primary); text-decoration: none; }
+.resource-item .res-body a:hover { text-decoration: underline; }
+.resource-item .res-body .res-meta { font-size: 11px; color: var(--text-muted); }
+
+/* ──────────────────────────────────────────────────────
+   ADMIN BANK WORKFLOW (4-STEP)
+────────────────────────────────────────────────────── */
+.admin-bank-workflow { display: flex; flex-direction: column; gap: 16px; }
+.bank-workflow-steps {
+  display: flex; gap: 0; align-items: center;
+  background: var(--bg-subtle); border: 1px solid var(--border);
+  border-radius: var(--radius-xl); padding: 6px 12px;
+  overflow-x: auto;
+}
+.bank-step {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 16px; border-radius: var(--radius-lg);
+  cursor: default; opacity: 0.45; transition: var(--transition);
+  white-space: nowrap;
+}
+.bank-step::after {
+  content: '›'; font-size: 18px; color: var(--text-muted);
+  margin-left: 12px; opacity: 0.5;
+}
+.bank-step:last-child::after { display: none; }
+.bank-step.active { opacity: 1; background: var(--primary-light); }
+.bank-step.done { opacity: 0.7; }
+.step-num {
+  display: flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--border); font-size: 12px; font-weight: 700;
+}
+.bank-step.active .step-num { background: var(--primary); color: white; }
+.bank-step.done .step-num { background: var(--success); color: white; }
+.step-label { font-size: 12px; font-weight: 600; }
+
+/* Source Mode Tabs */
+.source-mode-tabs { display: flex; gap: 6px; flex-wrap: wrap; }
+.source-mode-btn {
+  padding: 6px 14px; border-radius: var(--radius-lg); font-size: 12px; font-weight: 600;
+  border: 1.5px solid var(--border); background: transparent; cursor: pointer;
+  transition: var(--transition); color: var(--text-secondary);
+}
+.source-mode-btn.active { border-color: var(--primary); background: var(--primary-light); color: var(--primary); }
+.source-mode-btn:hover:not(.active) { border-color: var(--primary); color: var(--primary); }
+
+/* Extracted preview box */
+.bank-extracted-preview {
+  margin-top: 10px; padding: 12px; background: var(--bg-subtle);
+  border: 1px solid var(--border); border-radius: var(--radius-lg);
+  max-height: 200px; overflow-y: auto; font-size: 12px; white-space: pre-wrap;
+  font-family: monospace; color: var(--text-secondary);
+}
+
+/* Bank Review Question Cards */
+.admin-bank-review-list { display: flex; flex-direction: column; gap: 10px; }
+.bank-review-card {
+  border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 14px 16px;
+  background: var(--bg-card); position: relative;
+}
+.bank-review-card.marked-delete { opacity: 0.4; border-color: var(--danger); background: var(--danger-light); }
+.bank-review-card .brc-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.bank-review-card .brc-num { font-weight: 800; font-size: 12px; color: var(--text-muted); }
+.bank-review-card .brc-q { font-size: 13px; font-weight: 600; margin-bottom: 8px; width: 100%; border: none; background: transparent; resize: vertical; }
+.bank-review-card .brc-options { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+.bank-review-card .brc-option { display: flex; align-items: center; gap: 6px; }
+.bank-review-card .brc-option input[type="text"] { flex: 1; font-size: 12px; border: 1px solid var(--border); border-radius: 6px; padding: 4px 8px; background: var(--bg-subtle); }
+.bank-review-card .brc-option input[type="radio"] { accent-color: var(--primary); }
+.bank-review-card .brc-exp { font-size: 12px; color: var(--text-muted); border-top: 1px dashed var(--border); padding-top: 6px; margin-top: 4px; width: 100%; border-left: none; border-right: none; border-bottom: none; background: transparent; resize: vertical; }

@@ -8,7 +8,7 @@ import { Generator } from './modules/generator.js';
 import { ExamEngine, ExamTimer } from './modules/exam.js';
 import { SEED_QUESTIONS } from './data/seed_questions.js';
 import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion } from './modules/cera.js';
-import { pullFromGitHub, pullAdminEdits } from './modules/sync.js?v=20260831';
+import { pullFromGitHub, pullAdminEdits, fetchWebContent } from './modules/sync.js?v=20260831';
 import { initAdminAuth } from './modules/admin.js';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js';
 import { NavController } from './modules/navigation.js';
@@ -1805,6 +1805,28 @@ Object.assign(window, {
   revokeAdminUserPremium,
   handleAdminImportJSON,
   handleAdminPostAnnouncement,
+  // CMS Articles
+  adminOpenArticleEditor,
+  adminCloseArticleEditor,
+  adminSaveArticle,
+  adminDeleteArticle,
+  // Feedback Inbox
+  renderAdminFeedbackInbox,
+  adminMarkFeedback,
+  adminDeleteFeedback,
+  // Resources
+  adminSaveResource,
+  adminDeleteResource,
+  renderAdminResourceList,
+  // Bank AI 4-step
+  switchBankSourceMode,
+  adminBankExtractFile,
+  adminBankFetchURL,
+  adminBankGoStep,
+  adminBankGenerateQuestions,
+  adminBankAddBlankQuestion,
+  adminBankConfirmSave,
+  setAdminBankCount,
   NavController,
   AuthModule,
   navigateToPage: (p, sub) => NavController.navigateToPage(p, sub),
@@ -1998,6 +2020,629 @@ function handleAdminPostAnnouncement() {
   titleInput.value = '';
   contentInput.value = '';
 }
+
+/* ════════════════════════════════════════════════════
+   ADMIN CMS — BÀI VIẾT (QUILL EDITOR)
+════════════════════════════════════════════════════ */
+
+let _adminQuillArticle = null;
+let _adminQuillAnnouncement = null;
+
+function _initQuillEditors() {
+  if (typeof Quill === 'undefined') return;
+  const toolbarOptions = [
+    [{ 'header': [1, 2, 3, false] }],
+    ['bold', 'italic', 'underline', 'strike'],
+    [{ 'color': [] }, { 'background': [] }],
+    [{ 'list': 'ordered'}, { 'list': 'bullet' }],
+    ['link', 'image', 'video'],
+    ['blockquote', 'code-block'],
+    ['clean']
+  ];
+  const articleEl = document.getElementById('admin-quill-article');
+  if (articleEl && !_adminQuillArticle) {
+    _adminQuillArticle = new Quill('#admin-quill-article', { theme: 'snow', modules: { toolbar: toolbarOptions }, placeholder: 'Soạn nội dung bài viết tại đây...' });
+  }
+  const annEl = document.getElementById('admin-quill-announcement');
+  if (annEl && !_adminQuillAnnouncement) {
+    _adminQuillAnnouncement = new Quill('#admin-quill-announcement', { theme: 'snow', modules: { toolbar: [['bold','italic','underline'],['link','image'],['clean']] }, placeholder: 'Soạn nội dung thông báo tại đây...' });
+  }
+}
+
+function switchAdminSubTab(tabName) {
+  const allTabs = ['users', 'cms', 'announcement', 'feedback', 'resources', 'bank'];
+  allTabs.forEach(t => {
+    const btn = document.getElementById(`admin-${t}-tab-btn`);
+    const content = document.getElementById(`admin-subtab-${t}`);
+    if (btn) btn.classList.remove('active');
+    if (content) content.classList.add('hidden');
+  });
+  const activeBtn = document.getElementById(`admin-${tabName}-tab-btn`);
+  const activeContent = document.getElementById(`admin-subtab-${tabName}`);
+  if (activeBtn) activeBtn.classList.add('active');
+  if (activeContent) activeContent.classList.remove('hidden');
+
+  // Lazy init Quill + populate dropdowns
+  if (tabName === 'cms' || tabName === 'announcement') {
+    setTimeout(() => _initQuillEditors(), 50);
+  }
+  if (tabName === 'cms') renderAdminArticleList();
+  if (tabName === 'announcement') renderAdminAnnouncementList();
+  if (tabName === 'feedback') renderAdminFeedbackInbox();
+  if (tabName === 'resources') { _populateResourceSubjectDropdown(); renderAdminResourceList(); }
+  if (tabName === 'bank') _populateBankSubjectDropdown();
+}
+
+/* ─── CMS ARTICLE LIST ─────────────────────────────────────────────────────── */
+function renderAdminArticleList() {
+  const el = document.getElementById('admin-article-list');
+  if (!el) return;
+  const articles = DB.getArticles();
+  if (!articles.length) {
+    el.innerHTML = `<div class="text-center text-muted py-4 text-xs">Chưa có bài viết nào. Nhấn "+ Viết bài mới" để bắt đầu.</div>`;
+    return;
+  }
+  const catIcon = { news: '📰', scholarship: '🎓', event: '🎉', knowledge: '🧪', announcement: '📢' };
+  el.innerHTML = articles.map(a => `
+    <div class="article-card-admin" onclick="adminEditArticle('${a.id}')">
+      <img class="article-thumb" src="${escapeHtml(a.cover || 'https://placehold.co/56x56/00b96b/fff?text=📝')}" alt="cover" onerror="this.src='https://placehold.co/56x56/00b96b/fff?text=📝'">
+      <div class="article-info">
+        <h4>${escapeHtml(a.title || 'Không có tiêu đề')}</h4>
+        <div class="article-meta">
+          ${catIcon[a.category] || '📄'} ${a.category || 'news'} &middot; 
+          ${new Date(a.updatedAt || a.createdAt).toLocaleDateString('vi-VN')}
+          &middot; <span class="article-status-badge ${a.status || 'draft'}">${a.status === 'published' ? '✅ Đã đăng' : a.status === 'pinned' ? '📌 Ghim' : '📝 Nháp'}</span>
+        </div>
+      </div>
+      <button class="btn btn-danger btn-xs" onclick="event.stopPropagation();adminDeleteArticle('${a.id}')" style="margin-left:auto;flex-shrink:0;"><i class="fa-solid fa-trash"></i></button>
+    </div>
+  `).join('');
+}
+
+function adminOpenArticleEditor() {
+  document.getElementById('admin-article-id').value = '';
+  document.getElementById('admin-article-title').value = '';
+  document.getElementById('admin-article-cover').value = '';
+  document.getElementById('admin-article-tags').value = '';
+  document.getElementById('admin-article-category').value = 'news';
+  document.getElementById('admin-article-status').value = 'published';
+  document.getElementById('admin-editor-title-label').textContent = '✏️ Soạn Thảo Bài Viết Mới';
+  if (_adminQuillArticle) _adminQuillArticle.setContents([]);
+  document.getElementById('admin-article-editor').style.display = '';
+  setTimeout(() => _initQuillEditors(), 80);
+}
+
+function adminEditArticle(id) {
+  const article = DB.getArticles().find(a => a.id === id);
+  if (!article) return;
+  document.getElementById('admin-article-id').value = id;
+  document.getElementById('admin-article-title').value = article.title || '';
+  document.getElementById('admin-article-cover').value = article.cover || '';
+  document.getElementById('admin-article-tags').value = (article.tags || []).join(', ');
+  document.getElementById('admin-article-category').value = article.category || 'news';
+  document.getElementById('admin-article-status').value = article.status || 'draft';
+  document.getElementById('admin-editor-title-label').textContent = '✏️ Chỉnh Sửa Bài Viết';
+  document.getElementById('admin-article-editor').style.display = '';
+  setTimeout(() => {
+    _initQuillEditors();
+    if (_adminQuillArticle && article.content) {
+      _adminQuillArticle.clipboard.dangerouslyPasteHTML(article.content);
+    }
+  }, 80);
+}
+
+function adminCloseArticleEditor() {
+  document.getElementById('admin-article-editor').style.display = 'none';
+}
+
+function adminSaveArticle(forceStatus) {
+  const title = document.getElementById('admin-article-title').value.trim();
+  if (!title) { showToast('Vui lòng nhập tiêu đề bài viết!', 'error'); return; }
+  const content = _adminQuillArticle ? _adminQuillArticle.root.innerHTML : '';
+  const textContent = _adminQuillArticle ? _adminQuillArticle.getText().trim() : '';
+  if (!textContent) { showToast('Nội dung bài viết không được để trống!', 'error'); return; }
+
+  const status = forceStatus || document.getElementById('admin-article-status').value;
+  const article = {
+    id: document.getElementById('admin-article-id').value || null,
+    title,
+    content,
+    category: document.getElementById('admin-article-category').value,
+    status,
+    cover: document.getElementById('admin-article-cover').value.trim(),
+    tags: document.getElementById('admin-article-tags').value.split(',').map(t => t.trim()).filter(Boolean),
+    author: NavController.currentUser?.name || 'Admin',
+  };
+
+  DB.saveArticle(article);
+  adminCloseArticleEditor();
+  renderAdminArticleList();
+  showToast(status === 'draft' ? '📝 Đã lưu nháp!' : '🎉 Đã đăng bài viết lên Server Cloud!', 'success');
+}
+
+function adminDeleteArticle(id) {
+  if (!confirm('Xóa bài viết này?')) return;
+  DB.deleteArticle(id);
+  renderAdminArticleList();
+  showToast('Đã xóa bài viết.', 'info');
+}
+
+/* ─── RICH ANNOUNCEMENT ────────────────────────────────────────────────────── */
+function handleAdminPostAnnouncement() {
+  const titleInput = document.getElementById('admin-announcement-title');
+  const typeSelect = document.getElementById('admin-announcement-type');
+  const scopeSelect = document.getElementById('admin-announcement-scope');
+  const title = titleInput ? titleInput.value.trim() : '';
+  const type = typeSelect ? typeSelect.value : 'info';
+  const scope = scopeSelect ? scopeSelect.value : 'all';
+
+  let content = '';
+  if (_adminQuillAnnouncement) {
+    content = _adminQuillAnnouncement.root.innerHTML;
+    if (!_adminQuillAnnouncement.getText().trim()) {
+      showToast('Vui lòng nhập nội dung thông báo!', 'error'); return;
+    }
+  } else {
+    const contentInput = document.getElementById('admin-announcement-content');
+    content = contentInput ? contentInput.value.trim() : '';
+  }
+
+  if (!title) { showToast('Vui lòng nhập tiêu đề thông báo!', 'error'); return; }
+  if (!content) { showToast('Vui lòng nhập nội dung thông báo!', 'error'); return; }
+
+  DB.addAnnouncement({ title, content, type, scope, author: NavController.currentUser?.name || 'Admin' });
+  showToast('📢 Đã gửi thông báo lên Server Cloud!', 'success');
+  if (titleInput) titleInput.value = '';
+  if (_adminQuillAnnouncement) _adminQuillAnnouncement.setContents([]);
+  renderAdminAnnouncementList();
+}
+
+function renderAdminAnnouncementList() {
+  const el = document.getElementById('admin-announcement-list');
+  if (!el) return;
+  const list = DB.getAnnouncements();
+  if (!list.length) { el.innerHTML = `<div class="text-xs text-muted text-center py-3">Chưa có thông báo nào.</div>`; return; }
+  const typeIcon = { info: '💡', update: '🚀', alert: '⚠️', success: '🎉' };
+  el.innerHTML = list.slice(0, 20).map(a => `
+    <div class="feedback-item" style="padding:10px 12px;">
+      <div class="fb-icon">${typeIcon[a.type] || '📢'}</div>
+      <div class="fb-body">
+        <h5>${escapeHtml(a.title)}</h5>
+        <p>${new Date(a.createdAt).toLocaleDateString('vi-VN')} &middot; Phạm vi: ${a.scope === 'premium' ? '💎 PREMIUM' : a.scope === 'newbie' ? '🌱 NEWBIE' : '👥 Tất cả'}</p>
+      </div>
+      <button class="btn btn-danger btn-xs" onclick="adminDeleteAnnouncement('${a.id}')"><i class="fa-solid fa-trash"></i></button>
+    </div>
+  `).join('');
+}
+
+function adminDeleteAnnouncement(id) {
+  DB.deleteAnnouncement(id);
+  renderAdminAnnouncementList();
+  showToast('Đã xóa thông báo.', 'info');
+}
+
+/* ─── FEEDBACK INBOX ───────────────────────────────────────────────────────── */
+function renderAdminFeedbackInbox() {
+  const el = document.getElementById('admin-feedback-list');
+  const filterEl = document.getElementById('admin-feedback-filter');
+  const filter = filterEl ? filterEl.value : 'all';
+  if (!el) return;
+
+  let feedbacks = DB.getFeedbacks();
+  if (filter === 'unread' || filter === 'read' || filter === 'resolved') {
+    feedbacks = feedbacks.filter(f => f.status === filter);
+  } else if (filter === 'bug' || filter === 'feedback') {
+    feedbacks = feedbacks.filter(f => f.type === filter);
+  }
+
+  // Update badge
+  const unreadCount = DB.getFeedbacks().filter(f => f.status === 'unread').length;
+  const badge = document.getElementById('admin-feedback-badge');
+  if (badge) { badge.textContent = unreadCount; badge.style.display = unreadCount > 0 ? 'inline-flex' : 'none'; }
+
+  if (!feedbacks.length) {
+    el.innerHTML = `<div class="text-xs text-muted text-center py-4">${filter === 'all' ? 'Chưa có phản hồi nào từ học viên.' : 'Không có phản hồi nào ở trạng thái này.'}</div>`;
+    return;
+  }
+
+  const typeIcon = { bug: '🐛', feedback: '💬', other: '📝' };
+  el.innerHTML = feedbacks.map(f => `
+    <div class="feedback-item ${f.status}">
+      <div class="fb-icon">${typeIcon[f.type] || '💬'}</div>
+      <div class="fb-body">
+        <h5>${escapeHtml(f.userName)} <span class="text-xs text-muted font-normal">— ${escapeHtml(f.userEmail)}</span></h5>
+        <p>${escapeHtml(f.content)}</p>
+        <p>${new Date(f.createdAt).toLocaleDateString('vi-VN')} &middot; <span class="font-bold" style="color:${f.status==='unread'?'var(--danger)':f.status==='resolved'?'var(--success)':'var(--text-muted)'}">${f.status === 'unread' ? '🔴 Chưa đọc' : f.status === 'resolved' ? '✅ Đã xử lý' : '👁 Đã đọc'}</span></p>
+      </div>
+      <div class="fb-actions">
+        ${f.status !== 'resolved' ? `<button class="btn btn-success btn-xs" onclick="adminMarkFeedback('${f.id}','resolved')">✅ Xử lý</button>` : ''}
+        ${f.status === 'unread' ? `<button class="btn btn-secondary btn-xs" onclick="adminMarkFeedback('${f.id}','read')">👁 Đánh dấu đọc</button>` : ''}
+        <button class="btn btn-danger btn-xs" onclick="adminDeleteFeedback('${f.id}')"><i class="fa-solid fa-trash"></i></button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function adminMarkFeedback(id, status) {
+  DB.markFeedbackStatus(id, status);
+  renderAdminFeedbackInbox();
+  renderAdminDashboard();
+}
+
+function adminDeleteFeedback(id) {
+  if (!confirm('Xóa phản hồi này?')) return;
+  DB.deleteFeedback(id);
+  renderAdminFeedbackInbox();
+}
+
+/* ─── RESOURCES ─────────────────────────────────────────────────────────────── */
+function _populateResourceSubjectDropdown() {
+  const select = document.getElementById('admin-resource-subject');
+  if (!select) return;
+  const subjects = getAllSubjects();
+  select.innerHTML = subjects.map(s => `<option value="${s.id}">${s.code} — ${s.name}</option>`).join('');
+}
+
+function renderAdminResourceList() {
+  const el = document.getElementById('admin-resource-list');
+  const subjectEl = document.getElementById('admin-resource-subject');
+  if (!el || !subjectEl) return;
+  const subjectId = subjectEl.value;
+  const resources = DB.getResources(subjectId);
+
+  if (!resources.length) {
+    el.innerHTML = `<div class="text-xs text-muted text-center py-4">Chưa có tài nguyên nào cho môn này.</div>`;
+    return;
+  }
+  const typeIcon = { slide: '🎞️', outline: '📄', exam: '📝', video: '▶️', reference: '📚' };
+  el.innerHTML = resources.map(r => `
+    <div class="resource-item">
+      <div class="res-icon">${typeIcon[r.type] || '📁'}</div>
+      <div class="res-body">
+        <a href="${escapeHtml(r.url)}" target="_blank" rel="noopener">${escapeHtml(r.name)}</a>
+        <div class="res-meta">${r.type}${r.year ? ' &middot; ' + r.year : ''} &middot; ${new Date(r.createdAt).toLocaleDateString('vi-VN')}</div>
+      </div>
+      <button class="btn btn-danger btn-xs" onclick="adminDeleteResource('${r.id}')"><i class="fa-solid fa-trash"></i></button>
+    </div>
+  `).join('');
+}
+
+function adminSaveResource() {
+  const subjectId = document.getElementById('admin-resource-subject')?.value;
+  const type = document.getElementById('admin-resource-type')?.value;
+  const name = document.getElementById('admin-resource-name')?.value.trim();
+  const url = document.getElementById('admin-resource-url')?.value.trim();
+  const year = document.getElementById('admin-resource-year')?.value.trim();
+
+  if (!subjectId || !name || !url) { showToast('Vui lòng điền đầy đủ Môn học, Tên và URL!', 'error'); return; }
+
+  DB.saveResource({ subjectId, type, name, url, year });
+  showToast('🎉 Đã lưu tài nguyên và đồng bộ lên Server Cloud!', 'success');
+  document.getElementById('admin-resource-name').value = '';
+  document.getElementById('admin-resource-url').value = '';
+  document.getElementById('admin-resource-year').value = '';
+  renderAdminResourceList();
+}
+
+function adminDeleteResource(id) {
+  if (!confirm('Xóa tài nguyên này?')) return;
+  DB.deleteResource(id);
+  renderAdminResourceList();
+  showToast('Đã xóa tài nguyên.', 'info');
+}
+
+/* ─── AI BANK 4-STEP WORKFLOW ──────────────────────────────────────────────── */
+let _bankExtractedText = '';
+let _bankGeneratedQuestions = [];
+
+function _populateBankSubjectDropdown() {
+  const select = document.getElementById('admin-bank-subject');
+  if (!select) return;
+  const subjects = getAllSubjects();
+  select.innerHTML = subjects.map(s => `<option value="${s.id}">${s.code} — ${s.name}</option>`).join('');
+}
+
+function switchBankSourceMode(mode) {
+  ['file', 'paste', 'url'].forEach(m => {
+    document.getElementById(`bank-source-${m}`).style.display = m === mode ? '' : 'none';
+    document.getElementById(`srcmode-${m}`).classList.toggle('active', m === mode);
+  });
+}
+
+async function adminBankExtractFile() {
+  const fileInput = document.getElementById('admin-bank-file');
+  if (!fileInput?.files?.length) { showToast('Chọn file trước!', 'error'); return; }
+  const file = fileInput.files[0];
+  const preview = document.getElementById('admin-bank-file-preview');
+  preview.style.display = '';
+  preview.textContent = '⏳ Đang đọc file...';
+
+  try {
+    let text = '';
+    if (file.name.endsWith('.pdf')) {
+      const arrayBuffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+      for (let i = 1; i <= Math.min(pdf.numPages, 30); i++) {
+        const page = await pdf.getPage(i);
+        const tc = await page.getTextContent();
+        text += tc.items.map(s => s.str).join(' ') + '\n';
+      }
+    } else if (file.name.endsWith('.docx') || file.name.endsWith('.doc')) {
+      const arrayBuffer = await file.arrayBuffer();
+      const result = await mammoth.extractRawText({ arrayBuffer });
+      text = result.value;
+    } else {
+      text = await file.text();
+    }
+    _bankExtractedText = text.slice(0, 80000);
+    preview.textContent = `✅ Đã đọc ${_bankExtractedText.length} ký tự.\n\n${_bankExtractedText.slice(0, 500)}...`;
+    showToast('✅ Đã bóc tách nội dung file thành công!', 'success');
+  } catch (e) {
+    preview.textContent = '❌ Lỗi đọc file: ' + e.message;
+    showToast('Lỗi đọc file: ' + e.message, 'error');
+  }
+}
+
+async function adminBankFetchURL() {
+  const urlInput = document.getElementById('admin-bank-url');
+  const status = document.getElementById('admin-bank-url-status');
+  const preview = document.getElementById('admin-bank-url-preview');
+  const url = urlInput?.value?.trim();
+  if (!url) { showToast('Nhập URL trước!', 'error'); return; }
+
+  status.textContent = '⏳ Đang dùng Jina AI Reader để đọc trang web...';
+  status.style.color = 'var(--text-muted)';
+  preview.style.display = 'none';
+
+  try {
+    const content = await fetchWebContent(url);
+    _bankExtractedText = content;
+    preview.style.display = '';
+    preview.textContent = `✅ Đã đọc ${content.length} ký tự từ URL.\n\n${content.slice(0, 600)}...`;
+    status.textContent = `✅ Thành công! Đọc được ${content.length.toLocaleString()} ký tự.`;
+    status.style.color = 'var(--success)';
+    showToast('✅ Jina AI đã đọc xong nội dung trang web!', 'success');
+  } catch (e) {
+    status.textContent = '❌ Không thể đọc URL: ' + e.message + '. Hãy thử paste nội dung thủ công.';
+    status.style.color = 'var(--danger)';
+  }
+}
+
+function adminBankGoStep(stepNum) {
+  const panels = [1, 2, 3, 4];
+  panels.forEach(n => {
+    const panel = document.getElementById(`admin-bank-panel-${n}`);
+    const step = document.getElementById(`bank-step-${n}`);
+    if (panel) panel.style.display = n === stepNum ? '' : 'none';
+    if (step) {
+      step.classList.toggle('active', n === stepNum);
+      step.classList.toggle('done', n < stepNum);
+    }
+  });
+
+  if (stepNum === 2) _populateBankSubjectDropdown();
+  if (stepNum === 3) _renderBankReviewList();
+  if (stepNum === 4) _renderBankSummary();
+}
+
+function setAdminBankCount(n) {
+  const input = document.getElementById('admin-bank-count');
+  if (input) { input.value = n; }
+  const est = document.getElementById('bank-est-count');
+  if (est) est.textContent = n;
+}
+
+async function adminBankGenerateQuestions() {
+  const sourceText = _bankExtractedText ||
+    document.getElementById('admin-bank-paste-text')?.value?.trim() ||
+    '';
+
+  if (!sourceText || sourceText.length < 100) {
+    showToast('Cần ít nhất 100 ký tự nội dung nguồn để sinh câu hỏi!', 'error');
+    return;
+  }
+
+  const count = parseInt(document.getElementById('admin-bank-count')?.value) || 20;
+  const difficulty = document.getElementById('admin-bank-difficulty')?.value || 'mixed';
+  const model = document.getElementById('admin-bank-model')?.value || 'google/gemini-2.0-flash-exp:free';
+  const subjectId = document.getElementById('admin-bank-subject')?.value || DB.getActiveSubject();
+  const subjectName = getAllSubjects().find(s => s.id === subjectId)?.name || subjectId;
+
+  const difficultyText = { mixed: 'hỗn hợp (dễ/trung bình/khó)', easy: 'dễ', medium: 'trung bình', hard: 'khó' }[difficulty] || 'hỗn hợp';
+
+  const btn = document.querySelector('#admin-bank-panel-2 .btn-success');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> AI đang sinh câu hỏi...'; }
+
+  try {
+    const prompt = `Bạn là chuyên gia soạn câu hỏi trắc nghiệm cho môn học "${subjectName}".
+Dựa trên nội dung giáo trình sau, hãy sinh chính xác ${count} câu hỏi trắc nghiệm độ khó ${difficultyText}.
+
+YÊU CẦU FORMAT — Trả về JSON hợp lệ (chỉ JSON, không có text khác):
+[
+  {
+    "q": "Câu hỏi đầy đủ?",
+    "options": ["A. Đáp án A", "B. Đáp án B", "C. Đáp án C", "D. Đáp án D"],
+    "correct": 0,
+    "difficulty": 1,
+    "exp": "Giải thích ngắn gọn tại sao đáp án đúng."
+  }
+]
+Trong đó: correct = index 0-3, difficulty = 1(dễ) 2(trung bình) 3(khó).
+
+NỘI DUNG GIÁO TRÌNH:
+---
+${sourceText.slice(0, 12000)}
+---
+
+Sinh đúng ${count} câu. Chỉ trả về JSON array, không có bình luận nào khác.`;
+
+    const settings = DB.getSettings();
+    const apiKey = settings.apiKey || '';
+    if (!apiKey) { showToast('Chưa cài đặt API Key! Vào Cài đặt tài khoản để thêm.', 'error'); return; }
+
+    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'HTTP-Referer': location.href },
+      body: JSON.stringify({
+        model,
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.7,
+        max_tokens: 16000,
+      }),
+    });
+
+    if (!res.ok) throw new Error(`API lỗi ${res.status}`);
+    const data = await res.json();
+    let rawText = data.choices?.[0]?.message?.content || '';
+
+    // Parse JSON từ response
+    const match = rawText.match(/\[[\s\S]*\]/);
+    if (!match) throw new Error('Không tìm thấy JSON hợp lệ trong phản hồi AI');
+    const questions = JSON.parse(match[0]);
+    if (!Array.isArray(questions) || !questions.length) throw new Error('Danh sách câu hỏi rỗng');
+
+    _bankGeneratedQuestions = questions.map((q, i) => ({
+      ...q,
+      subjectId,
+      _tempIdx: i,
+      _markedDelete: false,
+    }));
+
+    showToast(`🎉 AI đã sinh ${_bankGeneratedQuestions.length} câu hỏi thành công!`, 'success');
+    adminBankGoStep(3);
+  } catch (e) {
+    showToast('Lỗi sinh câu hỏi: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-robot"></i> Bắt Đầu Sinh Câu Hỏi'; }
+  }
+}
+
+function _renderBankReviewList() {
+  const el = document.getElementById('admin-bank-questions-list');
+  if (!el) return;
+  if (!_bankGeneratedQuestions.length) {
+    el.innerHTML = `<div class="text-xs text-muted text-center py-4">Không có câu hỏi nào. Quay lại bước trước và chạy AI.</div>`;
+    return;
+  }
+
+  el.innerHTML = _bankGeneratedQuestions.map((q, i) => `
+    <div class="bank-review-card ${q._markedDelete ? 'marked-delete' : ''}" id="brc-${i}">
+      <div class="brc-header">
+        <span class="brc-num">Câu ${i + 1} / ${_bankGeneratedQuestions.length} &nbsp; 
+          <span class="text-xs" style="color:${q.difficulty===3?'var(--danger)':q.difficulty===2?'var(--accent)':'var(--success)'}">
+            ${q.difficulty === 3 ? '🔥 Khó' : q.difficulty === 2 ? '🤔 TB' : '😊 Dễ'}
+          </span>
+        </span>
+        <button class="btn btn-danger btn-xs" onclick="_bankToggleDelete(${i})">${q._markedDelete ? '↩️ Khôi phục' : '🗑️ Xóa câu'}</button>
+      </div>
+      <textarea class="brc-q" rows="2" onchange="_bankUpdateQ(${i},'q',this.value)">${escapeHtml(q.q || '')}</textarea>
+      <div class="brc-options">
+        ${(q.options || []).map((opt, oi) => `
+          <div class="brc-option">
+            <input type="radio" name="correct-${i}" value="${oi}" ${q.correct === oi ? 'checked' : ''} onchange="_bankUpdateQ(${i},'correct',${oi})">
+            <input type="text" value="${escapeHtml(opt)}" onchange="_bankUpdateQ(${i},'opt${oi}',this.value)">
+          </div>
+        `).join('')}
+      </div>
+      <textarea class="brc-exp" rows="2" placeholder="Giải thích..." onchange="_bankUpdateQ(${i},'exp',this.value)">${escapeHtml(q.exp || '')}</textarea>
+    </div>
+  `).join('');
+
+  _updateBankCounts();
+}
+
+function _bankToggleDelete(idx) {
+  _bankGeneratedQuestions[idx]._markedDelete = !_bankGeneratedQuestions[idx]._markedDelete;
+  const card = document.getElementById(`brc-${idx}`);
+  if (card) card.classList.toggle('marked-delete', _bankGeneratedQuestions[idx]._markedDelete);
+  _updateBankCounts();
+}
+
+function _bankUpdateQ(idx, field, val) {
+  const q = _bankGeneratedQuestions[idx];
+  if (!q) return;
+  if (field === 'q') q.q = val;
+  else if (field === 'exp') q.exp = val;
+  else if (field === 'correct') q.correct = parseInt(val);
+  else if (field.startsWith('opt')) {
+    const oi = parseInt(field.replace('opt', ''));
+    if (!q.options) q.options = [];
+    q.options[oi] = val;
+  }
+  _updateBankCounts();
+}
+
+function _updateBankCounts() {
+  const remaining = _bankGeneratedQuestions.filter(q => !q._markedDelete).length;
+  const remEl = document.getElementById('bank-remaining-count');
+  const confEl = document.getElementById('bank-confirm-count');
+  if (remEl) remEl.textContent = remaining;
+  if (confEl) confEl.textContent = remaining;
+}
+
+function adminBankAddBlankQuestion() {
+  _bankGeneratedQuestions.push({
+    q: 'Câu hỏi mới...',
+    options: ['A. Đáp án A', 'B. Đáp án B', 'C. Đáp án C', 'D. Đáp án D'],
+    correct: 0,
+    difficulty: 1,
+    exp: '',
+    subjectId: document.getElementById('admin-bank-subject')?.value || DB.getActiveSubject(),
+    _tempIdx: _bankGeneratedQuestions.length,
+    _markedDelete: false,
+  });
+  _renderBankReviewList();
+}
+
+function _renderBankSummary() {
+  const el = document.getElementById('admin-bank-summary');
+  if (!el) return;
+  const valid = _bankGeneratedQuestions.filter(q => !q._markedDelete);
+  const subjectId = valid[0]?.subjectId || '';
+  const subjectName = getAllSubjects().find(s => s.id === subjectId)?.name || subjectId;
+  const byDiff = { 1: 0, 2: 0, 3: 0 };
+  valid.forEach(q => { byDiff[q.difficulty || 1]++; });
+  el.innerHTML = `
+    <div class="grid-2 gap-3">
+      <div><div class="text-xs text-muted">Môn học đích</div><div class="font-bold">${escapeHtml(subjectName)}</div></div>
+      <div><div class="text-xs text-muted">Tổng câu sẽ lưu</div><div class="font-bold text-primary text-xl">${valid.length} câu</div></div>
+      <div><div class="text-xs text-muted">Dễ</div><div class="font-bold text-success">${byDiff[1]} câu</div></div>
+      <div><div class="text-xs text-muted">Trung bình</div><div class="font-bold" style="color:var(--accent)">${byDiff[2]} câu</div></div>
+      <div><div class="text-xs text-muted">Khó</div><div class="font-bold text-danger">${byDiff[3]} câu</div></div>
+    </div>
+  `;
+}
+
+async function adminBankConfirmSave() {
+  const valid = _bankGeneratedQuestions.filter(q => !q._markedDelete);
+  if (!valid.length) { showToast('Không có câu hỏi hợp lệ để lưu!', 'error'); return; }
+
+  const btn = document.getElementById('admin-bank-confirm-btn');
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang lưu vào kho...'; }
+
+  try {
+    const added = DB.addQuestions(valid.map(q => {
+      const { _tempIdx, _markedDelete, ...clean } = q;
+      return clean;
+    }), { skipSync: false });
+
+    showToast(`🎉 Đã lưu ${added} câu hỏi vào kho và đồng bộ lên Server Cloud thành công!`, 'success');
+    _bankGeneratedQuestions = [];
+    _bankExtractedText = '';
+    adminBankGoStep(1);
+    renderAdminDashboard();
+  } catch (e) {
+    showToast('Lỗi lưu câu hỏi: ' + e.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-database"></i> Xác Nhận Lưu Vào Kho & Đồng Bộ Server Cloud'; }
+  }
+}
+
+// Expose internal functions to window for inline event handlers
+window._bankToggleDelete = _bankToggleDelete;
+window._bankUpdateQ = _bankUpdateQ;
+window.adminDeleteAnnouncement = adminDeleteAnnouncement;
+window.adminEditArticle = adminEditArticle;
 
 // Boot
 document.addEventListener('DOMContentLoaded', init);

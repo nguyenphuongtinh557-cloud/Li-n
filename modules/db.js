@@ -3,7 +3,7 @@
  * Quản lý toàn bộ dữ liệu qua localStorage + Gọi module Sync để đẩy lên GitHub
  */
 
-import { pushToGitHub, pushUserRolesToServer, pushCustomSubjectsToServer, pushAnnouncementsToServer } from './sync.js?v=20260831';
+import { pushToGitHub, pushUserRolesToServer, pushCustomSubjectsToServer, pushAnnouncementsToServer, pushArticlesToServer, pushResourcesToServer, pushFeedbacksToServer } from './sync.js?v=20260831';
 
 const KEYS = {
   BANK: 'qlcl_question_bank',
@@ -16,6 +16,9 @@ const KEYS = {
   PREMIUM_EMAILS: 'qlcl_premium_emails',
   USER_REGISTRY: 'qlcl_user_registry',
   ANNOUNCEMENTS: 'qlcl_system_announcements',
+  ARTICLES: 'qlcl_cms_articles',
+  RESOURCES: 'qlcl_learning_resources',
+  FEEDBACKS: 'qlcl_user_feedbacks',
 };
 
 export const DB = {
@@ -105,6 +108,100 @@ export const DB = {
       pushAnnouncementsToServer(list);
     }
     return item;
+  },
+
+  deleteAnnouncement(id) {
+    const list = this.getAnnouncements().filter(a => a.id !== id);
+    localStorage.setItem(KEYS.ANNOUNCEMENTS, JSON.stringify(list));
+    pushAnnouncementsToServer(list);
+  },
+
+  // ─── CMS Articles (Bài Viết Giới Thiệu Ngành) ──────────────────────────────
+  getArticles() {
+    try { return JSON.parse(localStorage.getItem(KEYS.ARTICLES) || '[]'); } catch { return []; }
+  },
+
+  saveArticle(article, skipSync = false) {
+    const list = this.getArticles();
+    if (!article.id) {
+      article.id = 'ART_' + Date.now();
+      article.createdAt = new Date().toISOString();
+    }
+    article.updatedAt = new Date().toISOString();
+    const idx = list.findIndex(a => a.id === article.id);
+    if (idx >= 0) list[idx] = article;
+    else list.unshift(article);
+    localStorage.setItem(KEYS.ARTICLES, JSON.stringify(list));
+    if (!skipSync) pushArticlesToServer(list);
+    return article;
+  },
+
+  deleteArticle(id, skipSync = false) {
+    const list = this.getArticles().filter(a => a.id !== id);
+    localStorage.setItem(KEYS.ARTICLES, JSON.stringify(list));
+    if (!skipSync) pushArticlesToServer(list);
+  },
+
+  // ─── Learning Resources (Tài Nguyên Học Tập theo Môn) ──────────────────────
+  getResources(subjectId = null) {
+    try {
+      const all = JSON.parse(localStorage.getItem(KEYS.RESOURCES) || '[]');
+      return subjectId ? all.filter(r => r.subjectId === subjectId) : all;
+    } catch { return []; }
+  },
+
+  saveResource(resource, skipSync = false) {
+    const list = this.getResources();
+    if (!resource.id) {
+      resource.id = 'RES_' + Date.now();
+      resource.createdAt = new Date().toISOString();
+    }
+    const idx = list.findIndex(r => r.id === resource.id);
+    if (idx >= 0) list[idx] = resource;
+    else list.unshift(resource);
+    localStorage.setItem(KEYS.RESOURCES, JSON.stringify(list));
+    if (!skipSync) pushResourcesToServer(list);
+    return resource;
+  },
+
+  deleteResource(id, skipSync = false) {
+    const list = this.getResources().filter(r => r.id !== id);
+    localStorage.setItem(KEYS.RESOURCES, JSON.stringify(list));
+    if (!skipSync) pushResourcesToServer(list);
+  },
+
+  // ─── User Feedbacks (Phản Hồi Học Viên) ────────────────────────────────────
+  getFeedbacks() {
+    try { return JSON.parse(localStorage.getItem(KEYS.FEEDBACKS) || '[]'); } catch { return []; }
+  },
+
+  submitFeedback(feedback, skipSync = false) {
+    const list = this.getFeedbacks();
+    const item = {
+      id: 'FB_' + Date.now(),
+      type: feedback.type || 'feedback',   // 'bug' | 'feedback' | 'other'
+      content: feedback.content || '',
+      userName: feedback.userName || 'Ẩn danh',
+      userEmail: feedback.userEmail || '',
+      status: 'unread',                    // 'unread' | 'read' | 'resolved'
+      createdAt: new Date().toISOString(),
+    };
+    list.unshift(item);
+    localStorage.setItem(KEYS.FEEDBACKS, JSON.stringify(list));
+    if (!skipSync) pushFeedbacksToServer(list);
+    return item;
+  },
+
+  markFeedbackStatus(id, status) {
+    const list = this.getFeedbacks().map(f => f.id === id ? { ...f, status } : f);
+    localStorage.setItem(KEYS.FEEDBACKS, JSON.stringify(list));
+    pushFeedbacksToServer(list);
+  },
+
+  deleteFeedback(id) {
+    const list = this.getFeedbacks().filter(f => f.id !== id);
+    localStorage.setItem(KEYS.FEEDBACKS, JSON.stringify(list));
+    pushFeedbacksToServer(list);
   },
 
   /** Lấy danh sách Môn học tùy chỉnh do người dùng tạo */

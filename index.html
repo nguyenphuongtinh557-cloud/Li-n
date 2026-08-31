@@ -17,6 +17,9 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+  <!-- Quill.js Rich Text Editor -->
+  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
 </head>
 <body>
 
@@ -759,16 +762,25 @@
             </div>
           </div>
 
-          <!-- Section Tabs (Quản lý User | Quản lý Đề & Nạp Data | Thông Báo System) -->
-          <div class="sub-tab-bar margin-bottom-16">
+          <!-- Section Tabs -->
+          <div class="sub-tab-bar margin-bottom-16" style="flex-wrap:wrap;gap:4px;">
             <button class="sub-tab-btn active" id="admin-users-tab-btn" onclick="switchAdminSubTab('users')">
-              <i class="fa-solid fa-user-shield"></i> Quản Lý Học Viên & Quyền Premium
+              <i class="fa-solid fa-user-shield"></i> Học Viên
             </button>
-            <button class="sub-tab-btn" id="admin-bank-tab-btn" onclick="switchAdminSubTab('bank')">
-              <i class="fa-solid fa-file-export"></i> Nạp Ngân Hàng Đề Hàng Loạt
+            <button class="sub-tab-btn" id="admin-cms-tab-btn" onclick="switchAdminSubTab('cms')">
+              <i class="fa-solid fa-newspaper"></i> Bài Viết CMS
             </button>
             <button class="sub-tab-btn" id="admin-announcement-tab-btn" onclick="switchAdminSubTab('announcement')">
-              <i class="fa-solid fa-bullhorn"></i> Phát Thông Báo Hệ Thống
+              <i class="fa-solid fa-bullhorn"></i> Thông Báo
+            </button>
+            <button class="sub-tab-btn" id="admin-feedback-tab-btn" onclick="switchAdminSubTab('feedback')">
+              <i class="fa-solid fa-inbox"></i> Hộp Thư Phản Hồi <span id="admin-feedback-badge" class="badge-unread" style="display:none"></span>
+            </button>
+            <button class="sub-tab-btn" id="admin-resources-tab-btn" onclick="switchAdminSubTab('resources')">
+              <i class="fa-solid fa-folder-open"></i> Tài Nguyên Học Tập
+            </button>
+            <button class="sub-tab-btn" id="admin-bank-tab-btn" onclick="switchAdminSubTab('bank')">
+              <i class="fa-solid fa-robot"></i> AI Soạn Câu Hỏi
             </button>
           </div>
 
@@ -803,58 +815,319 @@
             </div>
           </div>
 
-          <!-- Tab 2: Nạp Ngân Hàng Đề Hàng Loạt & AI Data Ingestion -->
-          <div id="admin-subtab-bank" class="admin-subtab-content hidden">
-            <div class="card">
-              <h3 class="font-bold text-md mb-2">📥 Nạp Dữ Liệu Ngân Hàng Đề Thi Hàng Loạt (PDF / Word / JSON)</h3>
-              <p class="text-xs text-muted mb-4">Nạp trắc nghiệm nhanh trực tiếp vào cơ sở dữ liệu server và cách ly theo đúng môn học lựa chọn.</p>
-
-              <div class="grid-2 gap-4">
-                <div class="p-3 border rounded-lg bg-subtle">
-                  <h4 class="font-bold text-sm mb-2"><i class="fa-solid fa-code"></i> Nạp qua file JSON Cấu trúc chuẩn</h4>
-                  <p class="text-xs text-muted mb-2">Định dạng `[ { q: "...", options: ["A","B","C","D"], correct: 0, subjectId: "FT4468" } ]`</p>
-                  <input type="file" id="admin-import-json-file" accept=".json" class="form-input text-xs mb-2">
-                  <button class="btn btn-primary btn-sm" onclick="handleAdminImportJSON()"><i class="fa-solid fa-upload"></i> Đẩy JSON Lên Server Cloud</button>
+          <!-- Tab 2: CMS Bài Viết Giới Thiệu Ngành -->
+          <div id="admin-subtab-cms" class="admin-subtab-content hidden">
+            <div class="admin-cms-layout">
+              <!-- Danh sách bài viết -->
+              <div class="admin-article-list card" id="admin-article-list-card">
+                <div class="flex justify-between items-center mb-3">
+                  <h3 class="font-bold text-sm">📰 Danh Sách Bài Viết</h3>
+                  <button class="btn btn-primary btn-sm" onclick="adminOpenArticleEditor()">
+                    <i class="fa-solid fa-plus"></i> Viết bài mới
+                  </button>
                 </div>
+                <div id="admin-article-list"><!-- dynamic --></div>
+              </div>
 
-                <div class="p-3 border rounded-lg bg-subtle">
-                  <h4 class="font-bold text-sm mb-2"><i class="fa-solid fa-file-pdf"></i> Bóc Tách PDF/DOCX Tự Động</h4>
-                  <p class="text-xs text-muted mb-2">Chuyển sang trang AI Sinh Câu Hỏi để tự động phân tích và thẩm định bằng AI.</p>
-
-                  <button class="btn btn-success btn-sm" onclick="NavController.navigateToPage('aigen')"><i class="fa-solid fa-wand-magic-sparkles"></i> Mở Trợ Lý AI Sinh Đề</button>
+              <!-- Editor bài viết (ẩn mặc định) -->
+              <div id="admin-article-editor" class="card" style="display:none;">
+                <div class="flex justify-between items-center mb-3">
+                  <h3 class="font-bold text-sm" id="admin-editor-title-label">✏️ Soạn Thảo Bài Viết Mới</h3>
+                  <button class="btn btn-secondary btn-sm" onclick="adminCloseArticleEditor()"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <input type="hidden" id="admin-article-id">
+                <div class="form-group mb-2">
+                  <label class="text-xs font-bold">Tiêu đề (*)</label>
+                  <input type="text" id="admin-article-title" class="form-input" placeholder="Tiêu đề bài viết...">
+                </div>
+                <div class="grid-3 gap-2 mb-2">
+                  <div>
+                    <label class="text-xs font-bold">Danh mục</label>
+                    <select id="admin-article-category" class="form-select text-xs">
+                      <option value="news">📰 Tin tức ngành</option>
+                      <option value="scholarship">🎓 Học bổng</option>
+                      <option value="event">🎉 Sự kiện</option>
+                      <option value="knowledge">🧪 Kiến thức chuyên môn</option>
+                      <option value="announcement">📢 Thông báo khoa</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-xs font-bold">Trạng thái</label>
+                    <select id="admin-article-status" class="form-select text-xs">
+                      <option value="published">✅ Đăng ngay</option>
+                      <option value="draft">📝 Lưu nháp</option>
+                      <option value="pinned">📌 Ghim đầu trang</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-xs font-bold">Ảnh bìa (URL)</label>
+                    <input type="url" id="admin-article-cover" class="form-input text-xs" placeholder="https://...">
+                  </div>
+                </div>
+                <div class="mb-2">
+                  <label class="text-xs font-bold">Tags (phân cách bằng dấu phẩy)</label>
+                  <input type="text" id="admin-article-tags" class="form-input text-xs" placeholder="cntp, vi sinh, thực phẩm...">
+                </div>
+                <label class="text-xs font-bold mb-1 block">Nội dung bài viết (*)</label>
+                <div id="admin-quill-article" style="height:320px;margin-bottom:12px;border-radius:8px;overflow:hidden;"></div>
+                <div class="flex gap-2 justify-end">
+                  <button class="btn btn-secondary" onclick="adminCloseArticleEditor()">Hủy</button>
+                  <button class="btn btn-warning" onclick="adminSaveArticle('draft')"><i class="fa-solid fa-floppy-disk"></i> Lưu nháp</button>
+                  <button class="btn btn-success font-bold" onclick="adminSaveArticle('published')"><i class="fa-solid fa-paper-plane"></i> Đăng Bài & Đồng Bộ Cloud</button>
                 </div>
               </div>
             </div>
           </div>
 
-          <!-- Tab 3: Phát Thông Báo Hệ Thống -->
+          <!-- Tab 3: Thông Báo Nâng Cấp (Rich Notification) -->
           <div id="admin-subtab-announcement" class="admin-subtab-content hidden">
-            <div class="card" style="max-width:700px;">
-              <h3 class="font-bold text-md mb-2">📢 Soạn Thảo & Phát Thông Báo Hệ Thống</h3>
-              <p class="text-xs text-muted mb-4">Thông báo sẽ xuất hiện trên màn hình của tất cả sinh viên đăng nhập hệ thống.</p>
-              
-              <div class="form-group mb-3">
-                <label class="text-xs font-bold">Tiêu đề thông báo (*):</label>
-                <input type="text" id="admin-announcement-title" class="form-input text-sm" placeholder="Ví dụ: Cập nhật bộ đề thi thử môn Vi Sinh Thực Phẩm 2026">
+            <div class="grid-2 gap-4">
+              <!-- Soạn thảo -->
+              <div class="card">
+                <h3 class="font-bold text-sm mb-3">📢 Soạn Thảo Thông Báo Nâng Cấp</h3>
+                <div class="form-group mb-2">
+                  <label class="text-xs font-bold">Tiêu đề (*)</label>
+                  <input type="text" id="admin-announcement-title" class="form-input" placeholder="VD: Cập nhật bộ đề thi thử 2026...">
+                </div>
+                <div class="grid-2 gap-2 mb-2">
+                  <div>
+                    <label class="text-xs font-bold">Loại thông báo</label>
+                    <select id="admin-announcement-type" class="form-select text-xs">
+                      <option value="info">💡 Thông tin chung</option>
+                      <option value="update">🚀 Cập nhật tính năng</option>
+                      <option value="alert">⚠️ Nhắc nhở thi thử</option>
+                      <option value="success">🎉 Tin vui / Kết quả</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label class="text-xs font-bold">Phạm vi gửi</label>
+                    <select id="admin-announcement-scope" class="form-select text-xs">
+                      <option value="all">👥 Tất cả học viên</option>
+                      <option value="premium">💎 Chỉ PREMIUM</option>
+                      <option value="newbie">🌱 Chỉ NEWBIE</option>
+                    </select>
+                  </div>
+                </div>
+                <label class="text-xs font-bold mb-1 block">Nội dung thông báo (*)</label>
+                <div id="admin-quill-announcement" style="height:200px;margin-bottom:12px;border-radius:8px;overflow:hidden;"></div>
+                <button class="btn btn-success btn-full font-bold" onclick="handleAdminPostAnnouncement()">
+                  <i class="fa-solid fa-paper-plane"></i> Gửi Thông Báo Lên Server Cloud
+                </button>
+              </div>
+              <!-- Danh sách thông báo đã gửi -->
+              <div class="card">
+                <h3 class="font-bold text-sm mb-3">📋 Lịch Sử Thông Báo Đã Gửi</h3>
+                <div id="admin-announcement-list"><!-- dynamic --></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 4: Hộp Thư Phản Hồi Học Viên -->
+          <div id="admin-subtab-feedback" class="admin-subtab-content hidden">
+            <div class="card">
+              <div class="flex justify-between items-center mb-3">
+                <h3 class="font-bold text-sm">📩 Hộp Thư Phản Hồi Học Viên</h3>
+                <div class="flex gap-2">
+                  <select id="admin-feedback-filter" class="form-select text-xs" onchange="renderAdminFeedbackInbox()" style="min-width:140px;">
+                    <option value="all">Tất cả phản hồi</option>
+                    <option value="unread">🔴 Chưa đọc</option>
+                    <option value="read">✅ Đã đọc</option>
+                    <option value="resolved">🗃️ Đã xử lý</option>
+                    <option value="bug">🐛 Báo lỗi</option>
+                    <option value="feedback">💬 Góp ý</option>
+                  </select>
+                </div>
+              </div>
+              <div id="admin-feedback-list"><!-- dynamic --></div>
+            </div>
+          </div>
+
+          <!-- Tab 5: Tài Nguyên Học Tập theo Môn -->
+          <div id="admin-subtab-resources" class="admin-subtab-content hidden">
+            <div class="admin-resources-layout">
+              <div class="card" style="min-width:260px;">
+                <h4 class="font-bold text-sm mb-2">📚 Thêm Tài Nguyên Học Tập</h4>
+                <div class="form-group mb-2">
+                  <label class="text-xs font-bold">Chọn Môn học</label>
+                  <select id="admin-resource-subject" class="form-select text-xs" onchange="renderAdminResourceList()">
+                    <!-- populated dynamically -->
+                  </select>
+                </div>
+                <div class="form-group mb-2">
+                  <label class="text-xs font-bold">Loại tài nguyên</label>
+                  <select id="admin-resource-type" class="form-select text-xs">
+                    <option value="slide">🎞️ Bài giảng / Slide</option>
+                    <option value="outline">📄 Đề cương môn học</option>
+                    <option value="exam">📝 Đề thi các năm</option>
+                    <option value="video">▶️ Video bài giảng (YouTube)</option>
+                    <option value="reference">📚 Tài liệu tham khảo</option>
+                  </select>
+                </div>
+                <div class="form-group mb-2">
+                  <label class="text-xs font-bold">Tên / Mô tả (*)</label>
+                  <input type="text" id="admin-resource-name" class="form-input text-xs" placeholder="VD: Slide chương 3 - Vi sinh TP">
+                </div>
+                <div class="form-group mb-2">
+                  <label class="text-xs font-bold">URL liên kết (*)</label>
+                  <input type="url" id="admin-resource-url" class="form-input text-xs" placeholder="https://drive.google.com/...">
+                </div>
+                <div class="form-group mb-3">
+                  <label class="text-xs font-bold">Năm học (nếu là đề thi)</label>
+                  <input type="text" id="admin-resource-year" class="form-input text-xs" placeholder="VD: 2023-2024">
+                </div>
+                <button class="btn btn-success btn-full font-bold" onclick="adminSaveResource()">
+                  <i class="fa-solid fa-cloud-arrow-up"></i> Lưu & Đồng Bộ Cloud
+                </button>
+              </div>
+              <div class="card" style="flex:1;">
+                <div class="flex justify-between items-center mb-3">
+                  <h4 class="font-bold text-sm">📂 Danh Sách Tài Nguyên</h4>
+                </div>
+                <div id="admin-resource-list"><!-- dynamic --></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 6: AI Soạn Câu Hỏi Hàng Loạt (Bank Ingestion Workflow) -->
+          <div id="admin-subtab-bank" class="admin-subtab-content hidden">
+            <div class="admin-bank-workflow">
+              <!-- Step indicator -->
+              <div class="bank-workflow-steps" id="admin-bank-steps">
+                <div class="bank-step active" id="bank-step-1"><span class="step-num">1</span><span class="step-label">Nguồn dữ liệu</span></div>
+                <div class="bank-step" id="bank-step-2"><span class="step-num">2</span><span class="step-label">Cấu hình AI</span></div>
+                <div class="bank-step" id="bank-step-3"><span class="step-num">3</span><span class="step-label">Xem & Tinh chỉnh</span></div>
+                <div class="bank-step" id="bank-step-4"><span class="step-num">4</span><span class="step-label">Xác nhận lưu</span></div>
               </div>
 
-              <div class="form-group mb-3">
-                <label class="text-xs font-bold">Loại thông báo:</label>
-                <select id="admin-announcement-type" class="form-select text-xs">
-                  <option value="info">💡 Thông tin chung</option>
-                  <option value="update">🚀 Cập nhật tính năng mới</option>
-                  <option value="alert">⚠️ Nhắc nhở thi thử</option>
-                </select>
+              <!-- Step 1: Chọn Nguồn Dữ Liệu -->
+              <div id="admin-bank-panel-1" class="bank-panel card">
+                <h3 class="font-bold text-md mb-2">📂 Bước 1 — Chọn Nguồn Dữ Liệu Giáo Trình</h3>
+                <div class="source-mode-tabs mb-3">
+                  <button class="source-mode-btn active" id="srcmode-file" onclick="switchBankSourceMode('file')"><i class="fa-solid fa-file-arrow-up"></i> Upload PDF/DOCX</button>
+                  <button class="source-mode-btn" id="srcmode-paste" onclick="switchBankSourceMode('paste')"><i class="fa-solid fa-paste"></i> Paste Văn bản</button>
+                  <button class="source-mode-btn" id="srcmode-url" onclick="switchBankSourceMode('url')"><i class="fa-solid fa-globe"></i> Đọc từ URL (Jina AI)</button>
+                </div>
+
+                <div id="bank-source-file">
+                  <p class="text-xs text-muted mb-2">Upload file giáo trình. Hệ thống tự động bóc tách nội dung text.</p>
+                  <input type="file" id="admin-bank-file" accept=".pdf,.docx,.doc,.txt" class="form-input mb-2">
+                  <button class="btn btn-primary btn-sm" onclick="adminBankExtractFile()"><i class="fa-solid fa-eye"></i> Bóc Tách Nội Dung</button>
+                  <div id="admin-bank-file-preview" class="bank-extracted-preview" style="display:none;"></div>
+                </div>
+
+                <div id="bank-source-paste" style="display:none;">
+                  <p class="text-xs text-muted mb-2">Dán nội dung từ trang web, giáo trình, tài liệu bất kỳ. AI sẽ phân tích và sinh câu hỏi.</p>
+                  <textarea id="admin-bank-paste-text" class="form-input" rows="10" placeholder="Dán nội dung giáo trình vào đây..."></textarea>
+                </div>
+
+                <div id="bank-source-url" style="display:none;">
+                  <p class="text-xs text-muted mb-2">
+                    🔗 Nhập URL trang web chứa nội dung giáo trình (Wikipedia, OpenStax, trang khoa...)
+                    Hệ thống dùng <strong>Jina AI Reader</strong> để đọc nội dung — tương tự cách SciSpace AI hoạt động.
+                  </p>
+                  <div class="flex gap-2 mb-2">
+                    <input type="url" id="admin-bank-url" class="form-input" placeholder="https://vi.wikipedia.org/wiki/An_toàn_thực_phẩm">
+                    <button class="btn btn-primary" onclick="adminBankFetchURL()" style="white-space:nowrap;">
+                      <i class="fa-solid fa-spider"></i> Đọc Trang Web
+                    </button>
+                  </div>
+                  <div id="admin-bank-url-status" class="text-xs text-muted"></div>
+                  <div id="admin-bank-url-preview" class="bank-extracted-preview" style="display:none;"></div>
+                </div>
+
+                <div class="flex justify-end mt-4">
+                  <button class="btn btn-primary font-bold" onclick="adminBankGoStep(2)">
+                    Tiếp theo: Cấu hình AI <i class="fa-solid fa-arrow-right"></i>
+                  </button>
+                </div>
               </div>
 
-              <div class="form-group mb-3">
-                <label class="text-xs font-bold">Nội dung chi tiết (*):</label>
-                <textarea id="admin-announcement-content" class="form-input text-xs" rows="4" placeholder="Nhập nội dung thông báo gửi toàn thể sinh viên..."></textarea>
+              <!-- Step 2: Cấu Hình AI -->
+              <div id="admin-bank-panel-2" class="bank-panel card" style="display:none;">
+                <h3 class="font-bold text-md mb-3">⚙️ Bước 2 — Cấu Hình Sinh Câu Hỏi</h3>
+                <div class="grid-2 gap-4">
+                  <div>
+                    <div class="form-group mb-3">
+                      <label class="text-xs font-bold">Môn học đích (*)</label>
+                      <select id="admin-bank-subject" class="form-select text-sm">
+                        <!-- populated dynamically -->
+                      </select>
+                    </div>
+                    <div class="form-group mb-3">
+                      <label class="text-xs font-bold">Số câu hỏi cần sinh</label>
+                      <div class="flex gap-2 flex-wrap">
+                        <button class="btn btn-secondary btn-sm" onclick="setAdminBankCount(10)">10 câu</button>
+                        <button class="btn btn-secondary btn-sm" onclick="setAdminBankCount(20)">20 câu</button>
+                        <button class="btn btn-secondary btn-sm" onclick="setAdminBankCount(50)">50 câu</button>
+                        <button class="btn btn-secondary btn-sm" onclick="setAdminBankCount(100)">100 câu</button>
+                        <input type="number" id="admin-bank-count" class="form-input text-xs" value="20" min="5" max="200" style="width:70px;">
+                      </div>
+                    </div>
+                    <div class="form-group mb-3">
+                      <label class="text-xs font-bold">Độ khó phân bổ</label>
+                      <select id="admin-bank-difficulty" class="form-select text-xs">
+                        <option value="mixed">🎯 Hỗn hợp (50% Dễ, 30% TB, 20% Khó)</option>
+                        <option value="easy">😊 Tất cả Dễ</option>
+                        <option value="medium">🤔 Tất cả Trung Bình</option>
+                        <option value="hard">🔥 Tất cả Khó</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div>
+                    <div class="form-group mb-3">
+                      <label class="text-xs font-bold">AI Model sinh câu hỏi</label>
+                      <select id="admin-bank-model" class="form-select text-xs">
+                        <option value="google/gemini-2.0-flash-exp:free">⚡ Gemini 2.0 Flash (Chuẩn)</option>
+                        <option value="deepseek/deepseek-r1:free">🧠 DeepSeek R1 (Suy luận sâu)</option>
+                        <option value="anthropic/claude-3.5-sonnet">✨ Claude 3.5 Sonnet (Premium)</option>
+                        <option value="openai/gpt-4o">🤖 GPT-4o (Premium)</option>
+                      </select>
+                    </div>
+                    <div class="card card-sm" style="background:var(--bg-subtle);">
+                      <div class="text-xs font-bold mb-1">📊 Ước tính kết quả</div>
+                      <div class="text-xs text-muted">Số câu: <strong id="bank-est-count">20</strong></div>
+                      <div class="text-xs text-muted">Phân bổ độ khó: <strong>10 dễ / 6 TB / 4 khó</strong></div>
+                      <div class="text-xs text-muted">Thời gian ước tính: <strong>~30-90 giây</strong></div>
+                    </div>
+                  </div>
+                </div>
+                <div class="flex justify-between mt-4">
+                  <button class="btn btn-secondary" onclick="adminBankGoStep(1)"><i class="fa-solid fa-arrow-left"></i> Quay lại</button>
+                  <button class="btn btn-success font-bold" onclick="adminBankGenerateQuestions()">
+                    <i class="fa-solid fa-robot"></i> Bắt Đầu Sinh Câu Hỏi
+                  </button>
+                </div>
               </div>
 
-              <button class="btn btn-success font-bold" onclick="handleAdminPostAnnouncement()">
-                <i class="fa-solid fa-paper-plane"></i> Gửi Thông Báo Lên Server Cloud
-              </button>
+              <!-- Step 3: Xem Trước & Tinh Chỉnh -->
+              <div id="admin-bank-panel-3" class="bank-panel card" style="display:none;">
+                <div class="flex justify-between items-center mb-3">
+                  <h3 class="font-bold text-md">✏️ Bước 3 — Xem Trước & Tinh Chỉnh Câu Hỏi</h3>
+                  <div class="flex gap-2 items-center">
+                    <span class="text-xs text-muted">Còn lại: <strong id="bank-remaining-count">0</strong> câu</span>
+                    <button class="btn btn-primary btn-sm" onclick="adminBankAddBlankQuestion()"><i class="fa-solid fa-plus"></i> Thêm câu</button>
+                  </div>
+                </div>
+                <div id="admin-bank-questions-list" class="admin-bank-review-list"><!-- dynamic --></div>
+                <div class="flex justify-between mt-4">
+                  <button class="btn btn-secondary" onclick="adminBankGoStep(2)"><i class="fa-solid fa-arrow-left"></i> Cấu hình lại</button>
+                  <button class="btn btn-success font-bold" onclick="adminBankGoStep(4)">
+                    Xác nhận <span id="bank-confirm-count">0</span> câu → Lưu Kho <i class="fa-solid fa-arrow-right"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Step 4: Xác Nhận & Lưu -->
+              <div id="admin-bank-panel-4" class="bank-panel card" style="display:none;">
+                <h3 class="font-bold text-md mb-3">✅ Bước 4 — Xác Nhận Lưu Vào Kho</h3>
+                <div id="admin-bank-summary" class="card card-sm" style="background:var(--bg-subtle);margin-bottom:16px;"><!-- dynamic --></div>
+                <div class="flex justify-between">
+                  <button class="btn btn-secondary" onclick="adminBankGoStep(3)"><i class="fa-solid fa-arrow-left"></i> Tinh chỉnh lại</button>
+                  <button class="btn btn-success btn-lg font-bold" onclick="adminBankConfirmSave()" id="admin-bank-confirm-btn">
+                    <i class="fa-solid fa-database"></i> Xác Nhận Lưu Vào Kho & Đồng Bộ Server Cloud
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
