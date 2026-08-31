@@ -762,26 +762,46 @@
             </div>
           </div>
 
-          <!-- Section Tabs -->
-          <div class="sub-tab-bar margin-bottom-16" style="flex-wrap:wrap;gap:4px;">
-            <button class="sub-tab-btn active" id="admin-users-tab-btn" onclick="switchAdminSubTab('users')">
-              <i class="fa-solid fa-user-shield"></i> Học Viên
-            </button>
-            <button class="sub-tab-btn" id="admin-cms-tab-btn" onclick="switchAdminSubTab('cms')">
-              <i class="fa-solid fa-newspaper"></i> Bài Viết CMS
-            </button>
-            <button class="sub-tab-btn" id="admin-announcement-tab-btn" onclick="switchAdminSubTab('announcement')">
-              <i class="fa-solid fa-bullhorn"></i> Thông Báo
-            </button>
-            <button class="sub-tab-btn" id="admin-feedback-tab-btn" onclick="switchAdminSubTab('feedback')">
-              <i class="fa-solid fa-inbox"></i> Hộp Thư Phản Hồi <span id="admin-feedback-badge" class="badge-unread" style="display:none"></span>
-            </button>
-            <button class="sub-tab-btn" id="admin-resources-tab-btn" onclick="switchAdminSubTab('resources')">
-              <i class="fa-solid fa-folder-open"></i> Tài Nguyên Học Tập
-            </button>
-            <button class="sub-tab-btn" id="admin-bank-tab-btn" onclick="switchAdminSubTab('bank')">
-              <i class="fa-solid fa-robot"></i> AI Soạn Câu Hỏi
-            </button>
+          <!-- Admin Categorized Zone Navigation Shell -->
+          <div class="admin-nav-zones mb-4">
+            <!-- Zone 1: Phân Quyền & Quản Lý User -->
+            <div class="admin-nav-group">
+              <div class="admin-nav-group-title"><i class="fa-solid fa-users-gear"></i> NHÓM 1: QUẢN TRỊ USER</div>
+              <div class="admin-nav-group-btns">
+                <button class="admin-zone-btn active" id="admin-users-tab-btn" onclick="switchAdminSubTab('users')">
+                  <i class="fa-solid fa-user-shield"></i> Học Viên & Quyền Premium
+                </button>
+              </div>
+            </div>
+
+            <!-- Zone 2: CMS Nội Dung & Tương Tác -->
+            <div class="admin-nav-group">
+              <div class="admin-nav-group-title"><i class="fa-solid fa-pen-to-square"></i> NHÓM 2: CMS & THÔNG BÁO</div>
+              <div class="admin-nav-group-btns">
+                <button class="admin-zone-btn" id="admin-cms-tab-btn" onclick="switchAdminSubTab('cms')">
+                  <i class="fa-solid fa-newspaper"></i> Bài Viết CMS
+                </button>
+                <button class="admin-zone-btn" id="admin-announcement-tab-btn" onclick="switchAdminSubTab('announcement')">
+                  <i class="fa-solid fa-bullhorn"></i> Thông Báo Rich
+                </button>
+                <button class="admin-zone-btn" id="admin-feedback-tab-btn" onclick="switchAdminSubTab('feedback')">
+                  <i class="fa-solid fa-inbox"></i> Phản Hồi <span id="admin-feedback-badge" class="badge-unread" style="display:none"></span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Zone 3: Dữ Liệu & AI Studio -->
+            <div class="admin-nav-group">
+              <div class="admin-nav-group-title"><i class="fa-solid fa-brain"></i> NHÓM 3: NGÂN HÀNG ĐỀ & AI STUDIO</div>
+              <div class="admin-nav-group-btns">
+                <button class="admin-zone-btn" id="admin-resources-tab-btn" onclick="switchAdminSubTab('resources')">
+                  <i class="fa-solid fa-folder-open"></i> Tài Nguyên Học Tập
+                </button>
+                <button class="admin-zone-btn" id="admin-bank-tab-btn" onclick="switchAdminSubTab('bank')">
+                  <i class="fa-solid fa-robot"></i> AI Soạn Câu (Jina Reader)
+                </button>
+              </div>
+            </div>
           </div>
 
           <!-- Tab 1: Quản Lý Học Viên & Cấp Quyền Premium 1-Click -->
