@@ -221,34 +221,63 @@ export const NavController = {
         </p>
       </div>
 
+    const allResources = DB.getResources(s.id);
+    const infoResources = allResources.filter(r => r.type === 'info');
+    const lectureResources = allResources.filter(r => r.type === 'lecture');
+    const examResources = allResources.filter(r => r.type === 'exam');
+    const quizCount = DB.getBankBySubject(s.id).length;
+
+    detailContainer.innerHTML = `
+      <div class="subject-detail-hero">
+        <button class="btn btn-secondary btn-sm" onclick="NavController.navigateToPage('ontap')" style="margin-bottom:16px;">
+          <i class="fa-solid fa-arrow-left"></i> Quay lại
+        </button>
+        <div class="flex items-center gap-3 margin-bottom-8">
+          <span class="subject-detail-badge">${s.code}</span>
+          <span class="badge badge-primary">${block.icon} ${block.name}</span>
+          <span class="badge badge-subtle">${s.credits} Tín chỉ</span>
+          <span class="badge badge-subtle">Học kỳ ${s.semester}</span>
+        </div>
+        <h1 class="subject-detail-title">${s.name}</h1>
+        <p class="text-secondary text-sm" style="max-width:720px;margin-top:8px;">
+          Chương trình ôn tập chuẩn hóa thuộc khung đào tạo Ngành Công nghệ Thực phẩm. Chọn các danh mục bên dưới để bắt đầu ôn luyện.
+        </p>
+      </div>
+
       <div class="subject-detail-grid">
         <!-- Card 1: Thông tin môn học -->
-        <div class="subject-card card">
+        <div class="subject-card card ${infoResources.length ? 'active-card' : ''}" onclick="openUserResourceViewer('${s.id}', 'info')">
           <div class="subject-card-icon" style="background:rgba(79, 70, 229, 0.1);color:var(--primary);">ℹ️</div>
           <div class="subject-card-content">
             <h3>Thông tin môn học</h3>
             <p class="text-secondary text-sm">Đề cương chi tiết, giảng viên đảm nhận, mục tiêu học phần và tài liệu tham khảo.</p>
-            <div class="subject-card-status"><span>⏳ Cập nhật sau</span></div>
+            <div class="subject-card-status">
+              ${infoResources.length ? `<span class="badge badge-success font-bold"><i class="fa-solid fa-check"></i> ${infoResources.length} Đề cương & Thông tin</span>` : '<span>⏳ Admin đang cập nhật</span>'}
+            </div>
           </div>
         </div>
 
         <!-- Card 2: Bài giảng ôn tập -->
-        <div class="subject-card card">
+        <div class="subject-card card ${lectureResources.length ? 'active-card' : ''}" onclick="openUserResourceViewer('${s.id}', 'lecture')">
           <div class="subject-card-icon" style="background:rgba(16, 185, 129, 0.1);color:var(--success);">📖</div>
           <div class="subject-card-content">
             <h3>Bài giảng ôn tập</h3>
             <p class="text-secondary text-sm">Slide bài giảng tổng hợp, tóm tắt lý thuyết trọng tâm từng chương và sơ đồ tư duy.</p>
-            <div class="subject-card-status"><span>⏳ Cập nhật sau</span></div>
+            <div class="subject-card-status">
+              ${lectureResources.length ? `<span class="badge badge-success font-bold"><i class="fa-solid fa-check"></i> ${lectureResources.length} Slide & Bài giảng</span>` : '<span>⏳ Admin đang cập nhật</span>'}
+            </div>
           </div>
         </div>
 
         <!-- Card 3: Đề thi các năm -->
-        <div class="subject-card card">
+        <div class="subject-card card ${examResources.length ? 'active-card' : ''}" onclick="openUserResourceViewer('${s.id}', 'exam')">
           <div class="subject-card-icon" style="background:rgba(245, 158, 11, 0.1);color:var(--warning);">📝</div>
           <div class="subject-card-content">
             <h3>Đề thi các năm</h3>
             <p class="text-secondary text-sm">Tuyển tập đề thi giữa kỳ, cuối kỳ chính thức các khóa trước có đáp án chi tiết.</p>
-            <div class="subject-card-status"><span>⏳ Cập nhật đề thi sau</span></div>
+            <div class="subject-card-status">
+              ${examResources.length ? `<span class="badge badge-warning font-bold"><i class="fa-solid fa-check"></i> ${examResources.length} Bộ đề thi cũ</span>` : '<span>⏳ Admin đang cập nhật đề thi</span>'}
+            </div>
           </div>
         </div>
 
@@ -260,7 +289,7 @@ export const NavController = {
             <p class="text-secondary text-sm">Thi thử, luyện tập trắc nghiệm và ngân hàng câu hỏi AI chuẩn hóa theo độ khó.</p>
             <div class="subject-card-action">
               <button class="btn btn-success btn-sm">
-                <i class="fa-solid fa-play"></i> Bắt đầu Ôn Tập Ngay
+                <i class="fa-solid fa-play"></i> Bắt đầu Ôn Tập (${quizCount} câu)
               </button>
             </div>
           </div>

@@ -1818,6 +1818,7 @@ Object.assign(window, {
   adminSaveResource,
   adminDeleteResource,
   renderAdminResourceList,
+  openUserResourceViewer,
   // Bank AI 4-step
   switchBankSourceMode,
   adminBankExtractFile,
@@ -2606,11 +2607,70 @@ async function adminBankConfirmSave() {
   }
 }
 
+/* ─── USER RESOURCE VIEWER MODAL CONTROLLER ───────────────────────────────── */
+function openUserResourceViewer(subjectId, category) {
+  const subject = getAllSubjects().find(s => s.id === subjectId) || { code: subjectId, name: 'Môn học' };
+  const allResources = DB.getResources(subjectId);
+  const filtered = allResources.filter(r => r.type === category);
+
+  const categoryNames = {
+    info: 'ℹ️ Thông tin môn học & Đề cương',
+    lecture: '📖 Bài giảng ôn tập & Slide',
+    exam: '📝 Đề thi các năm',
+    quiz: '🎯 Ngân hàng kiểm tra ôn tập'
+  };
+
+  const codeEl = document.getElementById('resource-viewer-subject-code');
+  const titleEl = document.getElementById('resource-viewer-title');
+  const listEl = document.getElementById('resource-viewer-content-list');
+
+  if (codeEl) codeEl.textContent = `${subject.code} — ${subject.name}`;
+  if (titleEl) titleEl.textContent = categoryNames[category] || 'Nội dung tài nguyên';
+
+  if (!filtered.length) {
+    if (listEl) {
+      listEl.innerHTML = `
+        <div class="text-center py-5">
+          <div style="font-size:36px;margin-bottom:8px;">⏳</div>
+          <h4 class="font-bold text-md">Admin chưa cập nhật tài nguyên trong mục này</h4>
+          <p class="text-xs text-muted mt-1">Dữ liệu sẽ được Admin cập nhật và đồng bộ lên Server Cloud sớm nhất.</p>
+        </div>
+      `;
+    }
+  } else {
+    if (listEl) {
+      listEl.innerHTML = filtered.map(r => `
+        <div class="card card-sm mb-3" style="background:var(--bg-subtle);border:1px solid var(--border);">
+          <div class="flex justify-between items-start mb-2">
+            <div>
+              <h4 class="font-bold text-sm text-primary">${escapeHtml(r.name)}</h4>
+              <div class="text-xs text-muted mt-1">
+                📅 Đăng ngày: ${new Date(r.createdAt).toLocaleDateString('vi-VN')}
+                ${r.year ? ` &middot; Năm học: <strong>${escapeHtml(r.year)}</strong>` : ''}
+              </div>
+            </div>
+            ${r.url ? `
+              <a href="${escapeHtml(r.url)}" target="_blank" rel="noopener" class="btn btn-primary btn-xs font-bold">
+                <i class="fa-solid fa-arrow-up-right-from-square"></i> Mở File / Link
+              </a>
+            ` : ''}
+          </div>
+          ${r.description ? `<p class="text-xs text-secondary mt-2">${escapeHtml(r.description)}</p>` : ''}
+        </div>
+      `).join('');
+    }
+  }
+
+  const modal = document.getElementById('modal-subject-resource-viewer');
+  if (modal) modal.classList.add('open');
+}
+
 // Expose internal functions to window for inline event handlers
 window._bankToggleDelete = _bankToggleDelete;
 window._bankUpdateQ = _bankUpdateQ;
 window.adminDeleteAnnouncement = adminDeleteAnnouncement;
 window.adminEditArticle = adminEditArticle;
+window.openUserResourceViewer = openUserResourceViewer;
 
 // Boot
 document.addEventListener('DOMContentLoaded', init);

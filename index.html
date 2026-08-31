@@ -974,13 +974,12 @@
                   </select>
                 </div>
                 <div class="form-group mb-2">
-                  <label class="text-xs font-bold">Loại tài nguyên</label>
+                  <label class="text-xs font-bold">Mục đăng tải (Khớp 4 Thẻ Chi Tiết Môn Học) (*)</label>
                   <select id="admin-resource-type" class="form-select text-xs">
-                    <option value="slide">🎞️ Bài giảng / Slide</option>
-                    <option value="outline">📄 Đề cương môn học</option>
-                    <option value="exam">📝 Đề thi các năm</option>
-                    <option value="video">▶️ Video bài giảng (YouTube)</option>
-                    <option value="reference">📚 Tài liệu tham khảo</option>
+                    <option value="info">ℹ️ 1. Thông tin môn học (Đề cương & Giảng viên)</option>
+                    <option value="lecture">📖 2. Bài giảng ôn tập (Slide & Lý thuyết & Video)</option>
+                    <option value="exam">📝 3. Đề thi các năm (Giữa kỳ & Cuối kỳ)</option>
+                    <option value="quiz">🎯 4. Kiểm tra ôn tập (Ngân hàng đề & Thi thử)</option>
                   </select>
                 </div>
                 <div class="form-group mb-2">
@@ -1497,12 +1496,30 @@
     </div>
   </div>
 
+  <!-- Modal Xem Tài Nguyên Học Tập Dành Cho User -->
+  <div id="modal-subject-resource-viewer" class="modal-overlay" style="z-index: 9999;">
+    <div class="modal-box" style="max-width:760px;width:95%;max-height:90vh;display:flex;flex-direction:column;">
+      <div class="modal-header">
+        <div>
+          <span id="resource-viewer-subject-code" class="badge badge-primary font-bold">...</span>
+          <h2 id="resource-viewer-title" class="text-lg font-bold mt-1">Nội Dung Tài Nguyên</h2>
+        </div>
+        <button class="btn-icon" onclick="document.getElementById('modal-subject-resource-viewer').classList.remove('open')">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body" style="flex:1;overflow-y:auto;padding:16px;">
+        <div id="resource-viewer-content-list"><!-- dynamic --></div>
+      </div>
+    </div>
+  </div>
+
   <script>
     function updateExamDuration() {
       const count = parseInt(document.getElementById('exam-question-count').value) || 50;
       document.getElementById('exam-duration-text').textContent = count + ' phút';
     }
   </script>
-  <script type="module" src="app.js?v=20260831c"></script>
+  <script type="module" src="app.js?v=20260831d"></script>
 </body>
 </html>
