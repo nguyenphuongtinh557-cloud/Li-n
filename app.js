@@ -2724,7 +2724,7 @@ function openUserResourceViewer(subjectId, category) {
               </a>
             ` : ''}
           </div>
-          ${r.content ? `<div class="rich-resource-body mt-3 p-3 border rounded-lg bg-card" style="font-size:13px;line-height:1.6;border-radius:8px;overflow-x:auto;">${r.content}</div>` : ''}
+          ${r.content ? `<div class="document-paper-view mt-3 mb-2">${r.content}</div>` : ''}
           ${r.description ? `<p class="text-xs text-secondary mt-2">${escapeHtml(r.description)}</p>` : ''}
         </div>
       `).join('');

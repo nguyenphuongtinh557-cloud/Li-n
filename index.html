@@ -888,8 +888,13 @@
                   <label class="text-xs font-bold">Tags (phân cách bằng dấu phẩy)</label>
                   <input type="text" id="admin-article-tags" class="form-input text-xs" placeholder="cntp, vi sinh, thực phẩm...">
                 </div>
-                <label class="text-xs font-bold mb-1 block">Nội dung bài viết (*)</label>
-                <div id="admin-quill-article" style="height:320px;margin-bottom:12px;border-radius:8px;overflow:hidden;"></div>
+                <label class="text-xs font-bold mb-1 flex items-center justify-between">
+                  <span><i class="fa-solid fa-file-word text-primary"></i> Trình Soạn Thảo Văn Bản MS Word Paper View (Bài Viết)</span>
+                  <span class="text-xs text-muted font-normal">Góc nhìn người đọc (WYSIWYG)</span>
+                </label>
+                <div class="word-editor-wrapper mb-3">
+                  <div id="admin-quill-article" style="height:360px;"></div>
+                </div>
                 <div class="flex gap-2 justify-end">
                   <button class="btn btn-secondary" onclick="adminCloseArticleEditor()">Hủy</button>
                   <button class="btn btn-warning" onclick="adminSaveArticle('draft')"><i class="fa-solid fa-floppy-disk"></i> Lưu nháp</button>
@@ -928,8 +933,13 @@
                     </select>
                   </div>
                 </div>
-                <label class="text-xs font-bold mb-1 block">Nội dung thông báo (*)</label>
-                <div id="admin-quill-announcement" style="height:200px;margin-bottom:12px;border-radius:8px;overflow:hidden;"></div>
+                <label class="text-xs font-bold mb-1 flex items-center justify-between">
+                  <span><i class="fa-solid fa-file-word text-primary"></i> Trình Soạn Thảo MS Word Paper View (Thông Báo)</span>
+                  <span class="text-xs text-muted font-normal">Góc nhìn người đọc</span>
+                </label>
+                <div class="word-editor-wrapper mb-3">
+                  <div id="admin-quill-announcement" style="height:220px;"></div>
+                </div>
                 <button class="btn btn-success btn-full font-bold" onclick="handleAdminPostAnnouncement()">
                   <i class="fa-solid fa-paper-plane"></i> Gửi Thông Báo Lên Server Cloud
                 </button>
@@ -1001,7 +1011,7 @@
                 <div class="source-mode-tabs mb-3">
                   <button class="source-mode-btn active" id="resmode-url" onclick="switchResourceInputMode('url')"><i class="fa-solid fa-link"></i> 1. Nhập Link URL</button>
                   <button class="source-mode-btn" id="resmode-file" onclick="switchResourceInputMode('file')"><i class="fa-solid fa-file-arrow-up"></i> 2. Upload File trực tiếp</button>
-                  <button class="source-mode-btn" id="resmode-editor" onclick="switchResourceInputMode('editor')"><i class="fa-solid fa-pen-nib"></i> 3. Soạn Rich-Text</button>
+                  <button class="source-mode-btn" id="resmode-editor" onclick="switchResourceInputMode('editor')"><i class="fa-solid fa-pen-nib"></i> 3. Soạn Rich-Text MS Word View</button>
                 </div>
 
                 <!-- Mode 1: URL Link -->
@@ -1017,10 +1027,15 @@
                   <span class="text-xs text-muted" id="admin-resource-file-status">Hệ thống sẽ đọc và lưu trữ thông tin file lên Cloud.</span>
                 </div>
 
-                <!-- Mode 3: Quill Rich-Text Editor -->
+                <!-- Mode 3: Quill Rich-Text Editor MS Word Paper View -->
                 <div id="resinput-editor" class="form-group mb-3" style="display:none;">
-                  <label class="text-xs font-bold mb-1 block">Nội dung chi tiết (Rich-Text Editor, hỗ trợ format, chèn ảnh, bảng)</label>
-                  <div id="admin-quill-resource" style="height:220px;margin-bottom:12px;border-radius:8px;overflow:hidden;"></div>
+                  <label class="text-xs font-bold mb-1 flex items-center justify-between">
+                    <span><i class="fa-solid fa-file-word text-primary"></i> Trình Soạn Thảo MS Word Paper View (Tài Nguyên)</span>
+                    <span class="text-xs text-muted font-normal">Góc nhìn người đọc</span>
+                  </label>
+                  <div class="word-editor-wrapper mb-2">
+                    <div id="admin-quill-resource" style="height:320px;"></div>
+                  </div>
                 </div>
 
                 <button class="btn btn-success btn-full font-bold" onclick="adminSaveResource()">
@@ -1551,6 +1566,6 @@
       document.getElementById('exam-duration-text').textContent = count + ' phút';
     }
   </script>
-  <script type="module" src="app.js?v=20260831f"></script>
+  <script type="module" src="app.js?v=20260831g"></script>
 </body>
 </html>
