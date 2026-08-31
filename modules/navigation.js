@@ -49,7 +49,9 @@ export const NavController = {
         pageId = 'ontap';
         subTabId = 'exam-tab';
       } else {
-        if (window.renderAdminDashboard) window.renderAdminDashboard();
+        setTimeout(() => {
+          if (window.renderAdminDashboard) window.renderAdminDashboard();
+        }, 50);
       }
     }
 
