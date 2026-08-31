@@ -3,7 +3,7 @@
  */
 
 import { DB } from './db.js';
-import { pushAdminEdits, pullAdminEdits } from './sync.js';
+import { pushAdminEdits, pullAdminEdits } from './sync.js?v=20260831';
 
 let adminClickCount = 0;
 let adminClickTimeout = null;

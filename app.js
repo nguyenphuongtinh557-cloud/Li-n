@@ -8,7 +8,7 @@ import { Generator } from './modules/generator.js';
 import { ExamEngine, ExamTimer } from './modules/exam.js';
 import { SEED_QUESTIONS } from './data/seed_questions.js';
 import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion } from './modules/cera.js';
-import { pullFromGitHub, pullAdminEdits } from './modules/sync.js';
+import { pullFromGitHub, pullAdminEdits } from './modules/sync.js?v=20260831';
 import { initAdminAuth } from './modules/admin.js';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js';
 import { NavController } from './modules/navigation.js';

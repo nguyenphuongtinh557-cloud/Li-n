@@ -32,7 +32,7 @@ try {
 }
 
 import { DB } from './db.js';
-import { pullUserRolesFromServer } from './sync.js';
+import { pullUserRolesFromServer } from './sync.js?v=20260831';
 
 export const SUPER_ADMIN_EMAILS = [
   'nguyenphuongtinh557@gmail.com',
