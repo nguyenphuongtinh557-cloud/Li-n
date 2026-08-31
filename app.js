@@ -1626,6 +1626,21 @@ function removeCeraAttachedImage() {
   if (fileInput) fileInput.value = '';
 }
 
+function getUserAvatarUrl() {
+  if (NavController && NavController.currentUser && NavController.currentUser.avatar) {
+    return NavController.currentUser.avatar;
+  }
+  try {
+    const saved = localStorage.getItem('lien_google_user') || localStorage.getItem('lien_user_session') || localStorage.getItem('lien_custom_profile');
+    if (saved) {
+      const u = JSON.parse(saved);
+      if (u && u.avatar) return u.avatar;
+      if (u && u.name) return 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(u.name);
+    }
+  } catch (e) {}
+  return 'https://api.dicebear.com/7.x/avataaars/svg?seed=User';
+}
+
 async function ceraSend() {
   const input = document.getElementById('cera-input');
   const sendBtn = document.getElementById('cera-send-btn');
@@ -1643,12 +1658,13 @@ async function ceraSend() {
   input.style.height = 'auto';
   sendBtn.disabled = true;
 
-  // Render User Message Bubble
+  // Render User Message Bubble với Avatar đồng bộ của User
   const userMsg = document.createElement('div');
   userMsg.className = 'cera-msg cera-msg-user';
   let imgHtml = attachedImage ? `<img src="${attachedImage}" style="max-width:180px;max-height:180px;border-radius:8px;margin-bottom:6px;display:block;">` : '';
+  const userAvatar = getUserAvatarUrl();
   userMsg.innerHTML = `
-    <div class="cera-msg-avatar"><i class="fa-solid fa-user"></i></div>
+    <div class="cera-msg-avatar"><img src="${userAvatar}" alt="User Avatar"></div>
     <div class="cera-msg-bubble">${imgHtml}<p>${escapeHtml(text || 'Hãy phân tích hình ảnh này.')}</p></div>`;
   messages.appendChild(userMsg);
   messages.scrollTop = messages.scrollHeight;

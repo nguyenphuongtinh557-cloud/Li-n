@@ -1545,6 +1545,13 @@ img { max-width: 100%; }
   justify-content: center;
   font-size: 13px;
   flex-shrink: 0;
+  overflow: hidden;
+}
+.cera-msg-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
 }
 .cera-msg-user .cera-msg-avatar {
   background: linear-gradient(135deg, #10b981, #06b6d4);

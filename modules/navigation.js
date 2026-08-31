@@ -36,6 +36,9 @@ export const NavController = {
       pageId = 'ontap';
       subTabId = 'history-tab';
     }
+    if (pageId === 'ontap' && !subTabId) {
+      subTabId = 'exam-tab';
+    }
 
     this.activePage = pageId;
 
