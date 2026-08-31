@@ -18,18 +18,6 @@
     "updatedAt": "2026-08-31T13:04:17.070Z"
   },
   {
-    "id": "art_chuyen_doi_so",
-    "title": "Chuyển đổi số trong ngành công nghệ thực phẩm",
-    "category": "Xu hướng ngành",
-    "excerpt": "Chuyển đổi số giúp tối ưu quy trình sản xuất, nâng cao hiệu quả và khả năng cạnh tranh.",
-    "cover": "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=900&auto=format&fit=crop",
-    "date": "22/05/2024",
-    "readTime": "6 phút đọc",
-    "views": 0,
-    "featured": true,
-    "content": "\n      <p class=\"article-lead\">Cách mạng công nghiệp 4.0 đang thay đổi diện mạo ngành chế biến thực phẩm thông qua tự động hóa, IoT và Trí tuệ nhân tạo (AI).</p>\n      <h2 id=\"toc-1\">1. Nhà máy sản xuất thực phẩm thông minh</h2>\n      <p>Cảm biến IoT kiểm soát liên tục nhiệt độ, độ ẩm và thông số vệ sinh sản xuất theo thời gian thực.</p>\n      <h2 id=\"toc-2\">2. Truy xuất nguồn gốc bằng Blockchain</h2>\n      <p>Giúp người tiêu dùng dễ dàng quét mã QR truy xuất toàn bộ hành trình nông sản từ trang trại đến siêu thị.</p>\n    "
-  },
-  {
     "id": "art_enzyme_che_bien",
     "title": "Ứng dụng enzyme trong chế biến thực phẩm",
     "category": "Công nghệ chế biến",
