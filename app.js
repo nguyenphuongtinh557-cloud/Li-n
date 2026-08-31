@@ -1856,20 +1856,7 @@ function renderAdminDashboard() {
   renderAdminUserList();
 }
 
-function switchAdminSubTab(tabName) {
-  const tabs = ['users', 'bank', 'announcement'];
-  tabs.forEach(t => {
-    const btn = document.getElementById(`admin-${t}-tab-btn`);
-    const content = document.getElementById(`admin-subtab-${t}`);
-    if (btn) btn.classList.remove('active');
-    if (content) content.classList.add('hidden');
-  });
 
-  const activeBtn = document.getElementById(`admin-${tabName}-tab-btn`);
-  const activeContent = document.getElementById(`admin-subtab-${tabName}`);
-  if (activeBtn) activeBtn.classList.add('active');
-  if (activeContent) activeContent.classList.remove('hidden');
-}
 
 function renderAdminUserList(filterText = '') {
   const tbody = document.getElementById('admin-users-table-body');
