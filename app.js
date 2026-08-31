@@ -1987,26 +1987,7 @@ async function handleAdminImportJSON() {
   reader.readAsText(file);
 }
 
-function handleAdminPostAnnouncement() {
-  const titleInput = document.getElementById('admin-announcement-title');
-  const typeSelect = document.getElementById('admin-announcement-type');
-  const contentInput = document.getElementById('admin-announcement-content');
 
-  const title = titleInput ? titleInput.value.trim() : '';
-  const type = typeSelect ? typeSelect.value : 'info';
-  const content = contentInput ? contentInput.value.trim() : '';
-
-  if (!title || !content) {
-    showToast('Vui lòng nhập đầy đủ Tiêu đề và Nội dung thông báo!', 'error');
-    return;
-  }
-
-  DB.addAnnouncement({ title, type, content, author: 'Admin' }, false);
-  showToast('📢 Đã phát thông báo hệ thống lên Server Cloud thành công!', 'success');
-
-  titleInput.value = '';
-  contentInput.value = '';
-}
 
 /* ════════════════════════════════════════════════════
    ADMIN CMS — BÀI VIẾT (QUILL EDITOR)
