@@ -3,7 +3,7 @@
  * Manages Sidebar, Top Header Search, Page Navigation, Subject Detail, and Auth Popover
  */
 
-import { SUBJECTS_REGISTRY, getSubjectById, KNOWLEDGE_BLOCKS } from './subjects.js';
+import { SUBJECTS_REGISTRY, getAllSubjects, getSubjectById, KNOWLEDGE_BLOCKS } from './subjects.js';
 import { DB } from './db.js';
 import { AuthModule, SUPER_ADMIN_EMAILS, getUserRole } from './auth.js';
 import { ArticlesModule } from './articles.js';
@@ -118,12 +118,12 @@ export const NavController = {
 
     if (!q) {
       // Show all subjects grouped or top list
-      this.renderSearchResults(SUBJECTS_REGISTRY);
+      this.renderSearchResults(getAllSubjects());
       dropdown.classList.remove('hidden');
       return;
     }
 
-    const filtered = SUBJECTS_REGISTRY.filter(s =>
+    const filtered = getAllSubjects().filter(s =>
       s.name.toLowerCase().includes(q) ||
       s.code.toLowerCase().includes(q) ||
       (KNOWLEDGE_BLOCKS[s.blockId]?.name || '').toLowerCase().includes(q)
