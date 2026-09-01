@@ -2436,6 +2436,9 @@ function adminSaveArticle(forceStatus) {
     author: NavController.currentUser?.name || 'Admin System',
   };
 
+  console.log('[DEBUG] Saving article with cover URL:', coverUrl);
+  console.log('[DEBUG] Full article object:', article);
+
   DB.saveArticle(article);
   adminCloseArticleEditor();
   renderAdminArticleList();

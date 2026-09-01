@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Check localStorage Articles</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
+    pre { background: #2d2d2d; padding: 15px; border-radius: 8px; overflow-x: auto; }
+    button { padding: 10px 20px; margin: 10px 5px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+    .btn-primary { background: #007acc; color: white; }
+    .btn-danger { background: #dc2626; color: white; }
+    .article-item { background: #2d2d2d; padding: 12px; margin: 10px 0; border-radius: 6px; border-left: 4px solid #007acc; }
+    .article-title { color: #4fc3f7; font-weight: bold; margin-bottom: 8px; }
+    .article-cover { color: #ce9178; word-break: break-all; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Check localStorage Articles</h1>
+  <button class="btn-primary" onclick="checkArticles()">Reload Articles</button>
+  <button class="btn-danger" onclick="clearCache()">Clear localStorage Cache</button>
+  
+  <div id="output"></div>
+
+  <script>
+    function checkArticles() {
+      const articles = JSON.parse(localStorage.getItem('qlcl_cms_articles') || '[]');
+      const output = document.getElementById('output');
+      
+      let html = `<h2>Total: ${articles.length} articles</h2>`;
+      
+      articles.forEach((art, idx) => {
+        html += `
+          <div class="article-item">
+            <div class="article-title">${idx + 1}. ${art.title || 'No title'}</div>
+            <div><strong>ID:</strong> ${art.id}</div>
+            <div><strong>Category:</strong> ${art.category}</div>
+            <div><strong>Status:</strong> ${art.status || 'published'}</div>
+            <div><strong>Date:</strong> ${art.date}</div>
+            <div><strong>Views:</strong> ${art.views || 0}</div>
+            <div class="article-cover"><strong>Cover URL:</strong><br>${art.cover || 'NO COVER'}</div>
+          </div>
+        `;
+      });
+      
+      output.innerHTML = html;
+    }
+
+    function clearCache() {
+      if (confirm('Clear all articles from localStorage?')) {
+        localStorage.removeItem('qlcl_cms_articles');
+        localStorage.removeItem('qlcl_articles_initialized');
+        alert('Cleared! Refresh the main page to reload defaults.');
+        checkArticles();
+      }
+    }
+
+    // Auto load on page load
+    checkArticles();
+  </script>
+</body>
+</html>
