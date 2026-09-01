@@ -1,6 +1,19 @@
 [
   {
     "subjectId": "FT4475",
+    "type": "exam",
+    "name": "Đề thi kết thúc học phần Tự động hóa - ĐHCNTP24A",
+    "url": "",
+    "content": "<p class=\"MsoNormal\" style=\"text-align: right;\" align=\"right\"><span style=\"font-size: 12.0pt; border: none windowtext 1.0pt; mso-border-alt: none windowtext 0cm; padding: 4.0pt;\">Đề 1</span></p>\n<p class=\"MsoNormal\">&nbsp;</p>\n<p class=\"MsoNormal\"><strong><u><span style=\"font-size: 14.0pt;\">TRƯỜNG ĐẠI HỌC ĐỒNG TH&Aacute;P</span></u></strong></p>\n<p class=\"MsoNormal\">&nbsp;</p>\n<p class=\"MsoNormal\" style=\"text-align: center;\" align=\"center\"><strong><span style=\"font-size: 14.0pt;\">ĐỀ THI KẾT TH&Uacute;C HỌC PHẦN</span></strong></p>\n<p class=\"MsoNormal\">&nbsp;</p>\n<p class=\"MsoNormal\"><span style=\"font-size: 12.0pt;\">Học phần: Tự động h&oacute;a trong sản xuất thực phẩm<span style=\"mso-spacerun: yes;\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>M&atilde; học phần: FT4475.</span></p>\n<p class=\"MsoNormal\"><span style=\"font-size: 12.0pt;\">Lớp/Ng&agrave;nh: C&ocirc;ng nghệ thực phẩm<span style=\"mso-spacerun: yes;\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Học kỳ: 1<span style=\"mso-spacerun: yes;\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Năm học: 2025 - 2026</span></p>\n<p class=\"MsoNormal\"><em><span style=\"font-size: 12.0pt;\">H&igrave;nh thức thi: Tự luận.</span></em><span style=\"font-size: 12.0pt;\"><span style=\"mso-spacerun: yes;\">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; </span>Thời gian l&agrave;m b&agrave;i: 60 ph&uacute;t.</span></p>\n<p class=\"MsoNormal\">&nbsp;</p>\n<p class=\"MsoNormal\"><strong><span style=\"font-size: 12.0pt;\">C&acirc;u 1 (5 điểm)</span></strong></p>\n<p class=\"MsoNormal\"><span style=\"font-size: 12.0pt;\"><span style=\"mso-spacerun: yes;\">&nbsp;&nbsp;&nbsp;&nbsp; </span>a. Kh&aacute;i niệm về điều khiển tự động trong sản xuất thực phẩm l&agrave; g&igrave;?</span></p>\n<p class=\"MsoNormal\"><span style=\"font-size: 12.0pt;\"><span style=\"mso-spacerun: yes;\">&nbsp;&nbsp;&nbsp;&nbsp; </span>b. C&aacute;c th&agrave;nh phần cơ bản?</span></p>\n<p class=\"MsoNormal\"><span style=\"font-size: 12.0pt;\"><span style=\"mso-spacerun: yes;\">&nbsp;&nbsp;&nbsp;&nbsp; </span>c. Cấu tr&uacute;c hệ thống điều khiển?</span></p>\n<p class=\"MsoNormal\">&nbsp;</p>\n<p class=\"MsoNormal\"><strong><span style=\"font-size: 12.0pt;\">C&acirc;u 2 (5 điểm)</span></strong></p>\n<p class=\"MsoNormal\"><span style=\"font-size: 12.0pt;\"><span style=\"mso-spacerun: yes;\">&nbsp;&nbsp;&nbsp;&nbsp; </span>T&aacute;c động của tự động h&oacute;a đến ng&agrave;nh chế biến thịt? Tại sao cần phải c&oacute; tự động h&oacute;a?</span></p>\n<p class=\"MsoNormal\">&nbsp;</p>\n<p class=\"MsoNormal\">&nbsp;</p>\n<p class=\"MsoNormal\" style=\"text-align: center;\" align=\"center\"><em><span style=\"font-size: 12.0pt;\">--- Hết ---</span></em></p>\n<p class=\"MsoNormal\">&nbsp;</p>\n<p class=\"MsoNormal\" style=\"text-align: center;\" align=\"center\"><em><span style=\"font-size: 12.0pt;\">Ghi ch&uacute;: Sinh vi&ecirc;n <strong>kh&ocirc;ng được</strong> sử dụng t&agrave;i liệu.</span></em></p>",
+    "fileName": "",
+    "year": "2025 - 2026",
+    "inputMode": "editor",
+    "author": "FTECA-24",
+    "id": "RES_1788269016876",
+    "createdAt": "2026-09-01T13:23:36.876Z"
+  },
+  {
+    "subjectId": "FT4475",
     "type": "lecture",
     "name": "Giáo trình học phần Tự động hóa - ĐHCNTP24A",
     "url": "https://docs.google.com/document/d/1QZS1CycU3NmRRFBIU8ouki8DZB07TqjB/edit?usp=sharing&ouid=105387248248389203186&rtpof=true&sd=true",
