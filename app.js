@@ -74,18 +74,32 @@ async function init() {
     }
   });
 
-  // Kéo tài nguyên học tập từ server về
+  // Kéo tài nguyên học tập từ server về (sync toàn bộ, bao gồm cả xóa)
   try {
     const serverResources = await pullResourcesFromServer();
-    if (serverResources && serverResources.length > 0) {
-      // Merge server resources với local
+    if (serverResources && Array.isArray(serverResources)) {
+      // SYNC TOÀN BỘ: Server là nguồn dữ liệu chính
       const localResources = DB.getResources();
+      const serverIds = new Set(serverResources.map(r => r.id));
       const localIds = new Set(localResources.map(r => r.id));
-      const newResources = serverResources.filter(r => !localIds.has(r.id));
       
+      // Thêm resources mới từ server
+      const newResources = serverResources.filter(r => !localIds.has(r.id));
       if (newResources.length > 0) {
         newResources.forEach(r => DB.saveResource(r, true)); // skipSync = true
         console.log(`[Resources] ✅ Đã kéo ${newResources.length} tài nguyên mới từ server`);
+      }
+      
+      // Xóa resources local nếu không còn trên server (Admin đã xóa)
+      const deletedResources = localResources.filter(r => !serverIds.has(r.id));
+      if (deletedResources.length > 0) {
+        deletedResources.forEach(r => DB.deleteResource(r.id, true)); // skipSync = true
+        console.log(`[Resources] 🗑️ Đã xóa ${deletedResources.length} tài nguyên không còn trên server`);
+      }
+      
+      // Re-render nếu đang ở tab resources
+      if (document.getElementById('resources-tab')?.classList.contains('active')) {
+        if (typeof renderResources === 'function') renderResources();
       }
     }
   } catch (e) {
