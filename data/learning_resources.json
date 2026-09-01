@@ -1,6 +1,19 @@
 [
   {
     "subjectId": "FT4484",
+    "type": "lecture",
+    "name": "Bài giảng học phần Đánh giá cảm quang ĐHCNTP24A",
+    "url": "https://drive.google.com/drive/folders/12zc8GHP2U5lyftkNzyuDW9QKjHUxYF94?usp=sharing",
+    "content": "",
+    "fileName": "",
+    "year": "2025 - 2026",
+    "inputMode": "url",
+    "author": "Nghịch Mặc",
+    "id": "RES_1788242569614",
+    "createdAt": "2026-09-01T06:02:49.614Z"
+  },
+  {
+    "subjectId": "FT4484",
     "type": "exam",
     "name": "Đề thi kết thúc học phần Đánh giá cảm quan - ĐHCNTP24A",
     "url": "",
