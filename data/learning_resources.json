@@ -1,6 +1,19 @@
 [
   {
     "subjectId": "FT4471",
+    "type": "lecture",
+    "name": "Bộ bài giảng môn học Dinh dưỡng và sức khỏe ĐHCNTP24A ĐHCNTP25A",
+    "url": "https://drive.google.com/drive/folders/1Ej6FmcWqPx9jy0nWQimkuSXdhulbHjou?usp=sharing",
+    "content": "",
+    "fileName": "",
+    "year": "2025 - 2026",
+    "inputMode": "url",
+    "author": "Nghịch Mặc",
+    "id": "RES_1788239345447",
+    "createdAt": "2026-09-01T05:09:05.447Z"
+  },
+  {
+    "subjectId": "FT4471",
     "type": "exam",
     "name": "Đề thi kết thúc học phần - CNTP24A CNTP25A",
     "url": "",
