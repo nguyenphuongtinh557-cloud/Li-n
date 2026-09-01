@@ -3,7 +3,7 @@
  * Manages Sidebar, Top Header Search, Page Navigation, Subject Detail, and Auth Popover
  */
 
-import { SUBJECTS_REGISTRY, getAllSubjects, getSubjectById, KNOWLEDGE_BLOCKS } from './subjects.js?v=20260901';
+import { SUBJECTS_REGISTRY, getAllSubjects, getSubjectById, KNOWLEDGE_BLOCKS } from './subjects.js?v=20260901b';
 import { DB } from './db.js';
 import { AuthModule, SUPER_ADMIN_EMAILS, getUserRole } from './auth.js';
 import { ArticlesModule } from './articles.js';

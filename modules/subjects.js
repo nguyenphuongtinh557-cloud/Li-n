@@ -1,6 +1,6 @@
 /**
  * subjects.js — Master Curriculum Framework Registry
- * Quản lý Ma trận 35 Học phần thuộc Chương trình đào tạo Ngành Công nghệ Thực phẩm
+ * Quản lý Toàn bộ Học phần thuộc Chương trình đào tạo Ngành Công nghệ Thực phẩm
  */
 
 export const KNOWLEDGE_BLOCKS = {
@@ -55,8 +55,31 @@ export const SUBJECTS_REGISTRY = [
   { id: 'FT4466', code: 'FT4466', name: 'Nguyên lý bảo quản và chế biến thực phẩm', credits: 2, blockId: 'CS_NGANH', semester: 7 },
   { id: 'FT4461', code: 'FT4461', name: 'Hóa sinh học thực phẩm', credits: 3, blockId: 'CS_NGANH', semester: 8 },
 
-  // ─── 5. MÔN BỔ SUNG ───────────────────────────────────────────────────────────
-  { id: 'FT4471', code: 'FT4471', name: 'Dinh dưỡng và sức khỏe', credits: 3, blockId: 'CS_NGANH', semester: 3 },
+  // ─── 5. MÔN CHUYÊN NGÀNH THỰC PHẨM ───────────────────────────────────────────
+  { id: 'FT4480', code: 'FT4480', name: 'Thiết kế thí nghiệm và xử lý số liệu - CNTP', credits: 3, blockId: 'CS_NGANH', semester: 5 },
+  { id: 'FT4484', code: 'FT4484', name: 'Đánh giá cảm quan thực phẩm', credits: 3, blockId: 'CS_NGANH', semester: 6 },
+  { id: 'FT4485', code: 'FT4485', name: 'Bao bì thực phẩm', credits: 2, blockId: 'CS_NGANH', semester: 6 },
+  { id: 'FT4592', code: 'FT4592', name: 'Dinh dưỡng và sức khỏe', credits: 3, blockId: 'CS_NGANH', semester: 6 },
+  { id: 'FT4481', code: 'FT4481', name: 'Phương pháp nghiên cứu khoa học - CNTP', credits: 3, blockId: 'CS_NGANH', semester: 7 },
+  { id: 'FT4486', code: 'FT4486', name: 'Phụ gia thực phẩm', credits: 2, blockId: 'CS_NGANH', semester: 7 },
+  { id: 'FT4482', code: 'FT4482', name: 'Seminar chuyên ngành - CNTP', credits: 3, blockId: 'CS_NGANH', semester: 8 },
+  { id: 'FT4483', code: 'FT4483', name: 'Anh văn chuyên ngành - CNTP', credits: 3, blockId: 'CS_NGANH', semester: 8 },
+  { id: 'FT4487', code: 'FT4487', name: 'Phát triển sản phẩm mới', credits: 3, blockId: 'CS_NGANH', semester: 8 },
+  { id: 'FT4479', code: 'FT4479', name: 'Phân tích thực phẩm', credits: 3, blockId: 'CS_NGANH', semester: 9 },
+  { id: 'FT4488', code: 'FT4488', name: 'Công nghệ sau TH và chế biến SP thực vật', credits: 4, blockId: 'CS_NGANH', semester: 9 },
+  { id: 'FT4489', code: 'FT4489', name: 'Công nghệ sau TH và chế biến SP động vật', credits: 4, blockId: 'CS_NGANH', semester: 11 },
+  { id: 'FT4490', code: 'FT4490', name: 'TT. Công nghệ thực phẩm (PTN)', credits: 2, blockId: 'CS_NGANH', semester: 11 },
+  { id: 'FT4591', code: 'FT4591', name: 'Thực tập Kỹ thuật công nghệ thực phẩm', credits: 2, blockId: 'CS_NGANH', semester: 12 },
+
+  // ─── 6. MÔN TỰ CHỌN CHUYÊN NGÀNH ─────────────────────────────────────────────
+  { id: 'FT4492', code: 'FT4492', name: 'Công nghệ sản xuất đường, sữa và chất béo', credits: 4, blockId: 'CS_NGANH', semester: 10 },
+  { id: 'FT4496', code: 'FT4496', name: 'Độc tố học thực phẩm', credits: 2, blockId: 'CS_NGANH', semester: 10 },
+  { id: 'FT4497', code: 'FT4497', name: 'Xử lý tận dụng phế và phụ phẩm thực phẩm', credits: 2, blockId: 'CS_NGANH', semester: 10 },
+  { id: 'FT4493', code: 'FT4493', name: 'Công nghệ sản xuất SP truyền thống VN và CN', credits: 4, blockId: 'CS_NGANH', semester: 11 },
+  { id: 'FT4494', code: 'FT4494', name: 'Thực phẩm chức năng', credits: 2, blockId: 'CS_NGANH', semester: 11 },
+  { id: 'FT4495', code: 'FT4495', name: 'Công nghệ enzyme', credits: 2, blockId: 'CS_NGANH', semester: 11 },
+
+  // ─── 7. MÔN BỔ SUNG KHÁC ──────────────────────────────────────────────────────
   { id: 'EE4001', code: 'EE4001', name: 'Kỹ thuật điện', credits: 3, blockId: 'CS_NGANH', semester: 3 }
 ];
 
