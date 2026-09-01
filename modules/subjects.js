@@ -53,7 +53,11 @@ export const SUBJECTS_REGISTRY = [
   { id: 'FT4457', code: 'FT4457', name: 'Hóa học thực phẩm', credits: 2, blockId: 'CS_NGANH', semester: 7 },
   { id: 'FT4462', code: 'FT4462', name: 'Thực tập Kỹ thuật thực phẩm (PTN)', credits: 2, blockId: 'CS_NGANH', semester: 7 },
   { id: 'FT4466', code: 'FT4466', name: 'Nguyên lý bảo quản và chế biến thực phẩm', credits: 2, blockId: 'CS_NGANH', semester: 7 },
-  { id: 'FT4461', code: 'FT4461', name: 'Hóa sinh học thực phẩm', credits: 3, blockId: 'CS_NGANH', semester: 8 }
+  { id: 'FT4461', code: 'FT4461', name: 'Hóa sinh học thực phẩm', credits: 3, blockId: 'CS_NGANH', semester: 8 },
+
+  // ─── 5. MÔN BỔ SUNG ───────────────────────────────────────────────────────────
+  { id: 'FT4471', code: 'FT4471', name: 'Dinh dưỡng và sức khỏe', credits: 3, blockId: 'CS_NGANH', semester: 3 },
+  { id: 'EE4001', code: 'EE4001', name: 'Kỹ thuật điện', credits: 3, blockId: 'CS_NGANH', semester: 3 }
 ];
 
 export const DEFAULT_SUBJECT_ID = 'FT4468';
