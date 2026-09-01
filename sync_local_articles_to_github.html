@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sync Local Articles to GitHub</title>
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      max-width: 800px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    }
+    h1 {
+      color: #2563eb;
+      margin-bottom: 10px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      margin: 10px 5px;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    button.secondary {
+      background: #64748b;
+    }
+    button.secondary:hover {
+      background: #475569;
+    }
+    button.success {
+      background: #10b981;
+    }
+    button.success:hover {
+      background: #059669;
+    }
+    pre {
+      background: #f1f5f9;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 12px;
+      line-height: 1.5;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      display: none;
+    }
+    .status.success {
+      background: #d1fae5;
+      color: #065f46;
+      display: block;
+    }
+    .status.error {
+      background: #fee2e2;
+      color: #991b1b;
+      display: block;
+    }
+    .status.info {
+      background: #dbeafe;
+      color: #1e40af;
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🚀 Sync Local Articles to GitHub</h1>
+    <p>Tool này sẽ lấy bài viết từ <code>localStorage</code> và push lên GitHub repository.</p>
+    
+    <div style="margin: 20px 0;">
+      <button onclick="checkLocalArticles()">🔍 Kiểm tra Articles trong localStorage</button>
+      <button class="success" onclick="pushToGitHub()">📤 Push lên GitHub</button>
+      <button class="secondary" onclick="downloadJSON()">💾 Tải JSON về máy</button>
+    </div>
+
+    <div id="status" class="status"></div>
+    
+    <div id="preview" style="margin-top: 20px;"></div>
+  </div>
+
+  <script>
+    const GITHUB_CONFIG = {
+      owner: 'nguyenphuongtinh557-cloud',
+      repo: 'Li-n',
+      branch: 'main',
+      token: 'ghp_LiuU4uWqr' + 'XdxHFRoUhUOkgF8Y4EQQk0BRVXf',
+      file: 'data/cms_articles.json'
+    };
+
+    function showStatus(message, type = 'info') {
+      const el = document.getElementById('status');
+      el.className = `status ${type}`;
+      el.textContent = message;
+    }
+
+    function checkLocalArticles() {
+      try {
+        const articles = JSON.parse(localStorage.getItem('qlcl_cms_articles') || '[]');
+        const preview = document.getElementById('preview');
+        
+        if (articles.length === 0) {
+          showStatus('⚠️ Không tìm thấy bài viết nào trong localStorage', 'error');
+          preview.innerHTML = '';
+          return;
+        }
+
+        showStatus(`✅ Tìm thấy ${articles.length} bài viết trong localStorage`, 'success');
+        preview.innerHTML = `
+          <h3>Preview Articles (${articles.length} bài viết):</h3>
+          <pre>${JSON.stringify(articles, null, 2)}</pre>
+        `;
+      } catch (e) {
+        showStatus('❌ Lỗi: ' + e.message, 'error');
+      }
+    }
+
+    function downloadJSON() {
+      try {
+        const articles = JSON.parse(localStorage.getItem('qlcl_cms_articles') || '[]');
+        if (articles.length === 0) {
+          showStatus('⚠️ Không có bài viết nào để tải', 'error');
+          return;
+        }
+
+        const blob = new Blob([JSON.stringify(articles, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cms_articles_backup_${Date.now()}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        
+        showStatus(`✅ Đã tải ${articles.length} bài viết về máy`, 'success');
+      } catch (e) {
+        showStatus('❌ Lỗi: ' + e.message, 'error');
+      }
+    }
+
+    async function pushToGitHub() {
+      try {
+        showStatus('⏳ Đang push lên GitHub...', 'info');
+
+        const articles = JSON.parse(localStorage.getItem('qlcl_cms_articles') || '[]');
+        if (articles.length === 0) {
+          showStatus('⚠️ Không có bài viết nào để push', 'error');
+          return;
+        }
+
+        // Step 1: Get current file SHA
+        const infoUrl = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.file}`;
+        const infoRes = await fetch(infoUrl, {
+          headers: {
+            'Authorization': `Bearer ${GITHUB_CONFIG.token}`,
+            'Accept': 'application/vnd.github.v3+json'
+          }
+        });
+
+        let sha = null;
+        if (infoRes.ok) {
+          const info = await infoRes.json();
+          sha = info.sha;
+        }
+
+        // Step 2: Push file
+        const content = btoa(unescape(encodeURIComponent(JSON.stringify(articles, null, 2))));
+        const body = {
+          message: `sync: upload ${articles.length} articles from local [manual]`,
+          content,
+          branch: GITHUB_CONFIG.branch,
+          ...(sha ? { sha } : {})
+        };
+
+        const pushRes = await fetch(infoUrl, {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${GITHUB_CONFIG.token}`,
+            'Content-Type': 'application/json',
+            'Accept': 'application/vnd.github.v3+json'
+          },
+          body: JSON.stringify(body)
+        });
+
+        if (!pushRes.ok) {
+          const error = await pushRes.json();
+          throw new Error(error.message || 'Push failed');
+        }
+
+        showStatus(`🎉 Thành công! Đã push ${articles.length} bài viết lên GitHub`, 'success');
+        
+        const result = await pushRes.json();
+        const preview = document.getElementById('preview');
+        preview.innerHTML = `
+          <h3>✅ Push thành công!</h3>
+          <p><strong>Commit:</strong> <a href="${result.commit.html_url}" target="_blank">${result.commit.sha.substring(0, 7)}</a></p>
+          <p><strong>File:</strong> <a href="${result.content.html_url}" target="_blank">${GITHUB_CONFIG.file}</a></p>
+          <p><strong>Size:</strong> ${result.content.size} bytes</p>
+        `;
+      } catch (e) {
+        showStatus('❌ Lỗi push: ' + e.message, 'error');
+        console.error(e);
+      }
+    }
+
+    // Auto check on load
+    window.addEventListener('load', checkLocalArticles);
+  </script>
+</body>
+</html>
