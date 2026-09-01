@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="referrer" content="no-referrer">
   <title>FTECA 24</title>
   <link rel="icon" type="image/webp" href="logo1.webp">
   <link rel="shortcut icon" type="image/webp" href="logo1.webp">
@@ -17,9 +18,8 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
   <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-  <!-- Quill.js Rich Text Editor -->
-  <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
-  <script src="https://cdn.quilljs.com/1.3.7/quill.min.js"></script>
+  <!-- TinyMCE Self-Hosted (No API Key Required) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js" referrerpolicy="origin"></script>
 </head>
 <body>
 
@@ -50,7 +50,7 @@
             <i class="fa-solid fa-house"></i> <span>Trang chủ</span>
           </button>
           <button id="snav-about" class="sidebar-nav-item" onclick="NavController.navigateToPage('about')">
-            <i class="fa-solid fa-graduation-cap"></i> <span>Giới thiệu về ngành</span>
+            <i class="fa-solid fa-newspaper"></i> <span>Đọc báo & Tin tức</span>
           </button>
           <button id="snav-ontap" class="sidebar-nav-item active" onclick="NavController.navigateToPage('ontap')">
             <i class="fa-solid fa-book-bookmark"></i> <span>Ôn tập & kiểm tra</span>
@@ -984,15 +984,15 @@
                   <label class="text-xs font-bold">Tiêu đề (*)</label>
                   <input type="text" id="admin-article-title" class="form-input" placeholder="Tiêu đề bài viết...">
                 </div>
-                <div class="grid-3 gap-2 mb-2">
+                <div class="grid-4 gap-2 mb-2">
                   <div>
                     <label class="text-xs font-bold">Danh mục</label>
                     <select id="admin-article-category" class="form-select text-xs">
-                      <option value="news">📰 Tin tức ngành</option>
-                      <option value="scholarship">🎓 Học bổng</option>
-                      <option value="event">🎉 Sự kiện</option>
-                      <option value="knowledge">🧪 Kiến thức chuyên môn</option>
-                      <option value="announcement">📢 Thông báo khoa</option>
+                      <option value="Công nghệ chế biến">🧪 Công nghệ chế biến</option>
+                      <option value="An toàn thực phẩm">🛡️ An toàn thực phẩm</option>
+                      <option value="Dinh dưỡng">🥗 Dinh dưỡng</option>
+                      <option value="Xu hướng ngành">🚀 Xu hướng ngành</option>
+                      <option value="Nghiên cứu khoa học">🔬 Nghiên cứu khoa học</option>
                     </select>
                   </div>
                   <div>
@@ -1000,29 +1000,37 @@
                     <select id="admin-article-status" class="form-select text-xs">
                       <option value="published">✅ Đăng ngay</option>
                       <option value="draft">📝 Lưu nháp</option>
-                      <option value="pinned">📌 Ghim đầu trang</option>
+                      <option value="pinned">📌 Ghim Nổi Bật (Hero)</option>
                     </select>
                   </div>
                   <div>
+                    <label class="text-xs font-bold">Ngày đăng</label>
+                    <input type="date" id="admin-article-date" class="form-input text-xs">
+                  </div>
+                  <div>
                     <label class="text-xs font-bold">Ảnh bìa (URL)</label>
-                    <input type="url" id="admin-article-cover" class="form-input text-xs" placeholder="https://...">
+                    <input type="text" id="admin-article-cover" class="form-input text-xs" placeholder="https://cdn.phototouri.com/free/2026-08-..." autocomplete="off">
                   </div>
                 </div>
                 <div class="mb-2">
+                  <label class="text-xs font-bold">Mô tả ngắn / Trích dẫn (Excerpt)</label>
+                  <input type="text" id="admin-article-excerpt" class="form-input text-xs" placeholder="Tóm tắt ngắn 1-2 câu hiển thị ở trang tin tức...">
+                </div>
+                <div class="mb-2">
                   <label class="text-xs font-bold">Tags (phân cách bằng dấu phẩy)</label>
-                  <input type="text" id="admin-article-tags" class="form-input text-xs" placeholder="cntp, vi sinh, thực phẩm...">
+                  <input type="text" id="admin-article-tags" class="form-input text-xs" placeholder="cntp, vi sinh, haccp, sấy lạnh...">
                 </div>
                 <label class="text-xs font-bold mb-1 flex items-center justify-between">
                   <span><i class="fa-solid fa-file-word text-primary"></i> Trình Soạn Thảo Văn Bản MS Word Paper View (Bài Viết)</span>
                   <span class="text-xs text-muted font-normal">Góc nhìn người đọc (WYSIWYG)</span>
                 </label>
                 <div class="word-editor-wrapper mb-3">
-                  <div id="admin-quill-article" style="height:360px;"></div>
+                  <textarea id="admin-tinymce-article"></textarea>
                 </div>
                 <div class="flex gap-2 justify-end">
                   <button class="btn btn-secondary" onclick="adminCloseArticleEditor()">Hủy</button>
                   <button class="btn btn-warning" onclick="adminSaveArticle('draft')"><i class="fa-solid fa-floppy-disk"></i> Lưu nháp</button>
-                  <button class="btn btn-success font-bold" onclick="adminSaveArticle('published')"><i class="fa-solid fa-paper-plane"></i> Đăng Bài & Đồng Bộ Cloud</button>
+                  <button class="btn btn-success font-bold" onclick="adminSaveArticle()"><i class="fa-solid fa-paper-plane"></i> Lưu & Đồng Bộ Cloud</button>
                 </div>
               </div>
             </div>
@@ -1062,7 +1070,7 @@
                   <span class="text-xs text-muted font-normal">Góc nhìn người đọc</span>
                 </label>
                 <div class="word-editor-wrapper mb-3">
-                  <div id="admin-quill-announcement" style="height:220px;"></div>
+                  <textarea id="admin-tinymce-announcement"></textarea>
                 </div>
                 <button class="btn btn-success btn-full font-bold" onclick="handleAdminPostAnnouncement()">
                   <i class="fa-solid fa-paper-plane"></i> Gửi Thông Báo Lên Server Cloud
@@ -1147,7 +1155,7 @@
                 <!-- Mode 2: Direct File Upload -->
                 <div id="resinput-file" class="form-group mb-3" style="display:none;">
                   <label class="text-xs font-bold">Chọn File tài liệu (PDF, DOCX, PPTX, TXT, Ảnh)</label>
-                  <input type="file" id="admin-resource-file-input" class="form-input text-xs mb-1" accept=".pdf,.docx,.doc,.pptx,.ppt,.txt,.png,.jpg,.jpeg">
+                  <input type="file" id="admin-resource-file-input" class="form-input text-xs mb-1" accept=".pdf,.docx,.doc,.pptx,.ppt,.txt,.png,.jpg,.jpeg,.webp,.gif,.avif">
                   <span class="text-xs text-muted" id="admin-resource-file-status">Hệ thống sẽ đọc và lưu trữ thông tin file lên Cloud.</span>
                 </div>
 
@@ -1158,7 +1166,7 @@
                     <span class="text-xs text-muted font-normal">Góc nhìn người đọc</span>
                   </label>
                   <div class="word-editor-wrapper mb-2">
-                    <div id="admin-quill-resource" style="height:320px;"></div>
+                    <textarea id="admin-tinymce-resource"></textarea>
                   </div>
                 </div>
 
@@ -1485,7 +1493,7 @@
     <div class="cera-input-wrap">
       <label for="cera-file-input" class="cera-img-btn" title="Đính kèm ảnh bài tập">
         <i class="fa-solid fa-camera"></i>
-        <input type="file" id="cera-file-input" accept="image/*" style="display:none;" onchange="handleCeraImageUpload(event)">
+        <input type="file" id="cera-file-input" accept="image/png,image/jpeg,image/gif,image/webp,image/avif" style="display:none;" onchange="handleCeraImageUpload(event)">
       </label>
       <textarea
         id="cera-input"

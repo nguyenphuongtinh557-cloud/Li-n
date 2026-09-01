@@ -6,9 +6,10 @@
 import { SUBJECTS_REGISTRY, getSubjectById, KNOWLEDGE_BLOCKS } from './subjects.js';
 import { DB } from './db.js';
 import { AuthModule, SUPER_ADMIN_EMAILS, getUserRole } from './auth.js';
+import { ArticlesModule } from './articles.js';
 
 export const NavController = {
-  activePage: 'ontap',
+  activePage: 'home',
   currentUser: null,
 
   init() {
@@ -38,6 +39,16 @@ export const NavController = {
     }
     if (pageId === 'ontap' && !subTabId) {
       subTabId = 'exam-tab';
+    }
+
+    if (pageId === 'about') {
+      setTimeout(() => {
+        if (window.ArticlesModule) {
+          window.ArticlesModule.renderArticlesView();
+        } else {
+          ArticlesModule.renderArticlesView();
+        }
+      }, 20);
     }
 
     // Bảo mật trang Admin: Chỉ 2 Gmail Admin mới truy cập được
@@ -340,9 +351,12 @@ export const NavController = {
         roleBadgeHtml = '<span class="badge badge-premium"><i class="fa-solid fa-crown"></i> PREMIUM MEMBER</span>';
       }
 
+      const safeName = (this.currentUser.name || 'User').replace(/'/g, "\\'");
+      const defaultAvatar = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%2300b96b"/><stop offset="100%" stop-color="%23008f4f"/></linearGradient></defs><rect width="128" height="128" rx="64" fill="url(%23g)"/><text x="50%" y="54%" font-family="system-ui,-apple-system,sans-serif" font-size="56" font-weight="800" fill="%23ffffff" dominant-baseline="middle" text-anchor="middle">${(safeName.charAt(0) || 'U').toUpperCase()}</text></svg>`;
+
       container.innerHTML = `
         <button class="user-avatar-btn" onclick="NavController.toggleUserPopover()" title="${this.currentUser.name}">
-          <img src="${this.currentUser.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(this.currentUser.name)}" alt="Avatar" class="user-avatar-img">
+          <img src="${this.currentUser.avatar || defaultAvatar}" alt="Avatar" class="user-avatar-img" referrerpolicy="no-referrer" onerror="window.handleAvatarError(this, '${safeName}')">
           <span class="user-avatar-name">${this.currentUser.name}</span>
           <i class="fa-solid fa-chevron-down text-xs" style="color:var(--text-muted);margin-left:4px;"></i>
         </button>
@@ -350,7 +364,7 @@ export const NavController = {
         <!-- User Dropdown Popover -->
         <div id="user-profile-popover" class="user-popover hidden">
           <div class="popover-header">
-            <img src="${this.currentUser.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(this.currentUser.name)}" class="popover-avatar">
+            <img src="${this.currentUser.avatar || defaultAvatar}" class="popover-avatar" referrerpolicy="no-referrer" onerror="window.handleAvatarError(this, '${safeName}')">
             <div class="popover-user-info">
               <div class="popover-user-name">${this.currentUser.name}</div>
               <div class="popover-user-email">${this.currentUser.email || ''}</div>
@@ -466,12 +480,12 @@ export const NavController = {
             <!-- Avatar Preview & Upload Button -->
             <div class="text-center" style="margin-bottom: 16px;">
               <div style="position:relative;width:96px;height:96px;margin:0 auto 12px;">
-                <img id="edit-avatar-preview" src="${this.currentUser?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'}" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--primary);box-shadow:var(--shadow-md);">
+                <img id="edit-avatar-preview" src="${this.currentUser?.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=User'}" referrerpolicy="no-referrer" style="width:96px;height:96px;border-radius:50%;object-fit:cover;border:3px solid var(--primary);box-shadow:var(--shadow-md);">
                 <label for="avatar-file-input" style="position:absolute;bottom:0;right:0;width:32px;height:32px;background:var(--primary);color:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 2px 8px rgba(0,0,0,0.3);" title="Tải ảnh mới từ thiết bị">
                   <i class="fa-solid fa-camera"></i>
                 </label>
               </div>
-              <input type="file" id="avatar-file-input" accept="image/*" style="display:none;" onchange="NavController.handleAvatarFileUpload(event)">
+              <input type="file" id="avatar-file-input" accept="image/png,image/jpeg,image/gif,image/webp,image/avif" style="display:none;" onchange="NavController.handleAvatarFileUpload(event)">
               <button class="btn btn-secondary btn-sm" onclick="document.getElementById('avatar-file-input').click()">
                 <i class="fa-solid fa-upload"></i> Tải Ảnh Từ Máy Tính / Điện Thoại
               </button>
@@ -506,7 +520,7 @@ export const NavController = {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      if (window.showToast) window.showToast('Vui lòng chọn file hình ảnh (PNG, JPG, WebP)!', 'error');
+      if (window.showToast) window.showToast('Vui lòng chọn file hình ảnh (PNG, JPG, GIF, WebP, AVIF)!', 'error');
       return;
     }
 
@@ -569,4 +583,11 @@ export const NavController = {
     if (modal) modal.classList.remove('open');
     if (window.showToast) window.showToast('Đã cập nhật tên và ảnh đại diện!', 'success');
   }
+};
+
+window.handleAvatarError = function(imgElement, name) {
+  if (!imgElement) return;
+  imgElement.onerror = null;
+  const initial = ((name || 'U').trim().charAt(0) || 'U').toUpperCase();
+  imgElement.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%2300b96b"/><stop offset="100%" stop-color="%23008f4f"/></linearGradient></defs><rect width="128" height="128" rx="64" fill="url(%23g)"/><text x="50%" y="54%" font-family="system-ui,-apple-system,sans-serif" font-size="56" font-weight="800" fill="%23ffffff" dominant-baseline="middle" text-anchor="middle">${initial}</text></svg>`;
 };

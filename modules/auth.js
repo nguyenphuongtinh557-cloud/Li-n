@@ -128,11 +128,14 @@ export const AuthModule = {
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
 
+      const customAvatar = localStorage.getItem(`lien_custom_avatar_${user.uid}`);
+      const customName = localStorage.getItem(`lien_custom_name_${user.uid}`);
+
       const realUser = {
         uid: user.uid,
-        name: user.displayName || user.email.split('@')[0],
+        name: customName || user.displayName || user.email.split('@')[0],
         email: user.email,
-        avatar: user.photoURL,
+        avatar: customAvatar || user.photoURL || null,
         emailVerified: user.emailVerified,
         provider: 'google.com',
         signedInAt: new Date().toISOString()

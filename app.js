@@ -8,7 +8,7 @@ import { Generator } from './modules/generator.js';
 import { ExamEngine, ExamTimer } from './modules/exam.js';
 import { SEED_QUESTIONS } from './data/seed_questions.js';
 import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion } from './modules/cera.js';
-import { pullFromGitHub, pullAdminEdits, fetchWebContent } from './modules/sync.js?v=20260831';
+import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer } from './modules/sync.js?v=20260831';
 import { initAdminAuth } from './modules/admin.js';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js';
 import { NavController } from './modules/navigation.js';
@@ -74,16 +74,35 @@ async function init() {
     }
   });
 
+  // Kéo tài nguyên học tập từ server về
+  try {
+    const serverResources = await pullResourcesFromServer();
+    if (serverResources && serverResources.length > 0) {
+      // Merge server resources với local
+      const localResources = DB.getResources();
+      const localIds = new Set(localResources.map(r => r.id));
+      const newResources = serverResources.filter(r => !localIds.has(r.id));
+      
+      if (newResources.length > 0) {
+        newResources.forEach(r => DB.saveResource(r, true)); // skipSync = true
+        console.log(`[Resources] ✅ Đã kéo ${newResources.length} tài nguyên mới từ server`);
+      }
+    }
+  } catch (e) {
+    console.warn('[Resources] Không thể kéo resources từ server:', e);
+  }
+
   // Apply saved theme
   const settings = DB.getSettings();
   if (settings.theme === 'dark') {
     document.documentElement.setAttribute('data-theme', 'dark');
   }
+  updateThemeButton(settings.theme === 'dark' ? 'dark' : 'light');
 
   updateBankCount();
   initSubjectSelector();
   NavController.init();
-  switchTab('exam-tab');
+  NavController.navigateToPage('home');
 
   // Kéo bản vá của admin từ server về và patch lên DB local
   // (Patch được ưu tiên hơn seed, giúp Admin sửa câu hỏi mà không cần đụng tới code)
@@ -1190,9 +1209,17 @@ function toggleTheme() {
   const newTheme = isDark ? 'light' : 'dark';
   document.documentElement.setAttribute('data-theme', newTheme);
   DB.saveSettings({ theme: newTheme });
+  updateThemeButton(newTheme);
+}
 
-  const btn = document.getElementById('btn-theme');
-  if (btn) btn.innerHTML = newTheme === 'dark' ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+function updateThemeButton(theme) {
+  const btn = document.getElementById('btn-theme-top');
+  if (!btn) return;
+
+  const isDark = theme === 'dark';
+  btn.innerHTML = isDark ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
+  btn.title = isDark ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối';
+  btn.setAttribute('aria-label', btn.title);
 }
 
 function togglePauseExam() {
@@ -1862,10 +1889,19 @@ function switchAdminSubTab(tabName) {
 
   // Render content per tab
   if (tabName === 'users') { renderAdminUserList(); }
-  else if (tabName === 'cms') { renderAdminArticleList(); }
-  else if (tabName === 'announcement') { renderAdminAnnouncementList(); }
+  else if (tabName === 'cms') {
+    renderAdminArticleList();
+    _initTinyMCEEditors();
+  }
+  else if (tabName === 'announcement') {
+    renderAdminAnnouncementList();
+    _initTinyMCEEditors();
+  }
   else if (tabName === 'feedback') { renderAdminFeedbackInbox(); }
-  else if (tabName === 'resources') { renderAdminResourceList(); }
+  else if (tabName === 'resources') { 
+    _populateResourceSubjectDropdown();
+    renderAdminResourceList(); 
+  }
   else if (tabName === 'bank') { _populateBankSubjectDropdown(); }
 }
 function renderAdminDashboard() {
@@ -1885,6 +1921,10 @@ function renderAdminDashboard() {
   if (statSubjects) statSubjects.textContent = subjects.length || 35;
 
   renderAdminUserList();
+  
+  // Pre-populate dropdowns for all tabs
+  _populateResourceSubjectDropdown();
+  _populateBankSubjectDropdown();
 }
 
 
@@ -2021,7 +2061,9 @@ async function handleAdminImportJSON() {
 
 
 /* ════════════════════════════════════════════════════
-   ADMIN CMS �function _formatDateForDateInput(dateStr) {
+   ADMIN CMS
+════════════════════════════════════════════════════ */
+function _formatDateForDateInput(dateStr) {
   if (!dateStr) return new Date().toISOString().split('T')[0];
   if (dateStr.match(/^\d{4}-\d{2}-\d{2}$/)) return dateStr;
   const parts = dateStr.split('/');
@@ -2040,6 +2082,81 @@ function _formatInputDateForDisplay(dateStr) {
   return dateStr;
 }
 
+let _adminTinyMCEArticle = null;
+let _adminTinyMCEAnnouncement = null;
+let _adminTinyMCEResource = null;
+
+function _initTinyMCEEditors() {
+  // TinyMCE configuration
+  const tinyConfig = {
+    height: 400,
+    menubar: true,
+    plugins: [
+      'advlist', 'autolink', 'lists', 'link', 'image', 'charmap', 'preview',
+      'anchor', 'searchreplace', 'visualblocks', 'code', 'fullscreen',
+      'insertdatetime', 'media', 'table', 'help', 'wordcount'
+    ],
+    toolbar: 'undo redo | blocks | bold italic forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | table | link image media | removeformat code | help',
+    content_style: 'body { font-family: Inter, sans-serif; font-size: 14px; } table { border-collapse: collapse; width: 100%; } table td, table th { border: 1px solid #ccc; padding: 8px; }',
+    table_default_attributes: {
+      border: '1',
+      style: 'border-collapse: collapse; width: 100%;'
+    },
+    table_default_styles: {
+      'border-collapse': 'collapse',
+      'width': '100%'
+    },
+    images_upload_handler: (blobInfo, progress) => {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = () => reject('Lỗi đọc ảnh');
+        reader.readAsDataURL(blobInfo.blob());
+      });
+    },
+    file_picker_types: 'image',
+    automatic_uploads: true,
+    images_reuse_filename: true,
+    branding: false,
+  };
+
+  // Init article editor
+  if (!_adminTinyMCEArticle) {
+    tinymce.init({
+      ...tinyConfig,
+      selector: '#admin-tinymce-article',
+      height: 450,
+      setup: (editor) => {
+        _adminTinyMCEArticle = editor;
+      }
+    });
+  }
+
+  // Init announcement editor
+  if (!_adminTinyMCEAnnouncement) {
+    tinymce.init({
+      ...tinyConfig,
+      selector: '#admin-tinymce-announcement',
+      height: 300,
+      setup: (editor) => {
+        _adminTinyMCEAnnouncement = editor;
+      }
+    });
+  }
+
+  // Init resource editor
+  if (!_adminTinyMCEResource) {
+    tinymce.init({
+      ...tinyConfig,
+      selector: '#admin-tinymce-resource',
+      height: 350,
+      setup: (editor) => {
+        _adminTinyMCEResource = editor;
+      }
+    });
+  }
+}
+
 function adminOpenArticleEditor() {
   document.getElementById('admin-article-id').value = '';
   document.getElementById('admin-article-title').value = '';
@@ -2052,9 +2169,13 @@ function adminOpenArticleEditor() {
   document.getElementById('admin-article-category').value = 'Công nghệ chế biến';
   document.getElementById('admin-article-status').value = 'published';
   document.getElementById('admin-editor-title-label').textContent = '✏️ Soạn Thảo Bài Viết Mới';
-  if (_adminQuillArticle) _adminQuillArticle.setContents([]);
+  
+  if (_adminTinyMCEArticle) {
+    _adminTinyMCEArticle.setContent('');
+  }
+  
   document.getElementById('admin-article-editor').style.display = '';
-  setTimeout(() => _initQuillEditors(), 80);
+  setTimeout(() => _initTinyMCEEditors(), 100);
 }
 
 function adminEditArticle(id) {
@@ -2065,9 +2186,18 @@ function adminEditArticle(id) {
   const article = articles.find(a => a.id === id);
   if (!article) return;
 
+  console.log('[DEBUG] adminEditArticle - Setting cover URL:', article.cover);
+
   document.getElementById('admin-article-id').value = id;
   document.getElementById('admin-article-title').value = article.title || '';
   document.getElementById('admin-article-cover').value = article.cover || '';
+  
+  // Prevent auto-change by storing original value
+  const coverInput = document.getElementById('admin-article-cover');
+  if (coverInput) {
+    coverInput.dataset.originalValue = article.cover || '';
+  }
+  
   const excerptInput = document.getElementById('admin-article-excerpt');
   if (excerptInput) excerptInput.value = article.excerpt || '';
   const dateInput = document.getElementById('admin-article-date');
@@ -2079,11 +2209,11 @@ function adminEditArticle(id) {
   document.getElementById('admin-article-editor').style.display = '';
 
   setTimeout(() => {
-    _initQuillEditors();
-    if (_adminQuillArticle && article.content) {
-      _adminQuillArticle.clipboard.dangerouslyPasteHTML(article.content);
+    _initTinyMCEEditors();
+    if (_adminTinyMCEArticle && article.content) {
+      _adminTinyMCEArticle.setContent(article.content);
     }
-  }, 80);
+  }, 100);
 }
 
 function adminCloseArticleEditor() {
@@ -2093,14 +2223,25 @@ function adminCloseArticleEditor() {
 function adminSaveArticle(forceStatus) {
   const title = document.getElementById('admin-article-title').value.trim();
   if (!title) { showToast('Vui lòng nhập tiêu đề bài viết!', 'error'); return; }
-  const content = _adminQuillArticle ? _adminQuillArticle.root.innerHTML : '';
-  const textContent = _adminQuillArticle ? _adminQuillArticle.getText().trim() : '';
+  
+  const content = _adminTinyMCEArticle ? _adminTinyMCEArticle.getContent() : '';
+  const textContent = _adminTinyMCEArticle ? _adminTinyMCEArticle.getContent({format: 'text'}).trim() : '';
+  
   if (!textContent) { showToast('Nội dung bài viết không được để trống!', 'error'); return; }
 
   const status = forceStatus || document.getElementById('admin-article-status').value;
   const excerptInput = document.getElementById('admin-article-excerpt');
   const excerpt = excerptInput ? excerptInput.value.trim() : (textContent.slice(0, 140) + '...');
-  const coverUrl = document.getElementById('admin-article-cover').value.trim() || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&auto=format&fit=crop';
+  
+  // Validate cover URL
+  let coverUrl = document.getElementById('admin-article-cover').value.trim();
+  if (coverUrl && !coverUrl.startsWith('http://') && !coverUrl.startsWith('https://')) {
+    showToast('URL ảnh bìa phải bắt đầu bằng http:// hoặc https://', 'error');
+    return;
+  }
+  if (!coverUrl) {
+    coverUrl = 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&auto=format&fit=crop';
+  }
 
   const articleId = document.getElementById('admin-article-id').value || ('art_' + Date.now());
 
@@ -2147,117 +2288,50 @@ function adminSaveArticle(forceStatus) {
   }
 
   showToast(status === 'draft' ? '📝 Đã lưu nháp bài viết!' : '🎉 Đã đăng bài viết và đồng bộ thành công!', 'success');
-}images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=300&auto=format&fit=crop'">
-      <div class="article-info">
-        <h4>${escapeHtml(a.title || 'Không có tiêu đề')}</h4>
-        <p class="article-excerpt-preview">${escapeHtml(a.excerpt || 'Bài viết chưa có mô tả trích dẫn.')}</p>
-        <div class="article-meta text-xs text-muted">
-          <span>${categoryIcons[a.category] || '📄'} <strong>${escapeHtml(a.category || 'Công nghệ chế biến')}</strong></span>
-          &middot; <span>📅 ${a.date || new Date(a.updatedAt || Date.now()).toLocaleDateString('vi-VN')}</span>
-          &middot; <span>👁️ ${a.views || 0} lượt xem</span>
-          &middot; <span class="badge ${a.status === 'pinned' || a.featured ? 'badge-warning' : (a.status === 'published' ? 'badge-success' : 'badge-secondary')}">${a.status === 'pinned' || a.featured ? '📌 Ghim Hero' : (a.status === 'published' ? '✅ Đã đăng' : '📝 Nháp')}</span>
-        </div>
-      </div>
-      <div class="article-actions-row" onclick="event.stopPropagation()">
-        <button class="btn ${a.status === 'pinned' || a.featured ? 'btn-warning' : 'btn-secondary'} btn-xs" onclick="adminTogglePinArticle('${a.id}')" title="Ghim/Nổi bật trên Hero trang chủ">
-          <i class="fa-solid fa-thumbtack"></i> ${a.status === 'pinned' || a.featured ? 'Bỏ ghim' : 'Ghim Hero'}
-        </button>
-        <button class="btn btn-primary btn-xs" onclick="adminEditArticle('${a.id}')" title="Chỉnh sửa bài viết">
-          <i class="fa-solid fa-pen-to-square"></i> Sửa
-        </button>
-        <button class="btn btn-danger btn-xs" onclick="adminDeleteArticle('${a.id}')" title="Xóa bài viết">
-          <i class="fa-solid fa-trash"></i> Xóa
-        </button>
-      </div>
-    </div>
-  `).join('');
 }
 
-function adminOpenArticleEditor() {
-  document.getElementById('admin-article-id').value = '';
-  document.getElementById('admin-article-title').value = '';
-  document.getElementById('admin-article-cover').value = '';
-  const excerptInput = document.getElementById('admin-article-excerpt');
-  if (excerptInput) excerptInput.value = '';
-  document.getElementById('admin-article-tags').value = '';
-  document.getElementById('admin-article-category').value = 'Công nghệ chế biến';
-  document.getElementById('admin-article-status').value = 'published';
-  document.getElementById('admin-editor-title-label').textContent = '✏️ Soạn Thảo Bài Viết Mới';
-  if (_adminQuillArticle) _adminQuillArticle.setContents([]);
-  document.getElementById('admin-article-editor').style.display = '';
-  setTimeout(() => _initQuillEditors(), 80);
-}
+function renderAdminArticleList() {
+  const container = document.getElementById('admin-article-list');
+  if (!container) return;
 
-function adminEditArticle(id) {
   let articles = DB.getArticles();
   if (!articles || !articles.length) {
-    if (window.ArticlesModule) articles = window.ArticlesModule.getArticlesData();
+    articles = ArticlesModule.getArticlesData();
   }
-  const article = articles.find(a => a.id === id);
-  if (!article) return;
 
-  document.getElementById('admin-article-id').value = id;
-  document.getElementById('admin-article-title').value = article.title || '';
-  document.getElementById('admin-article-cover').value = article.cover || '';
-  const excerptInput = document.getElementById('admin-article-excerpt');
-  if (excerptInput) excerptInput.value = article.excerpt || '';
-  document.getElementById('admin-article-tags').value = (article.tags || []).join(', ');
-  document.getElementById('admin-article-category').value = article.category || 'Công nghệ chế biến';
-  document.getElementById('admin-article-status').value = article.status || (article.featured ? 'pinned' : 'published');
-  document.getElementById('admin-editor-title-label').textContent = `✏️ Chỉnh Sửa Bài Viết: ${article.title}`;
-  document.getElementById('admin-article-editor').style.display = '';
+  if (!articles || !articles.length) {
+    container.innerHTML = '<p class="text-xs text-muted text-center py-4">Chưa có bài viết nào.</p>';
+    return;
+  }
 
-  setTimeout(() => {
-    _initQuillEditors();
-    if (_adminQuillArticle && article.content) {
-      _adminQuillArticle.clipboard.dangerouslyPasteHTML(article.content);
-    }
-  }, 80);
-}
-
-function adminCloseArticleEditor() {
-  document.getElementById('admin-article-editor').style.display = 'none';
-}
-
-function adminSaveArticle(forceStatus) {
-  const title = document.getElementById('admin-article-title').value.trim();
-  if (!title) { showToast('Vui lòng nhập tiêu đề bài viết!', 'error'); return; }
-  const content = _adminQuillArticle ? _adminQuillArticle.root.innerHTML : '';
-  const textContent = _adminQuillArticle ? _adminQuillArticle.getText().trim() : '';
-  if (!textContent) { showToast('Nội dung bài viết không được để trống!', 'error'); return; }
-
-  const status = forceStatus || document.getElementById('admin-article-status').value;
-  const excerptInput = document.getElementById('admin-article-excerpt');
-  const excerpt = excerptInput ? excerptInput.value.trim() : (textContent.slice(0, 140) + '...');
-  const coverUrl = document.getElementById('admin-article-cover').value.trim() || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&auto=format&fit=crop';
-
-  const articleId = document.getElementById('admin-article-id').value || ('art_' + Date.now());
-
-  const article = {
-    id: articleId,
-    title,
-    excerpt,
-    content,
-    category: document.getElementById('admin-article-category').value || 'Công nghệ chế biến',
-    status,
-    featured: status === 'pinned',
-    cover: coverUrl,
-    date: new Date().toLocaleDateString('vi-VN'),
-    readTime: `${Math.max(2, Math.ceil(textContent.length / 500))} phút đọc`,
-    views: 1,
-    tags: document.getElementById('admin-article-tags').value.split(',').map(t => t.trim()).filter(Boolean),
-    author: NavController.currentUser?.name || 'Admin System',
+  const statusLabel = (article) => {
+    if (article.status === 'pinned' || article.featured) return '<span class="badge badge-warning">📌 Nổi bật</span>';
+    if (article.status === 'draft') return '<span class="badge badge-secondary">📝 Nháp</span>';
+    return '<span class="badge badge-success">✅ Đã đăng</span>';
   };
 
-  DB.saveArticle(article);
-  adminCloseArticleEditor();
-  renderAdminArticleList();
-
-  if (window.ArticlesModule && window.ArticlesModule.renderArticlesView) {
-    window.ArticlesModule.renderArticlesView();
-  }
-
-  showToast(status === 'draft' ? '📝 Đã lưu nháp bài viết!' : '🎉 Đã đăng bài viết và đồng bộ thành công!', 'success');
+  container.innerHTML = [...articles]
+    .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
+    .map(article => `
+      <div class="article-card-admin">
+        <img class="article-thumb" src="${escapeHtml(article.cover || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=300&auto=format&fit=crop')}" alt="">
+        <div class="article-info">
+          <h4>${escapeHtml(article.title || 'Không có tiêu đề')}</h4>
+          <p class="article-excerpt-preview">${escapeHtml(article.excerpt || 'Bài viết chưa có mô tả ngắn.')}</p>
+          <div class="article-meta">
+            <span>${escapeHtml(article.category || 'Chưa phân loại')}</span>
+            <span>📅 ${escapeHtml(article.date || '')}</span>
+            <span>👁️ ${Number(article.views) || 0}</span>
+          </div>
+        </div>
+        <div class="article-actions-row">
+          ${statusLabel(article)}
+          <button class="btn btn-secondary btn-xs" onclick="adminEditArticle('${String(article.id).replace(/'/g, "\\'")}')">Sửa</button>
+          <button class="btn btn-secondary btn-xs" onclick="adminTogglePinArticle('${String(article.id).replace(/'/g, "\\'")}')">${article.status === 'pinned' || article.featured ? 'Bỏ ghim' : 'Ghim'}</button>
+          <button class="btn btn-danger btn-xs" onclick="adminDeleteArticle('${String(article.id).replace(/'/g, "\\'")}')">Xóa</button>
+        </div>
+      </div>
+    `).join('');
 }
 
 function adminDeleteArticle(id) {
@@ -2265,7 +2339,12 @@ function adminDeleteArticle(id) {
   DB.deleteArticle(id);
   renderAdminArticleList();
 
-  if (window.ArticlesModule && window.ArticlesModule.renderArticlesView) {
+  // Force reload articles module data
+  if (window.ArticlesModule) {
+    // Clear any cached data
+    window.ArticlesModule.currentCategory = 'Tất cả';
+    window.ArticlesModule.activeArticleId = null;
+    // Re-render if user is on articles page
     window.ArticlesModule.renderArticlesView();
   }
 
@@ -2304,9 +2383,9 @@ function handleAdminPostAnnouncement() {
   const scope = scopeSelect ? scopeSelect.value : 'all';
 
   let content = '';
-  if (_adminQuillAnnouncement) {
-    content = _adminQuillAnnouncement.root.innerHTML;
-    if (!_adminQuillAnnouncement.getText().trim()) {
+  if (_adminTinyMCEAnnouncement) {
+    content = _adminTinyMCEAnnouncement.getContent();
+    if (!_adminTinyMCEAnnouncement.getContent({format: 'text'}).trim()) {
       showToast('Vui lòng nhập nội dung thông báo!', 'error'); return;
     }
   } else {
@@ -2320,7 +2399,7 @@ function handleAdminPostAnnouncement() {
   DB.addAnnouncement({ title, content, type, scope, author: NavController.currentUser?.name || 'Admin' });
   showToast('📢 Đã gửi thông báo lên Server Cloud!', 'success');
   if (titleInput) titleInput.value = '';
-  if (_adminQuillAnnouncement) _adminQuillAnnouncement.setContents([]);
+  if (_adminTinyMCEAnnouncement) _adminTinyMCEAnnouncement.setContent('');
   renderAdminAnnouncementList();
 }
 
@@ -2405,8 +2484,16 @@ function adminDeleteFeedback(id) {
 /* ─── RESOURCES ─────────────────────────────────────────────────────────────── */
 function _populateResourceSubjectDropdown() {
   const select = document.getElementById('admin-resource-subject');
-  if (!select) return;
+  if (!select) {
+    console.warn('[Resources] Dropdown not found: admin-resource-subject');
+    return;
+  }
   const subjects = getAllSubjects();
+  console.log('[Resources] Populating dropdown with', subjects.length, 'subjects');
+  if (!subjects || subjects.length === 0) {
+    select.innerHTML = '<option value="">Không có môn học nào</option>';
+    return;
+  }
   select.innerHTML = subjects.map(s => `<option value="${s.id}">${s.code} — ${s.name}</option>`).join('');
 }
 
@@ -2444,7 +2531,7 @@ function switchResourceInputMode(mode) {
     if (btn) btn.classList.toggle('active', m === mode);
   });
   if (mode === 'editor') {
-    setTimeout(() => _initQuillEditors(), 50);
+    setTimeout(() => _initTinyMCEEditors(), 100);
   }
 }
 
@@ -2483,9 +2570,9 @@ async function adminSaveResource() {
       showToast('Vui lòng chọn File tài liệu tải lên!', 'error'); return;
     }
   } else if (_currentResourceInputMode === 'editor') {
-    if (_adminQuillResource) {
-      content = _adminQuillResource.root.innerHTML;
-      if (!_adminQuillResource.getText().trim()) {
+    if (_adminTinyMCEResource) {
+      content = _adminTinyMCEResource.getContent();
+      if (!_adminTinyMCEResource.getContent({format: 'text'}).trim()) {
         showToast('Nội dung soạn thảo không được để trống!', 'error'); return;
       }
     }
@@ -2507,7 +2594,7 @@ async function adminSaveResource() {
   document.getElementById('admin-resource-name').value = '';
   document.getElementById('admin-resource-url').value = '';
   document.getElementById('admin-resource-year').value = '';
-  if (_adminQuillResource) _adminQuillResource.setContents([]);
+  if (_adminTinyMCEResource) _adminTinyMCEResource.setContent('');
   const fileInput = document.getElementById('admin-resource-file-input');
   if (fileInput) fileInput.value = '';
   renderAdminResourceList();
@@ -2896,3 +2983,60 @@ window.openUserResourceViewer = openUserResourceViewer;
 
 // Boot
 document.addEventListener('DOMContentLoaded', init);
+
+
+// Debug helper: Monitor cover URL input changes
+if (typeof window !== 'undefined') {
+  window.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      const coverInput = document.getElementById('admin-article-cover');
+      if (coverInput) {
+        let lastValue = '';
+        
+        // Monitor all changes
+        const observer = new MutationObserver(() => {
+          const currentValue = coverInput.value;
+          if (currentValue !== lastValue) {
+            console.log('[DEBUG] Cover URL changed:', {
+              from: lastValue,
+              to: currentValue,
+              stack: new Error().stack
+            });
+            lastValue = currentValue;
+          }
+        });
+        
+        observer.observe(coverInput, { 
+          attributes: true, 
+          attributeFilter: ['value'] 
+        });
+        
+        // Also monitor input events
+        coverInput.addEventListener('input', (e) => {
+          console.log('[DEBUG] User typing cover URL:', e.target.value);
+          lastValue = e.target.value;
+        });
+        
+        // Monitor value property changes
+        let internalValue = coverInput.value;
+        Object.defineProperty(coverInput, 'value', {
+          get() {
+            return internalValue;
+          },
+          set(newValue) {
+            if (internalValue !== newValue) {
+              console.log('[DEBUG] Cover value setter called:', {
+                from: internalValue,
+                to: newValue,
+                stack: new Error().stack.split('\n').slice(2, 5).join('\n')
+              });
+              internalValue = newValue;
+              coverInput.setAttribute('value', newValue);
+            }
+          },
+          configurable: true
+        });
+      }
+    }, 1000);
+  });
+}

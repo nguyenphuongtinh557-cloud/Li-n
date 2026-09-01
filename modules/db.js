@@ -118,7 +118,14 @@ export const DB = {
 
   // ─── CMS Articles (Bài Viết Giới Thiệu Ngành) ──────────────────────────────
   getArticles() {
-    try { return JSON.parse(localStorage.getItem(KEYS.ARTICLES) || '[]'); } catch { return []; }
+    try {
+      const stored = JSON.parse(localStorage.getItem(KEYS.ARTICLES) || '[]');
+      console.log('[DB] getArticles() returning:', stored.length, 'articles from localStorage');
+      return stored;
+    } catch (e) { 
+      console.warn('[DB] getArticles() error:', e);
+      return []; 
+    }
   },
 
   saveArticle(article, skipSync = false) {
