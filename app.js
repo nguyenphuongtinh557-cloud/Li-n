@@ -2356,13 +2356,47 @@ function adminSaveArticle(forceStatus) {
   const excerptInput = document.getElementById('admin-article-excerpt');
   const excerpt = excerptInput ? excerptInput.value.trim() : (textContent.slice(0, 140) + '...');
   
-  // Validate cover URL
+  // Validate cover URL - Chỉ chấp nhận URL từ phototourl.com hoặc các nguồn tin cậy
   let coverUrl = document.getElementById('admin-article-cover').value.trim();
-  if (coverUrl && !coverUrl.startsWith('http://') && !coverUrl.startsWith('https://')) {
-    showToast('URL ảnh bìa phải bắt đầu bằng http:// hoặc https://', 'error');
-    return;
-  }
-  if (!coverUrl) {
+  
+  if (coverUrl) {
+    // Check if URL is valid
+    if (!coverUrl.startsWith('http://') && !coverUrl.startsWith('https://')) {
+      showToast('❌ URL ảnh bìa phải bắt đầu bằng http:// hoặc https://', 'error');
+      return;
+    }
+    
+    // Validate URL format và domain
+    try {
+      const urlObj = new URL(coverUrl);
+      const allowedDomains = [
+        'cdn.phototourl.com',
+        'images.unsplash.com',
+        'cdn.phototouri.com'  // Support cả phototouri.com variant
+      ];
+      
+      const isAllowed = allowedDomains.some(domain => urlObj.hostname === domain || urlObj.hostname.endsWith('.' + domain));
+      
+      if (!isAllowed) {
+        showToast(`❌ Chỉ chấp nhận URL từ: ${allowedDomains.join(', ')}\n\nVí dụ: https://cdn.phototourl.com/free/2026-09-01-xxx.jpg`, 'error');
+        return;
+      }
+      
+      // Validate image extension
+      const path = urlObj.pathname.toLowerCase();
+      const validExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'];
+      const hasValidExt = validExtensions.some(ext => path.endsWith(ext));
+      
+      if (!hasValidExt) {
+        showToast(`❌ URL phải kết thúc bằng định dạng ảnh hợp lệ: ${validExtensions.join(', ')}`, 'error');
+        return;
+      }
+    } catch (e) {
+      showToast('❌ URL không hợp lệ. Vui lòng kiểm tra lại định dạng.', 'error');
+      return;
+    }
+  } else {
+    // Default cover nếu không nhập
     coverUrl = 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&auto=format&fit=crop';
   }
 
