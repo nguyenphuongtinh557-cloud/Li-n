@@ -8,7 +8,7 @@ import { Generator } from './modules/generator.js';
 import { ExamEngine, ExamTimer } from './modules/exam.js';
 import { SEED_QUESTIONS } from './data/seed_questions.js';
 import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion } from './modules/cera.js';
-import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer } from './modules/sync.js?v=20260831';
+import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer } from './modules/sync.js?v=20260831';
 import { initAdminAuth } from './modules/admin.js';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js';
 import { NavController } from './modules/navigation.js';
@@ -104,6 +104,43 @@ async function init() {
     }
   } catch (e) {
     console.warn('[Resources] Không thể kéo resources từ server:', e);
+  }
+
+  // Kéo bài viết (CMS Articles) từ server về (sync toàn bộ, bao gồm cả xóa)
+  try {
+    const serverArticles = await pullArticlesFromServer();
+    if (serverArticles && Array.isArray(serverArticles)) {
+      const localArticles = DB.getArticles();
+      const serverIds = new Set(serverArticles.map(a => a.id));
+      const localIds = new Set(localArticles.map(a => a.id));
+      
+      // Thêm articles mới từ server
+      const newArticles = serverArticles.filter(a => !localIds.has(a.id));
+      if (newArticles.length > 0) {
+        newArticles.forEach(a => DB.saveArticle(a, true)); // skipSync = true
+        console.log(`[Articles] ✅ Đã kéo ${newArticles.length} bài viết mới từ server`);
+      }
+      
+      // Update articles đã tồn tại (nếu có thay đổi)
+      const existingArticles = serverArticles.filter(a => localIds.has(a.id));
+      if (existingArticles.length > 0) {
+        existingArticles.forEach(a => DB.saveArticle(a, true)); // skipSync = true
+      }
+      
+      // Xóa articles local nếu không còn trên server (Admin đã xóa)
+      const deletedArticles = localArticles.filter(a => !serverIds.has(a.id));
+      if (deletedArticles.length > 0) {
+        deletedArticles.forEach(a => DB.deleteArticle(a.id, true)); // skipSync = true
+        console.log(`[Articles] 🗑️ Đã xóa ${deletedArticles.length} bài viết không còn trên server`);
+      }
+      
+      // Re-render articles view nếu có
+      if (window.ArticlesModule && window.ArticlesModule.renderArticlesView) {
+        window.ArticlesModule.renderArticlesView();
+      }
+    }
+  } catch (e) {
+    console.warn('[Articles] Không thể kéo articles từ server:', e);
   }
 
   // Apply saved theme
