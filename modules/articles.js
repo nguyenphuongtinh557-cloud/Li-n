@@ -55,7 +55,7 @@ export const DEFAULT_ARTICLES = [
     title: 'Ứng dụng công nghệ sấy lạnh trong bảo quản thực phẩm',
     category: 'Công nghệ chế biến',
     excerpt: 'Công nghệ sấy lạnh đang mở ra nhiều tiềm năng trong việc bảo quản thực phẩm, giữ nguyên giá trị dinh dưỡng và hương vị tự nhiên.',
-    cover: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=900&auto=format&fit=crop',
+    cover: 'https://placehold.co/900x600/e3f2fd/1976d2?text=Food+Technology',
     date: '28/05/2024',
     readTime: '5 phút đọc',
     views: 0,
@@ -317,7 +317,7 @@ export const ArticlesModule = {
                 <!-- Large Hero Featured Card (Left) -->
                 <div class="article-hero-card card-hover-lift" onclick="ArticlesModule.openDetail('${heroArticle.id}')">
                   <div class="hero-img-wrap">
-                    <img src="${heroArticle.cover}" alt="${heroArticle.title}" class="hero-card-img" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&auto=format&fit=crop'">
+                    <img src="${heroArticle.cover}" alt="${heroArticle.title}" class="hero-card-img" referrerpolicy="no-referrer" onerror="this.src='https://placehold.co/800x600/e3f2fd/1976d2?text=No+Image'">
                   </div>
                   <div class="hero-card-body">
                     <span class="article-cat-badge badge-green">${heroArticle.category}</span>
@@ -365,7 +365,7 @@ export const ArticlesModule = {
                 </div>
               ` : filtered.map(art => `
                 <div class="article-horizontal-card card-hover-lift" onclick="ArticlesModule.openDetail('${art.id}')">
-                  <img src="${art.cover}" alt="${art.title}" class="h-card-img" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=400&auto=format&fit=crop'">
+                  <img src="${art.cover}" alt="${art.title}" class="h-card-img" referrerpolicy="no-referrer" onerror="this.src='https://placehold.co/400x300/e3f2fd/1976d2?text=No+Image'">
                   <div class="h-card-body">
                     <div class="flex justify-between items-center gap-2">
                       <span class="article-cat-badge badge-subtle-green">${art.category}</span>
@@ -496,7 +496,7 @@ export const ArticlesModule = {
               <div class="related-articles-list margin-top-12 space-y-3">
                 ${related.map(item => `
                   <div class="related-card" onclick="ArticlesModule.openDetail('${item.id}')">
-                    <img src="${item.cover}" alt="${item.title}" class="related-img" referrerpolicy="no-referrer" onerror="this.src='https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=300&auto=format&fit=crop'">
+                    <img src="${item.cover}" alt="${item.title}" class="related-img" referrerpolicy="no-referrer" onerror="this.src='https://placehold.co/300x200/e3f2fd/1976d2?text=No+Image'">
                     <div class="related-info">
                       <div class="related-title">${item.title}</div>
                       <div class="related-meta"><i class="fa-regular fa-clock"></i> ${item.readTime || '5 phút đọc'}</div>

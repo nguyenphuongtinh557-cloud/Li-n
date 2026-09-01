@@ -2374,8 +2374,8 @@ function adminSaveArticle(forceStatus) {
       return;
     }
   } else {
-    // Default cover nếu không nhập
-    coverUrl = 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=800&auto=format&fit=crop';
+    // Default cover nếu không nhập - để trống hoặc dùng placeholder
+    coverUrl = '';
   }
 
   const articleId = document.getElementById('admin-article-id').value || ('art_' + Date.now());
@@ -2452,7 +2452,7 @@ function renderAdminArticleList() {
     .sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')))
     .map(article => `
       <div class="article-card-admin">
-        <img class="article-thumb" src="${escapeHtml(article.cover || 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=300&auto=format&fit=crop')}" alt="">
+        <img class="article-thumb" src="${escapeHtml(article.cover || 'https://placehold.co/300x200/e3f2fd/1976d2?text=No+Cover')}" alt="">
         <div class="article-info">
           <h4>${escapeHtml(article.title || 'Không có tiêu đề')}</h4>
           <p class="article-excerpt-preview">${escapeHtml(article.excerpt || 'Bài viết chưa có mô tả ngắn.')}</p>
