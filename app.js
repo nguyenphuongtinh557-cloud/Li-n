@@ -2356,7 +2356,7 @@ function adminSaveArticle(forceStatus) {
   const excerptInput = document.getElementById('admin-article-excerpt');
   const excerpt = excerptInput ? excerptInput.value.trim() : (textContent.slice(0, 140) + '...');
   
-  // Validate cover URL - Chỉ chấp nhận URL từ phototourl.com hoặc các nguồn tin cậy
+  // Validate cover URL - Chấp nhận mọi URL hợp lệ
   let coverUrl = document.getElementById('admin-article-cover').value.trim();
   
   if (coverUrl) {
@@ -2366,31 +2366,9 @@ function adminSaveArticle(forceStatus) {
       return;
     }
     
-    // Validate URL format và domain
+    // Basic URL validation
     try {
-      const urlObj = new URL(coverUrl);
-      const allowedDomains = [
-        'cdn.phototourl.com',
-        'images.unsplash.com',
-        'cdn.phototouri.com'  // Support cả phototouri.com variant
-      ];
-      
-      const isAllowed = allowedDomains.some(domain => urlObj.hostname === domain || urlObj.hostname.endsWith('.' + domain));
-      
-      if (!isAllowed) {
-        showToast(`❌ Chỉ chấp nhận URL từ: ${allowedDomains.join(', ')}\n\nVí dụ: https://cdn.phototourl.com/free/2026-09-01-xxx.jpg`, 'error');
-        return;
-      }
-      
-      // Validate image extension
-      const path = urlObj.pathname.toLowerCase();
-      const validExtensions = ['.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif'];
-      const hasValidExt = validExtensions.some(ext => path.endsWith(ext));
-      
-      if (!hasValidExt) {
-        showToast(`❌ URL phải kết thúc bằng định dạng ảnh hợp lệ: ${validExtensions.join(', ')}`, 'error');
-        return;
-      }
+      new URL(coverUrl);
     } catch (e) {
       showToast('❌ URL không hợp lệ. Vui lòng kiểm tra lại định dạng.', 'error');
       return;
