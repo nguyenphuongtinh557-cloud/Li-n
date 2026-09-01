@@ -188,9 +188,7 @@ export const ArticlesModule = {
         // Map and ensure views property exists
         const articles = Array.isArray(stored) ? stored : [];
         return articles.map(s => {
-          if (s.id === 'art_haccp_standard' || (s.title && s.title.includes('HACCP'))) {
-            s.cover = 'https://images.unsplash.com/photo-1579154204601-01588f351e67?w=900&auto=format&fit=crop';
-          }
+          // Ensure views property exists
           if (s.views === undefined) s.views = 0;
           return s;
         });
