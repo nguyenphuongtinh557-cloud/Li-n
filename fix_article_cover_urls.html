@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fix Article Cover URLs</title>
+  <style>
+    body {
+      font-family: 'Inter', -apple-system, sans-serif;
+      max-width: 900px;
+      margin: 50px auto;
+      padding: 20px;
+      background: #f5f5f5;
+    }
+    .card {
+      background: white;
+      padding: 30px;
+      border-radius: 12px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    h1 {
+      color: #2563eb;
+      margin-bottom: 10px;
+    }
+    button {
+      background: #2563eb;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 600;
+      margin: 10px 5px;
+      font-size: 14px;
+    }
+    button:hover {
+      background: #1d4ed8;
+    }
+    button.danger {
+      background: #dc2626;
+    }
+    button.danger:hover {
+      background: #b91c1c;
+    }
+    button.success {
+      background: #10b981;
+    }
+    button.success:hover {
+      background: #059669;
+    }
+    pre {
+      background: #f1f5f9;
+      padding: 15px;
+      border-radius: 8px;
+      overflow-x: auto;
+      font-size: 12px;
+      line-height: 1.5;
+      max-height: 400px;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 15px;
+      border-radius: 8px;
+      display: none;
+    }
+    .status.success {
+      background: #d1fae5;
+      color: #065f46;
+      display: block;
+    }
+    .status.error {
+      background: #fee2e2;
+      color: #991b1b;
+      display: block;
+    }
+    .status.info {
+      background: #dbeafe;
+      color: #1e40af;
+      display: block;
+    }
+    .article-item {
+      padding: 12px;
+      background: #f8fafc;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      border-left: 4px solid #3b82f6;
+    }
+    .article-item.has-issue {
+      border-left-color: #ef4444;
+      background: #fef2f2;
+    }
+    .article-title {
+      font-weight: 600;
+      margin-bottom: 8px;
+      color: #1e293b;
+    }
+    .article-cover {
+      font-size: 11px;
+      font-family: 'Courier New', monospace;
+      color: #64748b;
+      word-break: break-all;
+    }
+    .article-cover.invalid {
+      color: #dc2626;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>🔧 Fix Article Cover URLs</h1>
+    <p>Tool này sẽ phát hiện và sửa các URL ảnh bìa bị lỗi (base64, data URL, etc.)</p>
+    
+    <div style="margin: 20px 0;">
+      <button onclick="checkArticles()">🔍 Kiểm tra Articles</button>
+      <button class="success" onclick="fixArticles()">✅ Sửa tất cả URL lỗi</button>
+      <button class="danger" onclick="clearAllArticles()">🗑️ Xóa tất cả Articles</button>
+    </div>
+
+    <div id="status" class="status"></div>
+    
+    <div id="preview" style="margin-top: 20px;"></div>
+  </div>
+
+  <script>
+    function showStatus(message, type = 'info') {
+      const el = document.getElementById('status');
+      el.className = `status ${type}`;
+      el.innerHTML = message;
+    }
+
+    function isValidUrl(url) {
+      if (!url) return false;
+      if (url.startsWith('data:')) return false;
+      if (!url.startsWith('http://') && !url.startsWith('https://')) return false;
+      try {
+        new URL(url);
+        return true;
+      } catch {
+        return false;
+      }
+    }
+
+    function checkArticles() {
+      try {
+        const articles = JSON.parse(localStorage.getItem('qlcl_cms_articles') || '[]');
+        const preview = document.getElementById('preview');
+        
+        if (articles.length === 0) {
+          showStatus('⚠️ Không tìm thấy bài viết nào trong localStorage', 'error');
+          preview.innerHTML = '';
+          return;
+        }
+
+        const invalidArticles = articles.filter(a => !isValidUrl(a.cover));
+        const validArticles = articles.filter(a => isValidUrl(a.cover));
+
+        let html = `<h3>Tổng quan: ${articles.length} bài viết</h3>`;
+        html += `<p>✅ <strong>${validArticles.length}</strong> bài viết có URL hợp lệ</p>`;
+        html += `<p>❌ <strong>${invalidArticles.length}</strong> bài viết có URL LỖI</p>`;
+
+        if (invalidArticles.length > 0) {
+          html += `<h4 style="margin-top:20px;color:#dc2626;">❌ Bài viết có URL lỗi:</h4>`;
+          invalidArticles.forEach(art => {
+            const coverPreview = art.cover ? 
+              (art.cover.length > 100 ? art.cover.substring(0, 100) + '...' : art.cover) : 
+              'RỖNG';
+            html += `
+              <div class="article-item has-issue">
+                <div class="article-title">📄 ${art.title || 'Không có tiêu đề'}</div>
+                <div class="article-cover invalid">Cover URL: ${coverPreview}</div>
+              </div>
+            `;
+          });
+        }
+
+        if (validArticles.length > 0) {
+          html += `<h4 style="margin-top:20px;color:#10b981;">✅ Bài viết có URL hợp lệ:</h4>`;
+          validArticles.forEach(art => {
+            html += `
+              <div class="article-item">
+                <div class="article-title">📄 ${art.title || 'Không có tiêu đề'}</div>
+                <div class="article-cover">${art.cover}</div>
+              </div>
+            `;
+          });
+        }
+
+        preview.innerHTML = html;
+        showStatus(`Đã kiểm tra xong ${articles.length} bài viết`, 'info');
+      } catch (e) {
+        showStatus('❌ Lỗi: ' + e.message, 'error');
+      }
+    }
+
+    function fixArticles() {
+      try {
+        const articles = JSON.parse(localStorage.getItem('qlcl_cms_articles') || '[]');
+        if (articles.length === 0) {
+          showStatus('⚠️ Không có bài viết nào để sửa', 'error');
+          return;
+        }
+
+        const defaultCover = 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?w=900&auto=format&fit=crop';
+        let fixedCount = 0;
+
+        articles.forEach(art => {
+          if (!isValidUrl(art.cover)) {
+            art.cover = defaultCover;
+            fixedCount++;
+          }
+        });
+
+        if (fixedCount === 0) {
+          showStatus('✅ Không có URL nào cần sửa. Tất cả đều hợp lệ!', 'success');
+          return;
+        }
+
+        localStorage.setItem('qlcl_cms_articles', JSON.stringify(articles));
+        showStatus(`🎉 Đã sửa ${fixedCount} URL lỗi thành URL mặc định!`, 'success');
+        
+        // Re-check
+        setTimeout(checkArticles, 500);
+      } catch (e) {
+        showStatus('❌ Lỗi: ' + e.message, 'error');
+      }
+    }
+
+    function clearAllArticles() {
+      if (!confirm('⚠️ BẠN CHẮC CHẮN MUỐN XÓA TẤT CẢ BÀI VIẾT?\n\nHành động này KHÔNG THỂ HOÀN TÁC!')) {
+        return;
+      }
+
+      if (!confirm('⚠️ LẦN CUỐI: Xóa tất cả bài viết trong localStorage?')) {
+        return;
+      }
+
+      localStorage.removeItem('qlcl_cms_articles');
+      localStorage.removeItem('qlcl_articles_initialized');
+      showStatus('🗑️ Đã xóa tất cả bài viết. Refresh trang để load lại bài viết mặc định.', 'info');
+      document.getElementById('preview').innerHTML = '';
+    }
+
+    // Auto check on load
+    window.addEventListener('load', checkArticles);
+  </script>
+</body>
+</html>
