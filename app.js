@@ -2184,6 +2184,9 @@ function adminOpenArticleEditor() {
   document.getElementById('admin-article-status').value = 'published';
   document.getElementById('admin-editor-title-label').textContent = '✏️ Soạn Thảo Bài Viết Mới';
   
+  // Hide preview
+  previewArticleCover('');
+  
   if (_adminTinyMCEArticle) {
     _adminTinyMCEArticle.setContent('');
   }
@@ -2212,6 +2215,9 @@ function adminEditArticle(id) {
     coverInput.dataset.originalValue = article.cover || '';
   }
   
+  // Preview ảnh bìa
+  previewArticleCover(article.cover || '');
+  
   const excerptInput = document.getElementById('admin-article-excerpt');
   if (excerptInput) excerptInput.value = article.excerpt || '';
   const dateInput = document.getElementById('admin-article-date');
@@ -2228,6 +2234,37 @@ function adminEditArticle(id) {
       _adminTinyMCEArticle.setContent(article.content);
     }
   }, 100);
+}
+
+function previewArticleCover(url) {
+  const previewContainer = document.getElementById('admin-article-cover-preview');
+  const previewImg = document.getElementById('admin-article-cover-img');
+  
+  if (!url || !url.trim()) {
+    if (previewContainer) previewContainer.style.display = 'none';
+    return;
+  }
+  
+  const cleanUrl = url.trim();
+  
+  // Validate URL format
+  try {
+    new URL(cleanUrl);
+  } catch {
+    if (previewContainer) previewContainer.style.display = 'none';
+    return;
+  }
+  
+  if (previewImg) {
+    previewImg.src = cleanUrl;
+    previewImg.onerror = () => {
+      if (previewContainer) previewContainer.style.display = 'none';
+      showToast('⚠️ Không thể tải ảnh từ URL này. Vui lòng kiểm tra lại link.', 'warning');
+    };
+    previewImg.onload = () => {
+      if (previewContainer) previewContainer.style.display = 'block';
+    };
+  }
 }
 
 function adminCloseArticleEditor() {
