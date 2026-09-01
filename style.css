@@ -3009,6 +3009,8 @@ img { max-width: 100%; }
   color: var(--text-secondary);
   max-width: 620px;
   margin: 0;
+  text-align: justify;
+  text-justify: inter-word;
   animation: slideInLeft 0.6s ease-out;
 }
 
