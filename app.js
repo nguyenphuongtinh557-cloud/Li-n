@@ -2245,7 +2245,7 @@ function previewArticleCover(url) {
     return;
   }
   
-  const cleanUrl = url.trim();
+  let cleanUrl = url.trim();
   
   // Validate URL format
   try {
@@ -2256,14 +2256,49 @@ function previewArticleCover(url) {
   }
   
   if (previewImg) {
-    previewImg.src = cleanUrl;
+    // Show loading state
+    if (previewContainer) {
+      previewContainer.style.display = 'block';
+      previewImg.style.opacity = '0.5';
+      previewImg.style.filter = 'blur(2px)';
+    }
+    
+    // Add cache-busting timestamp
+    const cacheBuster = `${cleanUrl.includes('?') ? '&' : '?'}_t=${Date.now()}`;
+    const finalUrl = cleanUrl + cacheBuster;
+    
+    // Try loading image with cache-buster
     previewImg.onerror = () => {
-      if (previewContainer) previewContainer.style.display = 'none';
-      showToast('⚠️ Không thể tải ảnh từ URL này. Vui lòng kiểm tra lại link.', 'warning');
+      // If failed, try with CORS proxy
+      const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(cleanUrl)}`;
+      previewImg.src = proxiedUrl;
+      
+      previewImg.onerror = () => {
+        // If still failed, hide preview
+        if (previewContainer) previewContainer.style.display = 'none';
+        showToast('⚠️ Không thể tải ảnh. URL có thể bị chặn CORS hoặc không hợp lệ.', 'warning');
+      };
+      
+      previewImg.onload = () => {
+        if (previewContainer) {
+          previewContainer.style.display = 'block';
+          previewImg.style.opacity = '1';
+          previewImg.style.filter = 'none';
+        }
+        showToast('✅ Đã tải ảnh qua proxy CORS', 'info');
+      };
     };
+    
     previewImg.onload = () => {
-      if (previewContainer) previewContainer.style.display = 'block';
+      if (previewContainer) {
+        previewContainer.style.display = 'block';
+        previewImg.style.opacity = '1';
+        previewImg.style.filter = 'none';
+      }
     };
+    
+    // Set src to trigger load
+    previewImg.src = finalUrl;
   }
 }
 
