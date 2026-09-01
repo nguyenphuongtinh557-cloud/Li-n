@@ -317,10 +317,23 @@
               </button>
             </div>
 
-            <!-- Subject Select Dropdown -->
+            <!-- Subject Select Dropdown với Search -->
             <div class="subject-pill-wrapper">
-              <select id="global-subject-select" class="subject-pill-select" title="Chọn Học Phần Ôn Tập">
-                <!-- Populated dynamically from subjects.js -->
+              <div class="searchable-select-wrapper">
+                <input 
+                  type="text" 
+                  id="global-subject-search" 
+                  class="subject-pill-select searchable-input" 
+                  placeholder="🔍 Tìm môn học (gõ mã hoặc tên)..."
+                  autocomplete="off"
+                  title="Gõ để tìm kiếm môn học"
+                />
+                <div id="global-subject-dropdown" class="searchable-dropdown hidden">
+                  <!-- Populated dynamically -->
+                </div>
+              </div>
+              <select id="global-subject-select" class="subject-pill-select" style="display:none;">
+                <!-- Hidden fallback for compatibility -->
               </select>
             </div>
           </div>

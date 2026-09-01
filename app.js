@@ -1323,9 +1323,15 @@ function showToast(message, type = 'info', duration = 3500) {
 /* ─── Subject Selector ─── */
 function initSubjectSelector() {
   const select = document.getElementById('global-subject-select');
-  if (!select) return;
+  const searchInput = document.getElementById('global-subject-search');
+  const dropdown = document.getElementById('global-subject-dropdown');
+  
+  if (!select || !searchInput || !dropdown) return;
 
-  // Build grouped options by block
+  let allSubjects = getAllSubjects();
+  let currentSubjectId = DB.getActiveSubject() || DEFAULT_SUBJECT_ID;
+
+  // Build grouped options by block (for hidden fallback select)
   const blockOrder = ['CS_NGANH', 'DC_CHUNG', 'DC_TUCHON', 'GDQP'];
   const blockLabels = {
     CS_NGANH: '🧪 Cơ sở ngành',
@@ -1349,22 +1355,100 @@ function initSubjectSelector() {
     select.appendChild(group);
   }
 
-  // Restore saved subject
-  const saved = DB.getActiveSubject();
-  if (saved) select.value = saved;
+  // Set initial value
+  select.value = currentSubjectId;
+  const currentSubject = allSubjects.find(s => s.id === currentSubjectId);
+  if (currentSubject) {
+    searchInput.value = `${currentSubject.code} · ${currentSubject.name}`;
+  }
 
-  // On change
-  select.addEventListener('change', () => {
-    const subjectId = select.value;
+  // Render dropdown
+  function renderDropdown(filter = '') {
+    const filterLower = filter.toLowerCase();
+    let filtered = allSubjects;
+    
+    if (filterLower) {
+      filtered = allSubjects.filter(s => 
+        s.code.toLowerCase().includes(filterLower) || 
+        s.name.toLowerCase().includes(filterLower)
+      );
+    }
+
+    if (filtered.length === 0) {
+      dropdown.innerHTML = '<div class="searchable-dropdown-empty">🔍 Không tìm thấy môn học phù hợp</div>';
+      return;
+    }
+
+    // Group by block
+    const grouped = {};
+    filtered.forEach(s => {
+      if (!grouped[s.blockId]) grouped[s.blockId] = [];
+      grouped[s.blockId].push(s);
+    });
+
+    let html = '';
+    for (const blockId of blockOrder) {
+      if (!grouped[blockId] || grouped[blockId].length === 0) continue;
+      html += `<div class="searchable-dropdown-group">`;
+      html += `<div class="searchable-dropdown-label">${blockLabels[blockId] || blockId}</div>`;
+      grouped[blockId].forEach(s => {
+        const isSelected = s.id === currentSubjectId ? 'selected' : '';
+        html += `
+          <div class="searchable-dropdown-item ${isSelected}" data-subject-id="${s.id}">
+            <span class="searchable-dropdown-code">${s.code}</span>
+            <span>${s.name}</span>
+          </div>
+        `;
+      });
+      html += `</div>`;
+    }
+
+    dropdown.innerHTML = html;
+
+    // Add click handlers
+    dropdown.querySelectorAll('.searchable-dropdown-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const subjectId = item.dataset.subjectId;
+        selectSubject(subjectId);
+      });
+    });
+  }
+
+  function selectSubject(subjectId) {
+    const subject = allSubjects.find(s => s.id === subjectId);
+    if (!subject) return;
+
+    currentSubjectId = subjectId;
+    searchInput.value = `${subject.code} · ${subject.name}`;
+    select.value = subjectId;
+    dropdown.classList.add('hidden');
+
     DB.setActiveSubject(subjectId);
     updateSubjectBanner(subjectId);
     updateBankCount();
-    // Re-render active tab if needed
     if (State.currentTab === 'bank-tab') renderBank();
+  }
+
+  // Search input events
+  searchInput.addEventListener('focus', () => {
+    renderDropdown(searchInput.value);
+    dropdown.classList.remove('hidden');
+  });
+
+  searchInput.addEventListener('input', (e) => {
+    renderDropdown(e.target.value);
+    dropdown.classList.remove('hidden');
+  });
+
+  // Click outside to close
+  document.addEventListener('click', (e) => {
+    if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+      dropdown.classList.add('hidden');
+    }
   });
 
   // Init banner
-  updateSubjectBanner(saved);
+  updateSubjectBanner(currentSubjectId);
 }
 
 function updateSubjectBanner(subjectId) {
