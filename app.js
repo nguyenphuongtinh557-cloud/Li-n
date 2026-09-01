@@ -3163,3 +3163,15 @@ if (typeof window !== 'undefined') {
     }, 1000);
   });
 }
+
+
+/* ════════════════════════════════════════════════════
+   EXPOSE ADMIN FUNCTIONS TO WINDOW (for inline onclick)
+════════════════════════════════════════════════════ */
+window.previewArticleCover = previewArticleCover;
+window.adminOpenArticleEditor = adminOpenArticleEditor;
+window.adminEditArticle = adminEditArticle;
+window.adminCloseArticleEditor = adminCloseArticleEditor;
+window.adminSaveArticle = adminSaveArticle;
+window.adminDeleteArticle = adminDeleteArticle;
+window.renderAdminArticleList = renderAdminArticleList;
