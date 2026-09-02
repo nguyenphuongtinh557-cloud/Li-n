@@ -3257,3 +3257,11 @@ function openNotificationDetail(event, notificationId) {
   // TODO: Load notification data based on notificationId
   console.log('Opening notification:', notificationId);
 }
+
+// Expose notifications functions to global window
+Object.assign(window, {
+  filterNotifications,
+  showMoreFilters,
+  markAsRead,
+  openNotificationDetail,
+});
