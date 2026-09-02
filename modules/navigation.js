@@ -8,6 +8,31 @@ import { DB } from './db.js';
 import { AuthModule, SUPER_ADMIN_EMAILS, getUserRole } from './auth.js';
 import { ArticlesModule } from './articles.js';
 
+const SUBJECT_VISUAL_THEMES = {
+  defense: { art: ['fa-shield-halved', 'fa-flag', 'fa-star'], description: 'Khám phá kiến thức quốc phòng, an ninh và kỹ năng cần thiết; lựa chọn các danh mục bên dưới để bắt đầu ôn luyện hiệu quả.' },
+  physics: { art: ['fa-atom', 'fa-wave-square', 'fa-bolt'], description: 'Khám phá các quy luật vật lý, năng lượng và hiện tượng nền tảng ứng dụng trong Công nghệ thực phẩm.' },
+  chemistry: { art: ['fa-flask', 'fa-atom', 'fa-vial'], description: 'Hệ thống hóa kiến thức về thành phần, phản ứng và các quá trình hóa học trong thực phẩm.' },
+  biology: { art: ['fa-dna', 'fa-microscope', 'fa-seedling'], description: 'Ôn tập nền tảng sinh học, vi sinh và các cơ chế sống liên quan đến thực phẩm.' },
+  engineering: { art: ['fa-gears', 'fa-ruler-combined', 'fa-industry'], description: 'Nắm vững nguyên lý kỹ thuật, thiết bị và quy trình vận hành trong sản xuất thực phẩm.' },
+  food: { art: ['fa-wheat-awn', 'fa-utensils', 'fa-leaf'], description: 'Khám phá công nghệ chế biến, bảo quản và phát triển các sản phẩm thực phẩm.' },
+  quality: { art: ['fa-clipboard-check', 'fa-chart-line', 'fa-award'], description: 'Củng cố kiến thức về quản lý chất lượng, an toàn thực phẩm và các tiêu chuẩn trong ngành.' },
+  business: { art: ['fa-chart-pie', 'fa-bullhorn', 'fa-briefcase'], description: 'Ôn tập kiến thức về kinh tế, tổ chức, truyền thông và các kỹ năng phát triển nghề nghiệp.' },
+  society: { art: ['fa-landmark', 'fa-book-open', 'fa-scale-balanced'], description: 'Hệ thống hóa kiến thức nền tảng về xã hội, pháp luật và tư duy học thuật.' }
+};
+
+function getSubjectVisualTheme(subject) {
+  const name = (subject.name || '').toLocaleLowerCase('vi-VN');
+  if (subject.blockId === 'GDQP') return 'defense';
+  if (/vật lý|xác suất|thống kê|điện/.test(name)) return 'physics';
+  if (/hóa|phụ gia|độc tố/.test(name)) return 'chemistry';
+  if (/sinh|vi sinh|enzyme|dinh dưỡng|sức khỏe/.test(name)) return 'biology';
+  if (/quản lý chất lượng|an toàn|ô nhiễm|haccp|luật/.test(name)) return 'quality';
+  if (/thiết bị|kỹ thuật|tự động|lạnh|vẽ kỹ thuật|nước trong|quá trình/.test(name)) return 'engineering';
+  if (/công nghệ|chế biến|bảo quản|thực phẩm|bao bì|cảm quan|nông nghiệp|sản phẩm/.test(name)) return 'food';
+  if (/kinh tế|marketing|tổ chức|kỹ năng|tin học|seminar|anh văn|nghiên cứu/.test(name)) return 'business';
+  return 'society';
+}
+
 export const NavController = {
   activePage: 'home',
   currentUser: null,
@@ -211,6 +236,8 @@ export const NavController = {
     this.closeSearchDropdown();
 
     const block = KNOWLEDGE_BLOCKS[s.blockId] || { icon: '📚', name: 'Đại cương' };
+    const visualThemeKey = getSubjectVisualTheme(s);
+    const visualTheme = SUBJECT_VISUAL_THEMES[visualThemeKey];
     const detailContainer = document.getElementById('page-subject-detail');
 
     if (!detailContainer) return;
@@ -222,76 +249,86 @@ export const NavController = {
     const quizCount = DB.getBankBySubject(s.id).length;
 
     detailContainer.innerHTML = `
-      <div class="subject-detail-hero">
-        <button class="btn btn-secondary btn-sm" onclick="NavController.navigateToPage('ontap')" style="margin-bottom:16px;">
-          <i class="fa-solid fa-arrow-left"></i> Quay lại
+      <div class="subject-detail-page-shell">
+        <button class="subject-back-button" onclick="NavController.navigateToPage('ontap')" aria-label="Quay lại danh sách môn học">
+          <i class="fa-solid fa-arrow-left"></i><span>Quay lại</span>
         </button>
-        <div class="flex items-center gap-3 margin-bottom-8">
-          <span class="subject-detail-badge">${s.code}</span>
-          <span class="badge badge-primary">${block.icon} ${block.name}</span>
-          <span class="badge badge-subtle">${s.credits} Tín chỉ</span>
-          <span class="badge badge-subtle">Học kỳ ${s.semester}</span>
-        </div>
-        <h1 class="subject-detail-title">${s.name}</h1>
-        <p class="text-secondary text-sm" style="max-width:720px;margin-top:8px;">
-          Chương trình ôn tập chuẩn hóa thuộc khung đào tạo Ngành Công nghệ Thực phẩm. Chọn các danh mục bên dưới để bắt đầu ôn luyện.
-        </p>
-      </div>
 
-      <div class="subject-detail-grid">
-        <!-- Card 1: Thông tin môn học -->
-        <div class="subject-card card ${infoResources.length ? 'active-card' : ''}" onclick="openUserResourceViewer('${s.id}', 'info')">
-          <div class="subject-card-icon" style="background:rgba(79, 70, 229, 0.1);color:var(--primary);">ℹ️</div>
-          <div class="subject-card-content">
-            <h3>Thông tin môn học</h3>
-            <p class="text-secondary text-sm">Đề cương chi tiết, giảng viên đảm nhận, mục tiêu học phần và tài liệu tham khảo.</p>
-            <div class="subject-card-status">
-              ${infoResources.length ? `<span class="badge badge-success font-bold"><i class="fa-solid fa-check"></i> ${infoResources.length} Đề cương & Thông tin</span>` : '<span>⏳ Admin đang cập nhật</span>'}
+        <article class="subject-detail-hero subject-theme-${visualThemeKey}">
+          <div class="subject-hero-copy">
+            <div class="subject-meta-row" aria-label="Thông tin học phần">
+              <span class="subject-detail-badge">${s.code}</span>
+              <span class="subject-meta-pill subject-meta-block"><span aria-hidden="true">${block.icon}</span> ${block.name}</span>
+              <span class="subject-meta-text">${s.credits} TÍN CHỈ</span>
+              <span class="subject-meta-text">HỌC KỲ ${s.semester}</span>
             </div>
+            <h1 class="subject-detail-title">${s.name}</h1>
+            <p class="subject-detail-description">
+              ${visualTheme.description}
+            </p>
           </div>
-        </div>
+          <div class="subject-hero-art theme-${visualThemeKey}" aria-hidden="true">
+            <div class="subject-art-glow subject-art-glow-one"></div>
+            <div class="subject-art-glow subject-art-glow-two"></div>
+            <i class="fa-solid ${visualTheme.art[1]} subject-art-float subject-art-float-one"></i>
+            <i class="fa-solid ${visualTheme.art[2]} subject-art-float subject-art-float-two"></i>
+            <div class="subject-art-platform"></div>
+            <div class="subject-art-orbit subject-art-orbit-one"></div>
+            <div class="subject-art-orbit subject-art-orbit-two"></div>
+            <div class="subject-art-emblem"><i class="fa-solid ${visualTheme.art[0]}"></i></div>
+          </div>
+        </article>
 
-        <!-- Card 2: Bài giảng ôn tập -->
-        <div class="subject-card card ${lectureResources.length ? 'active-card' : ''}" onclick="openUserResourceViewer('${s.id}', 'lecture')">
-          <div class="subject-card-icon" style="background:rgba(16, 185, 129, 0.1);color:var(--success);">📖</div>
-          <div class="subject-card-content">
-            <h3>Bài giảng ôn tập</h3>
-            <p class="text-secondary text-sm">Slide bài giảng tổng hợp, tóm tắt lý thuyết trọng tâm từng chương và sơ đồ tư duy.</p>
-            <div class="subject-card-status">
-              ${lectureResources.length ? `<span class="badge badge-success font-bold"><i class="fa-solid fa-check"></i> ${lectureResources.length} Slide & Bài giảng</span>` : '<span>⏳ Admin đang cập nhật</span>'}
-            </div>
-          </div>
-        </div>
+        <div class="subject-detail-grid">
+          <button class="subject-card subject-card-info" onclick="openUserResourceViewer('${s.id}', 'info')">
+            <span class="subject-card-icon"><i class="fa-solid fa-rectangle-list"></i></span>
+            <span class="subject-card-content">
+              <span class="subject-card-title">Thông tin môn học</span>
+              <span class="subject-card-accent"></span>
+              <span class="subject-card-description">Xem chi tiết về môn học, giảng viên đảm nhận, mục tiêu, nội dung hệ thống và tài liệu tham khảo.</span>
+              <span class="subject-card-status">${infoResources.length ? `${infoResources.length} đề cương & thông tin sẵn có` : 'Đang cập nhật nội dung'}</span>
+            </span>
+            <span class="subject-card-arrow" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></span>
+          </button>
 
-        <!-- Card 3: Đề thi các năm -->
-        <div class="subject-card card ${examResources.length ? 'active-card' : ''}" onclick="openUserResourceViewer('${s.id}', 'exam')">
-          <div class="subject-card-icon" style="background:rgba(245, 158, 11, 0.1);color:var(--warning);">📝</div>
-          <div class="subject-card-content">
-            <h3>Đề thi các năm</h3>
-            <p class="text-secondary text-sm">Tuyển tập đề thi giữa kỳ, cuối kỳ chính thức các khóa trước có đáp án chi tiết.</p>
-            <div class="subject-card-status">
-              ${examResources.length ? `<span class="badge badge-warning font-bold"><i class="fa-solid fa-check"></i> ${examResources.length} Bộ đề thi cũ</span>` : '<span>⏳ Admin đang cập nhật đề thi</span>'}
-            </div>
-          </div>
-        </div>
+          <button class="subject-card subject-card-lecture" onclick="openUserResourceViewer('${s.id}', 'lecture')">
+            <span class="subject-card-icon"><i class="fa-solid fa-book-open"></i></span>
+            <span class="subject-card-content">
+              <span class="subject-card-title">Bài giảng ôn tập</span>
+              <span class="subject-card-accent"></span>
+              <span class="subject-card-description">Truy cập slide bài giảng tổng hợp, tóm tắt lý thuyết trọng tâm và sơ đồ tư duy.</span>
+              <span class="subject-card-status">${lectureResources.length ? `${lectureResources.length} slide & bài giảng sẵn có` : 'Đang cập nhật nội dung'}</span>
+            </span>
+            <span class="subject-card-arrow" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></span>
+          </button>
 
-        <!-- Card 4: Kiểm tra ôn tập (ACTIVE FUNCTIONALITY) -->
-        <div class="subject-card card active-card" onclick="NavController.startSubjectExam('${s.id}')">
-          <div class="subject-card-icon" style="background:rgba(0, 220, 130, 0.15);color:#00dc82;">🎯</div>
-          <div class="subject-card-content">
-            <h3>Kiểm tra ôn tập</h3>
-            <p class="text-secondary text-sm">Thi thử, luyện tập trắc nghiệm và ngân hàng câu hỏi AI chuẩn hóa theo độ khó.</p>
-            <div class="subject-card-action">
-              <button class="btn btn-success btn-sm">
-                <i class="fa-solid fa-play"></i> Bắt đầu Ôn Tập (${quizCount} câu)
-              </button>
-            </div>
-          </div>
+          <button class="subject-card subject-card-exam" onclick="openUserResourceViewer('${s.id}', 'exam')">
+            <span class="subject-card-icon"><i class="fa-solid fa-file-pen"></i></span>
+            <span class="subject-card-content">
+              <span class="subject-card-title">Đề thi các năm</span>
+              <span class="subject-card-accent"></span>
+              <span class="subject-card-description">Luyện tập với đề thi giữa kỳ, cuối kỳ chính thức các năm trước có đáp án chi tiết.</span>
+              <span class="subject-card-status">${examResources.length ? `${examResources.length} bộ đề sẵn có` : 'Đang cập nhật đề thi'}</span>
+            </span>
+            <span class="subject-card-arrow" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></span>
+          </button>
+
+          <button class="subject-card subject-card-quiz" onclick="NavController.startSubjectExam('${s.id}')">
+            <span class="subject-card-icon"><i class="fa-solid fa-bullseye"></i></span>
+            <span class="subject-card-content">
+              <span class="subject-card-title">Kiểm tra ôn tập</span>
+              <span class="subject-card-accent"></span>
+              <span class="subject-card-description">Thi thử, luyện tập trắc nghiệm và ngân hàng câu hỏi AI chuẩn hóa theo độ khó.</span>
+              <span class="subject-card-status subject-card-ready"><i class="fa-solid fa-play"></i> Bắt đầu ôn tập · ${quizCount} câu</span>
+            </span>
+            <span class="subject-card-arrow" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></span>
+          </button>
         </div>
       </div>
     `;
 
     this.navigateToPage('subject-detail');
+    window.scrollTo({ top: 0, behavior: 'auto' });
   },
 
   startSubjectExam(subjectId) {
