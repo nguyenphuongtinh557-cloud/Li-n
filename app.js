@@ -3237,14 +3237,22 @@ function markAsRead(btn) {
   btn.disabled = true;
 }
 
-function openNotificationDetail(notificationId) {
+function openNotificationDetail(event, notificationId) {
+  // Prevent default if event exists
+  if (event) {
+    event.preventDefault();
+    event.stopPropagation();
+  }
+  
   // Hide notifications list page
-  document.getElementById('page-notifications').classList.add('hidden');
+  document.getElementById('page-notifications')?.classList.add('hidden');
   // Show notification detail page
-  document.getElementById('page-notification-detail').classList.remove('hidden');
+  document.getElementById('page-notification-detail')?.classList.remove('hidden');
   
   // Update page title
-  NavController.currentPage = 'notification-detail';
+  if (window.NavController) {
+    NavController.currentPage = 'notification-detail';
+  }
   
   // TODO: Load notification data based on notificationId
   console.log('Opening notification:', notificationId);

@@ -814,7 +814,7 @@
             <!-- Notifications List -->
             <div class="notifications-list" id="notifications-container">
               <!-- System Notification 1 -->
-              <div class="notification-item system" data-category="system" onclick="openNotificationDetail('notification-1')">
+              <div class="notification-item system" data-category="system" onclick="openNotificationDetail(event, 'notification-1')">
                 <div class="notification-icon" style="background:rgba(16, 185, 129, 0.12);color:var(--success);">
                   <i class="fa-solid fa-graduation-cap"></i>
                 </div>
@@ -838,7 +838,7 @@
               </div>
 
               <!-- Premium AI Notification -->
-              <div class="notification-item premium" data-category="system" onclick="openNotificationDetail('notification-2')">
+              <div class="notification-item premium" data-category="system" onclick="openNotificationDetail(event, 'notification-2')">
                 <div class="notification-icon" style="background:rgba(139, 92, 246, 0.12);color:#8b5cf6;">
                   <i class="fa-solid fa-gem"></i>
                 </div>
