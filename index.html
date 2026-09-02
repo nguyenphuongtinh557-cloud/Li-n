@@ -774,23 +774,108 @@
 
         <!-- ══════ PAGE 6: THÔNG BÁO ══════ -->
         <section id="page-notifications" class="page-container hidden">
-          <div class="card" style="max-width:700px;margin:0 auto;">
-            <h2 style="font-size:18px;font-weight:700;margin-bottom:16px;">🔔 Thông Báo Hệ Thống</h2>
-            <div class="space-y-3">
-              <div class="card card-sm" style="background:var(--bg-subtle);">
-                <div class="flex justify-between items-center">
-                  <span class="font-semibold text-sm">🌟 Đã mở rộng 35 môn học CNTP</span>
-                  <span class="text-xs text-muted">Hôm nay</span>
+          <div style="max-width:900px;margin:0 auto;">
+            <!-- Header -->
+            <div class="notifications-header">
+              <div class="notifications-header-left">
+                <div class="notifications-icon">
+                  <i class="fa-solid fa-bell"></i>
                 </div>
-                <p class="text-xs text-secondary margin-top-4">Toàn bộ 35 môn học thuộc Chương trình đào tạo Ngành Công nghệ Thực phẩm đã được tích hợp vào khung môn học.</p>
-              </div>
-              <div class="card card-sm" style="background:var(--bg-subtle);">
-                <div class="flex justify-between items-center">
-                  <span class="font-semibold text-sm">💎 Tích hợp Premium AI Models</span>
-                  <span class="text-xs text-muted">Hôm qua</span>
+                <div>
+                  <h1 class="notifications-title">Thông Báo Hệ Thống</h1>
+                  <p class="notifications-subtitle">Cập nhật các thông báo quan trọng từ hệ thống FTECA 24</p>
                 </div>
-                <p class="text-xs text-secondary margin-top-4">Trợ lý FTECA 24 đã hỗ trợ DeepSeek R1, Claude 3.5 Sonnet và OpenAI GPT-4o.</p>
               </div>
+              <div class="notifications-illustration">
+                <i class="fa-solid fa-envelope-open-text" style="font-size:64px;color:var(--primary-light);"></i>
+              </div>
+            </div>
+
+            <!-- Filter Tabs -->
+            <div class="notifications-tabs">
+              <button class="notification-tab active" data-filter="all" onclick="filterNotifications('all')">
+                <i class="fa-solid fa-inbox"></i> Tất cả <span class="tab-count">(12)</span>
+              </button>
+              <button class="notification-tab" data-filter="system" onclick="filterNotifications('system')">
+                <i class="fa-solid fa-bell"></i> Thông báo hệ thống <span class="tab-count">(7)</span>
+              </button>
+              <button class="notification-tab" data-filter="update" onclick="filterNotifications('update')">
+                <i class="fa-solid fa-code-branch"></i> Cập nhật khóa học <span class="tab-count">(3)</span>
+              </button>
+              <button class="notification-tab" data-filter="account" onclick="filterNotifications('account')">
+                <i class="fa-solid fa-user-shield"></i> Tài khoản & Bảo mật <span class="tab-count">(2)</span>
+              </button>
+              <button class="notification-tab-more" onclick="showMoreFilters()">
+                <i class="fa-solid fa-ellipsis"></i> Mới nhất
+                <i class="fa-solid fa-chevron-down" style="font-size:10px;margin-left:4px;"></i>
+              </button>
+            </div>
+
+            <!-- Notifications List -->
+            <div class="notifications-list" id="notifications-container">
+              <!-- System Notification 1 -->
+              <div class="notification-item system" data-category="system">
+                <div class="notification-icon" style="background:rgba(16, 185, 129, 0.12);color:var(--success);">
+                  <i class="fa-solid fa-graduation-cap"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-header">
+                    <h3 class="notification-title">Đã mở rộng 35 môn học CNTP</h3>
+                    <div class="notification-meta">
+                      <span class="notification-time">Hôm nay</span>
+                      <span class="notification-time-detail">10:30 AM</span>
+                      <button class="notification-mark-read" title="Đánh dấu đã đọc">
+                        <i class="fa-solid fa-circle"></i>
+                      </button>
+                    </div>
+                  </div>
+                  <p class="notification-desc">Toàn bộ 35 môn học thuộc Chương trình đào tạo Ngành Công nghệ Thực phẩm đã được tích hợp vào khung môn học.</p>
+                  <div class="notification-badge success">Thông báo hệ thống</div>
+                </div>
+                <button class="notification-arrow">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
+              </div>
+
+              <!-- Premium AI Notification -->
+              <div class="notification-item premium" data-category="system">
+                <div class="notification-icon" style="background:rgba(139, 92, 246, 0.12);color:#8b5cf6;">
+                  <i class="fa-solid fa-gem"></i>
+                </div>
+                <div class="notification-content">
+                  <div class="notification-header">
+                    <h3 class="notification-title">Tích hợp Premium AI Models</h3>
+                    <div class="notification-meta">
+                      <span class="notification-time">Hôm qua</span>
+                      <span class="notification-time-detail">04:15 PM</span>
+                    </div>
+                  </div>
+                  <p class="notification-desc">Trợ lý FTECA 24 đã hỗ trợ DeepSeek R1, Claude 3.5 Sonnet và OpenAI GPT-4o.</p>
+                  <div class="notification-badge premium">Cập nhật tính năng</div>
+                </div>
+                <button class="notification-arrow">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
+              </div>
+
+              <!-- Empty state if needed -->
+              <div class="notifications-empty hidden" id="notifications-empty">
+                <i class="fa-solid fa-inbox" style="font-size:48px;color:var(--text-muted);margin-bottom:12px;"></i>
+                <p style="color:var(--text-muted);font-size:14px;">Không có thông báo nào</p>
+              </div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="notifications-pagination">
+              <button class="btn btn-secondary btn-sm" disabled>
+                <i class="fa-solid fa-chevron-left"></i>
+              </button>
+              <button class="btn btn-primary btn-sm">1</button>
+              <button class="btn btn-ghost btn-sm">2</button>
+              <button class="btn btn-ghost btn-sm">3</button>
+              <button class="btn btn-secondary btn-sm">
+                <i class="fa-solid fa-chevron-right"></i>
+              </button>
             </div>
           </div>
         </section>

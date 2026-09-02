@@ -3190,3 +3190,44 @@ window.adminCloseArticleEditor = adminCloseArticleEditor;
 window.adminSaveArticle = adminSaveArticle;
 window.adminDeleteArticle = adminDeleteArticle;
 window.renderAdminArticleList = renderAdminArticleList;
+
+
+/* ═══════════════════════════════════════════════════════════════════
+   NOTIFICATIONS PAGE FUNCTIONS
+   ═══════════════════════════════════════════════════════════════════ */
+
+function filterNotifications(category) {
+  // Update active tab
+  document.querySelectorAll('.notification-tab').forEach(tab => {
+    tab.classList.remove('active');
+    if (tab.dataset.filter === category) {
+      tab.classList.add('active');
+    }
+  });
+
+  // Filter notifications
+  const items = document.querySelectorAll('.notification-item');
+  const emptyState = document.getElementById('notifications-empty');
+  let visibleCount = 0;
+
+  items.forEach(item => {
+    if (category === 'all' || item.dataset.category === category) {
+      item.style.display = 'flex';
+      visibleCount++;
+    } else {
+      item.style.display = 'none';
+    }
+  });
+
+  // Show/hide empty state
+  if (visibleCount === 0) {
+    emptyState?.classList.remove('hidden');
+  } else {
+    emptyState?.classList.add('hidden');
+  }
+}
+
+function showMoreFilters() {
+  // Placeholder for dropdown menu
+  alert('Tính năng lọc nâng cao đang được phát triển!');
+}
