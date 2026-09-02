@@ -4778,6 +4778,18 @@ html,body{max-width:100%;overflow-x:hidden}.app-main-wrapper,.page-container{min
 .notification-center-item.is-read{opacity:1;background:#171717;border-color:#222}
 [data-theme="light"] .notification-center-item.is-read{background:#f1f5f9;border-color:#e2e8f0}
 
+/* Light theme: override the restored dark notification list palette. */
+[data-theme="light"] #notification-center-shell{background:#fff!important;border-color:#e2e8f0!important}
+[data-theme="light"] .notification-center-list-pane{background:#fff!important;border-color:#e2e8f0!important}
+[data-theme="light"] .notification-center-heading h1{color:#111827!important}
+[data-theme="light"] .notification-center-heading p{color:#64748b!important}
+[data-theme="light"] .notification-center-tab{background:#f8fafc!important;border-color:#e2e8f0!important;color:#475569!important}
+[data-theme="light"] .notification-center-tab.active{background:#00b96b!important;border-color:#00b96b!important;color:#fff!important}
+[data-theme="light"] .notification-center-item{background:#f8fafc!important;color:#111827!important}
+[data-theme="light"] .notification-center-item:hover{background:#f1f5f9!important}
+[data-theme="light"] .notification-center-item.selected{background:#ecfdf5!important;border-color:#00b96b!important}
+[data-theme="light"] .notification-center-item-copy small,[data-theme="light"] .notification-center-item time{color:#64748b!important}
+
 /* Articles hero: compact frame, larger anchored character */
 #page-about.page-container{padding:16px!important}.articles-news-hero{min-height:210px!important;padding:28px 34px!important}.articles-hero-copy{width:min(60%,650px)!important}.articles-hero-art{inset:0 2% 0 auto!important;width:370px!important}.articles-hero-decor{border-radius:0 18px 18px 0!important}.articles-hero-person-image{right:34px!important;bottom:-14px!important;width:285px!important;height:270px!important;object-position:center bottom!important}.articles-art-orb-one{width:245px!important;height:245px!important;right:0!important;bottom:-125px!important}.articles-art-orb-two{width:125px!important;height:125px!important;right:220px!important;top:-48px!important}.articles-art-dots{top:22px!important;right:26px!important;width:92px!important;height:70px!important}@media(max-width:768px){#page-about.page-container{padding:12px!important}.articles-news-hero{min-height:180px!important;padding:24px 20px!important}.articles-hero-copy{width:70%!important}.articles-hero-art{width:285px!important}.articles-hero-person-image{right:18px!important;bottom:-12px!important;width:205px!important;height:210px!important}}
 
