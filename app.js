@@ -3231,3 +3231,21 @@ function showMoreFilters() {
   // Placeholder for dropdown menu
   alert('Tính năng lọc nâng cao đang được phát triển!');
 }
+
+function markAsRead(btn) {
+  btn.style.opacity = '0.3';
+  btn.disabled = true;
+}
+
+function openNotificationDetail(notificationId) {
+  // Hide notifications list page
+  document.getElementById('page-notifications').classList.add('hidden');
+  // Show notification detail page
+  document.getElementById('page-notification-detail').classList.remove('hidden');
+  
+  // Update page title
+  NavController.currentPage = 'notification-detail';
+  
+  // TODO: Load notification data based on notificationId
+  console.log('Opening notification:', notificationId);
+}

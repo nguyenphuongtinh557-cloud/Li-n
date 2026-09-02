@@ -814,7 +814,7 @@
             <!-- Notifications List -->
             <div class="notifications-list" id="notifications-container">
               <!-- System Notification 1 -->
-              <div class="notification-item system" data-category="system">
+              <div class="notification-item system" data-category="system" onclick="openNotificationDetail('notification-1')">
                 <div class="notification-icon" style="background:rgba(16, 185, 129, 0.12);color:var(--success);">
                   <i class="fa-solid fa-graduation-cap"></i>
                 </div>
@@ -824,7 +824,7 @@
                     <div class="notification-meta">
                       <span class="notification-time">Hôm nay</span>
                       <span class="notification-time-detail">10:30 AM</span>
-                      <button class="notification-mark-read" title="Đánh dấu đã đọc">
+                      <button class="notification-mark-read" title="Đánh dấu đã đọc" onclick="event.stopPropagation(); markAsRead(this)">
                         <i class="fa-solid fa-circle"></i>
                       </button>
                     </div>
@@ -838,7 +838,7 @@
               </div>
 
               <!-- Premium AI Notification -->
-              <div class="notification-item premium" data-category="system">
+              <div class="notification-item premium" data-category="system" onclick="openNotificationDetail('notification-2')">
                 <div class="notification-icon" style="background:rgba(139, 92, 246, 0.12);color:#8b5cf6;">
                   <i class="fa-solid fa-gem"></i>
                 </div>
@@ -876,6 +876,151 @@
               <button class="btn btn-secondary btn-sm">
                 <i class="fa-solid fa-chevron-right"></i>
               </button>
+            </div>
+          </div>
+        </section>
+
+        <!-- ══════ PAGE: NOTIFICATION DETAIL ══════ -->
+        <section id="page-notification-detail" class="page-container hidden">
+          <div style="max-width:900px;margin:0 auto;">
+            <!-- Back Button -->
+            <button class="btn btn-ghost btn-sm mb-3" onclick="NavController.navigateToPage('notifications')">
+              <i class="fa-solid fa-arrow-left"></i> Quay lại danh sách thông báo
+            </button>
+
+            <div class="notification-detail-layout">
+              <!-- Main Content -->
+              <div class="notification-detail-main">
+                <!-- Header -->
+                <div class="notification-detail-header">
+                  <div class="notification-detail-icon">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                  </div>
+                  <div class="notification-detail-badge-top success">Thông báo hệ thống</div>
+                  <div class="notification-detail-meta">
+                    <span>Hôm nay lúc 10:30 AM</span>
+                    <button class="notification-mark-read-btn" title="Đã đọc">
+                      <i class="fa-solid fa-circle"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <h1 class="notification-detail-title" id="notification-detail-title">Đã mở rộng 35 môn học CNTP</h1>
+                <p class="notification-detail-subtitle">Toàn bộ 35 môn học thuộc Chương trình đào tạo Ngành Công nghệ Thực phẩm đã được tích hợp vào khung môn học.</p>
+
+                <!-- Info Cards -->
+                <div class="notification-detail-info">
+                  <div class="notification-info-item">
+                    <i class="fa-solid fa-book" style="color:var(--success);"></i>
+                    <div>
+                      <div class="notification-info-label">Chương trình:</div>
+                      <div class="notification-info-value">Công nghệ Thực phẩm</div>
+                    </div>
+                  </div>
+                  <div class="notification-info-item">
+                    <i class="fa-solid fa-graduation-cap" style="color:var(--success);"></i>
+                    <div>
+                      <div class="notification-info-label">Số môn học mới:</div>
+                      <div class="notification-info-value">35 môn</div>
+                    </div>
+                  </div>
+                  <div class="notification-info-item">
+                    <i class="fa-solid fa-calendar" style="color:var(--success);"></i>
+                    <div>
+                      <div class="notification-info-label">Ngày cập nhật:</div>
+                      <div class="notification-info-value">26/05/2024</div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Content -->
+                <div class="notification-detail-content">
+                  <h3>Nội dung chi tiết</h3>
+                  <p>Nhằm nâng cao chất lượng đào tạo và cập nhật theo thực tế tại các ngành, FTECA 24 đã mở rộng và bổ sung 35 môn học mới cho Chương trình đào tạo Ngành Công nghệ Thực phẩm.</p>
+                  
+                  <p>Các môn học mới bao gồm nhiều lĩnh vực quan trọng như:</p>
+                  <ul>
+                    <li>Công nghệ chế biến thực phẩm hiện đại</li>
+                    <li>An toàn thực phẩm và quản lý chất lượng</li>
+                    <li>Dinh dưỡng và phát triển sản phẩm</li>
+                    <li>Công nghệ sinh học trong thực phẩm</li>
+                    <li>Quản trị sản xuất và chuỗi cung ứng thực phẩm</li>
+                  </ul>
+
+                  <p>Hãy truy cập khung môn học để khám phá ngay các môn học mới và và bắt đầu ôn tập Hệt!</p>
+                  
+                  <button class="btn btn-success mt-3" onclick="NavController.navigateToPage('ontap')">
+                    <i class="fa-solid fa-arrow-right"></i> Xem khung môn học
+                  </button>
+                </div>
+
+                <!-- Feedback Section -->
+                <div class="notification-detail-feedback">
+                  <h3>Bạn cảm thấy trợ giúp?</h3>
+                  <p>Liên hệ đội ngũ hỗ trợ FTECA 24/7 nếu bạn có bất kỳ câu hỏi nào.</p>
+                  <div class="notification-feedback-buttons">
+                    <button class="btn btn-success btn-sm">
+                      <i class="fa-solid fa-thumbs-up"></i> Hữu ích
+                    </button>
+                    <button class="btn btn-ghost btn-sm">
+                      <i class="fa-solid fa-thumbs-down"></i> Không hữu ích
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Sidebar -->
+              <div class="notification-detail-sidebar">
+                <div class="card">
+                  <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">
+                    <i class="fa-solid fa-link"></i> Liên quan
+                  </h3>
+                  
+                  <div class="notification-related-item" onclick="alert('Chức năng đang phát triển')">
+                    <i class="fa-solid fa-graduation-cap"></i>
+                    <div>
+                      <div class="notification-related-title">Khung chương trình đào tạo</div>
+                      <div class="notification-related-desc">Xem toàn bộ khung đào tạo khóa môn học</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right"></i>
+                  </div>
+
+                  <div class="notification-related-item" onclick="alert('Chức năng đang phát triển')">
+                    <i class="fa-solid fa-circle-question"></i>
+                    <div>
+                      <div class="notification-related-title">Các môn học mới</div>
+                      <div class="notification-related-desc">Danh sách 35 môn được cập nhập</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right"></i>
+                  </div>
+
+                  <div class="notification-related-item" onclick="alert('Chức năng đang phát triển')">
+                    <i class="fa-solid fa-book"></i>
+                    <div>
+                      <div class="notification-related-title">Hướng dẫn đăng ký môn học</div>
+                      <div class="notification-related-desc">Hướng dẫn chi tiết về quy trình môn học</div>
+                    </div>
+                    <i class="fa-solid fa-chevron-right"></i>
+                  </div>
+                </div>
+
+                <div class="notification-detail-help">
+                  <h3>Đánh giá thông báo này?</h3>
+                  <p>Thông báo này có bao khu, và bạn cần thêm không?</p>
+                  <div class="notification-feedback-buttons">
+                    <button class="btn btn-success btn-sm btn-full">
+                      <i class="fa-solid fa-thumbs-up"></i> Hữu ích
+                    </button>
+                    <button class="btn btn-ghost btn-sm btn-full">
+                      <i class="fa-solid fa-thumbs-down"></i> Không hữu ích
+                    </button>
+                  </div>
+                </div>
+
+                <button class="btn btn-primary btn-sm btn-full" onclick="alert('Liên hệ hỗ trợ')">
+                  <i class="fa-solid fa-headset"></i> Liên hệ hỗ trợ
+                </button>
+              </div>
             </div>
           </div>
         </section>
