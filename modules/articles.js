@@ -272,16 +272,22 @@ export const ArticlesModule = {
 
     container.innerHTML = `
       <div class="articles-portal-container">
-        <!-- ── Portal Header Card ── -->
+        <!-- ── News Hero ── -->
         <div class="articles-header-section">
-          <div class="header-title-row">
-            <div>
-              <h1 class="articles-portal-title">
-                <span class="portal-title-icon">📰</span> Đọc Báo & Tin Tức
-              </h1>
-              <p class="articles-portal-desc">
-                Cập nhật những bài báo, tin tức và kiến thức mới nhất trong lĩnh vực Công nghệ Thực phẩm.
-              </p>
+          <div class="articles-news-hero">
+            <div class="articles-hero-copy">
+              <div class="articles-hero-eyebrow"><i class="fa-solid fa-newspaper"></i> FTECA 24 · CỔNG THÔNG TIN</div>
+              <h1 class="articles-portal-title">Tin tức <span>mới nhất</span></h1>
+              <p class="articles-portal-desc">Cập nhật thông tin, bài viết và kiến thức mới dành cho sinh viên Công nghệ Thực phẩm.</p>
+              <div class="articles-hero-note"><i class="fa-solid fa-sparkles"></i> Nội dung mới được cập nhật thường xuyên</div>
+            </div>
+            <div class="articles-hero-art" aria-label="Minh họa sinh viên FTECA">
+              <div class="articles-hero-decor" aria-hidden="true">
+                <div class="articles-art-orb articles-art-orb-one"></div>
+                <div class="articles-art-orb articles-art-orb-two"></div>
+                <div class="articles-art-dots"></div>
+              </div>
+              <img src="main1.webp" alt="Sinh viên FTECA chụp ảnh" class="articles-hero-person-image">
             </div>
           </div>
 

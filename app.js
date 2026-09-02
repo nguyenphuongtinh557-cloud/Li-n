@@ -8,7 +8,7 @@ import { Generator } from './modules/generator.js';
 import { ExamEngine, ExamTimer } from './modules/exam.js';
 import { SEED_QUESTIONS } from './data/seed_questions.js';
 import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion } from './modules/cera.js';
-import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer } from './modules/sync.js?v=20260831b';
+import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer } from './modules/sync.js?v=20260831b';
 import { initAdminAuth } from './modules/admin.js';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js?v=20260901c';
 import { NavController } from './modules/navigation.js';
@@ -142,6 +142,24 @@ async function init() {
   } catch (e) {
     console.warn('[Articles] Không thể kéo articles từ server:', e);
   }
+
+  // Kéo thông báo hệ thống mới nhất; nếu server chưa có file, giữ/tạo 2 thư trải nghiệm cục bộ.
+  const demoAnnouncements = [
+    { id: 'DEMO_WELCOME_2026', title: 'Chào mừng bạn đến với FTECA 24', content: '<p><strong>Xin chào sinh viên,</strong></p><p>Chúng tôi rất vui khi bạn đã có mặt tại FTECA 24. Hãy bắt đầu khám phá tài liệu, ngân hàng câu hỏi và các khu vực ôn tập phù hợp với mình.</p><p>Chúc bạn học tập hiệu quả!</p><p><strong>Ban Quản trị FTECA 24</strong></p>', type: 'success', category: 'Thông báo hệ thống', scope: 'all', excerpt: 'Cùng bắt đầu hành trình học tập và ôn luyện trên FTECA 24.', createdAt: '2026-09-02T05:00:00.000Z', author: 'Admin' },
+    { id: 'DEMO_MATERIALS_2026', title: 'Tài liệu học tập mới đã sẵn sàng', content: '<p><strong>Thông báo mới,</strong></p><p>Một số tài liệu và nội dung ôn tập đã được cập nhật. Bạn có thể truy cập khu vực Ôn tập & kiểm tra để xem các nội dung phù hợp.</p><p>Nếu cần hỗ trợ, hãy gửi phản hồi cho đội ngũ quản trị.</p>', type: 'update', category: 'Cập nhật học tập', scope: 'all', excerpt: 'Khám phá các tài liệu và nội dung ôn tập vừa được cập nhật.', createdAt: '2026-09-01T08:30:00.000Z', author: 'Admin' }
+  ];
+  try {
+    const announcements = await pullAnnouncementsFromServer();
+    if (Array.isArray(announcements) && announcements.length) {
+      localStorage.setItem('qlcl_system_announcements', JSON.stringify(announcements));
+    } else if (!DB.getAnnouncements().length) {
+      localStorage.setItem('qlcl_system_announcements', JSON.stringify(demoAnnouncements));
+    }
+  } catch (e) {
+    console.warn('[Announcements] Không thể kéo thông báo từ server, dùng thư trải nghiệm cục bộ:', e);
+    if (!DB.getAnnouncements().length) localStorage.setItem('qlcl_system_announcements', JSON.stringify(demoAnnouncements));
+  }
+  if (window.renderNotificationCenter) window.renderNotificationCenter();
 
   // Apply saved theme
   const settings = DB.getSettings();
@@ -2508,7 +2526,8 @@ function handleAdminPostAnnouncement() {
   if (!title) { showToast('Vui lòng nhập tiêu đề thông báo!', 'error'); return; }
   if (!content) { showToast('Vui lòng nhập nội dung thông báo!', 'error'); return; }
 
-  DB.addAnnouncement({ title, content, type, scope, author: NavController.currentUser?.name || 'Admin' });
+  DB.addAnnouncement({ title, content, type, category: type, scope, author: NavController.currentUser?.name || 'Admin' });
+  if (document.getElementById('notification-center-shell')) renderNotificationCenter();
   showToast('📢 Đã gửi thông báo lên Server Cloud!', 'success');
   if (titleInput) titleInput.value = '';
   if (_adminTinyMCEAnnouncement) _adminTinyMCEAnnouncement.setContent('');
@@ -2526,7 +2545,7 @@ function renderAdminAnnouncementList() {
       <div class="fb-icon">${typeIcon[a.type] || '📢'}</div>
       <div class="fb-body">
         <h5>${escapeHtml(a.title)}</h5>
-        <p>${new Date(a.createdAt).toLocaleDateString('vi-VN')} &middot; Phạm vi: ${a.scope === 'premium' ? '💎 PREMIUM' : a.scope === 'newbie' ? '🌱 NEWBIE' : '👥 Tất cả'}</p>
+        <p>${new Date(a.createdAt).toLocaleDateString('vi-VN')} · ${a.category || a.type || 'info'} · Phạm vi: ${a.scope === 'premium' ? '💎 PREMIUM' : a.scope === 'newbie' ? '🌱 NEWBIE' : '👥 Tất cả'}</p>
       </div>
       <button class="btn btn-danger btn-xs" onclick="adminDeleteAnnouncement('${a.id}')"><i class="fa-solid fa-trash"></i></button>
     </div>
@@ -2535,9 +2554,34 @@ function renderAdminAnnouncementList() {
 
 function adminDeleteAnnouncement(id) {
   DB.deleteAnnouncement(id);
+  if (NotificationCenterState.selectedId === id) NotificationCenterState.selectedId = null;
   renderAdminAnnouncementList();
+  if (document.getElementById('notification-center-shell')) renderNotificationCenter();
   showToast('Đã xóa thông báo.', 'info');
 }
+
+/* ─── SUPPORT TICKETS ─────────────────────────────────────────────────────── */
+function renderUserTicketHistory() {
+  const container = document.getElementById('report-ticket-history-list'); if (!container) return;
+  const user = NavController.currentUser || {}; const email = (user.email || '').toLowerCase();
+  const tickets = DB.getFeedbacks().filter(f => email && (f.userEmail || '').toLowerCase() === email);
+  document.getElementById('report-ticket-count').textContent = tickets.length;
+  const statusLabel = { submitted:'Đã gửi', acknowledged:'Đã ghi nhận', processing:'Đang xử lý', fixed:'Đã sửa', unable:'Không tái hiện được' };
+  container.innerHTML = tickets.length ? tickets.map(t => `<article class="report-history-item"><div><strong>${escapeHtml(t.ticketCode || t.id)}</strong><span class="report-status ${t.status}">${statusLabel[t.status] || t.status}</span></div><h3>${escapeHtml(t.title || t.content)}</h3><p>${new Date(t.updatedAt || t.createdAt).toLocaleString('vi-VN')}</p></article>`).join('') : '<div class="report-history-empty">Chưa có ticket nào. Ticket mới sẽ xuất hiện ở đây.</div>';
+}
+function submitSupportTicket(event) {
+  event.preventDefault(); const user = NavController.currentUser;
+  if (!user?.email) { showToast('Vui lòng đăng nhập trước khi gửi ticket để nhận phản hồi riêng.', 'error'); return; }
+  const content = document.getElementById('report-ticket-content').value.trim(); const title = document.getElementById('report-ticket-title').value.trim();
+  if (!title || !content) return;
+  const ticket = DB.submitFeedback({ type: document.getElementById('report-ticket-type').value, priority: document.getElementById('report-ticket-priority').value, title, content, page: document.getElementById('report-ticket-page').value || location.pathname, device: navigator.userAgent, userName: user.name || user.displayName || user.email, userEmail: user.email });
+  document.getElementById('report-ticket-result').textContent = `Đã gửi ${ticket.ticketCode}. Bạn sẽ nhận phản hồi riêng tại Trung tâm Thông báo.`;
+  event.target.reset(); document.getElementById('report-ticket-page').value = location.pathname; document.getElementById('report-ticket-device').value = navigator.userAgent;
+  renderUserTicketHistory(); showToast('Đã gửi ticket hỗ trợ.', 'success');
+}
+function initSupportTicketPage() { const page = document.getElementById('report-ticket-page'), device = document.getElementById('report-ticket-device'); if (page) page.value = location.pathname; if (device) device.value = navigator.userAgent; renderUserTicketHistory(); }
+window.submitSupportTicket = submitSupportTicket;
+window.initSupportTicketPage = initSupportTicketPage;
 
 /* ─── FEEDBACK INBOX ───────────────────────────────────────────────────────── */
 function renderAdminFeedbackInbox() {
@@ -2563,28 +2607,25 @@ function renderAdminFeedbackInbox() {
     return;
   }
 
-  const typeIcon = { bug: '🐛', feedback: '💬', other: '📝' };
+  const typeIcon = { bug: '🐛', content: '📚', feature: '✨', other: '📝' };
+  const statusLabel = { submitted:'Mới gửi', acknowledged:'Đã ghi nhận', processing:'Đang xử lý', fixed:'Đã sửa', unable:'Không tái hiện được' };
   el.innerHTML = feedbacks.map(f => `
-    <div class="feedback-item ${f.status}">
-      <div class="fb-icon">${typeIcon[f.type] || '💬'}</div>
-      <div class="fb-body">
-        <h5>${escapeHtml(f.userName)} <span class="text-xs text-muted font-normal">— ${escapeHtml(f.userEmail)}</span></h5>
-        <p>${escapeHtml(f.content)}</p>
-        <p>${new Date(f.createdAt).toLocaleDateString('vi-VN')} &middot; <span class="font-bold" style="color:${f.status==='unread'?'var(--danger)':f.status==='resolved'?'var(--success)':'var(--text-muted)'}">${f.status === 'unread' ? '🔴 Chưa đọc' : f.status === 'resolved' ? '✅ Đã xử lý' : '👁 Đã đọc'}</span></p>
-      </div>
-      <div class="fb-actions">
-        ${f.status !== 'resolved' ? `<button class="btn btn-success btn-xs" onclick="adminMarkFeedback('${f.id}','resolved')">✅ Xử lý</button>` : ''}
-        ${f.status === 'unread' ? `<button class="btn btn-secondary btn-xs" onclick="adminMarkFeedback('${f.id}','read')">👁 Đánh dấu đọc</button>` : ''}
-        <button class="btn btn-danger btn-xs" onclick="adminDeleteFeedback('${f.id}')"><i class="fa-solid fa-trash"></i></button>
-      </div>
-    </div>
-  `).join('');
+    <article class="support-admin-ticket">
+      <header><div><span class="fb-icon">${typeIcon[f.type] || '💬'}</span><strong>${escapeHtml(f.ticketCode || f.id)} · ${escapeHtml(f.title || 'Phản hồi')}</strong></div><span class="report-status ${f.status}">${statusLabel[f.status] || f.status}</span></header>
+      <p class="support-admin-user">${escapeHtml(f.userName)} · ${escapeHtml(f.userEmail)} · ${escapeHtml(f.priority || 'normal')}</p><p>${escapeHtml(f.content)}</p><small>${escapeHtml(f.page || '')} · ${new Date(f.createdAt).toLocaleString('vi-VN')}</small>
+      <div class="support-admin-history">${(f.history || []).map(h => `<span>${escapeHtml(h.status)} · ${escapeHtml(h.message)} · ${new Date(h.at).toLocaleString('vi-VN')}</span>`).join('')}</div>
+      <textarea id="admin-response-${f.id}" class="form-textarea" rows="2" placeholder="Ghi chú gửi riêng cho người báo lỗi...">${escapeHtml(f.adminResponse || '')}</textarea>
+      <div class="fb-actions">${[['acknowledged','Ghi nhận'],['processing','Đang xử lý'],['fixed','Đã sửa'],['unable','Không tái hiện được']].map(([s,l]) => `<button class="btn btn-secondary btn-xs" onclick="adminMarkFeedback('${f.id}','${s}')">${l}</button>`).join('')}<button class="btn btn-danger btn-xs" onclick="adminDeleteFeedback('${f.id}')"><i class="fa-solid fa-trash"></i></button></div>
+    </article>`).join('');
 }
 
 function adminMarkFeedback(id, status) {
-  DB.markFeedbackStatus(id, status);
-  renderAdminFeedbackInbox();
-  renderAdminDashboard();
+  const feedback = DB.getFeedbacks().find(f => f.id === id); if (!feedback) return;
+  const response = document.getElementById(`admin-response-${id}`)?.value.trim() || '';
+  const label = { acknowledged:'Đã ghi nhận', processing:'Đang xử lý', fixed:'Đã sửa', unable:'Không tái hiện được' }[status] || status;
+  DB.updateFeedback(id, { status, adminResponse: response, historyEntry: { status, message: response || `Ticket ${label.toLowerCase()}.`, actor: 'Admin' } });
+  if (feedback.userEmail) DB.addAnnouncement({ title: `${label}: ${feedback.title || feedback.ticketCode}`, content: `<p>Ticket <strong>${escapeHtml(feedback.ticketCode || feedback.id)}</strong> của bạn đã được cập nhật: <strong>${label}</strong>.</p>${response ? `<p>${escapeHtml(response)}</p>` : ''}`, type: status === 'fixed' ? 'success' : 'info', category: 'Phản hồi ticket', scope: 'user', recipientEmail: feedback.userEmail, author: 'Admin' });
+  renderAdminFeedbackInbox(); renderAdminDashboard(); if (document.getElementById('notification-center-shell')) renderNotificationCenter();
 }
 
 function adminDeleteFeedback(id) {
@@ -3170,72 +3211,32 @@ window.renderAdminArticleList = renderAdminArticleList;
    NOTIFICATIONS PAGE FUNCTIONS
    ═══════════════════════════════════════════════════════════════════ */
 
-function filterNotifications(category) {
-  // Update active tab
-  document.querySelectorAll('.notification-tab').forEach(tab => {
-    tab.classList.remove('active');
-    if (tab.dataset.filter === category) {
-      tab.classList.add('active');
-    }
-  });
+const NotificationCenterState = { filter: 'all', selectedId: null };
+const NOTIFICATION_CHARACTER_ASSETS = ['notification-character-1.webp', 'notification-character-2.webp'];
+let notificationCharacterAsset = null;
+Promise.all(NOTIFICATION_CHARACTER_ASSETS.map(src => new Promise(resolve => { const image = new Image(); image.onload = () => resolve(src); image.onerror = () => resolve(null); image.src = src; }))).then(results => { if (results.every(Boolean)) { notificationCharacterAsset = results[Math.floor(Math.random() * results.length)]; if (document.getElementById('notification-center-shell')) renderNotificationCenter(); } });
 
-  // Filter notifications
-  const items = document.querySelectorAll('.notification-item');
-  const emptyState = document.getElementById('notifications-empty');
-  let visibleCount = 0;
+function notificationUser() { return NavController.currentUser || { email: 'guest', role: 'NEWBIE', name: 'Khách' }; }
+function notificationIcon(type) { return ({ info: 'fa-bell', update: 'fa-code-branch', alert: 'fa-triangle-exclamation', success: 'fa-circle-check' })[type] || 'fa-bell'; }
+function notificationText(html = '') { const el = document.createElement('div'); el.innerHTML = html; return (el.textContent || '').trim(); }
+function notificationTime(value) { return value ? new Date(value).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : ''; }
 
-  items.forEach(item => {
-    if (category === 'all' || item.dataset.category === category) {
-      item.style.display = 'flex';
-      visibleCount++;
-    } else {
-      item.style.display = 'none';
-    }
-  });
-
-  // Show/hide empty state
-  if (visibleCount === 0) {
-    emptyState?.classList.remove('hidden');
-  } else {
-    emptyState?.classList.add('hidden');
-  }
+function renderNotificationCenter() {
+  const shell = document.getElementById('notification-center-shell');
+  if (!shell) return;
+  const user = notificationUser();
+  const key = user.email || user.id || 'guest';
+  const read = DB.getNotificationReadState(key);
+  const all = DB.getVisibleAnnouncements(user);
+  const items = NotificationCenterState.filter === 'unread' ? all.filter(a => !read[a.id]) : NotificationCenterState.filter === 'read' ? all.filter(a => read[a.id]) : all;
+  if (!NotificationCenterState.selectedId || !all.some(a => a.id === NotificationCenterState.selectedId)) NotificationCenterState.selectedId = all[0]?.id || null;
+  const selected = all.find(a => a.id === NotificationCenterState.selectedId);
+  const counts = { all: all.length, unread: all.filter(a => !read[a.id]).length, read: all.filter(a => read[a.id]).length };
+  shell.innerHTML = `<div class="notification-center-list-pane"><div class="notification-center-heading"><div><h1>Thông báo</h1><p>Các thông báo và thư từ quản trị viên</p></div><span class="notification-count">${counts.unread} mới</span></div><div class="notification-center-tabs">${['all','unread','read'].map(f => `<button class="notification-center-tab ${NotificationCenterState.filter === f ? 'active' : ''}" aria-pressed="${NotificationCenterState.filter === f}" onclick="filterNotifications('${f}')">${f === 'all' ? 'Tất cả' : f === 'unread' ? 'Chưa đọc' : 'Đã đọc'} <b>${counts[f]}</b></button>`).join('')}</div><div class="notification-center-list">${items.length ? items.map(a => `<button class="notification-center-item ${a.id === selected?.id ? 'selected' : ''} ${read[a.id] ? 'is-read' : 'is-unread'}" onclick="openNotificationDetail(event, '${a.id}')"><span class="notification-center-item-icon"><i class="fa-solid ${notificationIcon(a.type)}"></i></span><span class="notification-center-item-copy"><strong>${escapeHtml(a.title)}</strong><small>${escapeHtml(a.excerpt || notificationText(a.content).slice(0, 92))}</small></span><time>${notificationTime(a.createdAt)}</time></button>`).join('') : '<div class="notification-center-empty">Không có thông báo phù hợp.</div>'}</div></div><div class="notification-center-detail-pane">${selected ? `<div class="notification-detail-toolbar"><button onclick="toggleAnnouncementRead('${selected.id}')"><i class="fa-solid fa-check"></i> ${read[selected.id] ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'}</button></div><div class="notification-detail-content-card"><div class="notification-detail-eyebrow"><i class="fa-solid ${notificationIcon(selected.type)}"></i><span>${escapeHtml(selected.category || selected.type || 'Thông báo hệ thống')}</span></div><h2>${escapeHtml(selected.title)}</h2><p class="notification-detail-byline">Quản trị viên ${escapeHtml(selected.author || 'FTECA 24')} · ${notificationTime(selected.createdAt)}</p><article>${selected.content || '<p>Chưa có nội dung chi tiết.</p>'}</article>${notificationCharacterAsset ? `<div class="notification-detail-art" aria-hidden="true"><span class="notification-art-orb notification-art-orb-one"></span><span class="notification-art-orb notification-art-orb-two"></span><span class="notification-art-dots notification-art-dots-top"></span><span class="notification-art-dots notification-art-dots-bottom"></span><img class="notification-detail-character" src="${notificationCharacterAsset}" alt=""></div>` : ''}</div>` : '<div class="notification-center-empty">Chọn một thông báo để xem nội dung.</div>'}</div>`;
 }
-
-function showMoreFilters() {
-  // Placeholder for dropdown menu
-  alert('Tính năng lọc nâng cao đang được phát triển!');
-}
-
-function markAsRead(btn) {
-  btn.style.opacity = '0.3';
-  btn.disabled = true;
-}
-
-function openNotificationDetail(event, notificationId) {
-  // Prevent default if event exists
-  if (event) {
-    event.preventDefault();
-    event.stopPropagation();
-  }
-  
-  // Hide notifications list page
-  document.getElementById('page-notifications')?.classList.add('hidden');
-  // Show notification detail page
-  document.getElementById('page-notification-detail')?.classList.remove('hidden');
-  
-  // Update page title
-  if (window.NavController) {
-    NavController.currentPage = 'notification-detail';
-  }
-  
-  // TODO: Load notification data based on notificationId
-  console.log('Opening notification:', notificationId);
-}
-
-// Expose notifications functions to global window
-Object.assign(window, {
-  filterNotifications,
-  showMoreFilters,
-  markAsRead,
-  openNotificationDetail,
-});
+function filterNotifications(filter) { NotificationCenterState.filter = filter; renderNotificationCenter(); }
+function openNotificationDetail(event, notificationId) { event?.preventDefault(); NotificationCenterState.selectedId = notificationId; const user = notificationUser(); DB.setAnnouncementRead(user.email || user.id || 'guest', notificationId, true); renderNotificationCenter(); }
+function toggleAnnouncementRead(id) { const user = notificationUser(); const key = user.email || user.id || 'guest'; const read = DB.getNotificationReadState(key); DB.setAnnouncementRead(key, id, !read[id]); renderNotificationCenter(); }
+function markAsRead(btn) { const id = btn?.dataset?.notificationId; if (id) toggleAnnouncementRead(id); }
+function showMoreFilters() { filterNotifications('all'); }
+Object.assign(window, { filterNotifications, showMoreFilters, markAsRead, openNotificationDetail, toggleAnnouncementRead, renderNotificationCenter });

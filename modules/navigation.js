@@ -68,12 +68,15 @@ export const NavController = {
 
     if (pageId === 'about') {
       setTimeout(() => {
-        if (window.ArticlesModule) {
-          window.ArticlesModule.renderArticlesView();
-        } else {
-          ArticlesModule.renderArticlesView();
-        }
+        if (window.ArticlesModule) window.ArticlesModule.renderArticlesView();
+        else ArticlesModule.renderArticlesView();
       }, 20);
+    }
+    if (pageId === 'notifications') {
+      setTimeout(() => window.renderNotificationCenter?.(), 20);
+    }
+    if (pageId === 'report') {
+      setTimeout(() => window.initSupportTicketPage?.(), 20);
     }
 
     // Bảo mật trang Admin: Chỉ 2 Gmail Admin mới truy cập được

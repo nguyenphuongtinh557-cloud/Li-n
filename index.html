@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260902notifications">
+  <link rel="stylesheet" href="style.css?v=20260902notification-surfaces">
   
   <!-- Thư viện đọc file (PDF & Word) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -774,7 +774,8 @@
 
         <!-- ══════ PAGE 6: THÔNG BÁO ══════ -->
         <section id="page-notifications" class="page-container hidden">
-          <div style="max-width:900px;margin:0 auto;">
+          <div id="notification-center-shell"></div>
+          <div class="notification-legacy" aria-hidden="true">
             <!-- Header -->
             <div class="notifications-header">
               <div class="notifications-header-left">
@@ -880,173 +881,30 @@
           </div>
         </section>
 
-        <!-- ══════ PAGE: NOTIFICATION DETAIL ══════ -->
+        <!-- ══════ PAGE: NOTIFICATION DETAIL (MOBILE FALLBACK) ══════ -->
         <section id="page-notification-detail" class="page-container hidden">
-          <div style="max-width:900px;margin:0 auto;">
-            <!-- Back Button -->
-            <button class="btn btn-ghost btn-sm mb-3" onclick="NavController.navigateToPage('notifications')">
-              <i class="fa-solid fa-arrow-left"></i> Quay lại danh sách thông báo
+          <div class="notification-mobile-route">
+            <button class="btn btn-ghost btn-sm" onclick="NavController.navigateToPage('notifications')" aria-label="Quay lại danh sách thông báo">
+              <i class="fa-solid fa-arrow-left"></i> Quay lại thông báo
             </button>
-
-            <div class="notification-detail-layout">
-              <!-- Main Content -->
-              <div class="notification-detail-main">
-                <!-- Header -->
-                <div class="notification-detail-header">
-                  <div class="notification-detail-icon">
-                    <i class="fa-solid fa-graduation-cap"></i>
-                  </div>
-                  <div class="notification-detail-badge-top success">Thông báo hệ thống</div>
-                  <div class="notification-detail-meta">
-                    <span>Hôm nay lúc 10:30 AM</span>
-                    <button class="notification-mark-read-btn" title="Đã đọc">
-                      <i class="fa-solid fa-circle"></i>
-                    </button>
-                  </div>
-                </div>
-
-                <h1 class="notification-detail-title" id="notification-detail-title">Đã mở rộng 35 môn học CNTP</h1>
-                <p class="notification-detail-subtitle">Toàn bộ 35 môn học thuộc Chương trình đào tạo Ngành Công nghệ Thực phẩm đã được tích hợp vào khung môn học.</p>
-
-                <!-- Info Cards -->
-                <div class="notification-detail-info">
-                  <div class="notification-info-item">
-                    <i class="fa-solid fa-book" style="color:var(--success);"></i>
-                    <div>
-                      <div class="notification-info-label">Chương trình:</div>
-                      <div class="notification-info-value">Công nghệ Thực phẩm</div>
-                    </div>
-                  </div>
-                  <div class="notification-info-item">
-                    <i class="fa-solid fa-graduation-cap" style="color:var(--success);"></i>
-                    <div>
-                      <div class="notification-info-label">Số môn học mới:</div>
-                      <div class="notification-info-value">35 môn</div>
-                    </div>
-                  </div>
-                  <div class="notification-info-item">
-                    <i class="fa-solid fa-calendar" style="color:var(--success);"></i>
-                    <div>
-                      <div class="notification-info-label">Ngày cập nhật:</div>
-                      <div class="notification-info-value">26/05/2024</div>
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Content -->
-                <div class="notification-detail-content">
-                  <h3>Nội dung chi tiết</h3>
-                  <p>Nhằm nâng cao chất lượng đào tạo và cập nhật theo thực tế tại các ngành, FTECA 24 đã mở rộng và bổ sung 35 môn học mới cho Chương trình đào tạo Ngành Công nghệ Thực phẩm.</p>
-                  
-                  <p>Các môn học mới bao gồm nhiều lĩnh vực quan trọng như:</p>
-                  <ul>
-                    <li>Công nghệ chế biến thực phẩm hiện đại</li>
-                    <li>An toàn thực phẩm và quản lý chất lượng</li>
-                    <li>Dinh dưỡng và phát triển sản phẩm</li>
-                    <li>Công nghệ sinh học trong thực phẩm</li>
-                    <li>Quản trị sản xuất và chuỗi cung ứng thực phẩm</li>
-                  </ul>
-
-                  <p>Hãy truy cập khung môn học để khám phá ngay các môn học mới và và bắt đầu ôn tập Hệt!</p>
-                  
-                  <button class="btn btn-success mt-3" onclick="NavController.navigateToPage('ontap')">
-                    <i class="fa-solid fa-arrow-right"></i> Xem khung môn học
-                  </button>
-                </div>
-
-                <!-- Feedback Section -->
-                <div class="notification-detail-feedback">
-                  <h3>Bạn cảm thấy trợ giúp?</h3>
-                  <p>Liên hệ đội ngũ hỗ trợ FTECA 24/7 nếu bạn có bất kỳ câu hỏi nào.</p>
-                  <div class="notification-feedback-buttons">
-                    <button class="btn btn-success btn-sm">
-                      <i class="fa-solid fa-thumbs-up"></i> Hữu ích
-                    </button>
-                    <button class="btn btn-ghost btn-sm">
-                      <i class="fa-solid fa-thumbs-down"></i> Không hữu ích
-                    </button>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Sidebar -->
-              <div class="notification-detail-sidebar">
-                <div class="card">
-                  <h3 style="font-size:14px;font-weight:700;margin-bottom:12px;">
-                    <i class="fa-solid fa-link"></i> Liên quan
-                  </h3>
-                  
-                  <div class="notification-related-item" onclick="alert('Chức năng đang phát triển')">
-                    <i class="fa-solid fa-graduation-cap"></i>
-                    <div>
-                      <div class="notification-related-title">Khung chương trình đào tạo</div>
-                      <div class="notification-related-desc">Xem toàn bộ khung đào tạo khóa môn học</div>
-                    </div>
-                    <i class="fa-solid fa-chevron-right"></i>
-                  </div>
-
-                  <div class="notification-related-item" onclick="alert('Chức năng đang phát triển')">
-                    <i class="fa-solid fa-circle-question"></i>
-                    <div>
-                      <div class="notification-related-title">Các môn học mới</div>
-                      <div class="notification-related-desc">Danh sách 35 môn được cập nhập</div>
-                    </div>
-                    <i class="fa-solid fa-chevron-right"></i>
-                  </div>
-
-                  <div class="notification-related-item" onclick="alert('Chức năng đang phát triển')">
-                    <i class="fa-solid fa-book"></i>
-                    <div>
-                      <div class="notification-related-title">Hướng dẫn đăng ký môn học</div>
-                      <div class="notification-related-desc">Hướng dẫn chi tiết về quy trình môn học</div>
-                    </div>
-                    <i class="fa-solid fa-chevron-right"></i>
-                  </div>
-                </div>
-
-                <div class="notification-detail-help">
-                  <h3>Đánh giá thông báo này?</h3>
-                  <p>Thông báo này có bao khu, và bạn cần thêm không?</p>
-                  <div class="notification-feedback-buttons">
-                    <button class="btn btn-success btn-sm btn-full">
-                      <i class="fa-solid fa-thumbs-up"></i> Hữu ích
-                    </button>
-                    <button class="btn btn-ghost btn-sm btn-full">
-                      <i class="fa-solid fa-thumbs-down"></i> Không hữu ích
-                    </button>
-                  </div>
-                </div>
-
-                <button class="btn btn-primary btn-sm btn-full" onclick="alert('Liên hệ hỗ trợ')">
-                  <i class="fa-solid fa-headset"></i> Liên hệ hỗ trợ
-                </button>
-              </div>
-            </div>
+            <div id="notification-mobile-detail" class="notification-center-empty">Hãy chọn thông báo từ danh sách.</div>
           </div>
         </section>
 
         <!-- ══════ PAGE 7: BÁO CÁO LỖI ══════ -->
         <section id="page-report" class="page-container hidden">
-          <div class="card" style="max-width:600px;margin:0 auto;">
-            <h2 style="font-size:18px;font-weight:700;margin-bottom:12px;">🐛 Báo Cáo Lỗi & Góp Ý</h2>
-            <p class="text-secondary text-sm margin-bottom-16">Nếu phát hiện câu hỏi sai sót hoặc lỗi hệ thống, vui lòng gửi phản hồi bên dưới.</p>
-            <div class="space-y-4">
-              <div class="form-group">
-                <label class="form-label">Loại báo cáo</label>
-                <select class="form-select">
-                  <option>Sai sót nội dung câu hỏi</option>
-                  <option>Lỗi giao diện / chức năng</option>
-                  <option>Góp ý tính năng mới</option>
-                </select>
-              </div>
-              <div class="form-group">
-                <label class="form-label">Mô tả chi tiết</label>
-                <textarea class="form-textarea" rows="4" placeholder="Nhập chi tiết nội dung lỗi..."></textarea>
-              </div>
-              <button class="btn btn-primary btn-full" onclick="showToast('Cảm ơn bạn đã gửi báo cáo!', 'success')">
-                <i class="fa-solid fa-paper-plane"></i> Gửi Báo Cáo
-              </button>
+          <div class="report-ticket-shell">
+            <div class="report-ticket-form-card">
+              <div class="report-ticket-heading"><span class="report-ticket-icon"><i class="fa-solid fa-life-ring"></i></span><div><h1>Trung tâm hỗ trợ</h1><p>Gửi lỗi hoặc góp ý, đội ngũ quản trị sẽ phản hồi qua Thông báo.</p></div></div>
+              <form id="report-ticket-form" onsubmit="submitSupportTicket(event)">
+                <div class="report-ticket-grid"><label>Loại vấn đề<select id="report-ticket-type"><option value="bug">Lỗi giao diện / chức năng</option><option value="content">Sai sót nội dung</option><option value="feature">Đề xuất tính năng</option><option value="other">Vấn đề khác</option></select></label><label>Mức độ ưu tiên<select id="report-ticket-priority"><option value="low">Thấp</option><option value="normal" selected>Bình thường</option><option value="high">Cao</option><option value="urgent">Khẩn cấp</option></select></label></div>
+                <label>Tiêu đề<input id="report-ticket-title" required maxlength="120" placeholder="Tóm tắt vấn đề bạn gặp phải"></label>
+                <label>Mô tả chi tiết<textarea id="report-ticket-content" required rows="6" placeholder="Bạn đã làm gì, điều gì xảy ra và kết quả mong muốn là gì?"></textarea></label>
+                <div class="report-ticket-grid"><label>Trang gặp lỗi<input id="report-ticket-page" placeholder="Tự nhận diện khi gửi"></label><label>Thiết bị / trình duyệt<input id="report-ticket-device" readonly></label></div>
+                <button class="btn btn-primary" type="submit"><i class="fa-solid fa-paper-plane"></i> Gửi ticket hỗ trợ</button><p id="report-ticket-result" class="report-ticket-result" aria-live="polite"></p>
+              </form>
             </div>
+            <aside class="report-ticket-history"><div class="report-history-heading"><h2>Ticket của bạn</h2><span id="report-ticket-count">0</span></div><div id="report-ticket-history-list" class="report-ticket-history-list"></div></aside>
           </div>
         </section>
 

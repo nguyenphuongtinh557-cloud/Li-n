@@ -16,6 +16,7 @@ const KEYS = {
   PREMIUM_EMAILS: 'qlcl_premium_emails',
   USER_REGISTRY: 'qlcl_user_registry',
   ANNOUNCEMENTS: 'qlcl_system_announcements',
+  NOTIFICATION_READ_STATE: 'qlcl_notification_read_state',
   ARTICLES: 'qlcl_cms_articles',
   RESOURCES: 'qlcl_learning_resources',
   FEEDBACKS: 'qlcl_user_feedbacks',
@@ -92,21 +93,47 @@ export const DB = {
     } catch { return []; }
   },
 
+  getNotificationReadState(userId) {
+    try {
+      const state = JSON.parse(localStorage.getItem(KEYS.NOTIFICATION_READ_STATE) || '{}');
+      return state[userId || 'guest'] || {};
+    } catch { return {}; }
+  },
+
+  setAnnouncementRead(userId, announcementId, isRead = true) {
+    try {
+      const state = JSON.parse(localStorage.getItem(KEYS.NOTIFICATION_READ_STATE) || '{}');
+      const key = userId || 'guest';
+      const userState = state[key] || {};
+      if (isRead) userState[announcementId] = new Date().toISOString();
+      else delete userState[announcementId];
+      state[key] = userState;
+      localStorage.setItem(KEYS.NOTIFICATION_READ_STATE, JSON.stringify(state));
+      return userState;
+    } catch { return {}; }
+  },
+
+  getVisibleAnnouncements(user) {
+    const role = (user?.role || 'NEWBIE').toUpperCase();
+    return this.getAnnouncements().filter(a => {
+      const scope = a.scope || 'all';
+      const email = (user?.email || '').trim().toLowerCase();
+      return scope === 'all' || (scope === 'user' && email && email === String(a.recipientEmail || '').trim().toLowerCase()) || (scope === 'premium' && (role === 'PREMIUM' || role === 'ADMIN')) || (scope === 'newbie' && role === 'NEWBIE');
+    });
+  },
+
   addAnnouncement(announcement, skipSync = false) {
     const list = this.getAnnouncements();
     const item = {
-      id: 'ANN_' + Date.now(),
-      title: announcement.title || 'Thông báo hệ thống',
-      content: announcement.content || '',
-      type: announcement.type || 'info',
-      createdAt: new Date().toISOString(),
-      author: announcement.author || 'Admin'
+      id: 'ANN_' + Date.now(), title: announcement.title || 'Thông báo hệ thống', content: announcement.content || '',
+      type: announcement.type || 'info', category: announcement.category || announcement.type || 'info', scope: announcement.scope || 'all',
+      excerpt: announcement.excerpt || String(announcement.content || '').replace(/<[^>]*>/g, '').slice(0, 180),
+      links: Array.isArray(announcement.links) ? announcement.links : [], attachment: announcement.attachment || null, recipientEmail: announcement.recipientEmail || '',
+      createdAt: new Date().toISOString(), author: announcement.author || 'Admin'
     };
     list.unshift(item);
     localStorage.setItem(KEYS.ANNOUNCEMENTS, JSON.stringify(list));
-    if (!skipSync) {
-      pushAnnouncementsToServer(list);
-    }
+    if (!skipSync) pushAnnouncementsToServer(list);
     return item;
   },
 
@@ -184,25 +211,29 @@ export const DB = {
 
   submitFeedback(feedback, skipSync = false) {
     const list = this.getFeedbacks();
+    const now = new Date().toISOString();
     const item = {
-      id: 'FB_' + Date.now(),
-      type: feedback.type || 'feedback',   // 'bug' | 'feedback' | 'other'
-      content: feedback.content || '',
-      userName: feedback.userName || 'Ẩn danh',
-      userEmail: feedback.userEmail || '',
-      status: 'unread',                    // 'unread' | 'read' | 'resolved'
-      createdAt: new Date().toISOString(),
+      id: 'FB_' + Date.now(), ticketCode: 'TK-' + Date.now().toString().slice(-6), type: feedback.type || 'bug', priority: feedback.priority || 'normal',
+      title: feedback.title || 'Báo cáo lỗi', content: feedback.content || '', page: feedback.page || '', device: feedback.device || '',
+      userName: feedback.userName || 'Ẩn danh', userEmail: feedback.userEmail || '', status: 'submitted', adminResponse: '', createdAt: now, updatedAt: now,
+      history: [{ status: 'submitted', message: 'Đã gửi báo cáo đến quản trị viên.', at: now, actor: feedback.userName || 'Người dùng' }]
     };
-    list.unshift(item);
-    localStorage.setItem(KEYS.FEEDBACKS, JSON.stringify(list));
-    if (!skipSync) pushFeedbacksToServer(list);
-    return item;
+    list.unshift(item); localStorage.setItem(KEYS.FEEDBACKS, JSON.stringify(list));
+    if (!skipSync) pushFeedbacksToServer(list); return item;
+  },
+
+  updateFeedback(id, patch = {}) {
+    const now = new Date().toISOString(); let updated = null;
+    const list = this.getFeedbacks().map(f => {
+      if (f.id !== id) return f;
+      const history = [...(f.history || []), ...(patch.historyEntry ? [{ ...patch.historyEntry, at: now }] : [])];
+      updated = { ...f, ...patch, history, updatedAt: now }; delete updated.historyEntry; return updated;
+    });
+    localStorage.setItem(KEYS.FEEDBACKS, JSON.stringify(list)); pushFeedbacksToServer(list); return updated;
   },
 
   markFeedbackStatus(id, status) {
-    const list = this.getFeedbacks().map(f => f.id === id ? { ...f, status } : f);
-    localStorage.setItem(KEYS.FEEDBACKS, JSON.stringify(list));
-    pushFeedbacksToServer(list);
+    return this.updateFeedback(id, { status, historyEntry: { status, message: 'Cập nhật trạng thái ticket.', actor: 'Admin' } });
   },
 
   deleteFeedback(id) {
