@@ -2276,67 +2276,41 @@ function adminEditArticle(id) {
 function previewArticleCover(url) {
   const previewContainer = document.getElementById('admin-article-cover-preview');
   const previewImg = document.getElementById('admin-article-cover-img');
-  
-  if (!url || !url.trim()) {
-    if (previewContainer) previewContainer.style.display = 'none';
-    return;
-  }
-  
-  let cleanUrl = url.trim();
-  
-  // Validate URL format
+  if (!previewContainer || !previewImg) return;
+
+  // Always clear the previous image first: a changed URL must never appear to use the old cover.
+  previewContainer.style.display = 'none';
+  previewImg.removeAttribute('src');
+  previewImg.style.opacity = '1';
+  previewImg.style.filter = 'none';
+
+  const cleanUrl = (url || '').trim();
+  if (!cleanUrl) return;
+
+  let parsedUrl;
   try {
-    new URL(cleanUrl);
+    parsedUrl = new URL(cleanUrl);
+    if (!/^https?:$/.test(parsedUrl.protocol)) throw new Error('unsupported protocol');
   } catch {
-    if (previewContainer) previewContainer.style.display = 'none';
     return;
   }
-  
-  if (previewImg) {
-    // Show loading state
-    if (previewContainer) {
-      previewContainer.style.display = 'block';
-      previewImg.style.opacity = '0.5';
-      previewImg.style.filter = 'blur(2px)';
-    }
-    
-    // Add cache-busting timestamp
-    const cacheBuster = `${cleanUrl.includes('?') ? '&' : '?'}_t=${Date.now()}`;
-    const finalUrl = cleanUrl + cacheBuster;
-    
-    // Try loading image with cache-buster
-    previewImg.onerror = () => {
-      // If failed, try with CORS proxy
-      const proxiedUrl = `https://corsproxy.io/?${encodeURIComponent(cleanUrl)}`;
-      previewImg.src = proxiedUrl;
-      
-      previewImg.onerror = () => {
-        // If still failed, hide preview
-        if (previewContainer) previewContainer.style.display = 'none';
-        showToast('⚠️ Không thể tải ảnh. URL có thể bị chặn CORS hoặc không hợp lệ.', 'warning');
-      };
-      
-      previewImg.onload = () => {
-        if (previewContainer) {
-          previewContainer.style.display = 'block';
-          previewImg.style.opacity = '1';
-          previewImg.style.filter = 'none';
-        }
-        showToast('✅ Đã tải ảnh qua proxy CORS', 'info');
-      };
-    };
-    
-    previewImg.onload = () => {
-      if (previewContainer) {
-        previewContainer.style.display = 'block';
-        previewImg.style.opacity = '1';
-        previewImg.style.filter = 'none';
-      }
-    };
-    
-    // Set src to trigger load
-    previewImg.src = finalUrl;
-  }
+
+  // Ignore stale asynchronous results when the admin changes the URL again while an image loads.
+  const requestId = String(Date.now());
+  previewImg.dataset.previewRequestId = requestId;
+  const loader = new Image();
+  loader.onload = () => {
+    if (previewImg.dataset.previewRequestId !== requestId) return;
+    previewImg.src = cleanUrl;
+    previewImg.alt = 'Xem trước ảnh bìa đã chọn';
+    previewContainer.style.display = 'block';
+  };
+  loader.onerror = () => {
+    if (previewImg.dataset.previewRequestId !== requestId) return;
+    previewContainer.style.display = 'none';
+    showToast('⚠️ Không thể tải ảnh từ URL này. Hãy dùng liên kết ảnh trực tiếp (HTTPS).', 'warning');
+  };
+  loader.src = cleanUrl;
 }
 
 function adminCloseArticleEditor() {

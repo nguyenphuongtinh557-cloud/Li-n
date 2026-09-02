@@ -4737,3 +4737,11 @@ html,body{max-width:100%;overflow-x:hidden}.app-main-wrapper,.page-container{min
   .notification-detail-main{padding:20px 16px}.notification-detail-title{font-size:22px}.notification-detail-meta{width:100%;margin-left:0;justify-content:space-between;flex-wrap:wrap}.notification-detail-info{grid-template-columns:1fr;gap:10px}.notification-feedback-buttons{flex-wrap:wrap}.notification-feedback-buttons .btn{flex:1 1 140px}
 }
 @media (max-width:480px){.modal-overlay{padding:8px}.modal-box{max-height:calc(100dvh - 16px);padding:18px 14px}.notification-detail-main{padding:18px 14px}.article-card-admin .article-info h4{white-space:normal}.admin-page-banner h1{font-size:18px!important}}
+
+/* MOBILE: keep the horizontal review tabs intentional and discoverable */
+@media (max-width:768px){
+  .tab-pill-container{position:relative;scroll-snap-type:x proximity;padding-right:54px!important;mask-image:linear-gradient(to right,#000 0, #000 calc(100% - 40px),transparent 100%)}
+  .tab-pill-container::after{content:'›';position:sticky;right:0;display:grid;place-items:center;width:34px;height:38px;margin:-44px -44px 0 auto;border-radius:50%;background:var(--bg-card);color:var(--primary);font-size:28px;font-weight:400;box-shadow:-10px 0 16px var(--bg-base);pointer-events:none}
+  .tab-pill-btn{scroll-snap-stop:always}.tab-pill-btn:last-child{margin-right:10px}
+  .btn-google-signin::after{display:none}.btn-google-signin .google-icon{display:block;width:20px;height:20px}.btn-google-signin span{display:none}
+}
