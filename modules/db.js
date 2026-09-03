@@ -3,7 +3,7 @@
  * Quản lý toàn bộ dữ liệu qua localStorage + Gọi module Sync để đẩy lên GitHub
  */
 
-import { pushToGitHub, pushUserRolesToServer, pushCustomSubjectsToServer, pushAnnouncementsToServer, pushArticlesToServer, pushResourcesToServer, pushFeedbacksToServer } from './sync.js?v=20260831b';
+import { pushToGitHub, pushUserRolesToServer, pushCustomSubjectsToServer, pushAnnouncementsToServer, pushArticlesToServer, pushResourcesToServer, pushFeedbacksToServer } from './sync.js?v=20260903roles';
 
 const KEYS = {
   BANK: 'qlcl_question_bank',
@@ -30,28 +30,26 @@ export const DB = {
     } catch { return []; }
   },
 
-  setPremiumEmails(emails = [], skipSync = false) {
-    localStorage.setItem(KEYS.PREMIUM_EMAILS, JSON.stringify(emails));
-    if (!skipSync) {
-      pushUserRolesToServer({ premiumEmails: emails, users: this.getAllRegisteredUsers(), updatedAt: new Date().toISOString() });
-    }
+  async setPremiumEmails(emails = [], skipSync = false) {
+    const premiumEmails = [...new Set((Array.isArray(emails) ? emails : []).map(email => String(email || '').trim().toLowerCase()).filter(Boolean))];
+    const users = this.getAllRegisteredUsers();
+    localStorage.setItem(KEYS.PREMIUM_EMAILS, JSON.stringify(premiumEmails));
+    const synced = skipSync ? true : await pushUserRolesToServer({ premiumEmails, users, updatedAt: new Date().toISOString() });
+    return { users, premiumEmails, synced: Boolean(synced) };
   },
 
-  grantPremium(email) {
-    if (!email) return;
+  async grantPremium(email) {
+    if (!email) return { users: this.getAllRegisteredUsers(), premiumEmails: this.getPremiumEmails(), synced: false };
     const cleanEmail = email.trim().toLowerCase();
-    const list = this.getPremiumEmails();
-    if (!list.includes(cleanEmail)) {
-      list.push(cleanEmail);
-      this.setPremiumEmails(list);
-    }
+    const premiumEmails = this.getPremiumEmails();
+    if (!premiumEmails.includes(cleanEmail)) premiumEmails.push(cleanEmail);
+    return await this.setPremiumEmails(premiumEmails);
   },
 
-  revokePremium(email) {
-    if (!email) return;
+  async revokePremium(email) {
+    if (!email) return { users: this.getAllRegisteredUsers(), premiumEmails: this.getPremiumEmails(), synced: false };
     const cleanEmail = email.trim().toLowerCase();
-    const list = this.getPremiumEmails().filter(e => e !== cleanEmail);
-    this.setPremiumEmails(list);
+    return await this.setPremiumEmails(this.getPremiumEmails().filter(item => String(item || '').toLowerCase() !== cleanEmail));
   },
 
   /** Danh sách Học Viên Registered */
@@ -61,30 +59,44 @@ export const DB = {
     } catch { return []; }
   },
 
-  saveUserToRegistry(user, skipSync = false) {
-    if (!user || !user.email) return;
-    const list = this.getAllRegisteredUsers();
-    const idx = list.findIndex(u => u.email.toLowerCase() === user.email.toLowerCase());
-    const userData = {
-      name: user.name || user.displayName || user.email.split('@')[0],
-      email: user.email.toLowerCase(),
-      avatar: user.avatar || user.photoURL,
-      lastLogin: new Date().toISOString(),
-      provider: user.provider || 'google.com'
+  mergeUserRolesFromServer(serverRoles = {}) {
+    const byEmail = new Map();
+    const addUser = (rawUser = {}) => {
+      const email = String(rawUser.email || '').trim().toLowerCase();
+      if (!email) return;
+      const current = byEmail.get(email);
+      const candidate = { ...rawUser, email };
+      const currentTime = Date.parse(current?.lastLogin || '') || 0;
+      const candidateTime = Date.parse(candidate.lastLogin || '') || 0;
+      if (!current || candidateTime >= currentTime) {
+        byEmail.set(email, { ...current, ...candidate, firstSeen: current?.firstSeen || candidate.firstSeen || candidate.lastLogin || new Date().toISOString() });
+      } else {
+        byEmail.set(email, { ...candidate, ...current, firstSeen: current.firstSeen || candidate.firstSeen });
+      }
     };
-
-    if (idx >= 0) {
-      list[idx] = { ...list[idx], ...userData };
-    } else {
-      userData.firstSeen = new Date().toISOString();
-      list.push(userData);
-    }
-
-    localStorage.setItem(KEYS.USER_REGISTRY, JSON.stringify(list));
-    if (!skipSync) {
-      pushUserRolesToServer({ premiumEmails: this.getPremiumEmails(), users: list, updatedAt: new Date().toISOString() });
-    }
+    this.getAllRegisteredUsers().forEach(addUser);
+    (Array.isArray(serverRoles.users) ? serverRoles.users : []).forEach(addUser);
+    const users = [...byEmail.values()].sort((a, b) => (Date.parse(b.lastLogin || '') || 0) - (Date.parse(a.lastLogin || '') || 0));
+    const premiumEmails = [...new Set([...this.getPremiumEmails(), ...(Array.isArray(serverRoles.premiumEmails) ? serverRoles.premiumEmails : [])].map(email => String(email || '').trim().toLowerCase()).filter(Boolean))];
+    localStorage.setItem(KEYS.USER_REGISTRY, JSON.stringify(users));
+    localStorage.setItem(KEYS.PREMIUM_EMAILS, JSON.stringify(premiumEmails));
+    return { users, premiumEmails };
   },
+
+  async saveUserToRegistry(user, skipSync = false) {
+    if (!user || !user.email) return { users: this.getAllRegisteredUsers(), premiumEmails: this.getPremiumEmails(), synced: false };
+    const list = this.getAllRegisteredUsers();
+    const cleanEmail = user.email.trim().toLowerCase();
+    const idx = list.findIndex(item => String(item.email || '').trim().toLowerCase() === cleanEmail);
+    const now = new Date().toISOString();
+    const userData = { name: user.name || user.displayName || cleanEmail.split('@')[0], email: cleanEmail, avatar: user.avatar || user.photoURL, lastLogin: now, provider: user.provider || 'google.com' };
+    if (idx >= 0) list[idx] = { ...list[idx], ...userData, firstSeen: list[idx].firstSeen || now };
+    else list.push({ ...userData, firstSeen: now });
+    localStorage.setItem(KEYS.USER_REGISTRY, JSON.stringify(list));
+    const premiumEmails = this.getPremiumEmails();
+    const synced = skipSync ? true : await pushUserRolesToServer({ premiumEmails, users: list, updatedAt: now });
+    return { users: list, premiumEmails, synced: Boolean(synced) };
+  }
 
   /** Thông báo Hệ Thống */
   getAnnouncements() {

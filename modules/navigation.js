@@ -88,6 +88,7 @@ export const NavController = {
         pageId = 'ontap';
         subTabId = 'exam-tab';
       } else {
+        window.refreshUserRolesFromServer?.();
         setTimeout(() => {
           if (window.renderAdminDashboard) window.renderAdminDashboard();
         }, 50);

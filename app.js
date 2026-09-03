@@ -8,11 +8,11 @@ import { Generator } from './modules/generator.js';
 import { ExamEngine, ExamTimer } from './modules/exam.js';
 import { SEED_QUESTIONS } from './data/seed_questions.js';
 import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion } from './modules/cera.js';
-import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer } from './modules/sync.js?v=20260831b';
+import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer } from './modules/sync.js?v=20260903roles';
 import { initAdminAuth } from './modules/admin.js';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js?v=20260901c';
 import { NavController } from './modules/navigation.js';
-import { AuthModule } from './modules/auth.js';
+import { AuthModule, getUserRole } from './modules/auth.js';
 import { ArticlesModule } from './modules/articles.js';
 
 /* ════════════════════════════════════════════════════
@@ -1973,6 +1973,23 @@ function switchAdminSubTab(tabName) {
   }
   else if (tabName === 'bank') { _populateBankSubjectDropdown(); }
 }
+window.refreshUserRolesFromServer = async function() {
+  try {
+    const serverRoles = await pullUserRolesFromServer();
+    if (serverRoles && typeof serverRoles === 'object') DB.mergeUserRolesFromServer(serverRoles);
+    if (NavController.currentUser?.email) {
+      NavController.currentUser.role = getUserRole(NavController.currentUser.email);
+      localStorage.setItem('lien_google_user', JSON.stringify(NavController.currentUser));
+      NavController.renderUserAuthZone();
+    }
+    if (document.getElementById('admin-users-table-body')) renderAdminDashboard();
+    return true;
+  } catch (error) {
+    console.warn('[User roles] Không thể làm mới dữ liệu cloud:', error);
+    return false;
+  }
+};
+
 function renderAdminDashboard() {
   const statUsers = document.getElementById('stat-total-users');
   const statPremium = document.getElementById('stat-premium-users');
@@ -1984,7 +2001,7 @@ function renderAdminDashboard() {
   const bank = DB.getBank();
   const subjects = getAllSubjects();
 
-  if (statUsers) statUsers.textContent = users.length || 1;
+  if (statUsers) statUsers.textContent = users.length;
   if (statPremium) statPremium.textContent = premiumEmails.length || 0;
   if (statQuestions) statQuestions.textContent = bank.length || 0;
   if (statSubjects) statSubjects.textContent = subjects.length || 35;
@@ -2005,19 +2022,6 @@ function renderAdminUserList(filterText = '') {
   const users = DB.getAllRegisteredUsers();
   const superAdmins = ['nguyenphuongtinh557@gmail.com', 'macnghich@gmail.com'];
   const premiumEmails = DB.getPremiumEmails().map(e => (e || '').toLowerCase());
-
-  // Merge current user if not in list
-  if (NavController.currentUser && NavController.currentUser.email) {
-    const exists = users.some(u => u.email.toLowerCase() === NavController.currentUser.email.toLowerCase());
-    if (!exists) {
-      users.unshift({
-        name: NavController.currentUser.name,
-        email: NavController.currentUser.email,
-        avatar: NavController.currentUser.avatar,
-        lastLogin: new Date().toISOString()
-      });
-    }
-  }
 
   const keyword = filterText.trim().toLowerCase();
   const filteredUsers = users.filter(u => {
@@ -2078,24 +2082,22 @@ function filterAdminUserList(keyword) {
   renderAdminUserList(keyword);
 }
 
-function grantAdminUserPremium(email) {
+async function grantAdminUserPremium(email) {
   if (!email) return;
-  DB.grantPremium(email);
-  showToast(`🎉 Đã cấp quyền PREMIUM cho tài khoản [${email}] thành công! Dữ liệu đã đồng bộ lên Server Cloud.`, 'success');
+  const result = await DB.grantPremium(email);
+  showToast(result.synced ? `🎉 Đã cấp quyền PREMIUM cho [${email}] và đồng bộ cloud.` : `⚠️ Đã cấp PREMIUM cục bộ cho [${email}], nhưng cloud chưa đồng bộ.`, result.synced ? 'success' : 'warning');
+  await window.refreshUserRolesFromServer?.();
   renderAdminDashboard();
-  if (NavController.currentUser && NavController.currentUser.email.toLowerCase() === email.toLowerCase()) {
-    NavController.renderUserAuthZone();
-  }
+  if (NavController.currentUser?.email?.toLowerCase() === email.toLowerCase()) NavController.renderUserAuthZone();
 }
 
-function revokeAdminUserPremium(email) {
+async function revokeAdminUserPremium(email) {
   if (!email) return;
-  DB.revokePremium(email);
-  showToast(`ℹ️ Đã hạ tài khoản [${email}] xuống cấp độ NEWBIE. Dữ liệu đã đồng bộ lên Server Cloud.`, 'info');
+  const result = await DB.revokePremium(email);
+  showToast(result.synced ? `ℹ️ Đã hạ [${email}] xuống NEWBIE và đồng bộ cloud.` : `⚠️ Đã hạ NEWBIE cục bộ cho [${email}], nhưng cloud chưa đồng bộ.`, result.synced ? 'info' : 'warning');
+  await window.refreshUserRolesFromServer?.();
   renderAdminDashboard();
-  if (NavController.currentUser && NavController.currentUser.email.toLowerCase() === email.toLowerCase()) {
-    NavController.renderUserAuthZone();
-  }
+  if (NavController.currentUser?.email?.toLowerCase() === email.toLowerCase()) NavController.renderUserAuthZone();
 }
 
 async function handleAdminImportJSON() {

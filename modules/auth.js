@@ -32,7 +32,7 @@ try {
 }
 
 import { DB } from './db.js';
-import { pullUserRolesFromServer } from './sync.js?v=20260831';
+import { pullUserRolesFromServer } from './sync.js?v=20260903roles';
 
 export const SUPER_ADMIN_EMAILS = [
   'nguyenphuongtinh557@gmail.com',
@@ -61,18 +61,19 @@ export const AuthModule = {
     // 1. Đồng bộ danh sách User Roles mới nhất từ Server Cloud
     try {
       const serverRoles = await pullUserRolesFromServer();
-      if (serverRoles && Array.isArray(serverRoles.premiumEmails)) {
-        DB.setPremiumEmails(serverRoles.premiumEmails, true);
+      if (serverRoles && typeof serverRoles === 'object') {
+        DB.mergeUserRolesFromServer(serverRoles);
       }
     } catch (e) {
       console.warn('[Auth] Không thể pull User Roles từ Server:', e);
     }
 
     this.restoreSession();
+    if (this.user?.email) this.user.role = getUserRole(this.user.email);
 
     // Listen for Firebase Auth state changes
     if (auth) {
-      onAuthStateChanged(auth, (firebaseUser) => {
+      onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
           const customAvatar = localStorage.getItem(`lien_custom_avatar_${firebaseUser.uid}`);
           const customName = localStorage.getItem(`lien_custom_name_${firebaseUser.uid}`);
@@ -86,7 +87,7 @@ export const AuthModule = {
             provider: 'google.com',
             signedInAt: new Date().toISOString()
           };
-          this.setUserSession(realUser, false);
+          await this.setUserSession(realUser, false);
         }
       });
     }
@@ -141,7 +142,7 @@ export const AuthModule = {
         signedInAt: new Date().toISOString()
       };
 
-      this.setUserSession(realUser, true);
+      await this.setUserSession(realUser, true);
     } catch (error) {
       console.error('Google Sign-In Error:', error);
       this.handleAuthError(error);
@@ -176,10 +177,12 @@ export const AuthModule = {
     }
   },
 
-  setUserSession(user, showNotification = true) {
+  async setUserSession(user, showNotification = true) {
+    let registryResult = { synced: true };
     if (user && user.email) {
+      user.email = user.email.trim().toLowerCase();
       user.role = getUserRole(user.email);
-      DB.saveUserToRegistry(user);
+      registryResult = await DB.saveUserToRegistry(user);
     }
     this.user = user;
     localStorage.setItem('lien_google_user', JSON.stringify(user));
@@ -198,6 +201,9 @@ export const AuthModule = {
     if (showNotification && window.showToast) {
       const roleBadge = user.role === 'ADMIN' ? '🛡️ ADMIN' : (user.role === 'PREMIUM' ? '💎 PREMIUM' : '🌱 NEWBIE');
       window.showToast(`Xin chào ${user.name}! [${roleBadge}] Đã đăng nhập tài khoản Google (${user.email}).`, 'success');
+    }
+    if (!registryResult.synced && window.showToast) {
+      window.showToast('Đã lưu phiên đăng nhập trên thiết bị này, nhưng danh sách học viên chưa đồng bộ lên cloud.', 'warning');
     }
 
     this.notifyListeners(user);

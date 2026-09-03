@@ -42,7 +42,7 @@ async function fetchRaw(filename) {
     const res = await fetch(url, { cache: 'no-store' });
     if (!res.ok) return [];
     const data = await res.json();
-    return Array.isArray(data) ? data : [];
+    return data && typeof data === 'object' ? data : [];
   } catch {
     return [];
   }
