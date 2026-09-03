@@ -1,5 +1,29 @@
 [
   {
+    "id": "FB_1788405986963",
+    "ticketCode": "TK-986963",
+    "type": "bug",
+    "priority": "normal",
+    "title": "ad đẹp trai",
+    "content": "Ad siêu cắp đẹp tra'",
+    "page": "/",
+    "device": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "userName": "Nguyễn Phúc",
+    "userEmail": "nguyenhoangphuc17052006@gmail.com",
+    "status": "submitted",
+    "adminResponse": "",
+    "createdAt": "2026-09-03T03:26:26.963Z",
+    "updatedAt": "2026-09-03T03:26:26.963Z",
+    "history": [
+      {
+        "status": "submitted",
+        "message": "Đã gửi báo cáo đến quản trị viên.",
+        "at": "2026-09-03T03:26:26.963Z",
+        "actor": "Nguyễn Phúc"
+      }
+    ]
+  },
+  {
     "id": "FB_1788405662461",
     "ticketCode": "TK-662461",
     "type": "other",
