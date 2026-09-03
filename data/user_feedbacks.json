@@ -1,35 +1,5 @@
 [
   {
-    "id": "FB_1788407081778",
-    "ticketCode": "TK-081778",
-    "type": "content",
-    "priority": "normal",
-    "title": "Test admin",
-    "content": "hđhdhhdh",
-    "page": "/",
-    "device": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
-    "userName": "Nguyễn Phúc",
-    "userEmail": "nguyenhoangphuc17052006@gmail.com",
-    "status": "fixed",
-    "adminResponse": "",
-    "createdAt": "2026-09-03T03:44:41.778Z",
-    "updatedAt": "2026-09-03T06:40:51.579Z",
-    "history": [
-      {
-        "status": "submitted",
-        "message": "Đã gửi báo cáo đến quản trị viên.",
-        "at": "2026-09-03T03:44:41.778Z",
-        "actor": "Nguyễn Phúc"
-      },
-      {
-        "status": "fixed",
-        "message": "Ticket đã sửa.",
-        "actor": "Admin",
-        "at": "2026-09-03T06:40:51.579Z"
-      }
-    ]
-  },
-  {
     "id": "FB_1788406868354",
     "ticketCode": "TK-868354",
     "type": "bug",
