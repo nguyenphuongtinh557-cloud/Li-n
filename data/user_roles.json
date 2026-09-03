@@ -2,20 +2,20 @@
   "premiumEmails": [],
   "users": [
     {
+      "name": "Nghịch Mặc",
+      "email": "macnghich@gmail.com",
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocJmlDVrgJ3LKq8hmP3Q74PYyhWGQ4pRk9TaA016CBhkf4dp8Pg=s96-c",
+      "lastLogin": "2026-09-03T03:26:48.776Z",
+      "provider": "google.com",
+      "firstSeen": "2026-08-31T08:55:47.075Z"
+    },
+    {
       "name": "Nguyễn Phúc",
       "email": "nguyenhoangphuc17052006@gmail.com",
       "avatar": "https://lh3.googleusercontent.com/a/ACg8ocJstQ_rIe7nRue6aCesxrsIwCQfnt1ndApHdExwaUshnn5LvCHG=s96-c",
       "lastLogin": "2026-09-03T03:26:09.821Z",
       "provider": "google.com",
       "firstSeen": "2026-08-31T07:13:34.627Z"
-    },
-    {
-      "name": "Nghịch Mặc",
-      "email": "macnghich@gmail.com",
-      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocJmlDVrgJ3LKq8hmP3Q74PYyhWGQ4pRk9TaA016CBhkf4dp8Pg=s96-c",
-      "lastLogin": "2026-09-03T03:26:36.801Z",
-      "provider": "google.com",
-      "firstSeen": "2026-08-31T08:55:47.075Z"
     },
     {
       "name": "Hahah Ahga",
@@ -26,5 +26,5 @@
       "firstSeen": "2026-08-31T07:13:18.469Z"
     }
   ],
-  "updatedAt": "2026-09-03T03:26:36.801Z"
+  "updatedAt": "2026-09-03T03:26:48.776Z"
 }
