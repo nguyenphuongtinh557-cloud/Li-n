@@ -1,0 +1,26 @@
+[
+  {
+    "id": "FB_1788394054104",
+    "ticketCode": "TK-054104",
+    "type": "content",
+    "priority": "low",
+    "title": "ad đẹp trai",
+    "content": "admin siêu căp đẹp trai",
+    "page": "/",
+    "device": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36",
+    "userName": "Hahah Ahga",
+    "userEmail": "hahahahga701@gmail.com",
+    "status": "submitted",
+    "adminResponse": "",
+    "createdAt": "2026-09-03T00:07:34.104Z",
+    "updatedAt": "2026-09-03T00:07:34.104Z",
+    "history": [
+      {
+        "status": "submitted",
+        "message": "Đã gửi báo cáo đến quản trị viên.",
+        "at": "2026-09-03T00:07:34.104Z",
+        "actor": "Hahah Ahga"
+      }
+    ]
+  }
+]
