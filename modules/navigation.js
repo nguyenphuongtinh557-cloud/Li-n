@@ -73,6 +73,7 @@ export const NavController = {
       }, 20);
     }
     if (pageId === 'notifications') {
+      void window.refreshAnnouncementsFromServer?.();
       setTimeout(() => window.renderNotificationCenter?.(), 20);
     }
     if (pageId === 'report') {

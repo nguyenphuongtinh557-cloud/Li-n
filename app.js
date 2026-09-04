@@ -171,7 +171,15 @@ async function init() {
   updateBankCount();
   initSubjectSelector();
   NavController.init();
+  await window.refreshUserRolesFromServer?.();
+  await window.refreshAnnouncementsFromServer?.();
   NavController.navigateToPage('home');
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState !== 'visible') return;
+    void window.refreshUserRolesFromServer?.();
+    void window.refreshAnnouncementsFromServer?.();
+  });
 
   // Kéo bản vá của admin từ server về và patch lên DB local
   // (Patch được ưu tiên hơn seed, giúp Admin sửa câu hỏi mà không cần đụng tới code)
@@ -3296,6 +3304,31 @@ function notificationUser() {
   const user = NavController.currentUser || { email: 'guest', role: 'NEWBIE', name: 'Khách' };
   return { ...user, email: String(user.email || 'guest').trim().toLowerCase() };
 }
+
+function updateNotificationBadge() {
+  const badge = document.querySelector('#snav-notifications .badge-dot');
+  if (!badge) return 0;
+  const user = notificationUser();
+  const read = DB.getNotificationReadState(user.email || user.id || 'guest');
+  const unreadCount = DB.getVisibleAnnouncements(user).filter(item => !read[item.id]).length;
+  badge.hidden = unreadCount === 0;
+  badge.setAttribute('aria-label', unreadCount ? `${unreadCount} thông báo chưa đọc` : 'Không có thông báo chưa đọc');
+  return unreadCount;
+}
+
+window.refreshAnnouncementsFromServer = async function() {
+  try {
+    const announcements = await pullAnnouncementsFromServer();
+    if (Array.isArray(announcements) && announcements.length) DB.mergeAnnouncementsFromServer(announcements);
+    const unreadCount = updateNotificationBadge();
+    if (document.getElementById('notification-center-shell')) renderNotificationCenter();
+    return { synced: true, unreadCount };
+  } catch (error) {
+    console.warn('[Announcements] Không thể làm mới dữ liệu cloud:', error);
+    return { synced: false, unreadCount: updateNotificationBadge() };
+  }
+};
+
 function notificationIcon(type) { return ({ info: 'fa-bell', update: 'fa-code-branch', alert: 'fa-triangle-exclamation', success: 'fa-circle-check' })[type] || 'fa-bell'; }
 function notificationText(html = '') { const el = document.createElement('div'); el.innerHTML = html; return (el.textContent || '').trim(); }
 function notificationTime(value) { return value ? new Date(value).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : ''; }
@@ -3314,8 +3347,8 @@ function renderNotificationCenter() {
   shell.innerHTML = `<div class="notification-center-list-pane"><div class="notification-center-heading"><div><h1>Thông báo</h1><p>Các thông báo và thư từ quản trị viên</p></div><span class="notification-count">${counts.unread} mới</span></div><div class="notification-center-tabs">${['all','unread','read'].map(f => `<button class="notification-center-tab ${NotificationCenterState.filter === f ? 'active' : ''}" aria-pressed="${NotificationCenterState.filter === f}" onclick="filterNotifications('${f}')">${f === 'all' ? 'Tất cả' : f === 'unread' ? 'Chưa đọc' : 'Đã đọc'} <b>${counts[f]}</b></button>`).join('')}</div><div class="notification-center-list">${items.length ? items.map(a => `<button class="notification-center-item ${a.id === selected?.id ? 'selected' : ''} ${read[a.id] ? 'is-read' : 'is-unread'}" onclick="openNotificationDetail(event, '${a.id}')"><span class="notification-center-item-icon"><i class="fa-solid ${notificationIcon(a.type)}"></i></span><span class="notification-center-item-copy"><strong>${escapeHtml(a.title)}</strong><small>${escapeHtml(a.excerpt || notificationText(a.content).slice(0, 92))}</small></span><time>${notificationTime(a.createdAt)}</time></button>`).join('') : '<div class="notification-center-empty">Không có thông báo phù hợp.</div>'}</div></div><div class="notification-center-detail-pane">${selected ? `<div class="notification-detail-toolbar"><button onclick="toggleAnnouncementRead('${selected.id}')"><i class="fa-solid fa-check"></i> ${read[selected.id] ? 'Đánh dấu chưa đọc' : 'Đánh dấu đã đọc'}</button></div><div class="notification-detail-content-card"><div class="notification-detail-eyebrow"><i class="fa-solid ${notificationIcon(selected.type)}"></i><span>${escapeHtml(selected.category || selected.type || 'Thông báo hệ thống')}</span></div><h2>${escapeHtml(selected.title)}</h2><p class="notification-detail-byline">Quản trị viên ${escapeHtml(selected.author || 'FTECA 24')} · ${notificationTime(selected.createdAt)}</p><article>${selected.content || '<p>Chưa có nội dung chi tiết.</p>'}</article>${notificationCharacterAsset ? `<div class="notification-detail-art" aria-hidden="true"><span class="notification-art-orb notification-art-orb-one"></span><span class="notification-art-orb notification-art-orb-two"></span><span class="notification-art-dots notification-art-dots-top"></span><span class="notification-art-dots notification-art-dots-bottom"></span><img class="notification-detail-character" src="${notificationCharacterAsset}" alt=""></div>` : ''}</div>` : '<div class="notification-center-empty">Chọn một thông báo để xem nội dung.</div>'}</div>`;
 }
 function filterNotifications(filter) { NotificationCenterState.filter = filter; renderNotificationCenter(); }
-function openNotificationDetail(event, notificationId) { event?.preventDefault(); NotificationCenterState.selectedId = notificationId; const user = notificationUser(); DB.setAnnouncementRead(user.email || user.id || 'guest', notificationId, true); renderNotificationCenter(); }
-function toggleAnnouncementRead(id) { const user = notificationUser(); const key = user.email || user.id || 'guest'; const read = DB.getNotificationReadState(key); DB.setAnnouncementRead(key, id, !read[id]); renderNotificationCenter(); }
+function openNotificationDetail(event, notificationId) { event?.preventDefault(); NotificationCenterState.selectedId = notificationId; const user = notificationUser(); DB.setAnnouncementRead(user.email || user.id || 'guest', notificationId, true); updateNotificationBadge(); renderNotificationCenter(); }
+function toggleAnnouncementRead(id) { const user = notificationUser(); const key = user.email || user.id || 'guest'; const read = DB.getNotificationReadState(key); DB.setAnnouncementRead(key, id, !read[id]); updateNotificationBadge(); renderNotificationCenter(); }
 function markAsRead(btn) { const id = btn?.dataset?.notificationId; if (id) toggleAnnouncementRead(id); }
 function showMoreFilters() { filterNotifications('all'); }
-Object.assign(window, { filterNotifications, showMoreFilters, markAsRead, openNotificationDetail, toggleAnnouncementRead, renderNotificationCenter });
+Object.assign(window, { filterNotifications, showMoreFilters, markAsRead, openNotificationDetail, toggleAnnouncementRead, renderNotificationCenter, updateNotificationBadge });
