@@ -1,5 +1,7 @@
 {
-  "premiumEmails": [],
+  "premiumEmails": [
+    "nguyenhoangphuc17052006@gmail.com"
+  ],
   "users": [
     {
       "name": "FTECA-24",
@@ -26,5 +28,5 @@
       "firstSeen": "2026-08-31T07:13:34.627Z"
     }
   ],
-  "updatedAt": "2026-09-04T07:23:41.645Z"
+  "updatedAt": "2026-09-04T07:23:47.374Z"
 }
