@@ -1,16 +1,6 @@
 {
-  "premiumEmails": [
-    "nguyenhoangphuc17052006@gmail.com"
-  ],
+  "premiumEmails": [],
   "users": [
-    {
-      "name": "Nguyễn Phúc",
-      "email": "nguyenhoangphuc17052006@gmail.com",
-      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocJstQ_rIe7nRue6aCesxrsIwCQfnt1ndApHdExwaUshnn5LvCHG=s96-c",
-      "lastLogin": "2026-09-04T07:28:57.546Z",
-      "provider": "google.com",
-      "firstSeen": "2026-08-31T07:13:34.627Z"
-    },
     {
       "name": "FTECA-24",
       "email": "macnghich@gmail.com",
@@ -18,6 +8,14 @@
       "lastLogin": "2026-09-04T07:40:50.066Z",
       "provider": "google.com",
       "firstSeen": "2026-09-01T04:41:05.602Z"
+    },
+    {
+      "name": "Nguyễn Phúc",
+      "email": "nguyenhoangphuc17052006@gmail.com",
+      "avatar": "https://lh3.googleusercontent.com/a/ACg8ocJstQ_rIe7nRue6aCesxrsIwCQfnt1ndApHdExwaUshnn5LvCHG=s96-c",
+      "lastLogin": "2026-09-04T07:28:57.546Z",
+      "provider": "google.com",
+      "firstSeen": "2026-08-31T07:13:34.627Z"
     },
     {
       "name": "Hahah Ahga",
@@ -28,5 +26,5 @@
       "firstSeen": "2026-09-03T00:07:28.884Z"
     }
   ],
-  "updatedAt": "2026-09-04T07:40:50.066Z"
+  "updatedAt": "2026-09-04T07:41:37.468Z"
 }
