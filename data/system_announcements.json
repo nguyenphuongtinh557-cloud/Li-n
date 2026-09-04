@@ -1,5 +1,19 @@
 [
   {
+    "id": "ANN_1788507783598",
+    "title": "Quyền Premium của bạn đã được kích hoạt",
+    "content": "<p><strong>Chúc mừng!</strong> Tài khoản của bạn đã được cấp quyền <strong>Premium</strong>.</p><p>Bạn có thể sử dụng các tính năng và AI Models dành cho thành viên Premium ngay bây giờ.</p>",
+    "type": "success",
+    "category": "Quyền tài khoản",
+    "scope": "user",
+    "excerpt": "Quyền Premium đã được kích hoạt cho tài khoản của bạn.",
+    "links": [],
+    "attachment": null,
+    "recipientEmail": "hahahahga701@gmail.com",
+    "createdAt": "2026-09-04T07:43:03.598Z",
+    "author": "Ban Quản trị FTECA 24"
+  },
+  {
     "id": "ANN_1788507699581",
     "title": "Quyền Premium của bạn đã kết thúc",
     "content": "<p>Quyền <strong>Premium</strong> của tài khoản bạn đã kết thúc.</p><p>Tài khoản hiện đã trở về cấp <strong>Newbie</strong>. Nếu cần hỗ trợ, vui lòng liên hệ quản trị viên.</p>",
