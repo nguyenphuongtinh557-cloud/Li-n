@@ -76,6 +76,7 @@ export const NavController = {
       setTimeout(() => window.renderNotificationCenter?.(), 20);
     }
     if (pageId === 'report') {
+      window.refreshFeedbacksFromServer?.();
       setTimeout(() => window.initSupportTicketPage?.(), 20);
     }
 
@@ -89,6 +90,7 @@ export const NavController = {
         subTabId = 'exam-tab';
       } else {
         window.refreshUserRolesFromServer?.();
+        void window.openAdminFeedbackInbox?.();
         setTimeout(() => {
           if (window.renderAdminDashboard) window.renderAdminDashboard();
         }, 50);

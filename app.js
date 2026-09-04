@@ -8,7 +8,7 @@ import { Generator } from './modules/generator.js';
 import { ExamEngine, ExamTimer } from './modules/exam.js';
 import { SEED_QUESTIONS } from './data/seed_questions.js';
 import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion } from './modules/cera.js';
-import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer } from './modules/sync.js?v=20260903roles';
+import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer, pullFeedbacksFromServer } from './modules/sync.js?v=20260903tickets';
 import { initAdminAuth } from './modules/admin.js';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js?v=20260901c';
 import { NavController } from './modules/navigation.js';
@@ -151,7 +151,7 @@ async function init() {
   try {
     const announcements = await pullAnnouncementsFromServer();
     if (Array.isArray(announcements) && announcements.length) {
-      localStorage.setItem('qlcl_system_announcements', JSON.stringify(announcements));
+      DB.mergeAnnouncementsFromServer(announcements);
     } else if (!DB.getAnnouncements().length) {
       localStorage.setItem('qlcl_system_announcements', JSON.stringify(demoAnnouncements));
     }
@@ -1966,7 +1966,7 @@ function switchAdminSubTab(tabName) {
     renderAdminAnnouncementList();
     _initTinyMCEEditors();
   }
-  else if (tabName === 'feedback') { renderAdminFeedbackInbox(); }
+  else if (tabName === 'feedback') { void openAdminFeedbackInbox(); }
   else if (tabName === 'resources') { 
     _populateResourceSubjectDropdown();
     renderAdminResourceList(); 
@@ -2083,21 +2083,39 @@ function filterAdminUserList(keyword) {
 }
 
 async function grantAdminUserPremium(email) {
-  if (!email) return;
-  const result = await DB.grantPremium(email);
-  showToast(result.synced ? `🎉 Đã cấp quyền PREMIUM cho [${email}] và đồng bộ cloud.` : `⚠️ Đã cấp PREMIUM cục bộ cho [${email}], nhưng cloud chưa đồng bộ.`, result.synced ? 'success' : 'warning');
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  if (!cleanEmail) return;
+  if (DB.getPremiumEmails().map(item => String(item || '').trim().toLowerCase()).includes(cleanEmail)) {
+    showToast(`[${cleanEmail}] đã có quyền PREMIUM. Không tạo thông báo mới.`, 'info');
+    return;
+  }
+
+  const result = await DB.grantPremium(cleanEmail);
+  const announcement = await DB.createPremiumRoleAnnouncement(cleanEmail, 'premium_granted');
+  const isSynced = result.synced && announcement.synced;
+  showToast(isSynced ? `🎉 Đã cấp quyền PREMIUM cho [${cleanEmail}] và gửi thông báo riêng.` : `⚠️ Đã cấp PREMIUM cho [${cleanEmail}] và tạo thông báo cục bộ, nhưng cloud chưa đồng bộ đầy đủ.`, isSynced ? 'success' : 'warning');
   await window.refreshUserRolesFromServer?.();
   renderAdminDashboard();
-  if (NavController.currentUser?.email?.toLowerCase() === email.toLowerCase()) NavController.renderUserAuthZone();
+  if (document.getElementById('notification-center-shell')) renderNotificationCenter();
+  if (NavController.currentUser?.email?.toLowerCase() === cleanEmail) NavController.renderUserAuthZone();
 }
 
 async function revokeAdminUserPremium(email) {
-  if (!email) return;
-  const result = await DB.revokePremium(email);
-  showToast(result.synced ? `ℹ️ Đã hạ [${email}] xuống NEWBIE và đồng bộ cloud.` : `⚠️ Đã hạ NEWBIE cục bộ cho [${email}], nhưng cloud chưa đồng bộ.`, result.synced ? 'info' : 'warning');
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  if (!cleanEmail) return;
+  if (!DB.getPremiumEmails().map(item => String(item || '').trim().toLowerCase()).includes(cleanEmail)) {
+    showToast(`[${cleanEmail}] không có quyền PREMIUM. Không tạo thông báo mới.`, 'info');
+    return;
+  }
+
+  const result = await DB.revokePremium(cleanEmail);
+  const announcement = await DB.createPremiumRoleAnnouncement(cleanEmail, 'premium_revoked');
+  const isSynced = result.synced && announcement.synced;
+  showToast(isSynced ? `ℹ️ Đã hạ [${cleanEmail}] xuống NEWBIE và gửi thông báo riêng.` : `⚠️ Đã hạ [${cleanEmail}] xuống NEWBIE và tạo thông báo cục bộ, nhưng cloud chưa đồng bộ đầy đủ.`, isSynced ? 'info' : 'warning');
   await window.refreshUserRolesFromServer?.();
   renderAdminDashboard();
-  if (NavController.currentUser?.email?.toLowerCase() === email.toLowerCase()) NavController.renderUserAuthZone();
+  if (document.getElementById('notification-center-shell')) renderNotificationCenter();
+  if (NavController.currentUser?.email?.toLowerCase() === cleanEmail) NavController.renderUserAuthZone();
 }
 
 async function handleAdminImportJSON() {
@@ -2563,6 +2581,20 @@ function adminDeleteAnnouncement(id) {
 }
 
 /* ─── SUPPORT TICKETS ─────────────────────────────────────────────────────── */
+async function refreshFeedbacksFromServer({ render = true } = {}) {
+  try {
+    const remoteFeedbacks = await pullFeedbacksFromServer();
+    const merged = DB.mergeFeedbacksFromServer(remoteFeedbacks);
+    if (render && document.getElementById('report-ticket-history-list')) renderUserTicketHistory();
+    if (render && document.getElementById('admin-feedback-list')) renderAdminFeedbackInbox();
+    return merged;
+  } catch (error) {
+    console.warn('[Feedback] Không thể tải ticket từ cloud:', error);
+    return null;
+  }
+}
+window.refreshFeedbacksFromServer = refreshFeedbacksFromServer;
+
 function renderUserTicketHistory() {
   const container = document.getElementById('report-ticket-history-list'); if (!container) return;
   const user = NavController.currentUser || {}; const email = (user.email || '').toLowerCase();
@@ -2571,21 +2603,27 @@ function renderUserTicketHistory() {
   const statusLabel = { submitted:'Đã gửi', acknowledged:'Đã ghi nhận', processing:'Đang xử lý', fixed:'Đã sửa', unable:'Không tái hiện được' };
   container.innerHTML = tickets.length ? tickets.map(t => `<article class="report-history-item"><div><strong>${escapeHtml(t.ticketCode || t.id)}</strong><span class="report-status ${t.status}">${statusLabel[t.status] || t.status}</span></div><h3>${escapeHtml(t.title || t.content)}</h3><p>${new Date(t.updatedAt || t.createdAt).toLocaleString('vi-VN')}</p></article>`).join('') : '<div class="report-history-empty">Chưa có ticket nào. Ticket mới sẽ xuất hiện ở đây.</div>';
 }
-function submitSupportTicket(event) {
+async function submitSupportTicket(event) {
   event.preventDefault(); const user = NavController.currentUser;
   if (!user?.email) { showToast('Vui lòng đăng nhập trước khi gửi ticket để nhận phản hồi riêng.', 'error'); return; }
   const content = document.getElementById('report-ticket-content').value.trim(); const title = document.getElementById('report-ticket-title').value.trim();
   if (!title || !content) return;
-  const ticket = DB.submitFeedback({ type: document.getElementById('report-ticket-type').value, priority: document.getElementById('report-ticket-priority').value, title, content, page: document.getElementById('report-ticket-page').value || location.pathname, device: navigator.userAgent, userName: user.name || user.displayName || user.email, userEmail: user.email });
-  document.getElementById('report-ticket-result').textContent = `Đã gửi ${ticket.ticketCode}. Bạn sẽ nhận phản hồi riêng tại Trung tâm Thông báo.`;
+  const result = await DB.submitFeedback({ type: document.getElementById('report-ticket-type').value, priority: document.getElementById('report-ticket-priority').value, title, content, page: document.getElementById('report-ticket-page').value || location.pathname, device: navigator.userAgent, userName: user.name || user.displayName || user.email, userEmail: user.email });
+  document.getElementById('report-ticket-result').textContent = result.synced ? `Đã gửi ${result.item.ticketCode}. Bạn sẽ nhận phản hồi riêng tại Trung tâm Thông báo.` : `Đã lưu ${result.item.ticketCode} trên thiết bị, nhưng chưa đồng bộ đến Admin.`;
   event.target.reset(); document.getElementById('report-ticket-page').value = location.pathname; document.getElementById('report-ticket-device').value = navigator.userAgent;
-  renderUserTicketHistory(); showToast('Đã gửi ticket hỗ trợ.', 'success');
+  renderUserTicketHistory(); showToast(result.synced ? 'Đã gửi ticket hỗ trợ đến Admin.' : 'Ticket chưa đến Admin vì đồng bộ cloud thất bại.', result.synced ? 'success' : 'warning');
 }
-function initSupportTicketPage() { const page = document.getElementById('report-ticket-page'), device = document.getElementById('report-ticket-device'); if (page) page.value = location.pathname; if (device) device.value = navigator.userAgent; renderUserTicketHistory(); }
+async function initSupportTicketPage() { const page = document.getElementById('report-ticket-page'), device = document.getElementById('report-ticket-device'); if (page) page.value = location.pathname; if (device) device.value = navigator.userAgent; await refreshFeedbacksFromServer(); renderUserTicketHistory(); }
 window.submitSupportTicket = submitSupportTicket;
 window.initSupportTicketPage = initSupportTicketPage;
 
 /* ─── FEEDBACK INBOX ───────────────────────────────────────────────────────── */
+async function openAdminFeedbackInbox() {
+  await refreshFeedbacksFromServer({ render: false });
+  renderAdminFeedbackInbox();
+}
+window.openAdminFeedbackInbox = openAdminFeedbackInbox;
+
 function renderAdminFeedbackInbox() {
   const el = document.getElementById('admin-feedback-list');
   const filterEl = document.getElementById('admin-feedback-filter');
@@ -2593,14 +2631,14 @@ function renderAdminFeedbackInbox() {
   if (!el) return;
 
   let feedbacks = DB.getFeedbacks();
-  if (filter === 'unread' || filter === 'read' || filter === 'resolved') {
+  if (['submitted', 'acknowledged', 'processing', 'fixed', 'unable'].includes(filter)) {
     feedbacks = feedbacks.filter(f => f.status === filter);
-  } else if (filter === 'bug' || filter === 'feedback') {
+  } else if (['bug', 'content', 'feature', 'other'].includes(filter)) {
     feedbacks = feedbacks.filter(f => f.type === filter);
   }
 
   // Update badge
-  const unreadCount = DB.getFeedbacks().filter(f => f.status === 'unread').length;
+  const unreadCount = DB.getFeedbacks().filter(f => f.status === 'submitted').length;
   const badge = document.getElementById('admin-feedback-badge');
   if (badge) { badge.textContent = unreadCount; badge.style.display = unreadCount > 0 ? 'inline-flex' : 'none'; }
 
@@ -2621,19 +2659,33 @@ function renderAdminFeedbackInbox() {
     </article>`).join('');
 }
 
-function adminMarkFeedback(id, status) {
+async function adminMarkFeedback(id, status) {
   const feedback = DB.getFeedbacks().find(f => f.id === id); if (!feedback) return;
   const response = document.getElementById(`admin-response-${id}`)?.value.trim() || '';
   const label = { acknowledged:'Đã ghi nhận', processing:'Đang xử lý', fixed:'Đã sửa', unable:'Không tái hiện được' }[status] || status;
-  DB.updateFeedback(id, { status, adminResponse: response, historyEntry: { status, message: response || `Ticket ${label.toLowerCase()}.`, actor: 'Admin' } });
-  if (feedback.userEmail) DB.addAnnouncement({ title: `${label}: ${feedback.title || feedback.ticketCode}`, content: `<p>Ticket <strong>${escapeHtml(feedback.ticketCode || feedback.id)}</strong> của bạn đã được cập nhật: <strong>${label}</strong>.</p>${response ? `<p>${escapeHtml(response)}</p>` : ''}`, type: status === 'fixed' ? 'success' : 'info', category: 'Phản hồi ticket', scope: 'user', recipientEmail: feedback.userEmail, author: 'Admin' });
-  renderAdminFeedbackInbox(); renderAdminDashboard(); if (document.getElementById('notification-center-shell')) renderNotificationCenter();
+  const result = await DB.updateFeedback(id, { status, adminResponse: response, historyEntry: { status, message: response || `Ticket ${label.toLowerCase()}.`, actor: 'Admin' } });
+  if (!result.synced) { showToast('Cập nhật chỉ lưu cục bộ; chưa gửi phản hồi đến học viên.', 'warning'); renderAdminFeedbackInbox(); return; }
+  if (feedback.userEmail) {
+    const ticketCode = escapeHtml(feedback.ticketCode || feedback.id);
+    const ticketTitle = escapeHtml(feedback.title || 'yêu cầu hỗ trợ của bạn');
+    const responseBlock = response ? `<p><strong>Nội dung phản hồi từ đội ngũ:</strong><br>${escapeHtml(response)}</p>` : '';
+    const statusMessage = {
+      acknowledged: 'Chúng tôi đã tiếp nhận yêu cầu và sẽ sớm cập nhật thêm thông tin đến bạn.',
+      processing: 'Yêu cầu đang được đội ngũ kiểm tra và xử lý. Cảm ơn bạn đã kiên nhẫn chờ đợi.',
+      fixed: 'Vấn đề đã được xử lý. Xin cảm ơn bạn đã phản hồi để chúng tôi cải thiện hệ thống.',
+      unable: 'Đội ngũ hiện chưa thể tái hiện vấn đề. Nếu thuận tiện, bạn vui lòng bổ sung thêm thông tin hoặc ảnh minh họa để chúng tôi hỗ trợ tốt hơn.'
+    }[status] || 'Yêu cầu của bạn đã được cập nhật.';
+    await DB.addAnnouncement({ title: `Cập nhật yêu cầu hỗ trợ ${ticketCode}`, content: `<p><strong>Xin chào bạn,</strong></p><p>Cảm ơn bạn đã gửi phản hồi về “<strong>${ticketTitle}</strong>”. Yêu cầu <strong>${ticketCode}</strong> hiện ở trạng thái: <strong>${label}</strong>.</p><p>${statusMessage}</p>${responseBlock}<p>Trân trọng,<br><strong>Đội ngũ hỗ trợ FTECA 24</strong></p>`, type: status === 'fixed' ? 'success' : 'info', category: 'Phản hồi ticket', scope: 'user', recipientEmail: feedback.userEmail, author: 'Đội ngũ hỗ trợ FTECA 24' });
+  }
+  await refreshFeedbacksFromServer(); renderAdminDashboard(); if (document.getElementById('notification-center-shell')) renderNotificationCenter();
+  showToast('Đã đồng bộ phản hồi ticket.', 'success');
 }
 
-function adminDeleteFeedback(id) {
+async function adminDeleteFeedback(id) {
   if (!confirm('Xóa phản hồi này?')) return;
-  DB.deleteFeedback(id);
-  renderAdminFeedbackInbox();
+  const result = await DB.deleteFeedback(id);
+  showToast(result.synced ? 'Đã xóa ticket và đồng bộ cloud.' : 'Đã xóa cục bộ, cloud chưa đồng bộ.', result.synced ? 'info' : 'warning');
+  if (result.synced) await refreshFeedbacksFromServer(); else renderAdminFeedbackInbox();
 }
 
 /* ─── RESOURCES ─────────────────────────────────────────────────────────────── */
@@ -3214,11 +3266,36 @@ window.renderAdminArticleList = renderAdminArticleList;
    ═══════════════════════════════════════════════════════════════════ */
 
 const NotificationCenterState = { filter: 'all', selectedId: null };
-const NOTIFICATION_CHARACTER_ASSETS = ['notification-character-1.webp', 'notification-character-2.webp'];
+// Thư/Thông báo giữ bộ ảnh cũ. Trang nâng cấp dùng bộ ảnh riêng trong Downloads đã đưa vào project.
+const NOTIFICATION_CHARACTER_ASSETS = {
+  male: 'notification-character-1.webp',
+  female: 'notification-character-2.webp'
+};
+const UPGRADE_CHARACTER_ASSETS = {
+  male: 'upgrade-character-male.webp',
+  female: 'upgrade-character-female.webp'
+};
 let notificationCharacterAsset = null;
-Promise.all(NOTIFICATION_CHARACTER_ASSETS.map(src => new Promise(resolve => { const image = new Image(); image.onload = () => resolve(src); image.onerror = () => resolve(null); image.src = src; }))).then(results => { if (results.every(Boolean)) { notificationCharacterAsset = results[Math.floor(Math.random() * results.length)]; if (document.getElementById('notification-center-shell')) renderNotificationCenter(); } });
+let notificationCharacterGender = null;
+const notificationCharacterEntries = Object.entries(NOTIFICATION_CHARACTER_ASSETS);
+Promise.all(notificationCharacterEntries.map(([, src]) => new Promise(resolve => { const image = new Image(); image.onload = () => resolve(src); image.onerror = () => resolve(null); image.src = src; }))).then(results => {
+  if (results.every(Boolean)) {
+    const [illustrationGender, illustrationAsset] = notificationCharacterEntries[Math.floor(Math.random() * notificationCharacterEntries.length)];
+    notificationCharacterGender = illustrationGender;
+    notificationCharacterAsset = illustrationAsset;
+    const upgradeCharacter = document.getElementById('upgrade-contact-character');
+    if (upgradeCharacter) {
+      upgradeCharacter.src = UPGRADE_CHARACTER_ASSETS[notificationCharacterGender];
+      upgradeCharacter.dataset.gender = notificationCharacterGender;
+    }
+    if (document.getElementById('notification-center-shell')) renderNotificationCenter();
+  }
+});
 
-function notificationUser() { return NavController.currentUser || { email: 'guest', role: 'NEWBIE', name: 'Khách' }; }
+function notificationUser() {
+  const user = NavController.currentUser || { email: 'guest', role: 'NEWBIE', name: 'Khách' };
+  return { ...user, email: String(user.email || 'guest').trim().toLowerCase() };
+}
 function notificationIcon(type) { return ({ info: 'fa-bell', update: 'fa-code-branch', alert: 'fa-triangle-exclamation', success: 'fa-circle-check' })[type] || 'fa-bell'; }
 function notificationText(html = '') { const el = document.createElement('div'); el.innerHTML = html; return (el.textContent || '').trim(); }
 function notificationTime(value) { return value ? new Date(value).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : ''; }

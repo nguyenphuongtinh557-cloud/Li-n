@@ -4837,3 +4837,47 @@ html,body{max-width:100%;overflow-x:hidden}.app-main-wrapper,.page-container{min
   .notification-center-item-icon{width:38px!important;height:38px!important}
   .articles-news-hero{padding:20px 16px!important}
 }
+
+/* ─── Account upgrade contact page: isolated route styling ─── */
+.upgrade-contact-page{max-width:1060px;margin:0 auto;background:var(--bg-card);border:1px solid var(--border);border-radius:18px;overflow:hidden;box-shadow:var(--shadow-sm)}
+.upgrade-contact-hero{position:relative;min-height:264px;padding:34px 38px;display:flex;align-items:center;overflow:hidden;background:linear-gradient(110deg,var(--bg-card) 0%,var(--bg-card) 58%,var(--primary-light) 100%)}
+.upgrade-contact-copy{position:relative;z-index:2;width:59%;max-width:590px}.upgrade-contact-kicker{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:7px;background:var(--primary-light);color:var(--primary);font-size:11px;font-weight:800}.upgrade-contact-copy h1{margin:12px 0 8px;font-size:31px;line-height:1.18;letter-spacing:-1px}.upgrade-contact-copy h1 strong{color:var(--primary)}.upgrade-contact-copy>p{max-width:500px;color:var(--text-secondary);font-size:12px;line-height:1.6}
+.upgrade-benefit-chips{display:flex;gap:8px;margin-top:20px}.upgrade-benefit-chips span{display:grid;grid-template-columns:22px 1fr;column-gap:7px;min-width:0;flex:1;padding:9px 8px;border:1px solid var(--border);border-radius:9px;background:var(--bg-card);font-size:9px;line-height:1.25}.upgrade-benefit-chips i{grid-row:span 2;color:var(--primary);font-size:15px}.upgrade-benefit-chips b{font-size:9px}.upgrade-benefit-chips small{color:var(--text-secondary);font-size:8px}
+.upgrade-contact-art{position:absolute;z-index:1;right:15px;bottom:-38px;width:38%;height:100%;display:flex;align-items:flex-end;justify-content:center}.upgrade-contact-art img{position:relative;z-index:2;width:min(300px,100%);height:290px;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 14px 16px rgba(0,70,40,.15))}.upgrade-art-orb{position:absolute;border-radius:50%;background:rgba(0,185,107,.10)}.orb-one{width:230px;height:230px;right:5px;bottom:1px}.orb-two{width:160px;height:160px;right:130px;bottom:-65px;background:rgba(0,185,107,.06)}
+.upgrade-contact-content{display:grid;grid-template-columns:minmax(0,1.65fr) minmax(245px,.85fr);gap:20px;padding:25px 38px 32px}.upgrade-section-title h2,.upgrade-contact-perks h2{font-size:15px;letter-spacing:-.2px}.upgrade-section-title p{font-size:10px;color:var(--text-secondary);margin-top:2px}.upgrade-channel-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:13px}.upgrade-channel-card{display:flex;flex-direction:column;align-items:center;min-height:190px;padding:18px 14px 12px;border:1px solid var(--border);border-radius:11px;text-align:center;background:linear-gradient(145deg,var(--bg-card),#f1f5ff);transition:transform .2s,box-shadow .2s}.upgrade-channel-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}.upgrade-channel-icon,.upgrade-zalo-mark{display:grid;place-items:center;width:35px;height:35px;margin-bottom:9px;border-radius:50%;background:#4f6ff5;color:#fff;font-size:20px}.upgrade-zalo-mark{background:#fff;color:#437cf1;border:1px solid #cbd8ff;font-size:10px;font-weight:800}.upgrade-channel-card h3{font-size:12px}.upgrade-channel-card p{margin:6px 0 13px;color:var(--text-secondary);font-size:10px;line-height:1.45}.upgrade-channel-card span{width:100%;margin-top:auto;padding:8px;border-radius:6px;background:#5947ff;color:#fff;font-size:10px;font-weight:700}.upgrade-contact-perks{padding:17px;border-radius:12px;background:linear-gradient(145deg,var(--primary-light),#e5fff1);border:1px solid rgba(0,185,107,.10)}.upgrade-contact-perks h2{color:var(--primary)}.upgrade-contact-perks ul{display:grid;gap:10px;margin:14px 0;list-style:none}.upgrade-contact-perks li{display:flex;gap:7px;font-size:10px;line-height:1.35}.upgrade-contact-perks li i{color:var(--primary)}.upgrade-contact-perks blockquote{padding:10px;border-radius:8px;background:rgba(255,255,255,.55);color:var(--text-secondary);font-size:10px;line-height:1.5}.upgrade-contact-perks blockquote i{color:var(--primary)}
+[data-theme="dark"] .upgrade-contact-hero{background:linear-gradient(110deg,var(--bg-card) 0%,var(--bg-card) 58%,rgba(0,185,107,.10) 100%)}[data-theme="dark"] .upgrade-channel-card{background:linear-gradient(145deg,var(--bg-card),#172018)}[data-theme="dark"] .upgrade-contact-perks{background:linear-gradient(145deg,rgba(0,185,107,.15),rgba(0,185,107,.08))}[data-theme="dark"] .upgrade-contact-perks blockquote{background:rgba(255,255,255,.06)}
+@media(max-width:760px){.upgrade-contact-hero{min-height:0;padding:27px 22px}.upgrade-contact-copy{width:100%;max-width:none}.upgrade-contact-art{opacity:.17;right:-8px;width:58%;pointer-events:none}.upgrade-benefit-chips{max-width:540px}.upgrade-contact-content{grid-template-columns:1fr;padding:22px}.upgrade-contact-perks{order:-1}.upgrade-channel-grid{max-width:540px}}
+@media(max-width:480px){#page-upgrade.page-container{padding:10px!important}.upgrade-contact-page{border-radius:13px}.upgrade-contact-hero{padding:23px 17px}.upgrade-contact-copy h1{font-size:25px}.upgrade-contact-copy>p{font-size:11px}.upgrade-benefit-chips{display:grid;grid-template-columns:1fr 1fr}.upgrade-benefit-chips span:last-child{grid-column:1/-1}.upgrade-contact-art{display:none}.upgrade-contact-content{padding:18px 15px}.upgrade-channel-grid{grid-template-columns:1fr;gap:10px}.upgrade-channel-card{min-height:165px}.upgrade-contact-perks{padding:15px}}
+
+/* Upgrade page desktop scale adjustment */
+@media (min-width: 761px) {
+  .upgrade-contact-page { max-width: 1240px; }
+  .upgrade-contact-hero { min-height: 342px; padding: 42px 48px; }
+  .upgrade-contact-copy { max-width: 670px; }
+  .upgrade-contact-copy h1 { margin-top: 14px; font-size: 39px; }
+  .upgrade-contact-copy > p { max-width: 590px; font-size: 14px; }
+  .upgrade-contact-kicker { font-size: 12px; padding: 6px 12px; }
+  .upgrade-benefit-chips { gap: 11px; margin-top: 25px; }
+  .upgrade-benefit-chips span { padding: 12px 11px; grid-template-columns: 26px 1fr; font-size: 11px; }
+  .upgrade-benefit-chips i { font-size: 18px; }
+  .upgrade-benefit-chips b { font-size: 11px; }
+  .upgrade-benefit-chips small { font-size: 10px; }
+  .upgrade-contact-art { width: 45%; height: 110%; right: 22px; bottom: -42px; }
+  .upgrade-contact-art img { width: min(390px, 100%); height: 390px; }
+  .orb-one { width: 300px; height: 300px; }
+  .orb-two { width: 210px; height: 210px; }
+  .upgrade-contact-content { grid-template-columns: minmax(0, 1.7fr) minmax(290px, .9fr); gap: 28px; padding: 32px 48px 40px; }
+  .upgrade-section-title h2, .upgrade-contact-perks h2 { font-size: 19px; }
+  .upgrade-section-title p { font-size: 12px; }
+  .upgrade-channel-grid { gap: 18px; margin-top: 17px; }
+  .upgrade-channel-card { min-height: 235px; padding: 23px 18px 15px; }
+  .upgrade-channel-icon, .upgrade-zalo-mark { width: 44px; height: 44px; font-size: 24px; }
+  .upgrade-zalo-mark { font-size: 12px; }
+  .upgrade-channel-card h3 { font-size: 15px; }
+  .upgrade-channel-card p, .upgrade-channel-card span { font-size: 12px; }
+  .upgrade-channel-card span { padding: 10px; }
+  .upgrade-contact-perks { padding: 23px; }
+  .upgrade-contact-perks ul { gap: 13px; margin: 18px 0; }
+  .upgrade-contact-perks li, .upgrade-contact-perks blockquote { font-size: 12px; }
+  .upgrade-contact-perks blockquote { padding: 13px; }
+}

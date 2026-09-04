@@ -3,7 +3,7 @@
  * Quản lý toàn bộ dữ liệu qua localStorage + Gọi module Sync để đẩy lên GitHub
  */
 
-import { pushToGitHub, pushUserRolesToServer, pushCustomSubjectsToServer, pushAnnouncementsToServer, pushArticlesToServer, pushResourcesToServer, pushFeedbacksToServer } from './sync.js?v=20260903roles';
+import { pushToGitHub, pushUserRolesToServer, pushCustomSubjectsToServer, pushAnnouncementsToServer, pushArticlesToServer, pushResourcesToServer, pushFeedbacksToServer } from './sync.js?v=20260903tickets';
 
 const KEYS = {
   BANK: 'qlcl_question_bank',
@@ -96,7 +96,7 @@ export const DB = {
     const premiumEmails = this.getPremiumEmails();
     const synced = skipSync ? true : await pushUserRolesToServer({ premiumEmails, users: list, updatedAt: now });
     return { users: list, premiumEmails, synced: Boolean(synced) };
-  }
+  },
 
   /** Thông báo Hệ Thống */
   getAnnouncements() {
@@ -134,19 +134,59 @@ export const DB = {
     });
   },
 
-  addAnnouncement(announcement, skipSync = false) {
+  mergeAnnouncementsFromServer(remoteAnnouncements = []) {
+    const merged = new Map();
+    const add = (announcement = {}) => {
+      if (!announcement.id) return;
+      const current = merged.get(announcement.id);
+      const currentTime = Date.parse(current?.createdAt || '') || 0;
+      const incomingTime = Date.parse(announcement.createdAt || '') || 0;
+      if (!current || incomingTime >= currentTime) merged.set(announcement.id, announcement);
+    };
+    this.getAnnouncements().forEach(add);
+    (Array.isArray(remoteAnnouncements) ? remoteAnnouncements : []).forEach(add);
+    const list = [...merged.values()].sort((a, b) => (Date.parse(b.createdAt || '') || 0) - (Date.parse(a.createdAt || '') || 0));
+    localStorage.setItem(KEYS.ANNOUNCEMENTS, JSON.stringify(list));
+    return list;
+  },
+
+  async createPremiumRoleAnnouncement(email, eventType) {
+    const recipientEmail = String(email || '').trim().toLowerCase();
+    if (!recipientEmail || !['premium_granted', 'premium_revoked'].includes(eventType)) {
+      return { item: null, list: this.getAnnouncements(), synced: false };
+    }
+
+    const isGranted = eventType === 'premium_granted';
+    return await this.addAnnouncement({
+      scope: 'user',
+      recipientEmail,
+      type: isGranted ? 'success' : 'alert',
+      category: 'Quyền tài khoản',
+      title: isGranted ? 'Quyền Premium của bạn đã được kích hoạt' : 'Quyền Premium của bạn đã kết thúc',
+      content: isGranted
+        ? '<p><strong>Chúc mừng!</strong> Tài khoản của bạn đã được cấp quyền <strong>Premium</strong>.</p><p>Bạn có thể sử dụng các tính năng và AI Models dành cho thành viên Premium ngay bây giờ.</p>'
+        : '<p>Quyền <strong>Premium</strong> của tài khoản bạn đã kết thúc.</p><p>Tài khoản hiện đã trở về cấp <strong>Newbie</strong>. Nếu cần hỗ trợ, vui lòng liên hệ quản trị viên.</p>',
+      excerpt: isGranted
+        ? 'Quyền Premium đã được kích hoạt cho tài khoản của bạn.'
+        : 'Quyền Premium của tài khoản bạn đã kết thúc.',
+      author: 'Ban Quản trị FTECA 24'
+    });
+  },
+
+  async addAnnouncement(announcement, skipSync = false) {
     const list = this.getAnnouncements();
+    const recipientEmail = String(announcement.recipientEmail || '').trim().toLowerCase();
     const item = {
       id: 'ANN_' + Date.now(), title: announcement.title || 'Thông báo hệ thống', content: announcement.content || '',
       type: announcement.type || 'info', category: announcement.category || announcement.type || 'info', scope: announcement.scope || 'all',
       excerpt: announcement.excerpt || String(announcement.content || '').replace(/<[^>]*>/g, '').slice(0, 180),
-      links: Array.isArray(announcement.links) ? announcement.links : [], attachment: announcement.attachment || null, recipientEmail: announcement.recipientEmail || '',
+      links: Array.isArray(announcement.links) ? announcement.links : [], attachment: announcement.attachment || null, recipientEmail,
       createdAt: new Date().toISOString(), author: announcement.author || 'Admin'
     };
     list.unshift(item);
     localStorage.setItem(KEYS.ANNOUNCEMENTS, JSON.stringify(list));
-    if (!skipSync) pushAnnouncementsToServer(list);
-    return item;
+    const synced = skipSync ? true : await pushAnnouncementsToServer(list);
+    return { item, list, synced: Boolean(synced) };
   },
 
   deleteAnnouncement(id) {
@@ -221,37 +261,52 @@ export const DB = {
     try { return JSON.parse(localStorage.getItem(KEYS.FEEDBACKS) || '[]'); } catch { return []; }
   },
 
-  submitFeedback(feedback, skipSync = false) {
-    const list = this.getFeedbacks();
-    const now = new Date().toISOString();
-    const item = {
-      id: 'FB_' + Date.now(), ticketCode: 'TK-' + Date.now().toString().slice(-6), type: feedback.type || 'bug', priority: feedback.priority || 'normal',
-      title: feedback.title || 'Báo cáo lỗi', content: feedback.content || '', page: feedback.page || '', device: feedback.device || '',
-      userName: feedback.userName || 'Ẩn danh', userEmail: feedback.userEmail || '', status: 'submitted', adminResponse: '', createdAt: now, updatedAt: now,
-      history: [{ status: 'submitted', message: 'Đã gửi báo cáo đến quản trị viên.', at: now, actor: feedback.userName || 'Người dùng' }]
+  mergeFeedbacksFromServer(remoteFeedbacks = []) {
+    const merged = new Map();
+    const add = (ticket = {}) => {
+      if (!ticket.id) return;
+      const current = merged.get(ticket.id);
+      const currentTime = Date.parse(current?.updatedAt || current?.createdAt || '') || 0;
+      const ticketTime = Date.parse(ticket.updatedAt || ticket.createdAt || '') || 0;
+      if (!current || ticketTime >= currentTime) merged.set(ticket.id, ticket);
     };
-    list.unshift(item); localStorage.setItem(KEYS.FEEDBACKS, JSON.stringify(list));
-    if (!skipSync) pushFeedbacksToServer(list); return item;
+    this.getFeedbacks().forEach(add);
+    (Array.isArray(remoteFeedbacks) ? remoteFeedbacks : []).forEach(add);
+    const list = [...merged.values()].sort((a, b) => (Date.parse(b.updatedAt || b.createdAt || '') || 0) - (Date.parse(a.updatedAt || a.createdAt || '') || 0));
+    localStorage.setItem(KEYS.FEEDBACKS, JSON.stringify(list));
+    return list;
   },
 
-  updateFeedback(id, patch = {}) {
+  async submitFeedback(feedback, skipSync = false) {
+    const list = this.getFeedbacks();
+    const now = new Date().toISOString();
+    const item = { id: 'FB_' + Date.now(), ticketCode: 'TK-' + Date.now().toString().slice(-6), type: feedback.type || 'bug', priority: feedback.priority || 'normal', title: feedback.title || 'Báo cáo lỗi', content: feedback.content || '', page: feedback.page || '', device: feedback.device || '', userName: feedback.userName || 'Ẩn danh', userEmail: feedback.userEmail || '', status: 'submitted', adminResponse: '', createdAt: now, updatedAt: now, history: [{ status: 'submitted', message: 'Đã gửi báo cáo đến quản trị viên.', at: now, actor: feedback.userName || 'Người dùng' }] };
+    list.unshift(item); localStorage.setItem(KEYS.FEEDBACKS, JSON.stringify(list));
+    const synced = skipSync ? true : await pushFeedbacksToServer(list);
+    return { item, list, synced: Boolean(synced) };
+  },
+
+  async updateFeedback(id, patch = {}) {
     const now = new Date().toISOString(); let updated = null;
     const list = this.getFeedbacks().map(f => {
       if (f.id !== id) return f;
       const history = [...(f.history || []), ...(patch.historyEntry ? [{ ...patch.historyEntry, at: now }] : [])];
       updated = { ...f, ...patch, history, updatedAt: now }; delete updated.historyEntry; return updated;
     });
-    localStorage.setItem(KEYS.FEEDBACKS, JSON.stringify(list)); pushFeedbacksToServer(list); return updated;
+    localStorage.setItem(KEYS.FEEDBACKS, JSON.stringify(list));
+    const synced = await pushFeedbacksToServer(list);
+    return { item: updated, list, synced: Boolean(synced) };
   },
 
   markFeedbackStatus(id, status) {
     return this.updateFeedback(id, { status, historyEntry: { status, message: 'Cập nhật trạng thái ticket.', actor: 'Admin' } });
   },
 
-  deleteFeedback(id) {
+  async deleteFeedback(id) {
     const list = this.getFeedbacks().filter(f => f.id !== id);
     localStorage.setItem(KEYS.FEEDBACKS, JSON.stringify(list));
-    pushFeedbacksToServer(list);
+    const synced = await pushFeedbacksToServer(list);
+    return { list, synced: Boolean(synced) };
   },
 
   /** Lấy danh sách Môn học tùy chỉnh do người dùng tạo */
