@@ -1,5 +1,47 @@
 [
   {
+    "id": "ANN_1788506629184",
+    "title": "Quyền Premium của bạn đã được kích hoạt",
+    "content": "<p><strong>Chúc mừng!</strong> Tài khoản của bạn đã được cấp quyền <strong>Premium</strong>.</p><p>Bạn có thể sử dụng các tính năng và AI Models dành cho thành viên Premium ngay bây giờ.</p>",
+    "type": "success",
+    "category": "Quyền tài khoản",
+    "scope": "user",
+    "excerpt": "Quyền Premium đã được kích hoạt cho tài khoản của bạn.",
+    "links": [],
+    "attachment": null,
+    "recipientEmail": "nguyenhoangphuc17052006@gmail.com",
+    "createdAt": "2026-09-04T07:23:49.184Z",
+    "author": "Ban Quản trị FTECA 24"
+  },
+  {
+    "id": "ANN_1788506623405",
+    "title": "Quyền Premium của bạn đã kết thúc",
+    "content": "<p>Quyền <strong>Premium</strong> của tài khoản bạn đã kết thúc.</p><p>Tài khoản hiện đã trở về cấp <strong>Newbie</strong>. Nếu cần hỗ trợ, vui lòng liên hệ quản trị viên.</p>",
+    "type": "alert",
+    "category": "Quyền tài khoản",
+    "scope": "user",
+    "excerpt": "Quyền Premium của tài khoản bạn đã kết thúc.",
+    "links": [],
+    "attachment": null,
+    "recipientEmail": "hahahahga701@gmail.com",
+    "createdAt": "2026-09-04T07:23:43.405Z",
+    "author": "Ban Quản trị FTECA 24"
+  },
+  {
+    "id": "ANN_1788506569150",
+    "title": "Quyền Premium của bạn đã được kích hoạt",
+    "content": "<p><strong>Chúc mừng!</strong> Tài khoản của bạn đã được cấp quyền <strong>Premium</strong>.</p><p>Bạn có thể sử dụng các tính năng và AI Models dành cho thành viên Premium ngay bây giờ.</p>",
+    "type": "success",
+    "category": "Quyền tài khoản",
+    "scope": "user",
+    "excerpt": "Quyền Premium đã được kích hoạt cho tài khoản của bạn.",
+    "links": [],
+    "attachment": null,
+    "recipientEmail": "hahahahga701@gmail.com",
+    "createdAt": "2026-09-04T07:22:49.150Z",
+    "author": "Ban Quản trị FTECA 24"
+  },
+  {
     "id": "ANN_1788417654266",
     "title": "Cập nhật yêu cầu hỗ trợ TK-081778",
     "content": "<p><strong>Xin chào bạn,</strong></p><p>Cảm ơn bạn đã gửi phản hồi về “<strong>Test admin</strong>”. Yêu cầu <strong>TK-081778</strong> hiện ở trạng thái: <strong>Đã sửa</strong>.</p><p>Vấn đề đã được xử lý. Xin cảm ơn bạn đã phản hồi để chúng tôi cải thiện hệ thống.</p><p>Trân trọng,<br><strong>Đội ngũ hỗ trợ FTECA 24</strong></p>",
