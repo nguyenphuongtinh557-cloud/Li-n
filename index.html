@@ -12,7 +12,24 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260904upgrade-scale">
+  <link rel="stylesheet" href="style.css?v=20260905-study-hub-vibrant">
+  <style>
+    @media (max-width: 720px) {
+      #study-space-root .study-hub-shell { padding: 16px 12px 30px; }
+      #study-space-root .study-hub-hero { padding: 25px 21px; display: block; min-height: 0; }
+      #study-space-root .study-hub-hero h1 { font-size: 34px; line-height: 1.14; }
+      #study-space-root .study-hub-hero-art { height: 125px; margin-top: 10px; }
+      #study-space-root .study-hub-art-placeholder { right: 22px; bottom: -5px; width: 115px; height: 118px; border-radius: 37px 37px 16px 16px; }
+      #study-space-root .study-hub-art-placeholder i { font-size: 35px; }
+      #study-space-root .study-hub-hero-stat { right: 5px; top: -1px; padding: 10px 12px; min-width: 84px; }
+      #study-space-root .study-hub-hero-stat b { font-size: 22px; }
+      #study-space-root .study-hub-filter-row, #study-space-root .study-hub-list-meta { align-items: flex-start; flex-direction: column; }
+      #study-space-root .study-hub-subject-grid, #study-space-root .study-hub-ai-panel { grid-template-columns: 1fr; }
+      #study-space-root .study-hub-support { padding: 24px 21px; display: block; }
+      #study-space-root .study-hub-support-visual { height: 100px; margin-top: 5px; }
+      #study-space-root .study-hub-support-visual i:first-child { font-size: 72px; }
+    }
+  </style>
   
   <!-- Thư viện đọc file (PDF & Word) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -52,8 +69,8 @@
           <button id="snav-about" class="sidebar-nav-item" onclick="NavController.navigateToPage('about')">
             <i class="fa-solid fa-newspaper"></i> <span>Đọc báo & Tin tức</span>
           </button>
-          <button id="snav-ontap" class="sidebar-nav-item active" onclick="NavController.navigateToPage('ontap')">
-            <i class="fa-solid fa-book-bookmark"></i> <span>Ôn tập & kiểm tra</span>
+          <button id="snav-study-space" class="sidebar-nav-item" onclick="NavController.navigateToPage('study-space')">
+            <i class="fa-solid fa-graduation-cap"></i> <span>Không gian học tập</span>
           </button>
           <button id="snav-aigen" class="sidebar-nav-item" onclick="NavController.navigateToPage('aigen')">
             <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Tạo câu hỏi bằng AI</span>
@@ -757,6 +774,11 @@
         <!-- ══════ PAGE 4: CHI TIẾT MÔN HỌC (SUBJECT DETAIL PAGE) ══════ -->
         <section id="page-subject-detail" class="page-container hidden">
           <!-- Rendered dynamically via navigation.js -->
+        </section>
+
+        <!-- ══════ PAGE: KHÔNG GIAN HỌC TẬP ══════ -->
+        <section id="page-study-space" class="page-container hidden">
+          <div id="study-space-root"></div>
         </section>
 
         <!-- ══════ PAGE 5: TẠO CÂU HỎI BẰNG AI ══════ -->

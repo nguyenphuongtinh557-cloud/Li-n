@@ -1,4 +1,4 @@
-﻿/**
+/**
  * app.js — Main Application Controller
  * Điều phối toàn bộ logic của ứng dụng
  */
@@ -170,7 +170,7 @@ async function init() {
 
   updateBankCount();
   initSubjectSelector();
-  NavController.init();
+  await NavController.init();
   await window.refreshUserRolesFromServer?.();
   await window.refreshAnnouncementsFromServer?.();
   NavController.navigateToPage('home');
@@ -233,7 +233,7 @@ function switchTab(tabId) {
 
   // Đồng bộ highlight Sidebar
   document.querySelectorAll('.sidebar-nav-item').forEach(item => item.classList.remove('active'));
-  let snavId = 'snav-ontap';
+  let snavId = 'snav-study-space';
   if (tabId === 'source-tab') snavId = 'snav-aigen';
   if (tabId === 'history-tab') snavId = 'snav-history';
   const snavEl = document.getElementById(snavId);
@@ -3268,6 +3268,107 @@ window.adminSaveArticle = adminSaveArticle;
 window.adminDeleteArticle = adminDeleteArticle;
 window.renderAdminArticleList = renderAdminArticleList;
 
+
+/* ═══════════════════════════════════════════════════════════════════
+   STUDY SPACE
+   ═══════════════════════════════════════════════════════════════════ */
+const StudySpace = { query: '', blockId: 'ALL', hasArticlesOnly: false, selectedId: null };
+
+function normalizeStudySpaceValue(value) {
+  return String(value ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase('vi-VN')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+function studySpaceArticlesForSubject(subject, articles = DB.getArticles()) {
+  const subjectId = normalizeStudySpaceValue(subject.id);
+  const subjectCode = normalizeStudySpaceValue(subject.code);
+  const subjectName = normalizeStudySpaceValue(subject.name);
+
+  return (Array.isArray(articles) ? articles : []).filter(article => {
+    if (subjectId && normalizeStudySpaceValue(article.subjectId) === subjectId) return true;
+    if (subjectCode && normalizeStudySpaceValue(article.subjectCode) === subjectCode) return true;
+    if (subjectName && normalizeStudySpaceValue(article.subject) === subjectName) return true;
+
+    // Bài cũ chưa có trường liên kết: chỉ nhận diện mã môn như một token độc lập
+    // trong nội dung mô tả, tránh "FT445" khớp nhầm "FT4455".
+    const text = [article.tags, article.title, article.excerpt]
+      .flatMap(value => Array.isArray(value) ? value : [value])
+      .map(normalizeStudySpaceValue)
+      .join(' ');
+    const tokens = text.split(/[^a-z0-9]+/i);
+    return Boolean(subjectCode) && tokens.includes(subjectCode);
+  });
+}
+
+function studySpaceResourcesForSubject(subject, resources = DB.getResources()) {
+  const subjectId = normalizeStudySpaceValue(subject.id);
+  const subjectCode = normalizeStudySpaceValue(subject.code);
+  return (Array.isArray(resources) ? resources : []).filter(resource => {
+    const resourceSubjectId = normalizeStudySpaceValue(resource.subjectId);
+    const resourceSubjectCode = normalizeStudySpaceValue(resource.subjectCode);
+    return Boolean(subjectId && resourceSubjectId === subjectId) || Boolean(subjectCode && resourceSubjectCode === subjectCode);
+  }).map(resource => ({
+    ...resource,
+    contentType: 'resource',
+    title: resource.name || resource.title || 'Tài nguyên học tập',
+    excerpt: resource.description || ({ lecture: 'Bài giảng do quản trị viên cập nhật.', exam: 'Đề thi do quản trị viên cập nhật.' }[resource.type] || 'Nội dung do quản trị viên cập nhật.')
+  }));
+}
+
+function studySpaceContentForSubject(subject, articles, resources) {
+  return [
+    ...studySpaceArticlesForSubject(subject, articles).map(article => ({ ...article, contentType: 'article' })),
+    ...studySpaceResourcesForSubject(subject, resources)
+  ];
+}
+
+function getStudySpaceSubjects() {
+  const query = StudySpace.query.trim().toLocaleLowerCase('vi-VN');
+  const articles = DB.getArticles();
+  const resources = DB.getResources();
+  return getAllSubjects().map(subject => ({ ...subject, articles: studySpaceContentForSubject(subject, articles, resources) }))
+    .filter(subject => StudySpace.blockId === 'ALL' || subject.blockId === StudySpace.blockId)
+    .filter(subject => !StudySpace.hasArticlesOnly || subject.articles.length)
+    .filter(subject => !query || `${subject.code} ${subject.name}`.toLocaleLowerCase('vi-VN').includes(query));
+}
+
+function studySpaceSubjectIcon(subject) {
+  const name = normalizeStudySpaceValue(subject.name);
+  if (/vat ly|xac suat|thong ke|dien/.test(name)) return 'fa-atom';
+  if (/hoa|phu gia|doc to/.test(name)) return 'fa-flask';
+  if (/sinh|vi sinh|enzyme|dinh duong/.test(name)) return 'fa-dna';
+  if (/quoc phong|quan su|chien dau/.test(name)) return 'fa-shield-halved';
+  if (/quan ly|marketing|kinh te/.test(name)) return 'fa-chart-line';
+  return 'fa-book-open';
+}
+
+function studySpaceAIAction(action) {
+  const messages = { summary:'Tóm tắt AI sẽ sẵn sàng khi bạn chọn một tài liệu trong môn học.', plan:'Lộ trình ôn tập sẽ được cá nhân hóa theo môn bạn chọn.', chat:'Trợ lý AI đang sẵn sàng hỗ trợ bạn tìm môn học phù hợp.', flashcard:'Flashcard AI sẽ xuất hiện khi môn học có tài liệu.', recommend:'Gợi ý tài liệu sẽ dựa trên tài nguyên của từng môn.' };
+  if (action === 'quiz') return NavController.navigateToPage('aigen');
+  showToast(messages[action] || 'Tính năng AI đang được chuẩn bị.', 'info');
+}
+
+function renderStudySpace() {
+  const root = document.getElementById('study-space-root');
+  if (!root) return;
+  const subjects = getStudySpaceSubjects();
+  const allSubjects = getAllSubjects();
+  const contentCount = subjects.reduce((total, subject) => total + subject.articles.length, 0);
+  const aiTools = [['quiz','fa-file-circle-plus','Tạo đề thi AI','Tạo đề trắc nghiệm theo chương, chủ đề hoặc môn học.','violet'],['summary','fa-wand-magic-sparkles','Tóm tắt giáo trình AI','Chắt lọc nội dung dài thành bản ngắn gọn, dễ hiểu.','green'],['plan','fa-calendar-check','Lên kế hoạch ôn thi','Xây lộ trình phù hợp với mục tiêu của bạn.','blue'],['chat','fa-comments','Hỏi đáp cùng AI','Giải đáp nhanh mọi thắc mắc trong quá trình học.','orange'],['flashcard','fa-layer-group','Flashcard AI','Tự động tạo thẻ ghi nhớ từ tài liệu môn học.','teal'],['recommend','fa-lightbulb','Gợi ý tài liệu','Đề xuất tài liệu theo môn bạn đang quan tâm.','rose']];
+  root.innerHTML = `<div class="study-hub-shell"><main class="study-hub-main"><section class="study-hub-hero"><div class="study-hub-hero-copy"><span class="study-hub-kicker"><i class="fa-solid fa-graduation-cap"></i> KHÔNG GIAN HỌC TẬP</span><h1>Khám phá môn học<br>theo <em>cách của bạn</em></h1><p>Học nhanh hơn, hiểu sâu hơn với kho tài liệu được chọn lọc và cập nhật liên tục dành riêng cho sinh viên Công nghệ Thực phẩm.</p><div class="study-hub-hero-actions"><button onclick="studySpaceAIAction('chat')"><i class="fa-solid fa-sparkles"></i> Hỏi trợ lý AI</button><span><b>${allSubjects.length}</b> môn học trong chương trình</span></div></div><div class="study-hub-hero-art" aria-label="Vùng minh họa nhân vật sẽ được bổ sung"><div class="study-hub-art-orb orb-one"></div><div class="study-hub-art-orb orb-two"></div><div class="study-hub-art-dots"></div><div class="study-hub-art-placeholder"><i class="fa-solid fa-user-graduate"></i><span>Khu vực minh họa<br>nhân vật</span></div><div class="study-hub-hero-stat"><b>${allSubjects.length}</b><span>môn học phù hợp</span></div></div></section><section class="study-hub-catalog"><div class="study-hub-search"><i class="fa-solid fa-magnifying-glass"></i><input id="study-space-search" type="search" value="${StudySpace.query.replace(/"/g, '&quot;')}" placeholder="Tìm theo tên hoặc mã môn học" oninput="searchStudySpaceSubjects(this.value)"></div><div class="study-hub-filter-row"><div class="study-space-filter-row"><button class="study-space-filter ${StudySpace.blockId === 'ALL' ? 'active' : ''}" onclick="setStudySpaceFilter('ALL')">Tất cả</button>${Object.values(KNOWLEDGE_BLOCKS).map(block => `<button class="study-space-filter ${StudySpace.blockId === block.id ? 'active' : ''}" onclick="setStudySpaceFilter('${block.id}')">${block.icon} ${block.name}</button>`).join('')}</div><button class="study-hub-more-filter" onclick="showToast('Bộ lọc nâng cao đang được chuẩn bị.', 'info')"><i class="fa-solid fa-sliders"></i> Thêm bộ lọc</button></div><div class="study-hub-list-meta"><label class="study-space-article-toggle"><input id="study-space-has-articles" type="checkbox" ${StudySpace.hasArticlesOnly ? 'checked' : ''} onchange="setStudySpaceFilter(null, this.checked)"><span>Chỉ hiện môn đã có bài đăng</span></label><span>${subjects.length} môn phù hợp · ${contentCount} tài nguyên</span></div></section><section class="study-hub-subject-grid">${subjects.length ? subjects.map(subject => `<button class="study-hub-subject-card" data-subject-id="${subject.id}" data-has-articles="${subject.articles.length > 0}" onclick="selectStudySpaceSubject('${subject.id}')"><span class="study-hub-subject-icon"><i class="fa-solid ${studySpaceSubjectIcon(subject)}"></i></span><span class="study-hub-subject-top"><b>${subject.code}</b><small>HK ${subject.semester || '—'}</small></span><strong>${subject.name}</strong><span class="study-hub-subject-meta">${KNOWLEDGE_BLOCKS[subject.blockId]?.icon || '📘'} ${KNOWLEDGE_BLOCKS[subject.blockId]?.name || 'Khối kiến thức'} · ${subject.credits || 0} tín chỉ</span><span class="study-hub-subject-foot"><span><i class="fa-solid ${subject.articles.length ? 'fa-file-lines' : 'fa-clock'}"></i> ${subject.articles.length ? `${subject.articles.length} bài đăng` : 'Chưa có bài đăng'}</span><i class="fa-solid fa-arrow-right"></i></span></button>`).join('') : '<div class="study-space-empty">Không tìm thấy môn học phù hợp.</div>'}</section><section class="study-hub-support"><div><span>HỌC CÙNG TRỢ LÝ THÔNG MINH</span><h2>Bạn cần hỗ trợ tìm môn học?</h2><p>Trợ lý AI luôn sẵn sàng giúp bạn định hướng và lựa chọn môn học phù hợp.</p><button onclick="studySpaceAIAction('chat')"><i class="fa-solid fa-comment-dots"></i> Trò chuyện với AI</button></div><div class="study-hub-support-visual"><i class="fa-solid fa-robot"></i><i class="fa-solid fa-book-open"></i></div></section></main><aside class="study-hub-ai-panel"><div class="study-hub-ai-heading"><span>TRUNG TÂM HỌC TẬP AI</span><p>Công cụ đồng hành cùng bạn</p></div>${aiTools.map(([action,icon,title,description,theme]) => `<button class="study-hub-ai-tool ${theme}" onclick="studySpaceAIAction('${action}')"><i class="fa-solid ${icon}"></i><span><b>${title}</b><small>${description}</small></span><em><i class="fa-solid fa-arrow-right"></i></em></button>`).join('')}<div class="study-hub-stats"><span>THỐNG KÊ HỌC TẬP</span><div><b>${allSubjects.length}</b><small>Môn học</small><b>${contentCount}</b><small>Tài nguyên</small><b>${subjects.filter(s => s.articles.length).length}</b><small>Môn có nội dung</small></div><button onclick="showToast('Báo cáo học tập đang được chuẩn bị.', 'info')">Xem báo cáo chi tiết <i class="fa-solid fa-arrow-up-right-from-square"></i></button></div></aside></div>`;
+}
+
+function setStudySpaceFilter(blockId, hasArticlesOnly) { if (blockId) StudySpace.blockId = blockId; if (typeof hasArticlesOnly === 'boolean') StudySpace.hasArticlesOnly = hasArticlesOnly; renderStudySpace(); }
+function searchStudySpaceSubjects(query) { StudySpace.query = String(query || ''); renderStudySpace(); }
+function selectStudySpaceSubject(subjectId) {
+  StudySpace.selectedId = subjectId;
+  NavController.openSubjectDetail(subjectId, 'study-space');
+}
+Object.assign(window, { renderStudySpace, setStudySpaceFilter, searchStudySpaceSubjects, selectStudySpaceSubject });
 
 /* ═══════════════════════════════════════════════════════════════════
    NOTIFICATIONS PAGE FUNCTIONS

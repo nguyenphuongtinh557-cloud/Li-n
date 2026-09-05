@@ -37,8 +37,10 @@ export const NavController = {
   activePage: 'home',
   currentUser: null,
 
-  init() {
-    AuthModule.init();
+  async init() {
+    // Quyền phải được tải xong trước khi Firebase có thể ghi phiên đăng nhập
+    // lên cloud, nếu không danh sách Premium rỗng có thể ghi đè quyền vừa cấp.
+    await AuthModule.init();
     this.restoreUserSession();
     this.renderUserAuthZone();
     this.setupSearchShortcut();
@@ -71,6 +73,9 @@ export const NavController = {
         if (window.ArticlesModule) window.ArticlesModule.renderArticlesView();
         else ArticlesModule.renderArticlesView();
       }, 20);
+    }
+    if (pageId === 'study-space') {
+      setTimeout(() => window.renderStudySpace?.(), 20);
     }
     if (pageId === 'notifications') {
       void window.refreshAnnouncementsFromServer?.();
@@ -236,7 +241,7 @@ export const NavController = {
   },
 
   // ─── SUBJECT DETAIL PAGE ──────────────────────────────────────────────────
-  openSubjectDetail(subjectId) {
+  openSubjectDetail(subjectId, returnPage = 'study-space') {
     const s = getSubjectById(subjectId);
     if (!s) return;
 
@@ -257,7 +262,7 @@ export const NavController = {
 
     detailContainer.innerHTML = `
       <div class="subject-detail-page-shell">
-        <button class="subject-back-button" onclick="NavController.navigateToPage('ontap')" aria-label="Quay lại danh sách môn học">
+        <button class="subject-back-button" onclick="NavController.navigateToPage('${returnPage === 'ontap' ? 'ontap' : 'study-space'}')" aria-label="Quay lại danh sách môn học">
           <i class="fa-solid fa-arrow-left"></i><span>Quay lại</span>
         </button>
 
