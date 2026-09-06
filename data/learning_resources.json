@@ -1,5 +1,18 @@
 [
   {
+    "subjectId": "FT4456",
+    "type": "lecture",
+    "name": "Bộ giáo trình nhiệt kỹ thuật thực phẩm  ĐHCNTP24A",
+    "url": "https://drive.google.com/drive/folders/13h_EIT_hQUanI7fcx5hjT8JH-e6CuqVk?usp=drive_link",
+    "content": "",
+    "fileName": "",
+    "year": "2024 - 2025",
+    "inputMode": "url",
+    "author": "FTECA-24",
+    "id": "RES_1788658524340",
+    "createdAt": "2026-09-06T01:35:24.340Z"
+  },
+  {
     "subjectId": "FT4592",
     "type": "lecture",
     "name": "Giáo trình dinh dưởng và sức khỏe",
