@@ -1,6 +1,19 @@
 [
   {
     "subjectId": "FT4592",
+    "type": "exam",
+    "name": "Đề thi kết thức học phần Dinh dưởng và sức khỏe",
+    "url": "",
+    "content": "<p class=\"MsoNormal\" align=\"right\">Đối với đề thi sử dụng 01 lần.</p>\n<p class=\"MsoNormal\"><strong>TRƯỜNG ĐẠI HỌC ĐỒNG TH&Aacute;P</strong></p>\n<p class=\"MsoNormal\"><strong>M&atilde; đề: 01</strong><strong>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;ĐỀ THI KẾT TH&Uacute;C HỌC PHẦN</strong></p>\n<p class=\"MsoNormal\" align=\"center\">Học kỳ: 03&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Năm học: 2025-2026</p>\n<p class=\"MsoNormal\">Học phần: DINH DƯỠNG V&Agrave; SỨC KHỎE</p>\n<p class=\"MsoNormal\">M&atilde; học phần: FT4592&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Lớp/Ng&agrave;nh: ĐHCNTP25A, ĐHCNTP24A</p>\n<p class=\"MsoNormal\">H&igrave;nh thức thi: Tự luận.&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Thời gian l&agrave;m b&agrave;i: 90 ph&uacute;t.</p>\n<p class=\"MsoNormal\">&nbsp;</p>\n<p class=\"MsoNormal\"><strong>C&acirc;u 1 (5 điểm)</strong></p>\n<p class=\"MsoNormal\">Tr&igrave;nh b&agrave;y vai tr&ograve; của lipid đối với cơ thể người?</p>\n<p class=\"MsoNormal\">&nbsp;</p>\n<p class=\"MsoNormal\"><strong>C&acirc;u 2 (3 điểm)</strong></p>\n<p class=\"MsoNormal\">Theo bạn, điều g&igrave; xảy ra nếu ch&uacute;ng ta ti&ecirc;u thụ qu&aacute; &iacute;t hoặc qu&aacute; nhiều c&aacute;c chất dinh dưỡng?</p>\n<p class=\"MsoNormal\">&nbsp;</p>\n<p class=\"MsoNormal\"><strong>C&acirc;u 3 (2 điểm)</strong></p>\n<p class=\"MsoNormal\">Bạn h&atilde;y viết c&ocirc;ng t&iacute;nh t&iacute;nh nhu cầu năng lượng ở người. Từ đ&oacute; t&iacute;nh nhu cầu năng lượng cho anh A 25 tuổi c&acirc;n nặng&nbsp;<u>65kg</u>, chiều cao&nbsp;<u>170cm</u>, đang l&agrave; sinh vi&ecirc;n năm thứ hai,&nbsp;<u>Chơi b&oacute;ng chuyền 2 giờ/ ng&agrave;y</u>?</p>\n<p class=\"MsoNormal\">&nbsp;</p>\n<p class=\"MsoNormal\" align=\"center\"><strong>--- Hết ---</strong></p>\n<p class=\"MsoNormal\" align=\"center\">Ghi ch&uacute;: Sinh vi&ecirc;n&nbsp;<strong>KH&Ocirc;NG ĐƯỢC</strong> sử dụng t&agrave;i liệu.</p>",
+    "fileName": "",
+    "year": "2025 - 2026",
+    "inputMode": "editor",
+    "author": "FTECA-24",
+    "id": "RES_1788657391575",
+    "createdAt": "2026-09-06T01:16:31.575Z"
+  },
+  {
+    "subjectId": "FT4592",
     "type": "lecture",
     "name": "Giáo trình dinh dưởng và sức khỏe",
     "url": "https://drive.google.com/drive/folders/1Ej6FmcWqPx9jy0nWQimkuSXdhulbHjou?usp=drive_link",
