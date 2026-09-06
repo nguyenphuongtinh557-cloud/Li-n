@@ -1,5 +1,18 @@
 [
   {
+    "subjectId": "FT4592",
+    "type": "lecture",
+    "name": "Giáo trình dinh dưởng và sức khỏe",
+    "url": "https://drive.google.com/drive/folders/1Ej6FmcWqPx9jy0nWQimkuSXdhulbHjou?usp=drive_link",
+    "content": "",
+    "fileName": "",
+    "year": "2025 -2026",
+    "inputMode": "url",
+    "author": "FTECA-24",
+    "id": "RES_1788657317040",
+    "createdAt": "2026-09-06T01:15:17.040Z"
+  },
+  {
     "subjectId": "FT4475",
     "type": "exam",
     "name": "Đề thi kết thúc học phần Tự động hóa - ĐHCNTP24A",
