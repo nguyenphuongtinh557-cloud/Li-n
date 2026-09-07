@@ -3,7 +3,7 @@
     "subjectId": "GE4150",
     "code": "GE4150",
     "name": "Công tác quốc phòng, an ninh",
-    "status": "published",
+    "status": "draft",
     "banner": "https://hrumdbkxcujbjayjynip.supabase.co/storage/v1/object/public/images/news/zv9wvjdg7he.jpg",
     "shortDesc": "Trang bị kiến thức cơ bản về quốc phòng, an ninh, góp phần bảo vệ Tổ quốc và giữ gìn trật tự, an toàn xã hội.",
     "credits": 3,
@@ -105,6 +105,6 @@
         ]
       }
     ],
-    "updatedAt": "2026-09-07T01:57:09.494Z"
+    "updatedAt": "2026-09-07T01:57:15.716Z"
   }
 }
