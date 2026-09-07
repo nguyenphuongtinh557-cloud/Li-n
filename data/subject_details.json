@@ -1,0 +1,110 @@
+{
+  "GE4150": {
+    "subjectId": "GE4150",
+    "code": "GE4150",
+    "name": "Công tác quốc phòng, an ninh",
+    "status": "draft",
+    "banner": "",
+    "shortDesc": "Trang bị kiến thức cơ bản về quốc phòng, an ninh, góp phần bảo vệ Tổ quốc và giữ gìn trật tự, an toàn xã hội.",
+    "credits": 3,
+    "semester": 1,
+    "program": "Đại học Công nghệ - ĐH Đà Nẵng",
+    "intro": "Môn học Công tác Quốc phòng, An ninh cung cấp cho sinh viên những kiến thức cơ bản về đường lối, quan điểm của Đảng, chính sách, pháp luật của Nhà nước về quốc phòng, an ninh; các vấn đề bảo vệ Tổ quốc trong tình hình mới; đồng thời rèn luyện ý thức trách nhiệm, kỹ năng nhận biết và xử lý các tình huống liên quan đến quốc phòng, an ninh.",
+    "cards": {
+      "objectives": {
+        "title": "Mục tiêu môn học",
+        "content": "Trang bị kiến thức, nâng cao nhận thức về quốc phòng, an ninh cho sinh viên."
+      },
+      "mainContent": {
+        "title": "Nội dung chính",
+        "content": "Đường lối, chính sách QP-AN, pháp luật, biên giới, an ninh mạng, phòng chống tội phạm..."
+      },
+      "targetAudience": {
+        "title": "Đối tượng học",
+        "content": "Sinh viên các ngành đào tạo tại Đại học Công nghệ - ĐH Đà Nẵng."
+      },
+      "learningFormat": {
+        "title": "Hình thức học",
+        "content": "Kết hợp lý thuyết, thảo luận, thực hành, đi thực tế (nếu có)."
+      }
+    },
+    "instructor": {
+      "name": "Không có thông tin",
+      "role": "Giảng viên phụ trách",
+      "avatar": "",
+      "email": "Không có thông tin"
+    },
+    "chapters": [
+      {
+        "id": "chap_ge4150_1",
+        "title": "Chương 1. Đường lối, quan điểm của Đảng...",
+        "lessons": [
+          {
+            "id": "les_1_1",
+            "title": "1.1. Khái quát chung",
+            "content": "Tổng quan về đường lối quốc phòng, an ninh của Đảng và Nhà nước Việt Nam qua các thời kỳ."
+          },
+          {
+            "id": "les_1_2",
+            "title": "1.2. Quan điểm của Đảng về quốc phòng...",
+            "content": "Phân tích quan điểm chỉ đạo của Đảng về xây dựng lực lượng vũ trang và thế trận quốc phòng."
+          },
+          {
+            "id": "les_1_3",
+            "title": "1.3. Nhiệm vụ bảo vệ Tổ quốc trong tình hình mới",
+            "content": "Các mục tiêu, giải pháp nâng cao tiềm lực quốc phòng trong thời kỳ hội nhập."
+          }
+        ]
+      },
+      {
+        "id": "chap_ge4150_2",
+        "title": "Chương 2. Pháp luật về quốc phòng, an ninh",
+        "lessons": [
+          {
+            "id": "les_2_1",
+            "title": "2.1. Hệ thống văn bản pháp luật",
+            "content": "Giới thiệu Luật Quốc phòng, Luật An ninh mạng và các nghị định liên quan."
+          },
+          {
+            "id": "les_2_2",
+            "title": "2.2. Quyền và nghĩa vụ công dân",
+            "content": "Quy định pháp luật về trách nhiệm bảo vệ Tổ quốc của thế hệ trẻ và sinh viên."
+          }
+        ]
+      },
+      {
+        "id": "chap_ge4150_3",
+        "title": "Chương 3. Xây dựng nền quốc phòng toàn dân",
+        "lessons": [
+          {
+            "id": "les_3_1",
+            "title": "3.1. Lực lượng quốc phòng",
+            "content": "Cơ cấu tổ chức lực lượng vũ trang nhân dân và dân quân tự vệ."
+          },
+          {
+            "id": "les_3_2",
+            "title": "3.2. Thế trận quốc phòng toàn dân",
+            "content": "Kết hợp phát triển kinh tế - xã hội với tăng cường quốc phòng - an ninh."
+          }
+        ]
+      },
+      {
+        "id": "chap_ge4150_4",
+        "title": "Chương 4. Bảo đảm an ninh quốc gia",
+        "lessons": [
+          {
+            "id": "les_4_1",
+            "title": "4.1. An ninh chính trị, trật tự an toàn xã hội",
+            "content": "Nhận diện và phòng chống chiến lược diễn biến hòa bình."
+          },
+          {
+            "id": "les_4_2",
+            "title": "4.2. Phòng chống tội phạm và tệ nạn xã hội",
+            "content": "Các biện pháp nâng cao ý thức chấp hành pháp luật của sinh viên."
+          }
+        ]
+      }
+    ],
+    "updatedAt": "2026-09-07T01:53:02.089Z"
+  }
+}
