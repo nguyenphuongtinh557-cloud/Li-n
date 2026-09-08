@@ -163,7 +163,7 @@
         "order": 3
       }
     ],
-    "updatedAt": "2026-09-08T07:56:20.130Z",
+    "updatedAt": "2026-09-08T08:06:58.576Z",
     "introCanvas": [
       {
         "id": "intro_1788854171659",
@@ -171,11 +171,27 @@
         "content": "",
         "src": "https://cdn.phototourl.com/free/2026-09-08-b993d405-b999-4def-9c87-00c94b28287e.png",
         "alt": "",
-        "x": 8,
-        "y": 8,
+        "x": 58.07071847815561,
+        "y": 10.838710661857359,
         "width": 36,
-        "height": 28,
+        "height": 33,
         "zIndex": 1,
+        "settings": {
+          "fontSize": 18,
+          "textAlign": "left"
+        }
+      },
+      {
+        "id": "intro_1788854735590",
+        "type": "text",
+        "content": "Môn học Công tác Quốc phòng, An ninh cung cấp cho sinh viên những kiến thức cơ bản về đường lối, quan điểm của Đảng, chính sách, pháp luật của Nhà nước về quốc phòng, an ninh; các vấn đề bảo vệ Tổ quốc trong tình hình mới; đồng thời rèn luyện ý thức trách nhiệm, kỹ năng nhận biết và xử lý các tình huống liên quan đến quốc phòng, an ninh.",
+        "src": "",
+        "alt": "",
+        "x": 3.498346712770607,
+        "y": 8.516131985572075,
+        "width": 50,
+        "height": 35,
+        "zIndex": 2,
         "settings": {
           "fontSize": 18,
           "textAlign": "left"
