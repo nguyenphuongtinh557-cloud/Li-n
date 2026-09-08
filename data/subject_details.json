@@ -59,7 +59,7 @@
             "status": "published",
             "blocks": [
               {
-                "id": "block_1788877588821_0",
+                "id": "block_1788877637541_0",
                 "type": "text",
                 "content": "",
                 "settings": {},
@@ -192,7 +192,7 @@
         "order": 3
       }
     ],
-    "updatedAt": "2026-09-08T14:26:30.241Z",
+    "updatedAt": "2026-09-08T14:27:18.724Z",
     "introCanvas": [
       {
         "id": "intro_1788855409691",
