@@ -41,7 +41,7 @@ export const RAW_KEYS = {
 export const POOL_MODELS = {
   // 1. Phân tích hình ảnh (Giải bài tập toán / OCR / Phân tích ảnh)
   IMAGE_ANALYSIS: [
-    { provider: 'gemini', model: 'gemini-3.6-flash', type: 'native' },
+    { provider: 'gemini', model: 'gemini-3.8-flash', type: 'native' }, // ✅ Upgrade lên 3.8 (mới nhất)
     { provider: 'openrouter', model: 'openai/gpt-4o-mini', type: 'openrouter' }, // ✅ Free trên OpenRouter
     { provider: 'openrouter', model: 'qwen/qwen-2.5-vl-72b-instruct', type: 'openrouter' },
     { provider: 'mistral', model: 'pixtral-12b-2409', type: 'mistral-vision' }
@@ -50,7 +50,7 @@ export const POOL_MODELS = {
   // 2. Ra đề & Tạo câu hỏi trắc nghiệm (Tiếng Việt tốt, Quota hồi liên tục, Tốc độ cao)
   QUESTION_GENERATION: [
     { provider: 'groq', model: 'openai/gpt-oss-120b', type: 'openai-compat', endpoint: 'https://api.groq.com/openai/v1/chat/completions' },
-    { provider: 'gemini', model: 'gemini-3.6-flash', type: 'gemini-native' },
+    { provider: 'gemini', model: 'gemini-3.8-flash', type: 'gemini-native' }, // ✅ Upgrade lên 3.8 (mới nhất)
     { provider: 'mistral', model: 'open-mistral-nemo-2407', type: 'openai-compat', endpoint: 'https://api.mistral.ai/v1/chat/completions' }, // ✅ Đổi sang Nemo (không bị rate limit)
     { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct', type: 'openrouter' }, // ✅ Free trên OpenRouter
     { provider: 'openrouter', model: 'openai/gpt-4o-mini', type: 'openrouter' } // ✅ Free trên OpenRouter
@@ -141,7 +141,7 @@ export const AIPool = {
     // Thử Gemini Native trước (hỗ trợ multimodal cực nhanh & chính xác)
     for (let i = 0; i < RAW_KEYS.gemini.length; i++) {
       const key = rotator.getKey('gemini');
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.6-flash:generateContent?key=${key}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${key}`; // ✅ Upgrade lên 3.8
       
       const payload = {
         contents: [
