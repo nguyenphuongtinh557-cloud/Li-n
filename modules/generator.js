@@ -1,6 +1,7 @@
 /**
  * generator.js — Multi-Layer AI Question Generator
- * Phối hợp nhiều AI Models (Cerebras, Gemini, Groq) để tạo bộ đề đa tầng.
+ * Phối hợp nhiều AI Models (Groq, Gemini, Mistral Nemo) để tạo bộ đề đa tầng.
+ * ✅ Cập nhật: Dùng models hoạt động tốt (Groq, Gemini, Mistral Nemo)
  */
 
 import { DB } from './db.js';
@@ -48,7 +49,7 @@ export const Generator = {
       if (allQuestions.length >= targetCount) break;
       
       const chunk = chunks[i];
-      const modeText = isPremium ? `Premium AI (${premiumModelId})` : 'Đa tầng (Cerebras + Gemini + Groq)';
+      const modeText = isPremium ? `Premium AI (${premiumModelId})` : 'Đa tầng (Groq + Gemini + Mistral)';
       onProgress && onProgress(Math.round((i / chunks.length) * 80), `Đang quét đoạn ${i+1}/${chunks.length} với ${modeText}...`);
       
       try {
@@ -63,11 +64,11 @@ export const Generator = {
           const qs = _parseJSONString(rawResp);
           allQuestions.push(...qs);
         } else {
-          // Chạy 3 luồng song song qua AIPool Question Generation
+          // Chạy 3 luồng song song: Groq (Layer 1 & 4) + Gemini (Layer 3)
           const [qL1, qL3, qL4] = await Promise.all([
-            _callOpenAIFormat('cerebras', 'gpt-oss-120b', LAYER_PROMPTS.layer1, chunk, countPerLayer, 'groq'),
+            _callGroq(LAYER_PROMPTS.layer1, chunk, countPerLayer), // ✅ Groq thay Cerebras
             _callGemini(LAYER_PROMPTS.layer3, chunk, countPerLayer),
-            _callOpenAIFormat('cerebras', 'gpt-oss-120b', LAYER_PROMPTS.layer4, chunk, countPerLayer, 'groq')
+            _callMistralNemo(LAYER_PROMPTS.layer4, chunk, countPerLayer) // ✅ Mistral Nemo
           ]);
           allQuestions.push(...qL1, ...qL3, ...qL4);
         }
@@ -102,21 +103,20 @@ export const Generator = {
 };
 
 /**
- * Gọi API dạng OpenAI (Cerebras, Groq)
+ * Gọi Groq API (Layer 1 & 4)
  */
-async function _callOpenAIFormat(primaryProvider, model, systemPrompt, content, count, fallbackProvider) {
-  let provider = primaryProvider;
-  let key = AIPool.getKey(provider);
-  let endpoint = provider === 'cerebras' ? 'https://api.cerebras.ai/v1/chat/completions' : 'https://api.groq.com/openai/v1/chat/completions';
+async function _callGroq(systemPrompt, content, count) {
+  const key = AIPool.getKey('groq');
+  const url = 'https://api.groq.com/openai/v1/chat/completions';
   
   const userMsg = `Nội dung tài liệu:\n${content}\n\nHãy sinh ${count} câu hỏi theo cấu trúc JSON object { "questions": [...] }. Trả lời ĐÚNG chuẩn JSON.`;
   
-  const attemptCall = async (pvd, apikey, url, mod) => {
+  try {
     const res = await fetch(url, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apikey}` },
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
       body: JSON.stringify({
-        model: mod,
+        model: 'openai/gpt-oss-120b',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMsg }
@@ -125,22 +125,65 @@ async function _callOpenAIFormat(primaryProvider, model, systemPrompt, content, 
         response_format: { type: 'json_object' }
       })
     });
-    if (!res.ok) throw new Error(`${pvd} lỗi ${res.status}`);
+    
+    if (!res.ok) throw new Error(`Groq lỗi ${res.status}`);
     const data = await res.json();
     return _parseJSONString(data.choices[0].message.content);
-  };
+  } catch (err) {
+    console.warn('[Multi-Layer] Lỗi Groq, thử lại với key khác...', err);
+    // Thử key khác
+    const key2 = AIPool.getKey('groq');
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key2}` },
+        body: JSON.stringify({
+          model: 'openai/gpt-oss-120b',
+          messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMsg }],
+          temperature: 0.7,
+          response_format: { type: 'json_object' }
+        })
+      });
+      if (!res.ok) return [];
+      const data = await res.json();
+      return _parseJSONString(data.choices[0].message.content);
+    } catch {
+      return [];
+    }
+  }
+}
+
+/**
+ * Gọi Mistral Nemo API (Layer 4)
+ */
+async function _callMistralNemo(systemPrompt, content, count) {
+  const key = AIPool.getKey('mistral');
+  const url = 'https://api.mistral.ai/v1/chat/completions';
+  
+  const userMsg = `Nội dung tài liệu:\n${content}\n\nHãy sinh ${count} câu hỏi theo cấu trúc JSON object { "questions": [...] }. Trả lời ĐÚNG chuẩn JSON.`;
   
   try {
-    return await attemptCall(provider, key, endpoint, model);
-  } catch (err) {
-    console.warn(`[Multi-Layer] Lỗi ${provider}, Fallback sang ${fallbackProvider}...`, err);
-    if (!fallbackProvider) return [];
-    
-    const fbKey = AIPool.getKey('groq');
-    return await attemptCall('groq', fbKey, 'https://api.groq.com/openai/v1/chat/completions', 'openai/gpt-oss-120b').catch(e => {
-        console.error('Fallback Groq failed:', e);
-        return [];
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+      body: JSON.stringify({
+        model: 'open-mistral-nemo-2407', // ✅ Mistral Nemo (không bị rate limit)
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMsg }
+        ],
+        temperature: 0.7,
+        response_format: { type: 'json_object' }
+      })
     });
+    
+    if (!res.ok) throw new Error(`Mistral Nemo lỗi ${res.status}`);
+    const data = await res.json();
+    return _parseJSONString(data.choices[0].message.content);
+  } catch (err) {
+    console.warn('[Multi-Layer] Lỗi Mistral Nemo, Fallback sang Groq...', err);
+    // Fallback sang Groq
+    return await _callGroq(systemPrompt, content, count);
   }
 }
 

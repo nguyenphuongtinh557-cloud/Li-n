@@ -42,19 +42,18 @@ export const POOL_MODELS = {
   // 1. Phân tích hình ảnh (Giải bài tập toán / OCR / Phân tích ảnh)
   IMAGE_ANALYSIS: [
     { provider: 'gemini', model: 'gemini-3.6-flash', type: 'native' },
-    { provider: 'mistral', model: 'pixtral-12b-2409', type: 'mistral-vision' },
-    { provider: 'openrouter', model: 'google/gemini-2.5-flash', type: 'openrouter' },
+    { provider: 'openrouter', model: 'openai/gpt-4o-mini', type: 'openrouter' }, // ✅ Free trên OpenRouter
     { provider: 'openrouter', model: 'qwen/qwen-2.5-vl-72b-instruct', type: 'openrouter' },
-    { provider: 'openrouter', model: 'openai/gpt-4o-mini', type: 'openrouter' }
+    { provider: 'mistral', model: 'pixtral-12b-2409', type: 'mistral-vision' }
   ],
 
   // 2. Ra đề & Tạo câu hỏi trắc nghiệm (Tiếng Việt tốt, Quota hồi liên tục, Tốc độ cao)
   QUESTION_GENERATION: [
-    { provider: 'cerebras', model: 'gpt-oss-120b', type: 'openai-compat', endpoint: 'https://api.cerebras.ai/v1/chat/completions' },
-    { provider: 'sambanova', model: 'Meta-Llama-3.3-70B-Instruct', type: 'openai-compat', endpoint: 'https://api.sambanova.ai/v1/chat/completions' },
     { provider: 'groq', model: 'openai/gpt-oss-120b', type: 'openai-compat', endpoint: 'https://api.groq.com/openai/v1/chat/completions' },
     { provider: 'gemini', model: 'gemini-3.6-flash', type: 'gemini-native' },
-    { provider: 'mistral', model: 'mistral-small-latest', type: 'openai-compat', endpoint: 'https://api.mistral.ai/v1/chat/completions' }
+    { provider: 'mistral', model: 'open-mistral-nemo-2407', type: 'openai-compat', endpoint: 'https://api.mistral.ai/v1/chat/completions' }, // ✅ Đổi sang Nemo (không bị rate limit)
+    { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct', type: 'openrouter' }, // ✅ Free trên OpenRouter
+    { provider: 'openrouter', model: 'openai/gpt-4o-mini', type: 'openrouter' } // ✅ Free trên OpenRouter
   ],
 
   // 3. Khu vực Premium (Dành cho nội dung nâng cao, suy luận logic phức tạp)
@@ -177,8 +176,8 @@ export const AIPool = {
       }
     }
 
-    // Fallback sang OpenRouter Vision Models (GPT-4o Mini hoặc Qwen 2.5 VL)
-    const openrouterVisionModels = ['google/gemini-2.5-flash', 'openai/gpt-4o-mini', 'qwen/qwen-2.5-vl-72b-instruct'];
+    // Fallback sang OpenRouter Vision Models (GPT-4o Mini hoặc Qwen)
+    const openrouterVisionModels = ['openai/gpt-4o-mini', 'qwen/qwen-2.5-vl-72b-instruct']; // ✅ Ưu tiên gpt-4o-mini (free)
     for (const visModel of openrouterVisionModels) {
       try {
         const cleanBase64 = base64Data.startsWith('data:') ? base64Data : `data:${mimeType};base64,${base64Data}`;
