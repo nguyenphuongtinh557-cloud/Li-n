@@ -1063,6 +1063,9 @@
                 <button class="admin-zone-btn" id="admin-subject-config-tab-btn" onclick="switchAdminSubTab('subject-config')">
                   <i class="fa-solid fa-book-open-reader"></i> Thiết Lập Trang Môn Học
                 </button>
+                <button class="admin-zone-btn" id="admin-review-lessons-tab-btn" onclick="switchAdminSubTab('review-lessons')">
+                  <i class="fa-solid fa-book-open-reader"></i> Thiết lập bài giảng ôn tập
+                </button>
                 <button class="admin-zone-btn" id="admin-bank-tab-btn" onclick="switchAdminSubTab('bank')">
                   <i class="fa-solid fa-robot"></i> AI Soạn Câu (Jina Reader)
                 </button>
@@ -1488,6 +1491,16 @@
               <section class="card subject-config-section subject-config-full"><div class="flex justify-between items-center mb-3"><h4>Cấu trúc môn học</h4><button class="btn btn-primary btn-sm" onclick="adminAddChapter()"><i class="fa-solid fa-plus"></i> Thêm chương</button></div><div id="admin-chapters-container"></div></section>
             </div>
             <div class="subject-config-actions"><button class="btn btn-warning" onclick="adminSaveSubjectConfig('draft')">Lưu nháp</button><button class="btn btn-secondary" onclick="adminPreviewSubjectConfig()">Xem trước như sinh viên</button><button class="btn btn-success" onclick="adminSaveSubjectConfig('published')">Đăng công khai</button></div>
+          </div>
+
+          <div id="admin-subtab-review-lessons" class="admin-subtab-content hidden">
+            <div class="review-lesson-admin-header"><div><h3>Thiết lập bài giảng ôn tập</h3><p>Soạn nội dung như Word; chèn ảnh hoặc video trực tiếp tại vị trí con trỏ trong trình soạn thảo.</p></div><select id="review-lesson-subject-select" class="form-select" onchange="initReviewLessonAdmin(this.value)"></select></div>
+            <div class="review-lesson-admin-layout">
+              <aside class="review-lesson-admin-tree"><div class="flex justify-between items-center"><h4>Chương & bài giảng</h4><button class="btn btn-primary btn-sm" onclick="createReviewLesson()"><i class="fa-solid fa-plus"></i> Bài giảng</button></div><div id="review-lesson-tree"></div></aside>
+              <section class="review-lesson-admin-editor"><div class="review-lesson-admin-meta"><label>Tiêu đề<input id="review-lesson-title" class="form-input" oninput="updateReviewLessonMetadata('title',this.value)"></label><label>Trạng thái<select id="review-lesson-status" class="form-select" onchange="updateReviewLessonMetadata('status',this.value)"><option value="draft">Lưu nháp</option><option value="published">Công khai</option></select></label></div><div class="review-lesson-admin-paper"><textarea id="admin-review-lesson-document-editor"></textarea></div></section>
+              <aside class="review-lesson-admin-media"><h4>Ảnh & video trong Word</h4><p>Dùng nút <strong>ảnh</strong> hoặc <strong>video</strong> trên thanh công cụ. Media được chèn, căn lề và đổi kích thước trực tiếp trong nội dung bài giảng.</p></aside>
+            </div>
+            <div class="review-lesson-admin-actions"><button id="review-lesson-save-draft" class="btn btn-warning" onclick="saveReviewLesson('draft')">Lưu nháp</button><button class="btn btn-secondary" onclick="previewReviewLesson()">Xem trước</button><button id="review-lesson-publish" class="btn btn-success" onclick="saveReviewLesson('published')">Đăng công khai</button></div>
           </div>
 
         </section>

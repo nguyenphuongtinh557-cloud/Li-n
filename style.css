@@ -5085,3 +5085,54 @@ html,body{max-width:100%;overflow-x:hidden}.app-main-wrapper,.page-container{min
 .student-intro-canvas{isolation:isolate;min-height:440px;border:1px solid var(--border);border-radius:18px;background:var(--bg-card);box-shadow:none}.student-intro-canvas::before,.student-intro-canvas::after,.student-intro-canvas-backdrop,.student-intro-canvas-course-label{display:none}.student-intro-canvas-item{z-index:1}.student-intro-canvas--text-only .student-intro-canvas-item.text{display:block;max-width:none;padding:0;border:0;border-radius:0;background:transparent;box-shadow:none;font-size:clamp(16px,1.35vw,19px);line-height:1.8;color:var(--text-primary);backdrop-filter:none}
 .student-intro-canvas--has-media .student-intro-canvas-item.image,.student-intro-canvas--has-media .student-intro-canvas-item.video,.student-intro-canvas--mixed .student-intro-canvas-item.image,.student-intro-canvas--mixed .student-intro-canvas-item.video{border-radius:16px;box-shadow:0 16px 28px color-mix(in srgb,var(--text-primary) 16%,transparent)}.student-intro-canvas--has-media .student-intro-canvas-item.image img,.student-intro-canvas--mixed .student-intro-canvas-item.image img,.student-intro-canvas--has-media .student-intro-canvas-item.video iframe,.student-intro-canvas--mixed .student-intro-canvas-item.video iframe{border-radius:16px}
 @media(max-width:760px){.student-intro-canvas{padding:18px;border-radius:14px}.student-intro-canvas--text-only .student-intro-canvas-item.text{max-width:none;padding:0;font-size:16px;background:transparent}.student-intro-canvas--has-media .student-intro-canvas-item.image,.student-intro-canvas--has-media .student-intro-canvas-item.video,.student-intro-canvas--mixed .student-intro-canvas-item.image,.student-intro-canvas--mixed .student-intro-canvas-item.video{box-shadow:var(--shadow-sm)}}
+
+/* Review lesson editor */
+#admin-subtab-review-lessons { padding: 20px; }
+.review-lesson-admin-header, .review-lesson-admin-layout, .review-lesson-admin-meta, .review-lesson-admin-actions, .review-lesson-admin-media-grid { display: grid; gap: 14px; }
+.review-lesson-admin-header { grid-template-columns: minmax(0,1fr) minmax(220px,320px); align-items: center; margin-bottom: 16px; }
+.review-lesson-admin-header h3, .review-lesson-admin-header p { margin: 0; }
+.review-lesson-admin-header p { color: var(--text-muted); margin-top: 4px; }
+.review-lesson-admin-layout { grid-template-columns: minmax(180px,.7fr) minmax(360px,1.8fr) minmax(240px,.9fr); align-items: start; }
+.review-lesson-admin-tree, .review-lesson-admin-editor, .review-lesson-admin-media { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px; }
+.review-lesson-admin-tree h4, .review-lesson-admin-media h4 { margin: 0; }
+.review-lesson-admin-chapter { border-top: 1px solid var(--border-color); margin-top: 12px; padding-top: 10px; }
+.review-lesson-admin-chapter h5 { margin: 0 0 6px; font-size: 13px; }
+.review-lesson-admin-tree-item { width: 100%; display: flex; justify-content: space-between; gap: 8px; text-align: left; border: 0; border-radius: 8px; background: transparent; color: var(--text-primary); padding: 8px; cursor: pointer; }
+.review-lesson-admin-tree-item:hover, .review-lesson-admin-tree-item.active { background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary); }
+.review-lesson-admin-tree-item small { white-space: nowrap; color: var(--text-muted); }
+.review-lesson-admin-meta { grid-template-columns: minmax(0,1fr) 140px; margin-bottom: 12px; }
+.review-lesson-admin-meta label, #review-lesson-media-properties label { display: grid; gap: 5px; font-size: 12px; font-weight: 700; }
+.review-lesson-admin-paper { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; min-height: 520px; padding: 8px; }
+.review-lesson-admin-paper .tox-tinymce { border: 0; border-radius: 6px; }
+.review-lesson-admin-paper .tox .tox-toolbar, .review-lesson-admin-paper .tox .tox-toolbar__primary { background: var(--bg-secondary); }
+#review-lesson-media-canvas { position: relative; min-height: 360px; margin: 12px 0; border: 1px dashed var(--border-color); border-radius: 10px; background: var(--bg-secondary); overflow: hidden; }
+#review-lesson-media-canvas .review-lesson-media-item { position: absolute; display: flex; align-items: center; justify-content: center; overflow: hidden; border: 2px solid transparent; border-radius: 7px; background: var(--bg-card); cursor: move; user-select: none; }
+#review-lesson-media-canvas .review-lesson-media-item.selected { border-color: var(--primary); box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 25%, transparent); }
+#review-lesson-media-canvas img { width: 100%; height: 100%; object-fit: cover; pointer-events: none; }
+#review-lesson-media-canvas .review-lesson-media-resize { position: absolute; right: -5px; bottom: -5px; width: 13px; height: 13px; border: 2px solid var(--bg-card); border-radius: 50%; background: var(--primary); cursor: nwse-resize; }
+.review-lesson-admin-empty { color: var(--text-muted); text-align: center; margin-top: 150px; }
+#review-lesson-media-properties { border-top: 1px solid var(--border-color); padding-top: 12px; }
+#review-lesson-media-properties h5 { margin: 0 0 8px; }
+.review-lesson-admin-media-grid { grid-template-columns: 1fr 1fr; margin: 10px 0; }
+.review-lesson-admin-actions { display: flex; grid-template-columns: repeat(3,max-content); justify-content: flex-end; margin-top: 16px; }
+.review-lesson-document { max-width: 860px; margin: 0 auto; line-height: 1.75; color: var(--text-primary); }
+.review-lesson-document h2, .review-lesson-document h3, .review-lesson-document h4 { margin: 1.25em 0 .55em; line-height: 1.3; }
+.review-lesson-document ul, .review-lesson-document ol { padding-left: 1.5em; margin: .75em 0; }
+.review-lesson-document table { width: 100%; border-collapse: collapse; margin: 1em 0; }
+.review-lesson-document th, .review-lesson-document td { border: 1px solid var(--border-color); padding: 8px; vertical-align: top; }
+.review-lesson-document blockquote { border-left: 3px solid var(--primary); padding-left: 14px; margin-left: 0; color: var(--text-muted); }
+body.dark-mode #admin-subtab-review-lessons .review-lesson-admin-tree, body.dark-mode #admin-subtab-review-lessons .review-lesson-admin-editor, body.dark-mode #admin-subtab-review-lessons .review-lesson-admin-media, body.dark-mode #review-lesson-media-canvas .review-lesson-media-item { background: var(--bg-card); }
+body.dark-mode #admin-subtab-review-lessons .review-lesson-admin-paper { background: var(--bg-secondary); }
+@media (max-width:760px) { #admin-subtab-review-lessons .review-lesson-admin-header, #admin-subtab-review-lessons .review-lesson-admin-layout, #admin-subtab-review-lessons .review-lesson-admin-meta { grid-template-columns: 1fr; } #admin-subtab-review-lessons .review-lesson-admin-actions { justify-content: stretch; grid-template-columns: 1fr; } }
+#admin-subtab-review-lessons .review-lesson-admin-layout { grid-template-columns: minmax(210px,.75fr) minmax(0,2.25fr); }
+#admin-subtab-review-lessons .review-lesson-admin-media { color: var(--text-muted); line-height: 1.6; }
+#admin-subtab-review-lessons .review-lesson-admin-media h4 { color: var(--text-primary); }
+#admin-subtab-review-lessons .review-lesson-admin-paper img { max-width: 100%; height: auto; }
+#admin-subtab-review-lessons .review-lesson-admin-paper iframe, #admin-subtab-review-lessons .review-lesson-admin-paper video { max-width: 100%; }
+/* Floating media remains part of the Word document but can be repositioned freely. */
+.review-lesson-document { position: relative; }
+.review-lesson-document img.review-floating-media { position: absolute; display: block; max-width: 100%; z-index: 2; }
+#admin-subtab-review-lessons .tox-edit-area__iframe { min-height: 520px; }
+#admin-subtab-review-lessons .tox-edit-area img.review-floating-media { outline: 2px dashed var(--primary); outline-offset: 3px; cursor: move; }
+#admin-subtab-review-lessons .tox-edit-area__iframe { min-height: 520px; }
+#admin-subtab-review-lessons .tox-edit-area img.review-floating-media:hover { outline-style: solid; }

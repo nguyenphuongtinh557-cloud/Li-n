@@ -22,3 +22,7 @@ assert.match(nav,/student-intro-canvas--mixed/);
 assert.match(nav,/student-intro-canvas-backdrop/);
 assert.match(nav,/student-intro-canvas-course-label/);
 console.log('subject canvas checks passed');
+assert.match(db, /x: clamp\(item\.x, 8, 0, 92\)/);
+assert.match(db, /y: clamp\(item\.y, 8 \+ index \* 12, 0, 92\)/);
+assert.match(db, /width: clamp\(item\.width, type === 'text' \? 42 : 36, 12, 100\)/);
+assert.match(db, /height: clamp\(item\.height, type === 'text' \? 18 : 28, 8, 100\)/);

@@ -833,6 +833,26 @@ function sanitizeLegacyLessonHtml(value) {
   return template.innerHTML;
 }
 
+function sanitizeReviewLessonHtml(html) {
+  const template = document.createElement('template');
+  template.innerHTML = String(html || '');
+  const tags = new Set(['p','h2','h3','h4','strong','em','u','ul','ol','li','a','table','thead','tbody','tr','th','td','blockquote','br','img','video','source','iframe']);
+  template.content.querySelectorAll('*').forEach(node => {
+    const tag = node.tagName.toLowerCase();
+    if (!tags.has(tag)) { node.replaceWith(...node.childNodes); return; }
+    [...node.attributes].forEach(attribute => {
+      const name = attribute.name.toLowerCase(), value = attribute.value.trim();
+      if ((tag === 'a' && name === 'href') || (['img','video','source','iframe'].includes(tag) && name === 'src')) { try { const url = new URL(value, window.location.href); const embed = tag === 'iframe'; if (!['http:', 'https:'].includes(url.protocol) || (embed && !/(^|\.)youtube\.com$|(^|\.)youtu\.be$|(^|\.)vimeo\.com$/i.test(url.hostname))) node.removeAttribute(attribute.name); } catch { node.removeAttribute(attribute.name); } return; }
+      if (tag === 'img' && name === 'class' && value === 'review-floating-media') return; if (tag === 'img' && ['data-review-float-x','data-review-float-y'].includes(name) && /^-?\d{1,4}$/.test(value)) return; if (['img','video'].includes(tag) && ['alt','width','height','controls'].includes(name)) return; if (tag === 'iframe' && ['title','allowfullscreen'].includes(name)) return; if (tag === 'a' && name === 'target') { if (value !== '_blank') node.removeAttribute(attribute.name); return; }
+      if (tag === 'a' && name === 'rel') { node.setAttribute('rel', 'noopener noreferrer'); return; }
+      if (name === 'style') { const allowed = []; const align = /text-align\s*:\s*(left|center|right|justify)/i.exec(value); const color = /color\s*:\s*(#[0-9a-f]{3,8})/i.exec(value); const width = /width\s*:\s*(?:[1-9][0-9]?(?:\.[0-9]+)?%|[1-9][0-9]{0,3}px)/i.exec(value); if (align) allowed.push('text-align:' + align[1].toLowerCase()); if (color) allowed.push('color:' + color[1]); if (tag === 'img' && width) allowed.push('width:' + width[0].split(':')[1].trim()); if (allowed.length) node.setAttribute('style', allowed.join(';')); else node.removeAttribute('style'); return; }
+      node.removeAttribute(attribute.name);
+    });
+    if (tag === 'a' && node.getAttribute('target') === '_blank') node.setAttribute('rel', 'noopener noreferrer');
+  });
+  return template.innerHTML;
+}
+
 function renderLessonContent(lesson) {
   const blocks = Array.isArray(lesson?.blocks) ? lesson.blocks : [];
   if (!blocks.length) {
@@ -844,6 +864,9 @@ function renderLessonContent(lesson) {
     const align = ['left', 'center', 'right'].includes(settings.align) ? settings.align : 'left';
     const color = /^#[0-9a-f]{3,8}$/i.test(settings.color || '') ? settings.color : '';
     const style = `text-align:${align};${color ? `color:${color};` : ''}`;
+    if (block.type === 'lessonDocument') {
+      return `<article class="review-lesson-document">${sanitizeReviewLessonHtml(block.content)}</article>`;
+    }
     if (block.type === 'heading') {
       const tag = settings.level === 'H3' ? 'h3' : 'h2';
       return `<${tag} class="student-lesson-heading" style="${style}">${escapeLessonText(block.content)}</${tag}>`;
