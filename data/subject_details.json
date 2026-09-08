@@ -42,7 +42,7 @@
           {
             "id": "les_1_1",
             "title": "1.1. Khái quát chung",
-            "content": "",
+            "content": "<p>helo my friends</p>",
             "description": "",
             "duration": "10:00",
             "status": "published",
@@ -50,7 +50,7 @@
               {
                 "id": "block_1788878301514_0",
                 "type": "lessonDocument",
-                "content": "",
+                "content": "<p>helo my friends</p>",
                 "settings": {},
                 "order": 0
               }
@@ -201,7 +201,7 @@
         "order": 3
       }
     ],
-    "updatedAt": "2026-09-08T14:39:17.269Z",
+    "updatedAt": "2026-09-08T15:00:47.169Z",
     "introCanvas": [
       {
         "id": "intro_1788855409691",
