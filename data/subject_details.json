@@ -42,13 +42,22 @@
           {
             "id": "les_1_1",
             "title": "1.1. Khái quát chung",
-            "content": "Tổng quan về đường lối quốc phòng, an ninh của Đảng và Nhà nước Việt Nam qua các thời kỳ.",
+            "content": "",
             "description": "",
             "duration": "10:00",
-            "status": "draft",
-            "blocks": [],
+            "status": "published",
+            "blocks": [
+              {
+                "id": "block_1788878301514_0",
+                "type": "lessonDocument",
+                "content": "",
+                "settings": {},
+                "order": 0
+              }
+            ],
             "order": 0,
-            "updatedAt": "2026-09-08T07:55:03.533Z"
+            "updatedAt": "2026-09-08T07:55:03.533Z",
+            "type": "editor"
           },
           {
             "id": "les_1_2",
@@ -192,7 +201,7 @@
         "order": 3
       }
     ],
-    "updatedAt": "2026-09-08T14:27:18.724Z",
+    "updatedAt": "2026-09-08T14:38:22.410Z",
     "introCanvas": [
       {
         "id": "intro_1788855409691",
