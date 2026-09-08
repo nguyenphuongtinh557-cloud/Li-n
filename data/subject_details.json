@@ -163,8 +163,25 @@
         "order": 3
       }
     ],
-    "updatedAt": "2026-09-08T08:16:31.358Z",
-    "introCanvas": [],
+    "updatedAt": "2026-09-08T08:16:56.486Z",
+    "introCanvas": [
+      {
+        "id": "intro_1788855409691",
+        "type": "text",
+        "content": "Nhập nội dung tại đây",
+        "src": "",
+        "alt": "",
+        "x": 8,
+        "y": 8,
+        "width": 42,
+        "height": 18,
+        "zIndex": 1,
+        "settings": {
+          "fontSize": 18,
+          "textAlign": "left"
+        }
+      }
+    ],
     "introCanvasHeight": 620
   }
 }
