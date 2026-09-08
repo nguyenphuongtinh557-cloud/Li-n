@@ -71,6 +71,26 @@
             "blocks": [],
             "order": 2,
             "updatedAt": "2026-09-08T07:55:03.533Z"
+          },
+          {
+            "id": "les_review_1788877424143",
+            "title": "Bài giảng ôn tập mới",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [
+              {
+                "id": "block_1788877515076_0",
+                "type": "text",
+                "content": "",
+                "settings": {},
+                "order": 0
+              }
+            ],
+            "content": "",
+            "description": "",
+            "order": 3,
+            "updatedAt": "2026-09-08T14:23:44.144Z"
           }
         ],
         "order": 0
@@ -163,7 +183,7 @@
         "order": 3
       }
     ],
-    "updatedAt": "2026-09-08T08:16:56.486Z",
+    "updatedAt": "2026-09-08T14:25:16.007Z",
     "introCanvas": [
       {
         "id": "intro_1788855409691",
