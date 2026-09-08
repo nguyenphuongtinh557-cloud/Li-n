@@ -53,13 +53,22 @@
           {
             "id": "les_1_2",
             "title": "1.2. Quan điểm của Đảng về quốc phòng...",
-            "content": "Phân tích quan điểm chỉ đạo của Đảng về xây dựng lực lượng vũ trang và thế trận quốc phòng.",
+            "content": "",
             "description": "",
             "duration": "10:00",
-            "status": "draft",
-            "blocks": [],
+            "status": "published",
+            "blocks": [
+              {
+                "id": "block_1788877588821_0",
+                "type": "text",
+                "content": "",
+                "settings": {},
+                "order": 0
+              }
+            ],
             "order": 1,
-            "updatedAt": "2026-09-08T07:55:03.533Z"
+            "updatedAt": "2026-09-08T07:55:03.533Z",
+            "type": "editor"
           },
           {
             "id": "les_1_3",
@@ -183,7 +192,7 @@
         "order": 3
       }
     ],
-    "updatedAt": "2026-09-08T14:25:16.007Z",
+    "updatedAt": "2026-09-08T14:26:30.241Z",
     "introCanvas": [
       {
         "id": "intro_1788855409691",
