@@ -299,6 +299,12 @@ export const NavController = {
     const intro = details.intro || '';
     const introCanvas = Array.isArray(details.introCanvas) ? details.introCanvas : [];
     const introCanvasHeight = Math.min(2400, Math.max(360, Number(details.introCanvasHeight) || 620));
+    const introCanvasTypes = new Set(introCanvas.map(item => item?.type).filter(type => ['text', 'image', 'video'].includes(type)));
+    const introCanvasVariant = introCanvasTypes.size === 1 && introCanvasTypes.has('text')
+      ? 'student-intro-canvas--text-only'
+      : introCanvasTypes.size === 1
+        ? 'student-intro-canvas--media-only'
+        : 'student-intro-canvas--mixed';
     const safeIntroUrl = value => { try { const url = new URL(String(value || ''), window.location.href); return ['http:', 'https:'].includes(url.protocol) ? url.href : ''; } catch { return ''; } };
     const renderIntroCanvas = () => introCanvas.map(item => { const x=Math.max(0,Math.min(92,Number(item.x)||0)), y=Math.max(0,Math.min(92,Number(item.y)||0)), w=Math.max(12,Math.min(100,Number(item.width)||35)), h=Math.max(8,Math.min(100,Number(item.height)||20)), style=`left:${x}%;top:${y}%;width:${w}%;height:${h}%;z-index:${Number(item.zIndex)||1}`; if(item.type==='text') return `<div class="student-intro-canvas-item text" style="${style}">${safe(item.content).replace(/\n/g,'<br>')}</div>`; const src=safeIntroUrl(item.src); if(!src) return ''; if(item.type==='image') return `<figure class="student-intro-canvas-item image" style="${style}"><img src="${safe(src)}" alt="${safe(item.alt || '')}" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><figcaption class="student-intro-canvas-image-error" hidden>Không tải được ảnh này.</figcaption></figure>`; const youtube=/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test(src); return youtube ? `<div class="student-intro-canvas-item video" style="${style}"><iframe src="${safe(src)}" title="Video môn học" loading="lazy" allowfullscreen></iframe></div>` : ''; }).join('');
     const cards = details.cards || {};
@@ -360,7 +366,7 @@ export const NavController = {
             <!-- SECTION 1: Giới thiệu môn học -->
             <section class="subject-section-card" id="section-subject-intro">
               <h2 class="subject-section-title">Giới thiệu môn học</h2>
-              ${canDisplayPublishedCanvas && introCanvas.length ? `<div class="student-intro-canvas" style="min-height:${introCanvasHeight}px">${renderIntroCanvas()}</div>` : intro ? `
+              ${canDisplayPublishedCanvas && introCanvas.length ? `<div class="student-intro-canvas ${introCanvasVariant}" style="min-height:${introCanvasHeight}px"><div class="student-intro-canvas-backdrop" aria-hidden="true"></div><div class="student-intro-canvas-course-label" aria-hidden="true"><span>${safe(code)}</span><strong>${safe(name)}</strong></div>${renderIntroCanvas()}</div>` : intro ? `
                 <p class="subject-intro-text">${safe(intro).replace(/\n/g, '<br>')}</p>
               ` : `
                 <div class="text-xs text-muted py-2" style="font-style:italic;">Admin chưa cập nhật nội dung giới thiệu chi tiết cho môn học này.</div>
