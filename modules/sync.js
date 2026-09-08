@@ -14,8 +14,6 @@ const SYNC_CONFIG = {
   owner: 'nguyenphuongtinh557-cloud',
   repo: 'Li-n',
   branch: 'main',
-  // Token được chia làm 2 phần để tránh GitHub scan
-  token: 'ghp_LiuU4uWqr' + 'XdxHFRoUhUOkgF8Y4EQQk0BRVXf',
   questionsFile: 'data/community.json',
   sourcesFile: 'data/community_sources.json',
   adminEditsFile: 'data/admin_edits.json',
@@ -25,10 +23,10 @@ const SYNC_CONFIG = {
   articlesFile: 'data/cms_articles.json',
   resourcesFile: 'data/learning_resources.json',
   feedbacksFile: 'data/user_feedbacks.json',
+  subjectDetailsFile: 'data/subject_details.json',
 };
 
 const RAW_BASE = `https://raw.githubusercontent.com/${SYNC_CONFIG.owner}/${SYNC_CONFIG.repo}/${SYNC_CONFIG.branch}`;
-const API_BASE = `https://api.github.com/repos/${SYNC_CONFIG.owner}/${SYNC_CONFIG.repo}/contents`;
 
 // ─── Trạng thái đồng bộ ──────────────────────────────────────────────────────
 let _syncing = false;
@@ -48,44 +46,12 @@ async function fetchRaw(filename) {
   }
 }
 
-// ─── Ghi file lên GitHub Contents API ────────────────────────────────────────
+// ─── Ghi dữ liệu ─────────────────────────────────────────────────────────────
+// Frontend không giữ token hay gọi GitHub Contents API. Khi có server relay,
+// adapter này sẽ được thay bằng request đã xác thực tới server-side endpoint.
 async function pushFile(filename, data) {
-  try {
-    // Bước 1: Lấy SHA hiện tại của file (cần để update)
-    const infoRes = await fetch(`${API_BASE}/${filename}`, {
-      headers: { Authorization: `Bearer ${SYNC_CONFIG.token}` },
-      cache: 'no-store',
-    });
-
-    let sha = null;
-    if (infoRes.ok) {
-      const info = await infoRes.json();
-      sha = info.sha;
-    }
-
-    // Bước 2: Encode nội dung và commit
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(data, null, 2))));
-    const body = {
-      message: `sync: update ${filename} [auto]`,
-      content,
-      branch: SYNC_CONFIG.branch,
-      ...(sha ? { sha } : {}),
-    };
-
-    const putRes = await fetch(`${API_BASE}/${filename}`, {
-      method: 'PUT',
-      headers: {
-        Authorization: `Bearer ${SYNC_CONFIG.token}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(body),
-    });
-
-    return putRes.ok;
-  } catch (e) {
-    console.warn('[Sync] pushFile thất bại:', e);
-    return false;
-  }
+  console.warn('[Sync] Ghi dữ liệu cần server relay:', filename);
+  return { ok: false, reason: 'server-relay-unavailable' };
 }
 
 // ─── Public API ───────────────────────────────────────────────────────────────
@@ -244,6 +210,24 @@ export async function pushFeedbacksToServer(feedbacks) {
 
 export async function pullFeedbacksFromServer() {
   return await fetchRaw(SYNC_CONFIG.feedbacksFile);
+}
+
+// ─── Subject Details Config (Thiết Lập Trang Môn Học) ──────────────────────
+export async function pushSubjectDetailsToServer(subjectDetails) {
+  return await pushFile(SYNC_CONFIG.subjectDetailsFile, subjectDetails);
+}
+
+export async function pullSubjectDetailsFromServer() {
+  return await fetchRaw(SYNC_CONFIG.subjectDetailsFile);
+}
+
+// ─── Shared Notes Keys Sync ──────────────────────────────────────────────────
+export async function pushSharedNotesToServer(notesMap) {
+  return await pushFile('data/shared_notes.json', notesMap);
+}
+
+export async function pullSharedNotesFromServer() {
+  return await fetchRaw('data/shared_notes.json');
 }
 
 // ─── Jina AI Web Reader (Cào nội dung từ URL như SciSpace) ────────────────

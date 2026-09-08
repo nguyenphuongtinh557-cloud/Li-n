@@ -8,7 +8,7 @@ import { Generator } from './modules/generator.js';
 import { ExamEngine, ExamTimer } from './modules/exam.js';
 import { SEED_QUESTIONS } from './data/seed_questions.js';
 import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion } from './modules/cera.js';
-import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer, pullFeedbacksFromServer } from './modules/sync.js?v=20260903tickets';
+import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer, pullFeedbacksFromServer, pullSubjectDetailsFromServer } from './modules/sync.js?v=20260908subjectdetails';
 import { initAdminAuth } from './modules/admin.js';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js?v=20260901c';
 import { NavController } from './modules/navigation.js';
@@ -141,6 +141,18 @@ async function init() {
     }
   } catch (e) {
     console.warn('[Articles] Không thể kéo articles từ server:', e);
+  }
+
+  // Cấu hình trang môn học công khai là nguồn dữ liệu dùng chung cho tất cả phiên.
+  // Không ghi ngược lên server tại đây: chỉ merge bản đã được Admin xuất bản.
+  try {
+    const remoteSubjectDetails = await pullSubjectDetailsFromServer();
+    if (remoteSubjectDetails && !Array.isArray(remoteSubjectDetails)) {
+      DB.mergeSubjectDetailsFromServer(remoteSubjectDetails);
+      console.log('[Subject details] Đã tải cấu hình môn học công khai từ server.');
+    }
+  } catch (e) {
+    console.warn('[Subject details] Không thể tải cấu hình môn học từ server:', e);
   }
 
   // Kéo thông báo hệ thống mới nhất; nếu server chưa có file, giữ/tạo 2 thư trải nghiệm cục bộ.
@@ -1980,6 +1992,8 @@ function switchAdminSubTab(tabName) {
     renderAdminResourceList(); 
   }
   else if (tabName === 'bank') { _populateBankSubjectDropdown(); }
+  else if (tabName === 'subject-config') { _initSubjectConfigTab(); }
+  else if (tabName === 'interactive-lessons') { adminLoadInteractiveLessons(); }
 }
 window.refreshUserRolesFromServer = async function() {
   try {
@@ -3129,65 +3143,130 @@ async function adminBankConfirmSave() {
   }
 }
 
-/* ─── USER RESOURCE VIEWER MODAL CONTROLLER ───────────────────────────────── */
-function openUserResourceViewer(subjectId, category) {
-  const subject = getAllSubjects().find(s => s.id === subjectId) || { code: subjectId, name: 'Môn học' };
-  const allResources = DB.getResources(subjectId);
-  const filtered = allResources.filter(r => r.type === category);
+/* ─── STUDY READER ───────────────────────────────────────────────────────── */
+let _studyReaderContext = null;
+let _studyReaderNoteTimer = null;
+let _studyReaderAnnotationEnabled = false;
+let _studyReaderAnnotationColor = '#10b981';
 
-  const categoryNames = {
-    info: 'ℹ️ Thông tin môn học & Đề cương',
-    lecture: '📖 Bài giảng ôn tập & Slide',
-    exam: '📝 Đề thi các năm',
-    quiz: '🎯 Ngân hàng kiểm tra ôn tập'
-  };
-
-  const codeEl = document.getElementById('resource-viewer-subject-code');
-  const titleEl = document.getElementById('resource-viewer-title');
-  const listEl = document.getElementById('resource-viewer-content-list');
-
-  if (codeEl) codeEl.textContent = `${subject.code} — ${subject.name}`;
-  if (titleEl) titleEl.textContent = categoryNames[category] || 'Nội dung tài nguyên';
-
-  if (!filtered.length) {
-    if (listEl) {
-      listEl.innerHTML = `
-        <div class="text-center py-5">
-          <div style="font-size:36px;margin-bottom:8px;">⏳</div>
-          <h4 class="font-bold text-md">Admin chưa cập nhật tài nguyên trong mục này</h4>
-          <p class="text-xs text-muted mt-1">Dữ liệu sẽ được Admin cập nhật và đồng bộ lên Server Cloud sớm nhất.</p>
-        </div>
-      `;
-    }
-  } else {
-    if (listEl) {
-      listEl.innerHTML = filtered.map(r => `
-        <div class="card card-sm mb-3" style="background:var(--bg-subtle);border:1px solid var(--border);">
-          <div class="flex justify-between items-start mb-2">
-            <div>
-              <h4 class="font-bold text-sm text-primary">${escapeHtml(r.name)}</h4>
-              <div class="text-xs text-muted mt-1">
-                📅 Đăng ngày: ${new Date(r.createdAt).toLocaleDateString('vi-VN')}
-                ${r.year ? ` &middot; Năm học: <strong>${escapeHtml(r.year)}</strong>` : ''}
-                ${r.author ? ` &middot; Người đăng: <strong>${escapeHtml(r.author)}</strong>` : ''}
-              </div>
-            </div>
-            ${r.url ? `
-              <a href="${escapeHtml(r.url)}" download="${escapeHtml(r.fileName || r.name)}" target="_blank" rel="noopener" class="btn btn-primary btn-xs font-bold" style="white-space:nowrap;">
-                <i class="${r.inputMode === 'file' ? 'fa-solid fa-download' : 'fa-solid fa-arrow-up-right-from-square'}"></i> ${r.inputMode === 'file' ? 'Tải File Về' : 'Mở Link / Xem File'}
-              </a>
-            ` : ''}
-          </div>
-          ${r.content ? `<div class="document-paper-view mt-3 mb-2">${r.content}</div>` : ''}
-          ${r.description ? `<p class="text-xs text-secondary mt-2">${escapeHtml(r.description)}</p>` : ''}
-        </div>
-      `).join('');
-    }
-  }
-
-  const modal = document.getElementById('modal-subject-resource-viewer');
-  if (modal) modal.classList.add('open');
+function isStudyReaderAllowedUrl(value) {
+  try { return ['http:', 'https:'].includes(new URL(String(value || '')).protocol); } catch { return false; }
 }
+function buildLessonOutline(blocks = []) {
+  return (Array.isArray(blocks) ? blocks : []).filter(b => b?.type === 'heading')
+    .map((b, i) => ({ id: `reader-heading-${i}`, level: String(b.level || 'h2').toLowerCase() === 'h3' ? 'h3' : 'h2', title: String(b.content || '').replace(/<[^>]*>/g, '').trim() || `Phần ${i + 1}` }));
+}
+function getStudyReaderDetails(context = {}) {
+  const details = DB.getSubjectDetails(context.subjectId) || {};
+  const resources = DB.getResources(context.subjectId).filter(r => r.readerConfig?.visibility !== 'draft');
+  const resource = context.resourceId ? resources.find(r => r.id === context.resourceId) : null;
+  let found = null;
+  for (const chapter of details.chapters || []) for (const lesson of chapter.lessons || []) if (lesson.id === (context.lessonId || resource?.readerConfig?.lessonId)) found = { chapter, lesson };
+  if (!found && !resource) { const chapter = (details.chapters || []).find(c => c.lessons?.length); if (chapter) found = { chapter, lesson: chapter.lessons[0] }; }
+  return { ...context, details, resources, resource, lesson: found?.lesson || null, chapterId: found?.chapter?.id || context.chapterId || resource?.readerConfig?.chapterId || null };
+}
+function stripStudyReaderText(value) { const el = document.createElement('div'); el.innerHTML = String(value || ''); return (el.textContent || '').replace(/\s+/g, ' ').trim(); }
+function extractStudyReaderText(context = _studyReaderContext || {}) {
+  const data = getStudyReaderDetails(context);
+  return data.resource ? [data.resource.name, stripStudyReaderText(data.resource.content), data.resource.description].filter(Boolean).join('\n\n') : [data.lesson?.title, ...(data.lesson?.blocks || []).map(b => stripStudyReaderText(b.content))].filter(Boolean).join('\n\n');
+}
+function safeStudyReaderRichText(html) {
+  const template = document.createElement('template'); template.innerHTML = String(html || '');
+  const allowed = new Set(['P','BR','STRONG','B','EM','I','U','UL','OL','LI','H2','H3','BLOCKQUOTE','PRE','CODE','A','IMG']);
+  template.content.querySelectorAll('*').forEach(node => {
+    if (!allowed.has(node.tagName)) return node.replaceWith(document.createTextNode(node.textContent || ''));
+    [...node.attributes].forEach(attr => { const valid = (node.tagName === 'A' && attr.name === 'href' && isStudyReaderAllowedUrl(attr.value)) || (node.tagName === 'IMG' && ['src','alt','title'].includes(attr.name) && (attr.name !== 'src' || isStudyReaderAllowedUrl(attr.value))); if (!valid) node.removeAttribute(attr.name); });
+    if (node.tagName === 'A') { node.target = '_blank'; node.rel = 'noopener noreferrer'; }
+  }); return template.innerHTML;
+}
+function studyReaderExternalButton(url) { return isStudyReaderAllowedUrl(url) ? `<a class="btn btn-primary btn-sm" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-arrow-up-right-from-square"></i> Mở tài liệu gốc</a>` : ''; }
+function renderStudyReaderContent(context = _studyReaderContext || {}) {
+  const data = getStudyReaderDetails(context); _studyReaderContext = { ...data, resourceId: data.resource?.id || null, lessonId: data.lesson?.id || null };
+  const content = document.getElementById('study-reader-content'); if (!content) return data;
+  if (data.resource) {
+    const r = data.resource, url = isStudyReaderAllowedUrl(r.url) ? r.url : '', embeddable = url && (/\.pdf(?:[?#]|$)/i.test(url) || /drive\.google\.com|youtu(?:\.be|be\.com)/i.test(url));
+    content.innerHTML = `<header class="study-reader-document-head"><span class="study-reader-kicker"><i class="fa-solid fa-file-lines"></i> TÀI LIỆU HỌC TẬP</span><div class="study-reader-doc-number">${escapeHtml(String(r.readerConfig?.order || '•'))}</div><div><h1>${escapeHtml(r.name || 'Tài liệu')}</h1><p>${escapeHtml(r.description || '')}</p></div></header>${r.content ? `<section class="student-reader-body">${safeStudyReaderRichText(r.content)}</section>` : '<div class="study-reader-empty"><div><i class="fa-solid fa-pen-to-square"></i><p>Admin chưa đăng nội dung trọng tâm cho tài liệu này.</p><small>File gốc có thể tải từ nút ở góc trên bên phải.</small></div></div>'}`;
+  } else if (data.lesson) {
+    const outline = buildLessonOutline(data.lesson.blocks); let n = 0;
+    const body = (data.lesson.blocks || []).map(b => { const text = escapeHtml(b.content || '').replace(/\n/g, '<br>'); if (b.type === 'heading') { const h = outline[n++]; return `<${h.level} id="${h.id}" class="interactive-reader-heading">${text}</${h.level}>`; } return b.type === 'legacyHtml' ? `<div class="student-reader-body">${safeStudyReaderRichText(b.content)}</div>` : `<p class="interactive-reader-text">${text}</p>`; }).join('') || '<p class="interactive-reader-text">Bài học chưa có nội dung soạn thảo.</p>';
+    content.innerHTML = `<header class="study-reader-document-head"><span class="study-reader-kicker"><i class="fa-solid fa-book-open"></i> BÀI GIẢNG TƯƠNG TÁC</span><div class="study-reader-doc-number">01</div><div><h1>${escapeHtml(data.lesson.title || 'Bài giảng')}</h1></div></header><section class="student-reader-body">${body}</section>`;
+  } else content.innerHTML = '<div class="study-reader-empty"><div><i class="fa-solid fa-book-open-reader"></i><p>Chưa có bài giảng hoặc tài liệu đã xuất bản.</p></div></div>';
+  restoreStudyReaderHighlights(); mountStudyReaderAnnotationLayer(); return data;
+}
+function renderStudyReaderToc(context = _studyReaderContext || {}) {
+  const data = getStudyReaderDetails(context), list = document.getElementById('study-reader-toc-list'); if (!list) return; list.innerHTML = '';
+  const add = (label, action, active = false) => { const button = document.createElement('button'); button.type = 'button'; button.dataset.readerLabel = label.toLocaleLowerCase('vi-VN'); button.textContent = label; button.classList.toggle('active', active); button.onclick = action; list.appendChild(button); };
+  (data.details.chapters || []).forEach(chapter => { const heading = document.createElement('div'); heading.className = 'study-reader-toc-chapter'; heading.textContent = chapter.title || 'Chương học'; list.appendChild(heading); (chapter.lessons || []).forEach(lesson => { add(lesson.title || 'Bài học', () => renderStudyReader({ subjectId: data.subjectId, chapterId: chapter.id, lessonId: lesson.id, returnPage: data.returnPage || 'subject-detail' }), data.lesson?.id === lesson.id); if (data.lesson?.id === lesson.id) buildLessonOutline(lesson.blocks).forEach(item => add(`↳ ${item.title}`, () => document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))); }); });
+  data.resources.forEach(r => add(`📎 ${r.name || 'Tài liệu'}`, () => renderStudyReader({ subjectId: data.subjectId, resourceId: r.id, returnPage: data.returnPage || 'subject-detail' }), data.resource?.id === r.id));
+}
+function renderStudyReaderLessonSwitcher(context = _studyReaderContext || {}) {
+  const data = getStudyReaderDetails(context), rail = document.getElementById('study-reader-lesson-switcher');
+  if (!rail) return;
+  const lessons = [];
+  (data.details.chapters || []).forEach(chapter => (chapter.lessons || []).forEach(lesson => lessons.push({ id: lesson.id, chapterId: chapter.id, title: lesson.title || 'Bài giảng', chapter: chapter.title || 'Bài học' })));
+  rail.innerHTML = '';
+  rail.hidden = lessons.length < 2;
+  lessons.forEach((lesson, index) => {
+    const button = document.createElement('button'); button.type = 'button';
+    button.className = `study-reader-lesson-tab${data.lesson?.id === lesson.id ? ' active' : ''}`;
+    button.innerHTML = `<b>${String(index + 1).padStart(2, '0')}</b><span><small>${escapeHtml(lesson.chapter)}</small>${escapeHtml(lesson.title)}</span>`;
+    button.onclick = () => renderStudyReader({ subjectId: data.subjectId, chapterId: lesson.chapterId, lessonId: lesson.id, returnPage: data.returnPage || 'subject-detail' });
+    rail.appendChild(button);
+  });
+}
+function getStudyReaderNote() { return DB.getUserNote('guest', _studyReaderContext); }
+function saveStudyReaderNote(patch) { const note = DB.saveUserNote('guest', _studyReaderContext, patch); const status = document.getElementById('study-reader-note-status'); if (status) status.textContent = `Đã lưu ${new Date(note.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`; return note; }
+function loadStudyReaderNote() { const input = document.getElementById('study-reader-note-input'), note = getStudyReaderNote(); if (input) input.value = note.text; const status = document.getElementById('study-reader-note-status'); if (status) status.textContent = note.updatedAt ? 'Đã lưu' : 'Chưa lưu'; }
+function textOffset(root, node, offset) { const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let total = 0, item; while ((item = walker.nextNode())) { if (item === node) return total + offset; total += item.nodeValue.length; } return -1; }
+function rangeForTextAnchor(anchor) { const root = document.getElementById('study-reader-content'); if (!root) return null; const nodes = []; const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let node, total = 0, start, end, so, eo; while ((node = walker.nextNode())) nodes.push(node); for (const item of nodes) { const next = total + item.nodeValue.length; if (!start && anchor.start >= total && anchor.start <= next) { start = item; so = anchor.start - total; } if (anchor.end >= total && anchor.end <= next) { end = item; eo = anchor.end - total; break; } total = next; } if (!start || !end) return null; const range = document.createRange(); range.setStart(start, so); range.setEnd(end, eo); return range; }
+function restoreStudyReaderHighlights() { getStudyReaderNote().highlights.forEach(anchor => { const range = rangeForTextAnchor(anchor); if (!range || range.collapsed) return; const mark = document.createElement('mark'); mark.className = 'study-reader-highlight'; try { range.surroundContents(mark); } catch {} }); }
+function studyReaderCreateNoteFromSelection() { const text = String(window.getSelection?.() || '').trim(), input = document.getElementById('study-reader-note-input'); if (!text || !input) return showToast('Chọn đoạn văn trước khi tạo ghi chú.', 'info'); input.value += `${input.value ? '\n\n' : ''}${text}`; saveStudyReaderNote({ text: input.value }); input.focus(); }
+function studyReaderApplyHighlight() { const root = document.getElementById('study-reader-content'), selection = window.getSelection(); if (!root || !selection?.rangeCount || selection.isCollapsed || !root.contains(selection.anchorNode)) return showToast('Chọn đoạn văn trong bài giảng trước khi highlight.', 'info'); const range = selection.getRangeAt(0), start = textOffset(root, range.startContainer, range.startOffset), end = textOffset(root, range.endContainer, range.endOffset); if (start < 0 || end <= start) return; saveStudyReaderNote({ highlights: [...getStudyReaderNote().highlights, { start, end, quote: selection.toString().slice(0, 500) }] }); const mark = document.createElement('mark'); mark.className = 'study-reader-highlight'; try { range.surroundContents(mark); selection.removeAllRanges(); } catch { renderStudyReaderContent(_studyReaderContext); } }
+function mountStudyReaderAnnotationLayer() { const root = document.getElementById('study-reader-content'); if (!root) return; root.querySelector('.study-reader-annotation-layer')?.remove(); root.style.position = 'relative'; const canvas = document.createElement('canvas'); canvas.className = 'study-reader-annotation-layer'; canvas.width = root.clientWidth; canvas.height = root.scrollHeight; canvas.style.pointerEvents = _studyReaderAnnotationEnabled ? 'auto' : 'none'; const ctx = canvas.getContext('2d'), strokes = getStudyReaderNote().annotations || []; const draw = stroke => { if (!stroke.points?.length) return; ctx.beginPath(); stroke.points.forEach((p, i) => i ? ctx.lineTo(p.x * canvas.width, p.y * canvas.height) : ctx.moveTo(p.x * canvas.width, p.y * canvas.height)); ctx.strokeStyle = stroke.color || '#1a9b71'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke(); }; strokes.forEach(draw); let active; canvas.onpointerdown = e => { if (!_studyReaderAnnotationEnabled) return; const box = canvas.getBoundingClientRect(); canvas.setPointerCapture(e.pointerId); active = { color: _studyReaderAnnotationColor, points: [{ x: (e.clientX - box.left) / box.width, y: (e.clientY - box.top) / box.height }] }; }; canvas.onpointermove = e => { if (!active) return; const box = canvas.getBoundingClientRect(); active.points.push({ x: (e.clientX - box.left) / box.width, y: (e.clientY - box.top) / box.height }); ctx.clearRect(0, 0, canvas.width, canvas.height); [...strokes, active].forEach(draw); }; canvas.onpointerup = () => { if (active?.points.length > 1) { strokes.push(active); saveStudyReaderNote({ annotations: strokes }); } active = null; }; root.appendChild(canvas); }
+function studyReaderToggleAnnotation() { _studyReaderAnnotationEnabled = !_studyReaderAnnotationEnabled; mountStudyReaderAnnotationLayer(); showToast(_studyReaderAnnotationEnabled ? 'Chế độ vẽ đã bật.' : 'Chế độ vẽ đã tắt.', 'info'); }
+function studyReaderUndoAnnotation() { saveStudyReaderNote({ annotations: getStudyReaderNote().annotations.slice(0, -1) }); mountStudyReaderAnnotationLayer(); }
+function studyReaderClearAnnotations() { saveStudyReaderNote({ annotations: [] }); mountStudyReaderAnnotationLayer(); }
+function bindStudyReaderControls() { document.getElementById('study-reader-back').onclick = () => NavController.closeStudyReader(); const input = document.getElementById('study-reader-note-input'); if (input) input.oninput = () => { clearTimeout(_studyReaderNoteTimer); _studyReaderNoteTimer = setTimeout(() => saveStudyReaderNote({ text: input.value }), 450); }; const find = document.getElementById('study-reader-find'); if (find) find.oninput = () => { const query = find.value.trim().toLocaleLowerCase('vi-VN'); document.querySelectorAll('#study-reader-toc-list button').forEach(b => { const match = !query || b.dataset.readerLabel.includes(query); b.hidden = !match; b.classList.toggle('reader-search-match', Boolean(query && match)); }); }; document.querySelectorAll('[data-reader-action]').forEach(b => b.onclick = ({ note: studyReaderCreateNoteFromSelection, highlight: studyReaderApplyHighlight, annotate: studyReaderToggleAnnotation, undo: studyReaderUndoAnnotation, clear: studyReaderClearAnnotations }[b.dataset.readerAction] || (() => {}))); document.querySelectorAll('[data-annotation-color]').forEach(button => button.onclick = () => { _studyReaderAnnotationColor = button.dataset.annotationColor; document.querySelectorAll('[data-annotation-color]').forEach(item => item.classList.toggle('active', item === button)); if (_studyReaderAnnotationEnabled) mountStudyReaderAnnotationLayer(); }); }
+function bindStudyReaderDrawers() {
+  const pairs = [['study-reader-toc-toggle', 'study-reader-toc'], ['study-reader-panel-toggle', 'study-reader-right-panel']];
+  const close = (trigger, panel) => { panel.classList.remove('open'); trigger.setAttribute('aria-expanded', 'false'); trigger.focus(); };
+  pairs.forEach(([triggerId, panelId]) => {
+    const trigger = document.getElementById(triggerId), panel = document.getElementById(panelId);
+    if (!trigger || !panel) return;
+    trigger.onclick = () => { const open = !panel.classList.contains('open'); pairs.forEach(([otherTriggerId, otherPanelId]) => { const other = document.getElementById(otherPanelId), otherTrigger = document.getElementById(otherTriggerId); if (other && other !== panel) other.classList.remove('open'); if (otherTrigger && otherTrigger !== trigger) otherTrigger.setAttribute('aria-expanded', 'false'); }); panel.classList.toggle('open', open); trigger.setAttribute('aria-expanded', String(open)); if (open) panel.focus({ preventScroll: true }); };
+    panel.tabIndex = -1;
+    panel.onkeydown = event => { if (event.key === 'Escape') { event.preventDefault(); close(trigger, panel); } };
+  });
+  document.onkeydown = event => { if (event.key !== 'Escape') return; pairs.forEach(([triggerId, panelId]) => { const trigger = document.getElementById(triggerId), panel = document.getElementById(panelId); if (trigger && panel?.classList.contains('open')) { event.preventDefault(); close(trigger, panel); } }); };
+}
+
+function renderStudyReaderHeaderResourceLink(context = _studyReaderContext || {}) {
+  const link = document.getElementById('study-reader-resource-link');
+  if (!link) return;
+  const data = getStudyReaderDetails(context);
+  const resource = [data.resource, ...(data.resources || [])].find(item => item && isStudyReaderAllowedUrl(item.url));
+  if (!resource) { link.hidden = true; link.removeAttribute('href'); return; }
+  link.hidden = false;
+  link.href = resource.url;
+  link.title = `Tải / mở: ${resource.name || 'tài liệu'}`;
+  link.querySelector('span').textContent = resource.name ? `Tải: ${resource.name}` : 'Tải tài liệu';
+}
+
+function renderStudyReader(context = {}) { _studyReaderContext = { ...context, returnPage: context.returnPage || 'subject-detail' }; const subject = getAllSubjects().find(s => s.id === context.subjectId) || {}; const crumb = document.getElementById('study-reader-crumb'); if (crumb) crumb.textContent = `${subject.code || context.subjectId || ''} · ${subject.name || 'Tài liệu học tập'}`; renderStudyReaderContent(_studyReaderContext); renderStudyReaderToc(_studyReaderContext); renderStudyReaderHeaderResourceLink(_studyReaderContext); bindStudyReaderControls(); bindStudyReaderDrawers(); loadStudyReaderNote(); }
+function isReaderResourceSupported(r) { return Boolean(r?.content || isStudyReaderAllowedUrl(r?.url)); }
+function openUnsupportedResourceViewer(subjectId, resource) { const modal = document.getElementById('modal-subject-resource-viewer'); if (!modal) return; document.getElementById('resource-viewer-title').textContent = resource.name || 'Tài liệu'; document.getElementById('resource-viewer-subject-code').textContent = subjectId; document.getElementById('resource-viewer-content').innerHTML = `<p>Định dạng này chưa được hỗ trợ trong Study Reader.</p>${studyReaderExternalButton(resource.url)}`; modal.classList.add('open'); }
+function openUserResourceViewer(subjectId, category) { if (category === 'quiz') return NavController.startSubjectExam(subjectId); const resources = DB.getResources(subjectId).filter(r => r.type === category && r.readerConfig?.visibility !== 'draft'); const picker = document.createElement('div'); picker.className = 'modal-overlay open study-reader-resource-picker'; picker.innerHTML = '<div class="modal-box"><div class="modal-header"><h2>Chọn tài liệu</h2><button class="btn-icon" type="button" aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button></div><div class="study-reader-picker-list"></div></div>'; const close = () => picker.remove(); picker.querySelector('.btn-icon').onclick = close; const list = picker.querySelector('.study-reader-picker-list'); (resources.length ? resources : [{ name: category === 'exam' ? 'Chưa có đề thi các năm được đăng' : 'Bài giảng tương tác', fallback: true, empty: category === 'exam' }]).forEach(r => { const button = document.createElement('button'); button.className = 'btn btn-outline'; button.type = 'button'; button.textContent = r.name; button.onclick = () => { close(); if (r.empty) return showToast('Đề thi các năm đang được cập nhật.', 'info'); if (r.fallback) NavController.openStudyReader({ subjectId, returnPage: 'subject-detail' }); else if (isReaderResourceSupported(r)) NavController.openStudyReader({ subjectId, resourceId: r.id, returnPage: 'subject-detail' }); else openUnsupportedResourceViewer(subjectId, r); }; list.appendChild(button); }); document.body.appendChild(picker); }
+window.renderStudyReader = renderStudyReader;
+window.openUserResourceViewer = openUserResourceViewer;
+window.extractStudyReaderText = extractStudyReaderText;
+window.renderStudyReaderContent = renderStudyReaderContent;
+window.renderStudyReaderToc = renderStudyReaderToc;
+window.studyReaderCreateNoteFromSelection = studyReaderCreateNoteFromSelection;
+window.studyReaderApplyHighlight = studyReaderApplyHighlight;
+window.studyReaderToggleAnnotation = studyReaderToggleAnnotation;
+window.studyReaderUndoAnnotation = studyReaderUndoAnnotation;
+window.studyReaderClearAnnotations = studyReaderClearAnnotations;
+
 
 // Expose internal functions to window for inline event handlers
 window._bankToggleDelete = _bankToggleDelete;
@@ -3453,3 +3532,510 @@ function toggleAnnouncementRead(id) { const user = notificationUser(); const key
 function markAsRead(btn) { const id = btn?.dataset?.notificationId; if (id) toggleAnnouncementRead(id); }
 function showMoreFilters() { filterNotifications('all'); }
 Object.assign(window, { filterNotifications, showMoreFilters, markAsRead, openNotificationDetail, toggleAnnouncementRead, renderNotificationCenter, updateNotificationBadge });
+
+
+/* ================================================
+   ADMIN SUBJECT CONFIG (THIET LAP TRANG MON HOC)
+================================================= */
+
+var _introCanvasItems = [];
+var _introCanvasSelectedId = null;
+var _introCanvasDrag = null;
+var _introCanvasHeight = 620;
+function adminIntroCanvasLoad(details) { _introCanvasItems = JSON.parse(JSON.stringify(details?.introCanvas || [])); _introCanvasHeight = Math.min(2400, Math.max(360, Number(details?.introCanvasHeight) || 620)); var heightInput=document.getElementById('admin-intro-canvas-height'); if(heightInput) heightInput.value=_introCanvasHeight; _introCanvasSelectedId = null; adminIntroCanvasRender(); }
+function adminIntroCanvasSetHeight(value) { _introCanvasHeight = Math.min(2400, Math.max(360, Number(value) || 620)); var heightInput=document.getElementById('admin-intro-canvas-height'); if(heightInput) heightInput.value=_introCanvasHeight; adminIntroCanvasRender(); }
+function adminIntroCanvasHeightPointerDown(event) { event.preventDefault(); event.stopPropagation(); var startY=event.clientY, startHeight=_introCanvasHeight; function move(e) { adminIntroCanvasSetHeight(startHeight + e.clientY - startY); } function up() { window.removeEventListener('pointermove',move); } window.addEventListener('pointermove',move); window.addEventListener('pointerup',up,{once:true}); }
+function _introItem(id) { return _introCanvasItems.find(function(item) { return item.id === id; }); }
+function _introClamp(value, min, max) { return Math.min(max, Math.max(min, Number(value) || min)); }
+function adminIntroCanvasAdd(type) { var count = _introCanvasItems.length; var item = { id:'intro_' + Date.now(), type:type, content:type === 'text' ? 'Nhập nội dung tại đây' : '', src:'', alt:'', x:8 + (count % 3) * 12, y:8 + (count % 4) * 12, width:type === 'text' ? 42 : 36, height:type === 'text' ? 18 : 28, zIndex:count + 1, settings:{ fontSize:18, textAlign:'left' } }; _introCanvasItems.push(item); _introCanvasSelectedId=item.id; adminIntroCanvasRender(); }
+function adminIntroCanvasRender() { var canvas=document.getElementById('admin-intro-canvas'), properties=document.getElementById('admin-intro-canvas-properties'); if(!canvas||!properties)return; canvas.style.minHeight=_introCanvasHeight+'px'; if(!_introCanvasItems.length) canvas.innerHTML='<div class="subject-canvas-empty">Thêm Text, Ảnh hoặc Video để bắt đầu bố cục.</div>'; else canvas.innerHTML=_introCanvasItems.map(function(item){ var selected=item.id===_introCanvasSelectedId?' selected':''; var content=item.type==='text'?'<div class="subject-canvas-text">'+escapeHtml(item.content||'Text')+'</div>':item.type==='image'?(item.src?'<img src="'+escapeHtml(item.src)+'" alt="'+escapeHtml(item.alt)+'">':'<span>Nhập URL ảnh</span>'):(item.src?'<span class="subject-canvas-video-label"><i class="fa-solid fa-video"></i> Video đã liên kết</span>':'<span>Nhập URL video</span>'); return '<div class="subject-canvas-item '+item.type+selected+'" data-id="'+item.id+'" style="left:'+item.x+'%;top:'+item.y+'%;width:'+item.width+'%;height:'+item.height+'%;z-index:'+item.zIndex+'" onpointerdown="adminIntroCanvasPointerDown(event,\''+item.id+'\')">'+content+'<span class="subject-canvas-resize" onpointerdown="adminIntroCanvasPointerDown(event,\''+item.id+'\',true)"></span></div>'; }).join(''); canvas.insertAdjacentHTML('beforeend','<button type="button" class="subject-canvas-height-resize" aria-label="Kéo để đổi chiều cao canvas" title="Kéo để đổi chiều cao canvas" onpointerdown="adminIntroCanvasHeightPointerDown(event)"><i class="fa-solid fa-up-down"></i></button>'); var selected=_introItem(_introCanvasSelectedId); properties.innerHTML=selected?'<h5>Thuộc tính</h5><label>Nội dung / URL<textarea oninput="adminIntroCanvasUpdate(\''+selected.id+'\',\''+(selected.type==='text'?'content':'src')+'\',this.value)">'+escapeHtml(selected.type==='text'?selected.content:selected.src)+'</textarea></label>' +(selected.type==='image'?'<label>Alt text<input value="'+escapeHtml(selected.alt)+'" oninput="adminIntroCanvasUpdate(\''+selected.id+'\',\'alt\',this.value)"></label>':'')+'<div class="subject-canvas-size"><label>Rộng %<input type="number" min="12" max="100" value="'+selected.width+'" oninput="adminIntroCanvasUpdate(\''+selected.id+'\',\'width\',this.value)"></label><label>Cao %<input type="number" min="8" max="100" value="'+selected.height+'" oninput="adminIntroCanvasUpdate(\''+selected.id+'\',\'height\',this.value)"></label></div>':'<p>Chọn một phần tử để chỉnh thuộc tính.</p>'; }
+function adminIntroCanvasUpdate(id,key,value){var item=_introItem(id);if(!item)return;if(['x','y','width','height'].includes(key))item[key]=_introClamp(value,key==='width'?12:8,100);else item[key]=value;adminIntroCanvasRender();}
+function adminIntroCanvasPointerDown(event,id,resize){event.stopPropagation();var item=_introItem(id),canvas=document.getElementById('admin-intro-canvas');if(!item||!canvas)return;_introCanvasSelectedId=id;var rect=canvas.getBoundingClientRect();_introCanvasDrag={id:id,resize:!!resize,startX:event.clientX,startY:event.clientY,x:item.x,y:item.y,width:item.width,height:item.height,rect:rect};window.addEventListener('pointermove',adminIntroCanvasPointerMove);window.addEventListener('pointerup',adminIntroCanvasPointerUp,{once:true});adminIntroCanvasRender();}
+function adminIntroCanvasPointerMove(event){if(!_introCanvasDrag)return;var d=_introCanvasDrag,item=_introItem(d.id),dx=(event.clientX-d.startX)/d.rect.width*100,dy=(event.clientY-d.startY)/d.rect.height*100;if(d.resize){item.width=_introClamp(d.width+dx,12,100-item.x);item.height=_introClamp(d.height+dy,8,100-item.y)}else{item.x=_introClamp(d.x+dx,0,100-item.width);item.y=_introClamp(d.y+dy,0,100-item.height)}adminIntroCanvasRender();}
+function adminIntroCanvasPointerUp(){window.removeEventListener('pointermove',adminIntroCanvasPointerMove);_introCanvasDrag=null;}
+function adminIntroCanvasDelete(){if(!_introCanvasSelectedId)return;_introCanvasItems=_introCanvasItems.filter(function(item){return item.id!==_introCanvasSelectedId});_introCanvasSelectedId=null;adminIntroCanvasRender();}
+function adminIntroCanvasAlign(mode){var items=_introCanvasItems.filter(function(item){return item.id===_introCanvasSelectedId});if(!items.length)return;items.forEach(function(item){if(mode==='left')item.x=0;if(mode==='center')item.x=(100-item.width)/2;if(mode==='right')item.x=100-item.width;if(mode==='top')item.y=0;if(mode==='middle')item.y=(100-item.height)/2;if(mode==='bottom')item.y=100-item.height});adminIntroCanvasRender();}
+function adminIntroCanvasDistribute(axis){var items=_introCanvasItems.slice().sort(function(a,b){return axis==='horizontal'?a.x-b.x:a.y-b.y});if(items.length<3)return;var first=items[0],last=items[items.length-1],start=axis==='horizontal'?first.x:first.y,end=axis==='horizontal'?last.x:last.y,step=(end-start)/(items.length-1);items.forEach(function(item,index){item[axis==='horizontal'?'x':'y']=start+step*index});adminIntroCanvasRender();}
+
+function _initSubjectConfigTab() {
+  var select = document.getElementById('admin-subject-config-select');
+  if (!select) return;
+  var subjects = getAllSubjects();
+  select.innerHTML = subjects.map(function(s) { return '<option value="' + s.id + '">' + s.code + ' - ' + (s.name || 'Mon hoc') + '</option>'; }).join('');
+  renderAdminSubjectConfig();
+}
+
+function renderAdminSubjectConfig() {
+  var select = document.getElementById('admin-subject-config-select');
+  if (!select) return;
+  var subjectId = select.value;
+  if (!subjectId) return;
+  var d = DB.getSubjectDetails(subjectId);
+  if (!d) return;
+  function setVal(id, val) { var el = document.getElementById(id); if (el) el.value = val || ''; }
+  setVal('cfg-code', d.code || subjectId);
+  setVal('cfg-banner', d.banner);
+  setVal('cfg-shortDesc', d.shortDesc);
+  setVal('cfg-credits', d.credits);
+  setVal('cfg-semester', d.semester);
+  setVal('cfg-program', d.program);
+  setVal('cfg-intro', d.intro);
+  setVal('cfg-instructor-name', d.instructor && d.instructor.name);
+  setVal('cfg-instructor-role', d.instructor && d.instructor.role);
+  setVal('cfg-instructor-avatar', d.instructor && d.instructor.avatar);
+  setVal('cfg-instructor-email', d.instructor && d.instructor.email);
+  var cards = d.cards || {};
+  var cardMap = [
+    { key: 'objectives', t: 'cfg-card-obj-title', c: 'cfg-card-obj-content' },
+    { key: 'mainContent', t: 'cfg-card-main-title', c: 'cfg-card-main-content' },
+    { key: 'targetAudience', t: 'cfg-card-target-title', c: 'cfg-card-target-content' },
+    { key: 'learningFormat', t: 'cfg-card-format-title', c: 'cfg-card-format-content' },
+  ];
+  cardMap.forEach(function(cm) { setVal(cm.t, cards[cm.key] && cards[cm.key].title); setVal(cm.c, cards[cm.key] && cards[cm.key].content); });
+  _renderSubjectConfigChapters(subjectId, d.chapters || []);
+  adminIntroCanvasLoad(d);
+}
+
+function _renderSubjectConfigChapters(subjectId, chapters) {
+  var container = document.getElementById('admin-chapters-container');
+  if (!container) return;
+  if (!chapters || chapters.length === 0) {
+    container.innerHTML = '<div class="text-xs text-muted text-center p-4">Chua co chuong nao. Bam "Them Chuong Moi" de bat dau.</div>';
+    return;
+  }
+  var html = '';
+  chapters.forEach(function(chap, ci) {
+    var lessonsHtml = '';
+    if (chap.lessons && chap.lessons.length > 0) {
+      chap.lessons.forEach(function(les, li) {
+        var safeTitle = (les.title || '').replace(/"/g, '&quot;');
+        lessonsHtml += '<div class="flex items-center gap-2 p-2 rounded" style="background:var(--bg-subtle);">' +
+          '<span class="text-xs text-muted">' + (ci+1) + '.' + (li+1) + '</span>' +
+          '<input type="text" class="form-input text-xs" style="flex:1;" value="' + safeTitle + '" ' +
+          'onchange="_scUpdateLessonTitle(\'' + subjectId + '\',\'' + chap.id + '\',\'' + les.id + '\',this.value)" placeholder="Ten bai hoc...">' +
+          '<button class="block-btn delete" onclick="_scDeleteLesson(\'' + subjectId + '\',\'' + chap.id + '\',\'' + les.id + '\')">' +
+          '<i class="fa-solid fa-xmark"></i></button></div>';
+      });
+    } else {
+      lessonsHtml = '<div class="text-xs text-muted italic pl-2">Chua co bai hoc</div>';
+    }
+    var safeChapTitle = (chap.title || '').replace(/"/g, '&quot;');
+    html += '<div class="card p-3" style="border-left:3px solid var(--primary);">' +
+      '<div class="flex justify-between items-center mb-2">' +
+      '<input type="text" class="form-input text-xs font-bold" style="max-width:70%;" value="' + safeChapTitle + '" ' +
+      'onchange="_scUpdateChapterTitle(\'' + subjectId + '\',\'' + chap.id + '\',this.value)" placeholder="Ten chuong...">' +
+      '<div class="flex gap-2">' +
+      '<button class="btn btn-primary btn-xs" onclick="_scAddLesson(\'' + subjectId + '\',\'' + chap.id + '\')">' +
+      '<i class="fa-solid fa-plus"></i> Bai hoc</button>' +
+      '<button class="btn btn-danger btn-xs" onclick="_scDeleteChapter(\'' + subjectId + '\',\'' + chap.id + '\')">' +
+      '<i class="fa-solid fa-trash"></i></button>' +
+      '</div></div>' +
+      '<div class="space-y-1 pl-2">' + lessonsHtml + '</div></div>';
+  });
+  container.innerHTML = html;
+}
+
+function adminAddChapter() {
+  var select = document.getElementById('admin-subject-config-select');
+  if (!select || !select.value) { showToast('Vui long chon mon hoc truoc!', 'error'); return; }
+  var subjectId = select.value;
+  var title = prompt('Nhap ten chuong moi:');
+  if (!title) return;
+  var details = DB.getSubjectDetails(subjectId);
+  if (!details.chapters) details.chapters = [];
+  details.chapters.push({ id: 'chap_' + Date.now(), title: title.trim(), lessons: [] });
+  DB.saveSubjectDetails(subjectId, details);
+  _renderSubjectConfigChapters(subjectId, details.chapters);
+  showToast('Da them chuong moi!', 'success');
+}
+
+function _scAddLesson(subjectId, chapId) {
+  var title = prompt('Nhap ten bai hoc moi:');
+  if (!title) return;
+  var details = DB.getSubjectDetails(subjectId);
+  var chap = details.chapters.find(function(c) { return c.id === chapId; });
+  if (!chap) return;
+  if (!chap.lessons) chap.lessons = [];
+  chap.lessons.push({ id: 'les_' + Date.now(), title: title.trim(), duration: '10:00', status: 'published', type: 'editor', blocks: [], content: '' });
+  DB.saveSubjectDetails(subjectId, details);
+  _renderSubjectConfigChapters(subjectId, details.chapters);
+  showToast('Da them bai hoc!', 'success');
+}
+
+function _scDeleteChapter(subjectId, chapId) {
+  if (!confirm('Xoa chuong nay va tat ca bai hoc ben trong?')) return;
+  var details = DB.getSubjectDetails(subjectId);
+  details.chapters = details.chapters.filter(function(c) { return c.id !== chapId; });
+  DB.saveSubjectDetails(subjectId, details);
+  _renderSubjectConfigChapters(subjectId, details.chapters);
+  showToast('Da xoa chuong!', 'success');
+}
+
+function _scDeleteLesson(subjectId, chapId, lesId) {
+  if (!confirm('Xoa bai hoc nay?')) return;
+  var details = DB.getSubjectDetails(subjectId);
+  var chap = details.chapters.find(function(c) { return c.id === chapId; });
+  if (chap) chap.lessons = chap.lessons.filter(function(l) { return l.id !== lesId; });
+  DB.saveSubjectDetails(subjectId, details);
+  _renderSubjectConfigChapters(subjectId, details.chapters);
+  showToast('Da xoa bai hoc!', 'success');
+}
+
+function _scUpdateChapterTitle(subjectId, chapId, newTitle) {
+  var details = DB.getSubjectDetails(subjectId);
+  var chap = details.chapters.find(function(c) { return c.id === chapId; });
+  if (chap) chap.title = newTitle.trim();
+  DB.saveSubjectDetails(subjectId, details);
+}
+
+function _scUpdateLessonTitle(subjectId, chapId, lesId, newTitle) {
+  var details = DB.getSubjectDetails(subjectId);
+  var chap = details.chapters.find(function(c) { return c.id === chapId; });
+  if (chap) { var les = chap.lessons.find(function(l) { return l.id === lesId; }); if (les) les.title = newTitle.trim(); }
+  DB.saveSubjectDetails(subjectId, details);
+}
+
+async function adminSaveSubjectConfig(status) {
+  var select = document.getElementById('admin-subject-config-select');
+  if (!select || !select.value) { showToast('Vui long chon mon hoc!', 'error'); return; }
+  var subjectId = select.value;
+  var details = DB.getSubjectDetails(subjectId);
+  function getVal(id) { var el = document.getElementById(id); return el ? (el.value || '').trim() : ''; }
+  details.banner = getVal('cfg-banner');
+  details.shortDesc = getVal('cfg-shortDesc');
+  details.credits = parseInt(getVal('cfg-credits')) || 0;
+  details.semester = parseInt(getVal('cfg-semester')) || 0;
+  details.program = getVal('cfg-program');
+  details.intro = getVal('cfg-intro');
+  details.introCanvas = JSON.parse(JSON.stringify(_introCanvasItems));
+  details.introCanvasHeight = _introCanvasHeight;
+  details.instructor = { name: getVal('cfg-instructor-name'), role: getVal('cfg-instructor-role'), avatar: getVal('cfg-instructor-avatar'), email: getVal('cfg-instructor-email') };
+  details.cards = {
+    objectives:     { title: getVal('cfg-card-obj-title'),    content: getVal('cfg-card-obj-content') },
+    mainContent:    { title: getVal('cfg-card-main-title'),   content: getVal('cfg-card-main-content') },
+    targetAudience: { title: getVal('cfg-card-target-title'), content: getVal('cfg-card-target-content') },
+    learningFormat: { title: getVal('cfg-card-format-title'), content: getVal('cfg-card-format-content') },
+  };
+  details.status = status || 'draft';
+  // Bản nháp chỉ lưu tại phiên Admin; chỉ bản xuất bản mới được phép đồng bộ công khai.
+  const result = await DB.saveSubjectDetails(subjectId, details, details.status !== 'published');
+  if (details.status === 'published' && !result.ok) {
+    const reason = result.sync?.reason ? ` (${result.sync.reason})` : '';
+    showToast(`Chưa thể đăng công khai vì đồng bộ dữ liệu thất bại${reason}. Bản lưu cục bộ vẫn còn.`, 'error');
+    return result;
+  }
+  showToast(details.status === 'published' ? 'Đã đăng công khai và đồng bộ dữ liệu.' : 'Đã lưu nháp trên thiết bị Admin.', 'success');
+  return result;
+}
+
+async function adminPreviewSubjectConfig() {
+  var select = document.getElementById('admin-subject-config-select');
+  if (!select || !select.value) { showToast('Vui long chon mon hoc!', 'error'); return; }
+  const result = await adminSaveSubjectConfig('draft');
+  if (!result?.details) return;
+  window._adminSubjectPreview = { subjectId: select.value, details: result.details };
+  NavController.openSubjectDetail(select.value);
+}
+
+Object.assign(window, {
+  adminAddChapter, adminSaveSubjectConfig, adminPreviewSubjectConfig,
+  renderAdminSubjectConfig, adminIntroCanvasAdd, adminIntroCanvasUpdate, adminIntroCanvasPointerDown, adminIntroCanvasDelete, adminIntroCanvasAlign, adminIntroCanvasDistribute, adminIntroCanvasSetHeight, adminIntroCanvasHeightPointerDown,
+  _scAddLesson, _scDeleteChapter, _scDeleteLesson,
+  _scUpdateChapterTitle, _scUpdateLessonTitle,
+});
+
+/* ================================================
+   ADMIN INTERACTIVE LESSONS (3-COLUMN LAYOUT)
+================================================= */
+
+var _interactiveCurrentSubjectId = null;
+var _interactiveCurrentChapterId = null;
+var _interactiveCurrentLessonId = null;
+var _interactiveBlocks = [];
+
+function adminLoadInteractiveLessons() {
+  var select = document.getElementById('admin-interactive-subject-select');
+  if (!select) return;
+  var subjects = getAllSubjects();
+  if (subjects.length === 0) { select.innerHTML = '<option value="">Khong co mon hoc</option>'; return; }
+  select.innerHTML = subjects.map(function(s) { return '<option value="' + s.id + '">' + s.code + ' - ' + (s.name || 'Mon hoc') + '</option>'; }).join('');
+  adminOnInteractiveSubjectChange(subjects[0].id);
+}
+
+function adminOnInteractiveSubjectChange(subjectId) {
+  _interactiveCurrentSubjectId = subjectId;
+  _interactiveCurrentLessonId = null;
+  adminRenderInteractiveChaptersTree();
+  adminHideInteractiveEditor();
+}
+
+function adminRenderInteractiveChaptersTree() {
+  var treeContainer = document.getElementById('admin-interactive-chapters-tree');
+  if (!treeContainer) return;
+  var details = DB.getSubjectDetails(_interactiveCurrentSubjectId);
+  if (!details || !details.chapters || details.chapters.length === 0) {
+    treeContainer.innerHTML = '<div class="text-xs text-muted text-center p-4">Chua co chuong nao. Hay them chuong moi.</div>';
+    return;
+  }
+  var html = '';
+  details.chapters.forEach(function(chap, cIndex) {
+    var lessHtml = '';
+    if (chap.lessons && chap.lessons.length > 0) {
+      chap.lessons.forEach(function(les) {
+        var isActive = _interactiveCurrentLessonId === les.id ? 'active' : '';
+        var badge = les.status === 'draft' ? '<span class="badge badge-warning" style="font-size:9px;padding:2px 4px;">Nhap</span>' : '';
+        lessHtml += '<div class="lesson-item ' + isActive + '" onclick="adminSelectInteractiveLesson(\'' + chap.id + '\',\'' + les.id + '\')">' +
+          '<span><i class="fa-regular fa-file-lines text-muted mr-1"></i> ' + les.title + '</span>' +
+          '<div class="flex gap-1 items-center">' + badge +
+          '<button class="block-btn delete" onclick="event.stopPropagation(); adminDeleteLesson(\'' + chap.id + '\',\'' + les.id + '\')"><i class="fa-solid fa-xmark"></i></button>' +
+          '</div></div>';
+      });
+    } else { lessHtml = '<div class="text-xs text-muted pl-4 italic">Chua co bai hoc</div>'; }
+    html += '<div class="chapter-item">' +
+      '<div class="chapter-header"><span>' + (chap.title || ('Chuong ' + (cIndex+1))) + '</span>' +
+      '<div class="flex gap-1">' +
+      '<button class="block-btn" onclick="adminOpenAddLessonModal(\'' + chap.id + '\')" title="Them bai hoc"><i class="fa-solid fa-plus"></i></button>' +
+      '<button class="block-btn delete" onclick="adminDeleteChapter(\'' + chap.id + '\')"><i class="fa-solid fa-trash"></i></button>' +
+      '</div></div><div class="lesson-list">' + lessHtml + '</div></div>';
+  });
+  treeContainer.innerHTML = html;
+}
+
+function adminHideInteractiveEditor() {
+  var emptyHint = document.getElementById('admin-interactive-empty-hint');
+  var editorForm = document.getElementById('admin-interactive-editor-form');
+  var settingsPanel = document.getElementById('admin-block-settings-panel');
+  if (emptyHint) emptyHint.style.display = 'block';
+  if (editorForm) editorForm.classList.add('hidden');
+  if (settingsPanel) settingsPanel.innerHTML = '<div class="text-center text-muted py-8 text-xs"><i class="fa-solid fa-hand-pointer text-xl mb-2"></i><p>Chon mot khoi noi dung de xem va chinh sua.</p></div>';
+}
+
+function adminSelectInteractiveLesson(chapterId, lessonId) {
+  _interactiveCurrentChapterId = chapterId;
+  _interactiveCurrentLessonId = lessonId;
+  var details = DB.getSubjectDetails(_interactiveCurrentSubjectId);
+  var chap = details.chapters.find(function(c) { return c.id === chapterId; });
+  var les = chap.lessons.find(function(l) { return l.id === lessonId; });
+  adminRenderInteractiveChaptersTree();
+  document.getElementById('admin-interactive-empty-hint').style.display = 'none';
+  document.getElementById('admin-interactive-editor-form').classList.remove('hidden');
+  document.getElementById('admin-edit-chapter-id').value = chapterId;
+  document.getElementById('admin-edit-lesson-id').value = lessonId;
+  document.getElementById('admin-lesson-title-input').value = les.title || '';
+  document.getElementById('admin-lesson-duration-input').value = les.duration || '';
+  document.getElementById('admin-lesson-status-select').value = les.status || 'published';
+  var badge = document.getElementById('admin-lesson-status-badge');
+  badge.style.display = 'inline-block';
+  if (les.status === 'draft') { badge.className = 'badge badge-sm badge-warning'; badge.textContent = 'Nhap'; }
+  else { badge.className = 'badge badge-sm badge-success'; badge.textContent = 'Cong khai'; }
+  if (les.blocks && Array.isArray(les.blocks)) {
+    _interactiveBlocks = JSON.parse(JSON.stringify(les.blocks));
+  } else if (les.content) {
+    var parsedBlocks = []; var div = document.createElement('div'); div.innerHTML = les.content;
+    var canParse = true;
+    for (var node of div.childNodes) {
+      if (node.nodeType === 3 && node.textContent.trim() === '') continue;
+      var tag = (node.tagName || '').toLowerCase();
+      if (!['p','h2','h3'].includes(tag)) { canParse = false; break; }
+    }
+    if (canParse && div.childNodes.length > 0) {
+      div.childNodes.forEach(function(node) {
+        if (node.nodeType === 3 && node.textContent.trim() === '') return;
+        var tag2 = (node.tagName || '').toLowerCase();
+        var bid = 'block_' + Date.now() + Math.random().toString().slice(2,8);
+        if (tag2 === 'h2' || tag2 === 'h3') parsedBlocks.push({ id: bid, type: 'heading', content: node.innerHTML, settings: { level: tag2.toUpperCase() } });
+        else if (tag2 === 'p') parsedBlocks.push({ id: bid, type: 'text', content: node.innerHTML, settings: {} });
+      });
+      _interactiveBlocks = parsedBlocks;
+    } else { _interactiveBlocks = [{ id: 'block_' + Date.now(), type: 'legacyHtml', content: les.content, settings: {} }]; }
+  } else { _interactiveBlocks = []; }
+  adminRenderBlocks();
+}
+
+function adminRenderBlocks() {
+  var container = document.getElementById('admin-block-editor-container');
+  if (!container) return;
+  if (_interactiveBlocks.length === 0) {
+    container.innerHTML = '<div class="text-center text-muted text-xs p-4 border border-dashed rounded">Chua co noi dung. Bam them tieu de hoac doan van ben duoi.</div>';
+    return;
+  }
+  var html = '';
+  _interactiveBlocks.forEach(function(block, index) {
+    var blockContentHtml = '';
+    if (block.type === 'heading') {
+      var level = (block.settings && block.settings.level) || 'H2';
+      var htag = level.toLowerCase();
+      blockContentHtml = '<div class="block-content block-heading-' + htag + '" contenteditable="true" data-placeholder="Nhap tieu de..." onblur="adminUpdateBlockContent(\'' + block.id + '\',this.innerText)" style="text-align:' + ((block.settings && block.settings.align) || 'left') + ';color:' + ((block.settings && block.settings.color) || 'inherit') + '">' + (block.content || '') + '</div>';
+    } else if (block.type === 'text') {
+      blockContentHtml = '<div class="block-content block-text" contenteditable="true" data-placeholder="Nhap doan van..." onblur="adminUpdateBlockContent(\'' + block.id + '\',this.innerText)" style="text-align:' + ((block.settings && block.settings.align) || 'left') + ';color:' + ((block.settings && block.settings.color) || 'inherit') + '">' + (block.content || '') + '</div>';
+    } else if (block.type === 'legacyHtml') {
+      blockContentHtml = '<div class="block-legacy-html"><strong>Noi dung cu (HTML):</strong><br>' + (block.content || '') + '</div>';
+    } else {
+      blockContentHtml = '<div class="text-muted text-xs p-2">Block type ' + block.type + ' chua duoc ho tro</div>';
+    }
+    html += '<div class="lesson-block" id="interactive-block-' + block.id + '" onclick="adminSelectBlock(\'' + block.id + '\')">' +
+      '<div class="lesson-block-controls">' +
+      '<button class="block-btn" onclick="event.stopPropagation();adminMoveBlock(' + index + ',-1)" ' + (index === 0 ? 'disabled' : '') + '><i class="fa-solid fa-arrow-up"></i></button>' +
+      '<button class="block-btn" onclick="event.stopPropagation();adminMoveBlock(' + index + ',1)" ' + (index === _interactiveBlocks.length - 1 ? 'disabled' : '') + '><i class="fa-solid fa-arrow-down"></i></button>' +
+      '<button class="block-btn" onclick="event.stopPropagation();adminDuplicateBlock(\'' + block.id + '\')"><i class="fa-solid fa-copy"></i></button>' +
+      '<button class="block-btn delete" onclick="event.stopPropagation();adminDeleteBlock(\'' + block.id + '\')"><i class="fa-solid fa-trash"></i></button>' +
+      '</div>' + blockContentHtml + '</div>';
+  });
+  container.innerHTML = html;
+}
+
+function adminAddBlock(type) {
+  var newBlock = { id: 'block_' + Date.now() + Math.floor(Math.random()*1000), type: type, content: '', settings: type === 'heading' ? { level: 'H2' } : {} };
+  _interactiveBlocks.push(newBlock);
+  adminRenderBlocks();
+  adminSelectBlock(newBlock.id);
+  setTimeout(function() { var el = document.querySelector('#interactive-block-' + newBlock.id + ' .block-content'); if (el) el.focus(); }, 50);
+}
+
+function adminUpdateBlockContent(id, text) {
+  var block = _interactiveBlocks.find(function(b) { return b.id === id; });
+  if (block) block.content = text.trim();
+}
+
+function adminDeleteBlock(id) {
+  _interactiveBlocks = _interactiveBlocks.filter(function(b) { return b.id !== id; });
+  adminRenderBlocks();
+  var panel = document.getElementById('admin-block-settings-panel');
+  if (panel) panel.innerHTML = '<div class="text-center text-muted py-8 text-xs"><p>Chon mot khoi noi dung de chinh sua cai dat.</p></div>';
+}
+
+function adminDuplicateBlock(id) {
+  var idx = _interactiveBlocks.findIndex(function(b) { return b.id === id; });
+  if (idx !== -1) {
+    var newBlock = JSON.parse(JSON.stringify(_interactiveBlocks[idx]));
+    newBlock.id = 'block_' + Date.now() + Math.floor(Math.random()*1000);
+    _interactiveBlocks.splice(idx + 1, 0, newBlock);
+    adminRenderBlocks();
+  }
+}
+
+function adminMoveBlock(index, direction) {
+  if (index + direction < 0 || index + direction >= _interactiveBlocks.length) return;
+  var temp = _interactiveBlocks[index];
+  _interactiveBlocks[index] = _interactiveBlocks[index + direction];
+  _interactiveBlocks[index + direction] = temp;
+  adminRenderBlocks();
+}
+
+function adminSelectBlock(id) {
+  document.querySelectorAll('.lesson-block').forEach(function(el) { el.classList.remove('active'); });
+  var el = document.getElementById('interactive-block-' + id);
+  if (el) el.classList.add('active');
+  var block = _interactiveBlocks.find(function(b) { return b.id === id; });
+  if (!block) return;
+  var panel = document.getElementById('admin-block-settings-panel');
+  var html = '<div class="font-bold text-xs mb-3 text-primary uppercase border-b pb-2">Cai dat khoi ' + block.type + '</div>';
+  if (block.type === 'heading') {
+    var selH2 = (block.settings && block.settings.level === 'H2') ? 'selected' : '';
+    var selH3 = (block.settings && block.settings.level === 'H3') ? 'selected' : '';
+    html += '<div class="form-group mb-3"><label class="text-xs font-bold">Cap do tieu de</label><select class="form-select text-xs" onchange="adminUpdateBlockSetting(\'' + id + '\',\'level\',this.value)"><option value="H2" ' + selH2 + '>Heading 2</option><option value="H3" ' + selH3 + '>Heading 3</option></select></div>';
+  }
+  if (block.type === 'heading' || block.type === 'text') {
+    var aLeft = (block.settings && block.settings.align === 'left') ? 'selected' : '';
+    var aCenter = (block.settings && block.settings.align === 'center') ? 'selected' : '';
+    var aRight = (block.settings && block.settings.align === 'right') ? 'selected' : '';
+    html += '<div class="form-group mb-3"><label class="text-xs font-bold">Can le</label><select class="form-select text-xs" onchange="adminUpdateBlockSetting(\'' + id + '\',\'align\',this.value)"><option value="left" ' + aLeft + '>Trai</option><option value="center" ' + aCenter + '>Giua</option><option value="right" ' + aRight + '>Phai</option></select></div>';
+    html += '<div class="form-group mb-3"><label class="text-xs font-bold">Mau chu</label><input type="color" value="' + ((block.settings && block.settings.color) || '#000000') + '" onchange="adminUpdateBlockSetting(\'' + id + '\',\'color\',this.value)" style="width:100%;height:32px;border:none;cursor:pointer;background:transparent;"></div>';
+  }
+  if (block.type === 'legacyHtml') html += '<div class="text-xs text-muted">Khoi nay chua ma HTML cu. Se duoc ho tro chinh sua nang cao o cac ban cap nhat sau.</div>';
+  panel.innerHTML = html;
+}
+
+function adminUpdateBlockSetting(id, key, value) {
+  var block = _interactiveBlocks.find(function(b) { return b.id === id; });
+  if (block) { if (!block.settings) block.settings = {}; block.settings[key] = value; adminRenderBlocks(); adminSelectBlock(id); }
+}
+
+function adminSaveInteractiveLesson(status) {
+  if (!_interactiveCurrentSubjectId || !_interactiveCurrentChapterId || !_interactiveCurrentLessonId) return;
+  var title = document.getElementById('admin-lesson-title-input').value.trim();
+  if (!title) { showToast('Vui long nhap ten bai hoc!', 'error'); return; }
+  var duration = document.getElementById('admin-lesson-duration-input').value.trim();
+  var formStatus = status || document.getElementById('admin-lesson-status-select').value;
+  var details = DB.getSubjectDetails(_interactiveCurrentSubjectId);
+  var chap = details.chapters.find(function(c) { return c.id === _interactiveCurrentChapterId; });
+  var les = chap.lessons.find(function(l) { return l.id === _interactiveCurrentLessonId; });
+  les.title = title; les.duration = duration; les.status = formStatus;
+  les.blocks = JSON.parse(JSON.stringify(_interactiveBlocks));
+  var genHtml = '';
+  _interactiveBlocks.forEach(function(b) {
+    if (b.type === 'heading') { var htag = (b.settings && b.settings.level && b.settings.level.toLowerCase()) || 'h2'; genHtml += '<' + htag + ' style="text-align:' + ((b.settings && b.settings.align) || 'left') + ';color:' + ((b.settings && b.settings.color) || 'inherit') + '">' + (b.content || '') + '</' + htag + '>'; }
+    else if (b.type === 'text') genHtml += '<p style="text-align:' + ((b.settings && b.settings.align) || 'left') + ';color:' + ((b.settings && b.settings.color) || 'inherit') + '">' + (b.content || '') + '</p>';
+    else if (b.type === 'legacyHtml') genHtml += b.content || '';
+  });
+  les.content = genHtml; les.type = 'editor';
+  DB.saveSubjectDetails(_interactiveCurrentSubjectId, details);
+  showToast('Da luu bai hoc (' + formStatus + ')!', 'success');
+  adminRenderInteractiveChaptersTree();
+  document.getElementById('admin-lesson-status-select').value = formStatus;
+  var badge = document.getElementById('admin-lesson-status-badge');
+  if (formStatus === 'draft') { badge.className = 'badge badge-sm badge-warning'; badge.textContent = 'Nhap'; }
+  else { badge.className = 'badge badge-sm badge-success'; badge.textContent = 'Cong khai'; }
+}
+
+function adminOpenAddChapterModal() {
+  var title = prompt('Nhap ten chuong moi:');
+  if (!title) return;
+  var details = DB.getSubjectDetails(_interactiveCurrentSubjectId);
+  if (!details.chapters) details.chapters = [];
+  details.chapters.push({ id: 'chap_' + Date.now(), title: title, lessons: [] });
+  DB.saveSubjectDetails(_interactiveCurrentSubjectId, details);
+  adminRenderInteractiveChaptersTree();
+  showToast('Da them chuong moi', 'success');
+}
+
+function adminDeleteChapter(chapterId) {
+  if (!confirm('Ban co chac chan muon xoa chuong nay?')) return;
+  var details = DB.getSubjectDetails(_interactiveCurrentSubjectId);
+  details.chapters = details.chapters.filter(function(c) { return c.id !== chapterId; });
+  if (_interactiveCurrentChapterId === chapterId) { adminHideInteractiveEditor(); _interactiveCurrentChapterId = null; _interactiveCurrentLessonId = null; }
+  DB.saveSubjectDetails(_interactiveCurrentSubjectId, details);
+  adminRenderInteractiveChaptersTree();
+}
+
+function adminOpenAddLessonModal(chapterId) {
+  var title = prompt('Nhap ten bai hoc moi:');
+  if (!title) return;
+  var details = DB.getSubjectDetails(_interactiveCurrentSubjectId);
+  var chap = details.chapters.find(function(c) { return c.id === chapterId; });
+  if (!chap) return;
+  if (!chap.lessons) chap.lessons = [];
+  var newLesson = { id: 'les_' + Date.now(), title: title, duration: '10:00', status: 'draft', type: 'editor', blocks: [], content: '' };
+  chap.lessons.push(newLesson);
+  DB.saveSubjectDetails(_interactiveCurrentSubjectId, details);
+  adminRenderInteractiveChaptersTree();
+  adminSelectInteractiveLesson(chapterId, newLesson.id);
+  showToast('Da them bai hoc moi', 'success');
+}
+
+function adminDeleteLesson(chapterId, lessonId) {
+  if (!confirm('Ban co chac chan muon xoa bai hoc nay?')) return;
+  var details = DB.getSubjectDetails(_interactiveCurrentSubjectId);
+  var chap = details.chapters.find(function(c) { return c.id === chapterId; });
+  if (!chap) return;
+  chap.lessons = chap.lessons.filter(function(l) { return l.id !== lessonId; });
+  if (_interactiveCurrentLessonId === lessonId) { adminHideInteractiveEditor(); _interactiveCurrentLessonId = null; }
+  DB.saveSubjectDetails(_interactiveCurrentSubjectId, details);
+  adminRenderInteractiveChaptersTree();
+}
+
+function adminPreviewLessonAsStudent() {
+  if (!_interactiveCurrentSubjectId || !_interactiveCurrentLessonId) { showToast('Vui long chon bai hoc de xem truoc.', 'error'); return; }
+  adminSaveInteractiveLesson('draft');
+  NavController.openSubjectDetail(_interactiveCurrentSubjectId);
+  var lesId = _interactiveCurrentLessonId;
+  setTimeout(function() { if (typeof studySelectLesson === 'function') studySelectLesson(_interactiveCurrentSubjectId, null, lesId); }, 300);
+}
+
+Object.assign(window, {
+  adminLoadInteractiveLessons, adminOnInteractiveSubjectChange, adminOpenAddChapterModal,
+  adminOpenAddLessonModal, adminSelectInteractiveLesson, adminDeleteChapter, adminDeleteLesson,
+  adminAddBlock, adminUpdateBlockContent, adminUpdateBlockSetting, adminDeleteBlock,
+  adminDuplicateBlock, adminMoveBlock, adminSelectBlock, adminSaveInteractiveLesson,
+  adminPreviewLessonAsStudent,
+});

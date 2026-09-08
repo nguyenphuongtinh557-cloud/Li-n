@@ -20,6 +20,10 @@ const SUBJECT_VISUAL_THEMES = {
   society: { art: ['fa-landmark', 'fa-book-open', 'fa-scale-balanced'], description: 'Hệ thống hóa kiến thức nền tảng về xã hội, pháp luật và tư duy học thuật.' }
 };
 
+function escapeSubjectDetailText(value) {
+  return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+}
+
 function getSubjectVisualTheme(subject) {
   const name = (subject.name || '').toLocaleLowerCase('vi-VN');
   if (subject.blockId === 'GDQP') return 'defense';
@@ -117,7 +121,12 @@ export const NavController = {
     const activeNav = document.getElementById(snavId) || document.getElementById(`snav-${pageId}`);
     if (activeNav) activeNav.classList.add('active');
 
-    // 2. Hide all page containers and show selected
+    // 2. Any normal page navigation must tear down the immersive reader first.
+    if (pageId !== 'study-reader') {
+      document.getElementById('page-study-reader')?.classList.add('hidden');
+      document.querySelector('.app-layout')?.classList.remove('study-reader-active');
+    }
+    // Hide all normal page containers and show selected.
     document.querySelectorAll('.page-container').forEach(page => {
       page.classList.add('hidden');
     });
@@ -240,6 +249,26 @@ export const NavController = {
     });
   },
 
+  // ─── STUDY READER ─────────────────────────────────────────────────────────
+  openStudyReader(context = {}) {
+    this.studyReaderReturn = { page: context.returnPage || this.activePage || 'subject-detail', scrollY: window.scrollY || 0, context };
+    this.activePage = 'study-reader';
+    document.querySelectorAll('.page-container, .study-reader-page').forEach(page => page.classList.add('hidden'));
+    document.getElementById('page-study-reader')?.classList.remove('hidden');
+    document.querySelector('.app-layout')?.classList.add('study-reader-active');
+    window.renderStudyReader?.(context);
+    window.scrollTo({ top: 0, behavior: 'auto' });
+  },
+
+  closeStudyReader() {
+    const state = this.studyReaderReturn || { page: 'subject-detail', scrollY: 0 };
+    document.getElementById('page-study-reader')?.classList.add('hidden');
+    document.querySelector('.app-layout')?.classList.remove('study-reader-active');
+    this.navigateToPage(state.page === 'study-reader' ? 'subject-detail' : state.page);
+    requestAnimationFrame(() => window.scrollTo({ top: state.scrollY || 0, behavior: 'auto' }));
+    this.studyReaderReturn = null;
+  },
+
   // ─── SUBJECT DETAIL PAGE ──────────────────────────────────────────────────
   openSubjectDetail(subjectId, returnPage = 'study-space') {
     const s = getSubjectById(subjectId);
@@ -254,31 +283,62 @@ export const NavController = {
 
     if (!detailContainer) return;
 
-    const allResources = DB.getResources(s.id);
-    const infoResources = allResources.filter(r => r.type === 'info');
-    const lectureResources = allResources.filter(r => r.type === 'lecture');
-    const examResources = allResources.filter(r => r.type === 'exam');
-    const quizCount = DB.getBankBySubject(s.id).length;
+    // User chỉ đọc nội dung đã xuất bản. Bản nháp chỉ được truyền tường minh
+    // từ nút "Xem trước như sinh viên" trong khu vực Admin.
+    const preview = window._adminSubjectPreview?.subjectId === s.id ? window._adminSubjectPreview.details : null;
+    const details = preview || DB.getSubjectDetails(s.id) || {};
+    const canDisplayPublishedCanvas = Boolean(preview) || details.status === 'published';
 
+    const code = details.code || s.code;
+    const name = details.name || s.name;
+    const shortDesc = details.shortDesc || visualTheme.description;
+    const credits = details.credits || s.credits;
+    const semester = details.semester || s.semester;
+    const program = details.program || 'Đại học Công nghệ - ĐH Đà Nẵng';
+    const banner = details.banner || '';
+    const intro = details.intro || '';
+    const introCanvas = Array.isArray(details.introCanvas) ? details.introCanvas : [];
+    const introCanvasHeight = Math.min(2400, Math.max(360, Number(details.introCanvasHeight) || 620));
+    const safeIntroUrl = value => { try { const url = new URL(String(value || ''), window.location.href); return ['http:', 'https:'].includes(url.protocol) ? url.href : ''; } catch { return ''; } };
+    const renderIntroCanvas = () => introCanvas.map(item => { const x=Math.max(0,Math.min(92,Number(item.x)||0)), y=Math.max(0,Math.min(92,Number(item.y)||0)), w=Math.max(12,Math.min(100,Number(item.width)||35)), h=Math.max(8,Math.min(100,Number(item.height)||20)), style=`left:${x}%;top:${y}%;width:${w}%;height:${h}%;z-index:${Number(item.zIndex)||1}`; if(item.type==='text') return `<div class="student-intro-canvas-item text" style="${style}">${safe(item.content).replace(/\n/g,'<br>')}</div>`; const src=safeIntroUrl(item.src); if(!src) return ''; if(item.type==='image') return `<figure class="student-intro-canvas-item image" style="${style}"><img src="${safe(src)}" alt="${safe(item.alt || '')}" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><figcaption class="student-intro-canvas-image-error" hidden>Không tải được ảnh này.</figcaption></figure>`; const youtube=/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test(src); return youtube ? `<div class="student-intro-canvas-item video" style="${style}"><iframe src="${safe(src)}" title="Video môn học" loading="lazy" allowfullscreen></iframe></div>` : ''; }).join('');
+    const cards = details.cards || {};
+    const instructor = details.instructor || {};
+    const chapters = details.chapters || [];
+    const safe = escapeSubjectDetailText;
+
+    // Store active details on window for TOC interaction
+    window._activeSubjectDetails = details;
+
+    // 4 Cards fallbacks
+    const objectivesContent = cards.objectives?.content || '';
+    const mainContentContent = cards.mainContent?.content || '';
+    const targetAudienceContent = cards.targetAudience?.content || '';
+    const learningFormatContent = cards.learningFormat?.content || '';
+
+    // Render presentation shell; lesson, resource, and exam handlers remain unchanged.
     detailContainer.innerHTML = `
       <div class="subject-detail-page-shell">
         <button class="subject-back-button" onclick="NavController.navigateToPage('${returnPage === 'ontap' ? 'ontap' : 'study-space'}')" aria-label="Quay lại danh sách môn học">
           <i class="fa-solid fa-arrow-left"></i><span>Quay lại</span>
         </button>
 
-        <article class="subject-detail-hero subject-theme-${visualThemeKey}">
+        <!-- TOP HERO BANNER (Image 2 Style) -->
+        <article class="subject-detail-hero subject-theme-${visualThemeKey}" style="${banner ? `background-image: url('${banner}'); background-size: cover; background-position: center;` : ''}">
           <div class="subject-hero-copy">
             <div class="subject-meta-row" aria-label="Thông tin học phần">
-              <span class="subject-detail-badge">${s.code}</span>
-              <span class="subject-meta-pill subject-meta-block"><span aria-hidden="true">${block.icon}</span> ${block.name}</span>
-              <span class="subject-meta-text">${s.credits} TÍN CHỈ</span>
-              <span class="subject-meta-text">HỌC KỲ ${s.semester}</span>
+              <span class="subject-detail-badge"><i class="fa-solid fa-circle text-xs" style="color:#10b981;font-size:8px;"></i> ${safe(code)} — ${safe(name).toUpperCase()}</span>
             </div>
-            <h1 class="subject-detail-title">${s.name}</h1>
+            <h1 class="subject-detail-title">${safe(name)}</h1>
             <p class="subject-detail-description">
-              ${visualTheme.description}
+              ${safe(shortDesc)}
             </p>
+            <div class="subject-meta-row mt-4" style="margin-top:20px;">
+              <span class="badge badge-subtle" style="background:var(--bg-card);color:var(--text-primary);padding:8px 14px;border-radius:12px;font-weight:700;"><i class="fa-solid fa-book-bookmark" style="color:var(--primary);margin-right:6px;"></i> ${credits} tín chỉ</span>
+              <span class="badge badge-subtle" style="background:var(--bg-card);color:var(--text-primary);padding:8px 14px;border-radius:12px;font-weight:700;"><i class="fa-solid fa-graduation-cap" style="color:var(--primary);margin-right:6px;"></i> ${program}</span>
+              <span class="badge badge-subtle" style="background:var(--bg-card);color:var(--text-primary);padding:8px 14px;border-radius:12px;font-weight:700;"><i class="fa-solid fa-calendar-days" style="color:var(--primary);margin-right:6px;"></i> Học kỳ: ${semester}</span>
+            </div>
           </div>
+          ${!banner ? `
           <div class="subject-hero-art theme-${visualThemeKey}" aria-hidden="true">
             <div class="subject-art-glow subject-art-glow-one"></div>
             <div class="subject-art-glow subject-art-glow-two"></div>
@@ -289,52 +349,152 @@ export const NavController = {
             <div class="subject-art-orbit subject-art-orbit-two"></div>
             <div class="subject-art-emblem"><i class="fa-solid ${visualTheme.art[0]}"></i></div>
           </div>
+          ` : ''}
         </article>
 
-        <div class="subject-detail-grid">
-          <button class="subject-card subject-card-info" onclick="openUserResourceViewer('${s.id}', 'info')">
-            <span class="subject-card-icon"><i class="fa-solid fa-rectangle-list"></i></span>
-            <span class="subject-card-content">
-              <span class="subject-card-title">Thông tin môn học</span>
-              <span class="subject-card-accent"></span>
-              <span class="subject-card-description">Xem chi tiết về môn học, giảng viên đảm nhận, mục tiêu, nội dung hệ thống và tài liệu tham khảo.</span>
-              <span class="subject-card-status">${infoResources.length ? `${infoResources.length} đề cương & thông tin sẵn có` : 'Đang cập nhật nội dung'}</span>
-            </span>
-            <span class="subject-card-arrow" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></span>
-          </button>
+        <!-- MAIN 2-COLUMN GRID -->
+        <div class="subject-detail-layout">
+          <!-- LEFT MAIN CONTENT COLUMN -->
+          <div class="subject-main-col" id="subject-main-col-root">
 
-          <button class="subject-card subject-card-lecture" onclick="openUserResourceViewer('${s.id}', 'lecture')">
-            <span class="subject-card-icon"><i class="fa-solid fa-book-open"></i></span>
-            <span class="subject-card-content">
-              <span class="subject-card-title">Bài giảng ôn tập</span>
-              <span class="subject-card-accent"></span>
-              <span class="subject-card-description">Truy cập slide bài giảng tổng hợp, tóm tắt lý thuyết trọng tâm và sơ đồ tư duy.</span>
-              <span class="subject-card-status">${lectureResources.length ? `${lectureResources.length} slide & bài giảng sẵn có` : 'Đang cập nhật nội dung'}</span>
-            </span>
-            <span class="subject-card-arrow" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></span>
-          </button>
+            <!-- SECTION 1: Giới thiệu môn học -->
+            <section class="subject-section-card" id="section-subject-intro">
+              <h2 class="subject-section-title">Giới thiệu môn học</h2>
+              ${canDisplayPublishedCanvas && introCanvas.length ? `<div class="student-intro-canvas" style="min-height:${introCanvasHeight}px">${renderIntroCanvas()}</div>` : intro ? `
+                <p class="subject-intro-text">${safe(intro).replace(/\n/g, '<br>')}</p>
+              ` : `
+                <div class="text-xs text-muted py-2" style="font-style:italic;">Admin chưa cập nhật nội dung giới thiệu chi tiết cho môn học này.</div>
+              `}
+            </section>
 
-          <button class="subject-card subject-card-exam" onclick="openUserResourceViewer('${s.id}', 'exam')">
-            <span class="subject-card-icon"><i class="fa-solid fa-file-pen"></i></span>
-            <span class="subject-card-content">
-              <span class="subject-card-title">Đề thi các năm</span>
-              <span class="subject-card-accent"></span>
-              <span class="subject-card-description">Luyện tập với đề thi giữa kỳ, cuối kỳ chính thức các năm trước có đáp án chi tiết.</span>
-              <span class="subject-card-status">${examResources.length ? `${examResources.length} bộ đề sẵn có` : 'Đang cập nhật đề thi'}</span>
-            </span>
-            <span class="subject-card-arrow" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></span>
-          </button>
+            <!-- SECTION 2: Bốn thẻ thông tin -->
+            <section class="subject-4cards-grid" id="section-subject-cards">
+              <!-- Card 1: Mục tiêu -->
+              <div class="subject-info-card">
+                <div class="card-icon-wrapper card-icon-objectives"><i class="fa-solid fa-bullseye"></i></div>
+                <div>
+                  <h3 class="card-text-title">${safe(cards.objectives?.title || 'Mục tiêu môn học')}</h3>
+                  <p class="card-text-desc">${safe(objectivesContent || 'Đang cập nhật mục tiêu môn học.')}</p>
+                </div>
+              </div>
 
-          <button class="subject-card subject-card-quiz" onclick="NavController.startSubjectExam('${s.id}')">
-            <span class="subject-card-icon"><i class="fa-solid fa-bullseye"></i></span>
-            <span class="subject-card-content">
-              <span class="subject-card-title">Kiểm tra ôn tập</span>
-              <span class="subject-card-accent"></span>
-              <span class="subject-card-description">Thi thử, luyện tập trắc nghiệm và ngân hàng câu hỏi AI chuẩn hóa theo độ khó.</span>
-              <span class="subject-card-status subject-card-ready"><i class="fa-solid fa-play"></i> Bắt đầu ôn tập · ${quizCount} câu</span>
-            </span>
-            <span class="subject-card-arrow" aria-hidden="true"><i class="fa-solid fa-arrow-right"></i></span>
-          </button>
+              <!-- Card 2: Nội dung chính -->
+              <div class="subject-info-card">
+                <div class="card-icon-wrapper card-icon-mainContent"><i class="fa-solid fa-book-open"></i></div>
+                <div>
+                  <h3 class="card-text-title">${safe(cards.mainContent?.title || 'Nội dung chính')}</h3>
+                  <p class="card-text-desc">${safe(mainContentContent || 'Đang cập nhật nội dung chính.')}</p>
+                </div>
+              </div>
+
+              <!-- Card 3: Đối tượng học -->
+              <div class="subject-info-card">
+                <div class="card-icon-wrapper card-icon-targetAudience"><i class="fa-solid fa-users"></i></div>
+                <div>
+                  <h3 class="card-text-title">${safe(cards.targetAudience?.title || 'Đối tượng học')}</h3>
+                  <p class="card-text-desc">${safe(targetAudienceContent || 'Đang cập nhật đối tượng học.')}</p>
+                </div>
+              </div>
+
+              <!-- Card 4: Hình thức học -->
+              <div class="subject-info-card">
+                <div class="card-icon-wrapper card-icon-learningFormat"><i class="fa-solid fa-shield-halved"></i></div>
+                <div>
+                  <h3 class="card-text-title">${safe(cards.learningFormat?.title || 'Hình thức học')}</h3>
+                  <p class="card-text-desc">${safe(learningFormatContent || 'Đang cập nhật hình thức học.')}</p>
+                </div>
+              </div>
+            </section>
+
+            <!-- DYNAMIC LESSON / SELECTED CONTENT DISPLAY ZONE -->
+            <div id="subject-selected-lesson-container" style="display:none;"></div>
+
+            <!-- SECTION 3: Thông tin giảng viên -->
+            <section class="subject-instructor-card" id="section-subject-instructor">
+              <div class="instructor-left">
+                ${instructor.avatar ? `
+                  <img src="${instructor.avatar}" alt="Avatar" class="instructor-avatar" referrerpolicy="no-referrer">
+                ` : `
+                  <div class="instructor-avatar-fallback"><i class="fa-solid fa-user"></i></div>
+                `}
+                <div>
+                  <h3 class="instructor-name">${safe(instructor.name || 'Đang cập nhật tên giảng viên')}</h3>
+                  <p class="instructor-role">${safe(instructor.role || 'Giảng viên phụ trách')}</p>
+                </div>
+              </div>
+              <div>
+                ${instructor.email ? `
+                  <a href="mailto:${instructor.email}" class="instructor-contact-btn">
+                    <i class="fa-solid fa-envelope"></i> Liên hệ giảng viên <i class="fa-solid fa-chevron-right text-xs"></i>
+                  </a>
+                ` : `
+                  <button class="instructor-contact-btn" onclick="showToast('Giảng viên chưa để lại email liên hệ.', 'info')">
+                    <i class="fa-solid fa-envelope"></i> Liên hệ giảng viên <i class="fa-solid fa-chevron-right text-xs"></i>
+                  </button>
+                `}
+              </div>
+            </section>
+
+          </div>
+
+          <!-- RIGHT TOC SIDEBAR COLUMN (Image 2 Style) -->
+          <aside class="subject-toc-sidebar">
+            <div class="toc-card">
+              <div class="toc-header">
+                <span><i class="fa-solid fa-list-ul" style="color:var(--primary);margin-right:8px;"></i> Mục lục môn học</span>
+                <button class="toc-toggle-btn" onclick="window.toggleSubjectSidebarAllChapters()"><span id="toc-toggle-text">Thu gọn</span> <i class="fa-solid fa-chevron-up" id="toc-all-arrow"></i></button>
+              </div>
+
+              <!-- Top Item: Tổng quan -->
+              <div class="toc-overview-item" id="toc-item-overview" onclick="window.selectSubjectOverview()">
+                <span><i class="fa-solid fa-house" style="margin-right:8px;"></i> Tổng quan</span>
+                <i class="fa-solid fa-chevron-right text-xs"></i>
+              </div>
+
+              <!-- Collapsible Chapters List -->
+              <div class="toc-chapters-wrapper" id="toc-chapters-wrapper">
+                ${chapters.length > 0 ? chapters.map((chap, cIdx) => `
+                  <div class="toc-chapter-item">
+                    <div class="toc-chapter-header" onclick="window.toggleSubjectSidebarChapter('${chap.id || 'c_' + cIdx}')">
+                      <span><i class="fa-solid fa-book" style="color:var(--primary);margin-right:6px;"></i> ${safe(chap.title)}</span>
+                      <i class="fa-solid fa-chevron-down text-xs toc-chap-arrow" id="arrow-${chap.id || 'c_' + cIdx}"></i>
+                    </div>
+                    <div class="toc-lesson-list" id="lessons-${chap.id || 'c_' + cIdx}">
+                      ${(chap.lessons || []).map((les, lIdx) => `
+                        <div class="toc-lesson-item" id="les-item-${les.id || 'l_' + cIdx + '_' + lIdx}" onclick="window.selectSubjectSidebarLesson('${chap.id || 'c_' + cIdx}', '${les.id || 'l_' + cIdx + '_' + lIdx}')">
+                          <span class="toc-lesson-dot"></span>
+                          <span>${safe(les.title)}</span>
+                        </div>
+                      `).join('')}
+                    </div>
+                  </div>
+                `).join('') : `
+                  <div class="text-xs text-muted py-2 text-center" style="font-style:italic;">Chưa có danh mục chương bài.</div>
+                `}
+              </div>
+
+              <!-- Bottom Categories List -->
+              <div class="toc-category-list">
+                <div class="toc-category-item" onclick="openUserResourceViewer('${s.id}', 'lecture')">
+                  <span><i class="fa-solid fa-file-lines" style="color:var(--text-muted);margin-right:8px;"></i> Tài liệu học tập</span>
+                  <i class="fa-solid fa-chevron-right"></i>
+                </div>
+                <div class="toc-category-item" onclick="NavController.startSubjectExam('${s.id}')">
+                  <span><i class="fa-solid fa-circle-question" style="color:var(--text-muted);margin-right:8px;"></i> Ngân hàng câu hỏi</span>
+                  <i class="fa-solid fa-chevron-right"></i>
+                </div>
+                <div class="toc-category-item" onclick="openUserResourceViewer('${s.id}', 'exam')">
+                  <span><i class="fa-solid fa-file-circle-check" style="color:var(--text-muted);margin-right:8px;"></i> Đề thi</span>
+                  <i class="fa-solid fa-chevron-right"></i>
+                </div>
+                <div class="toc-category-item" onclick="NavController.startSubjectExam('${s.id}')">
+                  <span><i class="fa-solid fa-sliders" style="color:var(--text-muted);margin-right:8px;"></i> Ôn tập</span>
+                  <i class="fa-solid fa-chevron-right"></i>
+                </div>
+              </div>
+
+            </div>
+          </aside>
         </div>
       </div>
     `;
@@ -639,4 +799,103 @@ window.handleAvatarError = function(imgElement, name) {
   imgElement.onerror = null;
   const initial = ((name || 'U').trim().charAt(0) || 'U').toUpperCase();
   imgElement.src = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%2300b96b"/><stop offset="100%" stop-color="%23008f4f"/></linearGradient></defs><rect width="128" height="128" rx="64" fill="url(%23g)"/><text x="50%" y="54%" font-family="system-ui,-apple-system,sans-serif" font-size="56" font-weight="800" fill="%23ffffff" dominant-baseline="middle" text-anchor="middle">${initial}</text></svg>`;
+};
+
+/* TOC Sidebar Interactive Handlers */
+function escapeLessonText(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function sanitizeLegacyLessonHtml(value) {
+  const template = document.createElement('template');
+  template.innerHTML = String(value || '');
+  template.content.querySelectorAll('script, style, iframe, object, embed, form').forEach(node => node.remove());
+  template.content.querySelectorAll('*').forEach(node => {
+    [...node.attributes].forEach(attribute => {
+      const name = attribute.name.toLowerCase();
+      const value = attribute.value.trim().toLowerCase();
+      if (name.startsWith('on') || ((name === 'href' || name === 'src') && value.startsWith('javascript:'))) {
+        node.removeAttribute(attribute.name);
+      }
+    });
+  });
+  return template.innerHTML;
+}
+
+function renderLessonContent(lesson) {
+  const blocks = Array.isArray(lesson?.blocks) ? lesson.blocks : [];
+  if (!blocks.length) {
+    return `<p>${escapeLessonText(lesson?.content || 'Bài học chưa có nội dung mô tả chi tiết.').replace(/\n/g, '<br>')}</p>`;
+  }
+
+  return blocks.map(block => {
+    const settings = block.settings || {};
+    const align = ['left', 'center', 'right'].includes(settings.align) ? settings.align : 'left';
+    const color = /^#[0-9a-f]{3,8}$/i.test(settings.color || '') ? settings.color : '';
+    const style = `text-align:${align};${color ? `color:${color};` : ''}`;
+    if (block.type === 'heading') {
+      const tag = settings.level === 'H3' ? 'h3' : 'h2';
+      return `<${tag} class="student-lesson-heading" style="${style}">${escapeLessonText(block.content)}</${tag}>`;
+    }
+    if (block.type === 'text') {
+      return `<p style="${style}">${escapeLessonText(block.content).replace(/\n/g, '<br>')}</p>`;
+    }
+    if (block.type === 'legacyHtml') return sanitizeLegacyLessonHtml(block.content);
+    return '';
+  }).join('') || '<p>Bài học chưa có nội dung mô tả chi tiết.</p>';
+}
+
+window.toggleSubjectSidebarChapter = function(chapId) {
+  const lessonsEl = document.getElementById('lessons-' + chapId);
+  const arrowEl = document.getElementById('arrow-' + chapId);
+  if (!lessonsEl) return;
+  const isHidden = lessonsEl.style.display === 'none';
+  lessonsEl.style.display = isHidden ? '' : 'none';
+  if (arrowEl) {
+    arrowEl.className = isHidden ? 'fa-solid fa-chevron-down text-xs toc-chap-arrow' : 'fa-solid fa-chevron-right text-xs toc-chap-arrow';
+  }
+};
+
+window.selectSubjectSidebarLesson = function(chapId, lesId) {
+  document.querySelectorAll('.toc-lesson-item').forEach(el => el.classList.remove('active'));
+  const targetItem = document.getElementById('les-item-' + lesId);
+  if (targetItem) targetItem.classList.add('active');
+
+  const details = window._activeSubjectDetails;
+  const subjectId = details ? details.subjectId : 'GE4150';
+
+  if (window.openStudyReaderPage) {
+    window.openStudyReaderPage(subjectId, 'lecture', lesId);
+  }
+};
+
+window.selectSubjectOverview = function() {
+  document.querySelectorAll('.toc-lesson-item').forEach(el => el.classList.remove('active'));
+  const container = document.getElementById('subject-selected-lesson-container');
+  if (container) {
+    container.style.display = 'none';
+    container.innerHTML = '';
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+};
+
+let _tocAllExpanded = true;
+window.toggleSubjectSidebarAllChapters = function() {
+  _tocAllExpanded = !_tocAllExpanded;
+  const btnText = document.getElementById('toc-toggle-text');
+  const arrow = document.getElementById('toc-all-arrow');
+  if (btnText) btnText.textContent = _tocAllExpanded ? 'Thu gọn' : 'Mở rộng';
+  if (arrow) arrow.className = _tocAllExpanded ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
+
+  document.querySelectorAll('.toc-lesson-list').forEach(el => {
+    el.style.display = _tocAllExpanded ? '' : 'none';
+  });
+  document.querySelectorAll('.toc-chap-arrow').forEach(el => {
+    el.className = _tocAllExpanded ? 'fa-solid fa-chevron-down text-xs toc-chap-arrow' : 'fa-solid fa-chevron-right text-xs toc-chap-arrow';
+  });
 };

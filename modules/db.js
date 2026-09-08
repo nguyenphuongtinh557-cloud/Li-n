@@ -3,7 +3,7 @@
  * Quản lý toàn bộ dữ liệu qua localStorage + Gọi module Sync để đẩy lên GitHub
  */
 
-import { pushToGitHub, pushUserRolesToServer, pushCustomSubjectsToServer, pushAnnouncementsToServer, pushArticlesToServer, pushResourcesToServer, pushFeedbacksToServer } from './sync.js?v=20260903tickets';
+import { pushToGitHub, pushUserRolesToServer, pushCustomSubjectsToServer, pushAnnouncementsToServer, pushArticlesToServer, pushResourcesToServer, pushFeedbacksToServer, pushSubjectDetailsToServer } from './sync.js?v=20260908subjectdetails';
 
 const KEYS = {
   BANK: 'qlcl_question_bank',
@@ -20,7 +20,31 @@ const KEYS = {
   ARTICLES: 'qlcl_cms_articles',
   RESOURCES: 'qlcl_learning_resources',
   FEEDBACKS: 'qlcl_user_feedbacks',
+  SUBJECT_DETAILS: 'qlcl_subject_details',
 };
+
+export function normalizeInteractiveBlock(block = {}, index = 0) {
+  const type = ['heading', 'text', 'image', 'imageCaption', 'twoColumn', 'callout', 'list', 'table', 'quiz', 'video', 'resource', 'legacyHtml'].includes(block.type) ? block.type : 'text';
+  return { id: block.id || `block_${Date.now()}_${index}`, type, content: block.content ?? '', settings: (block.settings && typeof block.settings === 'object') ? block.settings : {}, order: Number.isFinite(block.order) ? block.order : index };
+}
+
+export function normalizeInteractiveLesson(lesson = {}, index = 0) {
+  const blocks = Array.isArray(lesson.blocks) ? lesson.blocks.map(normalizeInteractiveBlock) : [];
+  return { ...lesson, id: lesson.id || `les_${Date.now()}_${index}`, title: String(lesson.title || 'Bài học mới'), description: String(lesson.description || ''), duration: String(lesson.duration || '10:00'), status: lesson.status === 'published' ? 'published' : 'draft', blocks, order: Number.isFinite(lesson.order) ? lesson.order : index, updatedAt: lesson.updatedAt || new Date().toISOString(), content: String(lesson.content || '') };
+}
+
+export function normalizeIntroCanvasItem(item = {}, index = 0) {
+  const type = ['text', 'image', 'video'].includes(item.type) ? item.type : 'text';
+  const clamp = (value, fallback, min, max) => Math.min(max, Math.max(min, Number.isFinite(Number(value)) ? Number(value) : fallback));
+  return { id: item.id || `intro_${Date.now()}_${index}`, type, content: String(item.content || ''), src: String(item.src || ''), alt: String(item.alt || ''), x: clamp(item.x, 8, 0, 92), y: clamp(item.y, 8 + index * 12, 0, 92), width: clamp(item.width, type === 'text' ? 42 : 36, 12, 100), height: clamp(item.height, type === 'text' ? 18 : 28, 8, 100), zIndex: clamp(item.zIndex, index + 1, 1, 99), settings: (item.settings && typeof item.settings === 'object') ? item.settings : {} };
+}
+
+export function normalizeInteractiveSubjectDetails(details = {}) {
+  const chapters = Array.isArray(details.chapters) ? details.chapters.map((chapter, chapterIndex) => ({ ...chapter, id: chapter.id || `chap_${Date.now()}_${chapterIndex}`, title: String(chapter.title || `Chương ${chapterIndex + 1}`), order: Number.isFinite(chapter.order) ? chapter.order : chapterIndex, lessons: (Array.isArray(chapter.lessons) ? chapter.lessons : []).map(normalizeInteractiveLesson) })) : [];
+  const introCanvas = Array.isArray(details.introCanvas) ? details.introCanvas.map(normalizeIntroCanvasItem) : [];
+  const introCanvasHeight = Math.min(2400, Math.max(360, Number(details.introCanvasHeight) || 620));
+  return { ...details, chapters, introCanvas, introCanvasHeight, updatedAt: details.updatedAt || new Date().toISOString() };
+}
 
 export const DB = {
   /** Danh sách Email Premium */
@@ -201,9 +225,9 @@ export const DB = {
       const stored = JSON.parse(localStorage.getItem(KEYS.ARTICLES) || '[]');
       console.log('[DB] getArticles() returning:', stored.length, 'articles from localStorage');
       return stored;
-    } catch (e) { 
+    } catch (e) {
       console.warn('[DB] getArticles() error:', e);
-      return []; 
+      return [];
     }
   },
 
@@ -340,6 +364,147 @@ export const DB = {
   deleteCustomSubject(id) {
     const list = this.getCustomSubjects().filter(s => s.id !== id && s.code !== id);
     localStorage.setItem(KEYS.CUSTOM_SUBJECTS, JSON.stringify(list));
+  },
+
+  /** Lấy toàn bộ bản đồ thông tin chi tiết môn học */
+  getAllSubjectDetailsMap() {
+    try {
+      return JSON.parse(localStorage.getItem(KEYS.SUBJECT_DETAILS) || '{}');
+    } catch { return {}; }
+  },
+
+  /** Lấy thông tin chi tiết cấu trúc trang môn học theo subjectId */
+  getSubjectDetails(subjectId) {
+    if (!subjectId) return null;
+    const map = this.getAllSubjectDetailsMap();
+    if (map[subjectId]) {
+      return map[subjectId];
+    }
+
+    // Preset cho GE4150 & GE4166 (Quân sự chung / Quốc phòng)
+    if (subjectId === 'GE4150' || subjectId === 'GE4166') {
+      const subName = subjectId === 'GE4166' ? 'Quân sự chung' : 'Công tác Quốc phòng, An ninh';
+      return {
+        subjectId: subjectId,
+        code: subjectId,
+        name: subName,
+        status: 'published',
+        banner: '',
+        shortDesc: 'Khám phá kiến thức quốc phòng, an ninh và kỹ năng cần thiết; lựa chọn các danh mục bên dưới để bắt đầu ôn luyện hiệu quả.',
+        credits: subjectId === 'GE4166' ? 2 : 3,
+        semester: subjectId === 'GE4166' ? 3 : 1,
+        program: 'Đại học Công nghệ - ĐH Đà Nẵng',
+        intro: 'Môn học Công tác Quốc phòng, An ninh cung cấp cho sinh viên những kiến thức cơ bản về đường lối, quan điểm của Đảng, chính sách, pháp luật của Nhà nước về quốc phòng, an ninh; các vấn đề bảo vệ Tổ quốc trong tình hình mới; đồng thời rèn luyện ý thức trách nhiệm, kỹ năng nhận biết và xử lý các tình huống liên quan đến quốc phòng, an ninh.',
+        cards: {
+          objectives: {
+            title: 'Mục tiêu môn học',
+            content: 'Trang bị kiến thức, nâng cao nhận thức về quốc phòng, an ninh cho sinh viên.'
+          },
+          mainContent: {
+            title: 'Nội dung chính',
+            content: 'Đường lối, chính sách QP-AN, pháp luật, biên giới, an ninh mạng, phòng chống tội phạm...'
+          },
+          targetAudience: {
+            title: 'Đối tượng học',
+            content: 'Sinh viên các ngành đào tạo tại Đại học Công nghệ - ĐH Đà Nẵng.'
+          },
+          learningFormat: {
+            title: 'Hình thức học',
+            content: 'Kết hợp lý thuyết, thảo luận, thực hành, đi thực tế (nếu có).'
+          }
+        },
+        instructor: {
+          name: 'Đang cập nhật tên giảng viên',
+          role: 'Giảng viên phụ trách',
+          avatar: '',
+          email: ''
+        },
+        chapters: [
+          {
+            id: 'chap_' + subjectId.toLowerCase() + '_1',
+            title: 'Chương 1. Đường lối, quan điểm của Đảng...',
+            lessons: [
+              { id: 'les_1_1', title: '1.1. Khái quát chung', content: 'Tổng quan về đường lối quốc phòng, an ninh của Đảng và Nhà nước Việt Nam qua các thời kỳ.' },
+              { id: 'les_1_2', title: '1.2. Quan điểm của Đảng về quốc phòng...', content: 'Phân tích quan điểm chỉ đạo của Đảng về xây dựng lực lượng vũ trang và thế trận quốc phòng.' },
+              { id: 'les_1_3', title: '1.3. Nhiệm vụ bảo vệ Tổ quốc trong tình hình mới', content: 'Các mục tiêu, giải pháp nâng cao tiềm lực quốc phòng trong thời kỳ hội nhập.' }
+            ]
+          },
+          {
+            id: 'chap_' + subjectId.toLowerCase() + '_2',
+            title: 'Chương 2. Pháp luật về quốc phòng, an ninh',
+            lessons: [
+              { id: 'les_2_1', title: '2.1. Hệ thống văn bản pháp luật', content: 'Giới thiệu Luật Quốc phòng, Luật An ninh mạng và các nghị định liên quan.' },
+              { id: 'les_2_2', title: '2.2. Quyền và nghĩa vụ công dân', content: 'Quy định pháp luật về trách nhiệm bảo vệ Tổ quốc của thế hệ trẻ và sinh viên.' }
+            ]
+          },
+          {
+            id: 'chap_' + subjectId.toLowerCase() + '_3',
+            title: 'Chương 3. Xây dựng nền quốc phòng toàn dân',
+            lessons: [
+              { id: 'les_3_1', title: '3.1. Lực lượng quốc phòng', content: 'Cơ cấu tổ chức lực lượng vũ trang nhân dân và dân quân tự vệ.' },
+              { id: 'les_3_2', title: '3.2. Thế trận quốc phòng toàn dân', content: 'Kết hợp phát triển kinh tế - xã hội với tăng cường quốc phòng - an ninh.' }
+            ]
+          },
+          {
+            id: 'chap_' + subjectId.toLowerCase() + '_4',
+            title: 'Chương 4. Bảo đảm an ninh quốc gia',
+            lessons: [
+              { id: 'les_4_1', title: '4.1. An ninh chính trị, trật tự an toàn xã hội', content: 'Nhận diện và phòng chống chiến lược diễn biến hòa bình.' },
+              { id: 'les_4_2', title: '4.2. Phòng chống tội phạm và tệ nạn xã hội', content: 'Các biện pháp nâng cao ý thức chấp hành pháp luật của sinh viên.' }
+            ]
+          }
+        ]
+      };
+    }
+
+    // Default template cho môn khác
+    return {
+      subjectId,
+      code: subjectId,
+      name: '',
+      status: 'published',
+      banner: '',
+      shortDesc: '',
+      credits: 3,
+      semester: 1,
+      program: 'Chương trình Đào tạo Đại học',
+      intro: '',
+      cards: {
+        objectives: { title: 'Mục tiêu môn học', content: '' },
+        mainContent: { title: 'Nội dung chính', content: '' },
+        targetAudience: { title: 'Đối tượng học', content: '' },
+        learningFormat: { title: 'Hình thức học', content: '' }
+      },
+      instructor: {
+        name: '',
+        role: 'Giảng viên phụ trách',
+        avatar: '',
+        email: ''
+      },
+      chapters: []
+    };
+  },
+
+  /** Lưu thiết lập trang môn học */
+  async saveSubjectDetails(subjectId, detailsData, skipSync = false) {
+    if (!subjectId || !detailsData) return { ok: false, reason: 'invalid-subject-details' };
+    const map = this.getAllSubjectDetailsMap();
+    const normalized = normalizeInteractiveSubjectDetails(detailsData);
+    normalized.updatedAt = new Date().toISOString();
+    map[subjectId] = normalized;
+    localStorage.setItem(KEYS.SUBJECT_DETAILS, JSON.stringify(map));
+    const syncResult = skipSync ? { ok: true, skipped: true } : await pushSubjectDetailsToServer(map);
+    return { ok: Boolean(syncResult?.ok), localOnly: !syncResult?.ok, sync: syncResult, details: normalized };
+  },
+
+  /** Trộn dữ liệu chi tiết môn học từ Server Cloud */
+  mergeSubjectDetailsFromServer(remoteMap = {}) {
+    if (!remoteMap || typeof remoteMap !== 'object') return;
+    const localMap = this.getAllSubjectDetailsMap();
+    const merged = { ...localMap, ...remoteMap };
+    Object.keys(merged).forEach(subjectId => { merged[subjectId] = normalizeInteractiveSubjectDetails(merged[subjectId]); });
+    localStorage.setItem(KEYS.SUBJECT_DETAILS, JSON.stringify(merged));
+    return merged;
   },
 
   /** Lấy môn học đang chọn (Mặc định 'FT4468') */
@@ -524,6 +689,133 @@ export const DB = {
   /** Xóa toàn bộ dữ liệu (factory reset) */
   clearAll() {
     Object.values(KEYS).forEach(k => localStorage.removeItem(k));
+  },
+
+  // ─── USER NOTES & PROGRESS MANAGEMENT ─────────────────────────────────────
+  getUserNotesMap() {
+    try {
+      return JSON.parse(localStorage.getItem('qlcl_user_notes') || '{}');
+    } catch { return {}; }
+  },
+
+  normalizeUserNoteContext(context) {
+    if (typeof context === 'string') return { legacyId: context, subjectId: 'legacy', lessonId: context };
+    const value = context || {};
+    return {
+      subjectId: String(value.subjectId || 'general'),
+      lessonId: value.lessonId ? String(value.lessonId) : '',
+      resourceId: value.resourceId ? String(value.resourceId) : '',
+      legacyId: value.legacyId ? String(value.legacyId) : ''
+    };
+  },
+
+  getUserNoteKey(userId, context) {
+    const normalized = this.normalizeUserNoteContext(context);
+    const target = normalized.resourceId ? `resource:${normalized.resourceId}` : (normalized.lessonId ? `lesson:${normalized.lessonId}` : 'overview');
+    return `${userId || 'guest'}::${normalized.subjectId}::${target}`;
+  },
+
+  normalizeUserNoteRecord(note = {}) {
+    return {
+      text: typeof note.text === 'string' ? note.text : '',
+      highlights: Array.isArray(note.highlights) ? note.highlights : [],
+      annotations: Array.isArray(note.annotations) ? note.annotations : [],
+      updatedAt: note.updatedAt || null,
+      version: Number.isFinite(Number(note.version)) ? Number(note.version) : 1
+    };
+  },
+
+  getUserNote(userId, context) {
+    const map = this.getUserNotesMap();
+    const normalized = this.normalizeUserNoteContext(context);
+    const key = this.getUserNoteKey(userId, normalized);
+    const legacyKey = `${userId || 'guest'}_${normalized.legacyId || normalized.lessonId || normalized.resourceId}`;
+    let raw = map[key];
+    if (!raw && map[legacyKey]) {
+      raw = map[legacyKey];
+      map[key] = this.normalizeUserNoteRecord(raw);
+      delete map[legacyKey];
+      localStorage.setItem('qlcl_user_notes', JSON.stringify(map));
+    }
+    const note = this.normalizeUserNoteRecord(raw);
+    if (raw && JSON.stringify(raw) !== JSON.stringify(note)) {
+      map[key] = note;
+      localStorage.setItem('qlcl_user_notes', JSON.stringify(map));
+    }
+    return note;
+  },
+
+  saveUserNote(userId, context, value) {
+    const map = this.getUserNotesMap();
+    const key = this.getUserNoteKey(userId, context);
+    const previous = this.normalizeUserNoteRecord(map[key]);
+    const patch = typeof value === 'string' ? { text: value } : (value || {});
+    const note = this.normalizeUserNoteRecord({ ...previous, ...patch, updatedAt: new Date().toISOString(), version: previous.version + 1 });
+    map[key] = note;
+    localStorage.setItem('qlcl_user_notes', JSON.stringify(map));
+    return note;
+  },
+
+  getLessonProgressMap() {
+    try {
+      return JSON.parse(localStorage.getItem('qlcl_lesson_progress') || '{}');
+    } catch { return {}; }
+  },
+
+  getLessonProgress(userId, subjectId) {
+    const map = this.getLessonProgressMap();
+    const key = `${userId || 'guest'}_${subjectId}`;
+    return map[key] || { completedLessons: [], lastLessonId: null };
+  },
+
+  saveLessonProgress(userId, subjectId, lessonId, isCompleted = true) {
+    const map = this.getLessonProgressMap();
+    const key = `${userId || 'guest'}_${subjectId}`;
+    const current = map[key] || { completedLessons: [], lastLessonId: null };
+    current.lastLessonId = lessonId;
+    if (isCompleted && !current.completedLessons.includes(lessonId)) {
+      current.completedLessons.push(lessonId);
+    }
+    map[key] = current;
+    localStorage.setItem('qlcl_lesson_progress', JSON.stringify(map));
+  },
+
+  getSharedNotesMap() {
+    try {
+      return JSON.parse(localStorage.getItem('qlcl_shared_notes_keys') || '{}');
+    } catch { return {}; }
+  },
+
+  createSharedNoteKey(noteContent, lessonTitle, authorName, options = {}) {
+    const map = this.getSharedNotesMap();
+    const randPart1 = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const randPart2 = Math.random().toString(36).substring(2, 6).toUpperCase();
+    const key = `FTECA-${randPart1}-${randPart2}`;
+
+    map[key] = {
+      key,
+      noteContent,
+      lessonTitle: lessonTitle || 'Bài giảng',
+      authorName: authorName || 'Sinh viên',
+      permission: options.permission || 'view', // 'view' | 'edit'
+      expiresAt: options.expiresAt || null,
+      createdAt: new Date().toISOString()
+    };
+
+    localStorage.setItem('qlcl_shared_notes_keys', JSON.stringify(map));
+    return key;
+  },
+
+  getSharedNoteByKey(key) {
+    if (!key) return null;
+    const cleanKey = key.trim().toUpperCase();
+    const map = this.getSharedNotesMap();
+    const item = map[cleanKey];
+    if (!item) return null;
+    if (item.expiresAt && new Date(item.expiresAt) < new Date()) {
+      return { error: 'Key đã hết hạn truy cập!' };
+    }
+    return item;
   },
 };
 
