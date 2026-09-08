@@ -29,3 +29,7 @@ assert.match(app, /a\.details\.status='published'/);
 assert.match(app, /image\.setAttribute\('contenteditable', 'false'\)/);
 assert.match(app, /editor\.focus\(\)/);
 console.log('review save and keyboard focus checks passed');
+const db = fs.readFileSync('modules/db.js', 'utf8');
+assert.match(db, /'lessonDocument'/);
+assert.match(db, /\['heading', 'text', 'lessonDocument'/);
+console.log('lesson document normalization checks passed');

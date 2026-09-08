@@ -24,7 +24,7 @@ const KEYS = {
 };
 
 export function normalizeInteractiveBlock(block = {}, index = 0) {
-  const type = ['heading', 'text', 'image', 'imageCaption', 'twoColumn', 'callout', 'list', 'table', 'quiz', 'video', 'resource', 'legacyHtml'].includes(block.type) ? block.type : 'text';
+  const type = ['heading', 'text', 'lessonDocument', 'image', 'imageCaption', 'twoColumn', 'callout', 'list', 'table', 'quiz', 'video', 'resource', 'legacyHtml'].includes(block.type) ? block.type : 'text';
   return { id: block.id || `block_${Date.now()}_${index}`, type, content: block.content ?? '', settings: (block.settings && typeof block.settings === 'object') ? block.settings : {}, order: Number.isFinite(block.order) ? block.order : index };
 }
 
