@@ -486,14 +486,14 @@ export const DB = {
   },
 
   /** Lưu thiết lập trang môn học */
-  async saveSubjectDetails(subjectId, detailsData, skipSync = false) {
+  async saveSubjectDetails(subjectId, detailsData, skipSync = false, idToken = '') {
     if (!subjectId || !detailsData) return { ok: false, reason: 'invalid-subject-details' };
     const map = this.getAllSubjectDetailsMap();
     const normalized = normalizeInteractiveSubjectDetails(detailsData);
     normalized.updatedAt = new Date().toISOString();
     map[subjectId] = normalized;
     localStorage.setItem(KEYS.SUBJECT_DETAILS, JSON.stringify(map));
-    const syncResult = skipSync ? { ok: true, skipped: true } : await pushSubjectDetailsToServer(map);
+    const syncResult = skipSync ? { ok: true, skipped: true } : await pushSubjectDetailsToServer(subjectId, normalized, idToken);
     return { ok: Boolean(syncResult?.ok), localOnly: !syncResult?.ok, sync: syncResult, details: normalized };
   },
 

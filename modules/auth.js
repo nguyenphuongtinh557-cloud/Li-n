@@ -209,6 +209,11 @@ export const AuthModule = {
     this.notifyListeners(user);
   },
 
+  async getIdToken() {
+    if (!auth?.currentUser) return '';
+    try { return await auth.currentUser.getIdToken(); } catch { return ''; }
+  },
+
   updateCustomProfile(name, avatar) {
     if (!this.user) return;
 

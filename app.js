@@ -3718,7 +3718,8 @@ async function adminSaveSubjectConfig(status) {
   };
   details.status = status || 'draft';
   // Bản nháp chỉ lưu tại phiên Admin; chỉ bản xuất bản mới được phép đồng bộ công khai.
-  const result = await DB.saveSubjectDetails(subjectId, details, details.status !== 'published');
+  const idToken = details.status === 'published' ? await AuthModule.getIdToken() : '';
+  const result = await DB.saveSubjectDetails(subjectId, details, details.status !== 'published', idToken);
   if (details.status === 'published' && !result.ok) {
     const reason = result.sync?.reason ? ` (${result.sync.reason})` : '';
     showToast(`Chưa thể đăng công khai vì đồng bộ dữ liệu thất bại${reason}. Bản lưu cục bộ vẫn còn.`, 'error');

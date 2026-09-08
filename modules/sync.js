@@ -213,11 +213,26 @@ export async function pullFeedbacksFromServer() {
 }
 
 // ─── Subject Details Config (Thiết Lập Trang Môn Học) ──────────────────────
-export async function pushSubjectDetailsToServer(subjectDetails) {
-  return await pushFile(SYNC_CONFIG.subjectDetailsFile, subjectDetails);
+export async function pushSubjectDetailsToServer(subjectId, details, idToken) {
+  try {
+    const response = await fetch('/api/subject-details', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${idToken || ''}` },
+      body: JSON.stringify({ subjectId, details })
+    });
+    const payload = await response.json().catch(() => ({}));
+    return response.ok && payload.ok ? { ok: true, details: payload.subjectDetails } : { ok: false, reason: payload.reason || `subject-details-api-${response.status}` };
+  } catch (error) {
+    return { ok: false, reason: 'subject-details-api-unavailable', error: String(error?.message || error) };
+  }
 }
 
 export async function pullSubjectDetailsFromServer() {
+  try {
+    const response = await fetch(`/api/subject-details?t=${Date.now()}`, { cache: 'no-store' });
+    const payload = await response.json().catch(() => ({}));
+    if (response.ok && payload.ok && payload.subjectDetails && typeof payload.subjectDetails === 'object') return payload.subjectDetails;
+  } catch { /* Static/local preview has no API route; use the public GitHub file below. */ }
   return await fetchRaw(SYNC_CONFIG.subjectDetailsFile);
 }
 

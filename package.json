@@ -1,0 +1,11 @@
+{
+  "name": "fteca-24",
+  "private": true,
+  "dependencies": {
+    "firebase-admin": "^13.0.2"
+  },
+  "scripts": {
+    "test:subject-canvas": "node test_subject_canvas.js",
+    "test:subject-api": "node test_subject_details_api.js"
+  }
+}
