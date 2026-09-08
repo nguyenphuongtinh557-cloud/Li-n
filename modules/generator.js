@@ -192,7 +192,7 @@ async function _callMistralNemo(systemPrompt, content, count) {
  */
 async function _callGemini(systemPrompt, content, count) {
   const key = AIPool.getKey('gemini');
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.8-flash:generateContent?key=${key}`; // ✅ Upgrade lên 3.8
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${key}`; // ✅ Rollback về 3.7 (RPD=1000)
   
   const userMsg = `Nội dung tài liệu:\n${content}\n\nHãy sinh ${count} câu hỏi theo cấu trúc JSON object { "questions": [...] }. Trả lời ĐÚNG chuẩn JSON.`;
   
