@@ -81,24 +81,29 @@
 
 ---
 
-### 🦙 SambaNova API - Hết credits (không phải high demand!)
+### 🦙 SambaNova API - Hết credits (models mới vẫn cần credits!)
 - ❌ **Key 1**: **LỖI 402 - Payment Method Required**
   - Message: "A payment method is required" (balance_units: 0)
-  - Test kết quả:
-    - ❌ `Meta-Llama-3.3-70B-Instruct`: 402 (Hết credits)
-    - ❌ `Meta-Llama-3.3-70B-Instruct-8k`: 402 (Hết credits)
-    - ❌ `Meta-Llama-3.1-70B-Instruct`: 410 (Model không còn available)
-    - ❌ `Meta-Llama-3.1-8B-Instruct`: 410 (Model không còn available)
+  - Test với **models mới (2026)**:
+    - 💳 `MiniMax-M2.7` (Production): 402 (Hết credits)
+    - 💳 `DeepSeek-V3.1` (Production): 402 (Hết credits)
+    - 💳 `Meta-Llama-3.3-70B-Instruct` (Production): 402 (Hết credits)
+    - 💳 `gpt-oss-120b` (Production): 402 (Hết credits)
+    - ⚠️ `MiniMax-M3` (Preview): 429 (High demand)
+    - 💳 `DeepSeek-V3.2` (Preview): 402 (Hết credits)
+    - 💳 `gemma-4-31B-it` (Preview): 402 (Hết credits)
 
 **Phát hiện quan trọng**: 
-- ❌ Lần test đầu báo "high demand" (429) **là sai!** Thực ra là **hết credits** (402)
-- ❌ Balance = 0 units - Tài khoản đã hết quota miễn phí
-- ⚠️ Các model Llama 3.1 đã **bị xóa** khỏi SambaNova Cloud (410)
+- ❌ Email thông báo models mới **KHÔNG có nghĩa là free credits**
+- ❌ Tất cả models (cũ và mới) đều cần credits
+- ❌ Balance = 0 units - Account đã hết quota
+- ⚠️ Models Llama 3.1 đã **bị xóa** (410 Gone)
+- ✅ Models mới có sẵn: MiniMax M2.7, DeepSeek V3.1, Gemma 4
 
 **Giải pháp**: 
-- Cần thêm payment method vào SambaNova account
-- Hoặc tạo account mới để dùng free tier
-- Tạm thời dùng Groq cho Llama models
+- Cần thêm payment method + nạp credits vào SambaNova
+- Hoặc tạo account mới (có thể có free tier)
+- Tạm thời dùng Groq cho các model tương tự
 
 ---
 
