@@ -33,3 +33,7 @@ const db = fs.readFileSync('modules/db.js', 'utf8');
 assert.match(db, /'lessonDocument'/);
 assert.match(db, /\['heading', 'text', 'lessonDocument'/);
 console.log('lesson document normalization checks passed');
+assert.match(app, /var doc=_reviewDoc\(a\.lesson,true\),html=getReviewLessonDocumentContent\(\);doc\.content=html;a\.lesson\.blocks=\[doc\];a\.lesson\.content=html/);
+const index = fs.readFileSync('index.html', 'utf8');
+assert.match(index, /app\.js\?v=20260908review-editor-fix3/);
+console.log('live HTML persistence regression checks passed');
