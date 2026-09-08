@@ -3,7 +3,7 @@
  * Quản lý toàn bộ dữ liệu qua localStorage + Gọi module Sync để đẩy lên GitHub
  */
 
-import { pushToGitHub, pushUserRolesToServer, pushCustomSubjectsToServer, pushAnnouncementsToServer, pushArticlesToServer, pushResourcesToServer, pushFeedbacksToServer, pushSubjectDetailsToServer } from './sync.js?v=20260908subjectdetails';
+import { pushToGitHub, pushUserRolesToServer, pushCustomSubjectsToServer, pushAnnouncementsToServer, pushArticlesToServer, pushResourcesToServer, pushFeedbacksToServer, pushSubjectDetailsToServer } from './sync.js?v=20260908subject-details-api1';
 
 const KEYS = {
   BANK: 'qlcl_question_bank',

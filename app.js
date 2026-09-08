@@ -3,12 +3,12 @@
  * Điều phối toàn bộ logic của ứng dụng
  */
 
-import { DB } from './modules/db.js';
+import { DB } from './modules/db.js?v=20260908subject-details-api1';
 import { Generator } from './modules/generator.js';
 import { ExamEngine, ExamTimer } from './modules/exam.js';
 import { SEED_QUESTIONS } from './data/seed_questions.js';
 import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion } from './modules/cera.js';
-import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer, pullFeedbacksFromServer, pullSubjectDetailsFromServer } from './modules/sync.js?v=20260908subjectdetails';
+import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer, pullFeedbacksFromServer, pullSubjectDetailsFromServer } from './modules/sync.js?v=20260908subject-details-api1';
 import { initAdminAuth } from './modules/admin.js';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js?v=20260901c';
 import { NavController } from './modules/navigation.js';
