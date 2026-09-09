@@ -248,7 +248,7 @@
       },
       "learningFormat": {
         "title": "Hình thức kiểm tra",
-        "content": "- Kiểm tra giữa kì: Thực hành.\n- Kiểm tra cuối kì: Tự luận 10 câu"
+        "content": "- Kiểm tra giữa kì: Thực hành.\n\n- Kiểm tra cuối kì: Tự luận 10 câu"
       }
     },
     "instructor": {
@@ -260,6 +260,6 @@
     "chapters": [],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-09-09T07:42:42.701Z"
+    "updatedAt": "2026-09-09T07:52:10.288Z"
   }
 }
