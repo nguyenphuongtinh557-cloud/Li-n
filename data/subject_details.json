@@ -221,5 +221,45 @@
       }
     ],
     "introCanvasHeight": 620
+  },
+  "FT4454": {
+    "subjectId": "FT4454",
+    "code": "FT4454",
+    "name": "",
+    "status": "published",
+    "banner": "",
+    "shortDesc": "Môn học trang bị kiến thức nền tảng và kỹ năng phòng lab về vi sinh vật để ứng dụng vào công nghệ lên men thực phẩm.\nĐồng thời, giúp sinh viên CNTP nhận diện và kiểm soát các nhóm vi sinh vật gây hại để bảo quản và đảm bảo an toàn thực phẩm.",
+    "credits": 3,
+    "semester": 0,
+    "program": "Chương trình Đào tạo Đại học - Dthu",
+    "intro": "",
+    "cards": {
+      "objectives": {
+        "title": "Mục tiêu môn học",
+        "content": "Giúp bạn nắm vững các kiến thức nền tảng về vi sinh vật và thành thạo các thao tác, kỹ thuật nuôi cấy trong phòng thí nghiệm, từ đó tạo tiền đề vững chắc cho việc tiếp thu các môn chuyên ngành kế tiếp."
+      },
+      "mainContent": {
+        "title": "Nội dung chính",
+        "content": "Môn học tập trung nghiên cứu cấu trúc, hình thái và sinh sản của các nhóm vi sinh vật nhân nguyên thủy và nhân thật."
+      },
+      "targetAudience": {
+        "title": "Đối tượng học",
+        "content": "Sinh viên CNTP"
+      },
+      "learningFormat": {
+        "title": "Hình thức kiểm tra",
+        "content": "- Kiểm tra giữa kì: Thực hành.\n- Kiểm tra cuối kì: Tự luận 10 câu"
+      }
+    },
+    "instructor": {
+      "name": "Nguyễn Anh Thoại",
+      "role": "Giảng viên phụ trách - Lý thuyết",
+      "avatar": "",
+      "email": "SĐT: 0975185347"
+    },
+    "chapters": [],
+    "introCanvas": [],
+    "introCanvasHeight": 620,
+    "updatedAt": "2026-09-09T07:42:42.701Z"
   }
 }
