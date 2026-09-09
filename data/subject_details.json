@@ -4,7 +4,7 @@
     "code": "GE4150",
     "name": "Công tác quốc phòng, an ninh",
     "status": "published",
-    "banner": "https://hrumdbkxcujbjayjynip.supabase.co/storage/v1/object/public/images/news/zv9wvjdg7he.jpg",
+    "banner": "",
     "shortDesc": "Trang bị kiến thức cơ bản về quốc phòng, an ninh, góp phần bảo vệ Tổ quốc và giữ gìn trật tự, an toàn xã hội.",
     "credits": 3,
     "semester": 1,
@@ -201,7 +201,7 @@
         "order": 3
       }
     ],
-    "updatedAt": "2026-09-08T15:05:21.054Z",
+    "updatedAt": "2026-09-09T06:35:49.745Z",
     "introCanvas": [
       {
         "id": "intro_1788855409691",
