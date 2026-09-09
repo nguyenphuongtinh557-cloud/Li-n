@@ -81,6 +81,9 @@ export const NavController = {
     if (pageId === 'study-space') {
       setTimeout(() => window.renderStudySpace?.(), 20);
     }
+    if (pageId === 'home') {
+      setTimeout(() => window.updateHomeStats?.(), 20);
+    }
     if (pageId === 'notifications') {
       void window.refreshAnnouncementsFromServer?.();
       setTimeout(() => window.renderNotificationCenter?.(), 20);
@@ -612,14 +615,8 @@ export const NavController = {
             <button class="popover-menu-item" onclick="NavController.openProfileSettingsModal()">
               <i class="fa-solid fa-id-card"></i> <span>Cài đặt & Hồ sơ</span>
             </button>
-            <button class="popover-menu-item" onclick="NavController.openEditAvatarModal()">
-              <i class="fa-solid fa-pen-to-square"></i> <span>Đổi tên & Avatar</span>
-            </button>
-            <button class="popover-menu-item" onclick="NavController.navigateToPage('upgrade')">
-              <i class="fa-solid fa-wallet"></i> <span>Ví & Gói dịch vụ</span>
-            </button>
-            <button class="popover-menu-item" onclick="toggleTheme()">
-              <i class="fa-solid fa-circle-half-stroke"></i> <span>Đổi Giao diện</span>
+            <button class="popover-menu-item" onclick="NavController.navigateToPage('report')">
+              <i class="fa-solid fa-bug"></i> <span>Báo cáo lỗi & Góp ý</span>
             </button>
           </div>
 

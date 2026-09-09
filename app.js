@@ -186,6 +186,7 @@ async function init() {
   await window.refreshUserRolesFromServer?.();
   await window.refreshAnnouncementsFromServer?.();
   NavController.navigateToPage('home');
+  setTimeout(() => updateHomeStats(), 100);
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState !== 'visible') return;
@@ -3426,9 +3427,67 @@ function studySpaceSubjectIcon(subject) {
   return 'fa-book-open';
 }
 
+// ── Cập nhật stats trang chủ theo thời gian thực ──────────────────────────────
+function updateHomeStats() {
+  const elSubjects  = document.getElementById('stat-subjects');
+  const elQuestions = document.getElementById('stat-questions');
+  const elUsers     = document.getElementById('stat-users');
+
+  if (!elSubjects && !elQuestions && !elUsers) return; // chưa render
+
+  const subjects  = getAllSubjects();
+  const bank      = DB.getBank();
+  const users     = DB.getAllRegisteredUsers();
+
+  // Môn học hỗ trợ
+  if (elSubjects) {
+    const count = subjects.length || 0;
+    elSubjects.textContent = count > 0 ? count + '+' : '35+';
+  }
+  // Floating card môn học
+  const elFloat = document.getElementById('stat-subjects-float');
+  if (elFloat) {
+    const count = subjects.length || 0;
+    elFloat.textContent = count > 0 ? count + '+' : '35+';
+  }
+
+  // Câu hỏi ngân hàng đề
+  if (elQuestions) {
+    const count = bank.length || 0;
+    if (count >= 1000) {
+      elQuestions.textContent = (count / 1000).toFixed(1).replace('.0','') + 'K+';
+    } else if (count > 0) {
+      elQuestions.textContent = count.toLocaleString('vi-VN') + '+';
+    } else {
+      elQuestions.textContent = '5.000+';
+    }
+  }
+
+  // Sinh viên đang học
+  if (elUsers) {
+    const count = users.length || 0;
+    if (count >= 1000) {
+      elUsers.textContent = (count / 1000).toFixed(1).replace('.0','') + 'K+';
+    } else if (count > 0) {
+      elUsers.textContent = count + '+';
+    } else {
+      elUsers.textContent = '1K+';
+    }
+  }
+}
+
+// Gọi lần đầu + cập nhật mỗi 30 giây
+window.updateHomeStats = updateHomeStats;
+setInterval(updateHomeStats, 30000);
+
 function studySpaceAIAction(action) {
-  const messages = { summary:'Tóm tắt AI sẽ sẵn sàng khi bạn chọn một tài liệu trong môn học.', plan:'Lộ trình ôn tập sẽ được cá nhân hóa theo môn bạn chọn.', chat:'Trợ lý AI đang sẵn sàng hỗ trợ bạn tìm môn học phù hợp.', flashcard:'Flashcard AI sẽ xuất hiện khi môn học có tài liệu.', recommend:'Gợi ý tài liệu sẽ dựa trên tài nguyên của từng môn.' };
+  const messages = { summary:'Tóm tắt AI sẽ sẵn sàng khi bạn chọn một tài liệu trong môn học.', plan:'Lộ trình ôn tập sẽ được cá nhân hóa theo môn bạn chọn.', flashcard:'Flashcard AI sẽ xuất hiện khi môn học có tài liệu.', recommend:'Gợi ý tài liệu sẽ dựa trên tài nguyên của từng môn.' };
   if (action === 'quiz') return NavController.navigateToPage('aigen');
+  if (action === 'chat') {
+    const panel = document.getElementById('cera-panel');
+    if (!panel || !panel.classList.contains('is-open')) toggleCeraChat();
+    return;
+  }
   showToast(messages[action] || 'Tính năng AI đang được chuẩn bị.', 'info');
 }
 
@@ -3438,8 +3497,8 @@ function renderStudySpace() {
   const subjects = getStudySpaceSubjects();
   const allSubjects = getAllSubjects();
   const contentCount = subjects.reduce((total, subject) => total + subject.articles.length, 0);
-  const aiTools = [['quiz','fa-file-circle-plus','Tạo đề thi AI','Tạo đề trắc nghiệm theo chương, chủ đề hoặc môn học.','violet'],['summary','fa-wand-magic-sparkles','Tóm tắt giáo trình AI','Chắt lọc nội dung dài thành bản ngắn gọn, dễ hiểu.','green'],['plan','fa-calendar-check','Lên kế hoạch ôn thi','Xây lộ trình phù hợp với mục tiêu của bạn.','blue'],['chat','fa-comments','Hỏi đáp cùng AI','Giải đáp nhanh mọi thắc mắc trong quá trình học.','orange'],['flashcard','fa-layer-group','Flashcard AI','Tự động tạo thẻ ghi nhớ từ tài liệu môn học.','teal'],['recommend','fa-lightbulb','Gợi ý tài liệu','Đề xuất tài liệu theo môn bạn đang quan tâm.','rose']];
-  root.innerHTML = `<div class="study-hub-shell"><main class="study-hub-main"><section class="study-hub-hero"><div class="study-hub-hero-copy"><span class="study-hub-kicker"><i class="fa-solid fa-graduation-cap"></i> KHÔNG GIAN HỌC TẬP</span><h1>Khám phá môn học<br>theo <em>cách của bạn</em></h1><p>Học nhanh hơn, hiểu sâu hơn với kho tài liệu được chọn lọc và cập nhật liên tục dành riêng cho sinh viên Công nghệ Thực phẩm.</p><div class="study-hub-hero-actions"><button onclick="studySpaceAIAction('chat')"><i class="fa-solid fa-sparkles"></i> Hỏi trợ lý AI</button></div></div><div class="study-hub-hero-art" aria-label="Vùng minh họa nhân vật sẽ được bổ sung"><div class="study-hub-art-orb orb-one"></div><div class="study-hub-art-orb orb-two"></div><div class="study-hub-art-dots"></div><img class="study-hub-art-img" src="hero_student 1.webp" alt="Sinh viên CNTP học tập" onerror="this.style.display='none'"></div></section><section class="study-hub-catalog"><div class="study-hub-search"><i class="fa-solid fa-magnifying-glass"></i><input id="study-space-search" type="search" value="${StudySpace.query.replace(/"/g, '&quot;')}" placeholder="Tìm theo tên hoặc mã môn học" oninput="searchStudySpaceSubjects(this.value)"></div><div class="study-hub-filter-row"><div class="study-space-filter-row"><button class="study-space-filter ${StudySpace.blockId === 'ALL' ? 'active' : ''}" onclick="setStudySpaceFilter('ALL')">Tất cả</button>${Object.values(KNOWLEDGE_BLOCKS).map(block => `<button class="study-space-filter ${StudySpace.blockId === block.id ? 'active' : ''}" onclick="setStudySpaceFilter('${block.id}')">${block.icon} ${block.name}</button>`).join('')}</div><button class="study-hub-more-filter" onclick="showToast('Bộ lọc nâng cao đang được chuẩn bị.', 'info')"><i class="fa-solid fa-sliders"></i> Thêm bộ lọc</button></div><div class="study-hub-list-meta"><label class="study-space-article-toggle"><input id="study-space-has-articles" type="checkbox" ${StudySpace.hasArticlesOnly ? 'checked' : ''} onchange="setStudySpaceFilter(null, this.checked)"><span>Chỉ hiện môn đã có bài đăng</span></label><span>${subjects.length} môn phù hợp · ${contentCount} tài nguyên</span></div></section><section class="study-hub-subject-grid">${subjects.length ? subjects.map(subject => `<button class="study-hub-subject-card" data-subject-id="${subject.id}" data-has-articles="${subject.articles.length > 0}" onclick="selectStudySpaceSubject('${subject.id}')"><span class="study-hub-subject-icon"><i class="fa-solid ${studySpaceSubjectIcon(subject)}"></i></span><span class="study-hub-subject-top"><b>${subject.code}</b><small>HK ${subject.semester || '—'}</small></span><strong>${subject.name}</strong><span class="study-hub-subject-meta">${KNOWLEDGE_BLOCKS[subject.blockId]?.icon || '📘'} ${KNOWLEDGE_BLOCKS[subject.blockId]?.name || 'Khối kiến thức'} · ${subject.credits || 0} tín chỉ</span><span class="study-hub-subject-foot"><span><i class="fa-solid ${subject.articles.length ? 'fa-file-lines' : 'fa-clock'}"></i> ${subject.articles.length ? `${subject.articles.length} bài đăng` : 'Chưa có bài đăng'}</span><i class="fa-solid fa-arrow-right"></i></span></button>`).join('') : '<div class="study-space-empty">Không tìm thấy môn học phù hợp.</div>'}</section><section class="study-hub-support"><div><span>HỌC CÙNG TRỢ LÝ THÔNG MINH</span><h2>Bạn cần hỗ trợ tìm môn học?</h2><p>Trợ lý AI luôn sẵn sàng giúp bạn định hướng và lựa chọn môn học phù hợp.</p><button onclick="studySpaceAIAction('chat')"><i class="fa-solid fa-comment-dots"></i> Trò chuyện với AI</button></div><div class="study-hub-support-visual"><i class="fa-solid fa-robot"></i><i class="fa-solid fa-book-open"></i></div></section></main><aside class="study-hub-ai-panel"><div class="study-hub-ai-heading"><span>TRUNG TÂM HỌC TẬP AI</span><p>Công cụ đồng hành cùng bạn</p></div>${aiTools.map(([action,icon,title,description,theme]) => `<button class="study-hub-ai-tool ${theme}" onclick="studySpaceAIAction('${action}')"><i class="fa-solid ${icon}"></i><span><b>${title}</b><small>${description}</small></span><em><i class="fa-solid fa-arrow-right"></i></em></button>`).join('')}<div class="study-hub-stats"><span>THỐNG KÊ HỌC TẬP</span><p>Kho tài liệu được cập nhật liên tục theo chương trình đào tạo.</p><button onclick="showToast('Báo cáo học tập đang được chuẩn bị.', 'info')">Xem báo cáo chi tiết <i class="fa-solid fa-arrow-up-right-from-square"></i></button></div></aside></div>`;
+  const aiTools = [['quiz','fa-file-circle-plus','Tạo đề thi AI','Tạo đề trắc nghiệm theo chương, chủ đề hoặc môn học.','violet'],['summary','fa-wand-magic-sparkles','Tóm tắt giáo trình AI','Chắt lọc nội dung dài thành bản ngắn gọn, dễ hiểu.','green'],['plan','fa-calendar-check','Lên kế hoạch ôn thi','Xây lộ trình phù hợp với mục tiêu của bạn.','blue'],['chat','fa-comments','Hỏi đáp cùng AI','Giải đáp nhanh mọi thắc mắc trong quá trình học.','orange']];
+  root.innerHTML = `<div class="study-hub-shell"><main class="study-hub-main"><section class="study-hub-hero"><div class="study-hub-hero-copy"><span class="study-hub-kicker"><i class="fa-solid fa-graduation-cap"></i> KHÔNG GIAN HỌC TẬP</span><h1>Khám phá môn học<br>theo <em>cách của bạn</em></h1><p></p><div class="study-hub-hero-actions"><button onclick="studySpaceAIAction('chat')"><i class="fa-solid fa-sparkles"></i> Hỏi trợ lý AI</button></div></div><div class="study-hub-hero-art" aria-label="Vùng minh họa nhân vật sẽ được bổ sung"><div class="study-hub-art-orb orb-one"></div><div class="study-hub-art-orb orb-two"></div><div class="study-hub-art-dots"></div><img class="study-hub-art-img" src="hero_student 1.webp" alt="Sinh viên CNTP học tập" onerror="this.style.display='none'"></div></section><section class="study-hub-catalog"><div class="study-hub-search"><i class="fa-solid fa-magnifying-glass"></i><input id="study-space-search" type="search" value="${StudySpace.query.replace(/"/g, '&quot;')}" placeholder="Tìm theo tên hoặc mã môn học" oninput="searchStudySpaceSubjects(this.value)"></div><div class="study-hub-filter-row"><div class="study-space-filter-row"><button class="study-space-filter ${StudySpace.blockId === 'ALL' ? 'active' : ''}" onclick="setStudySpaceFilter('ALL')">Tất cả</button>${Object.values(KNOWLEDGE_BLOCKS).map(block => `<button class="study-space-filter ${StudySpace.blockId === block.id ? 'active' : ''}" onclick="setStudySpaceFilter('${block.id}')">${block.icon} ${block.name}</button>`).join('')}</div><button class="study-hub-more-filter" onclick="showToast('Bộ lọc nâng cao đang được chuẩn bị.', 'info')"><i class="fa-solid fa-sliders"></i> Thêm bộ lọc</button></div><div class="study-hub-list-meta"><label class="study-space-article-toggle"><input id="study-space-has-articles" type="checkbox" ${StudySpace.hasArticlesOnly ? 'checked' : ''} onchange="setStudySpaceFilter(null, this.checked)"><span>Chỉ hiện môn đã có bài đăng</span></label><span>${subjects.length} môn phù hợp · ${contentCount} tài nguyên</span></div></section><section class="study-hub-subject-grid">${subjects.length ? subjects.map(subject => `<button class="study-hub-subject-card" data-subject-id="${subject.id}" data-has-articles="${subject.articles.length > 0}" onclick="selectStudySpaceSubject('${subject.id}')"><span class="study-hub-subject-icon"><i class="fa-solid ${studySpaceSubjectIcon(subject)}"></i></span><span class="study-hub-subject-top"><b>${subject.code}</b><small>HK ${subject.semester || '—'}</small></span><strong>${subject.name}</strong><span class="study-hub-subject-meta">${KNOWLEDGE_BLOCKS[subject.blockId]?.icon || '📘'} ${KNOWLEDGE_BLOCKS[subject.blockId]?.name || 'Khối kiến thức'} · ${subject.credits || 0} tín chỉ</span><span class="study-hub-subject-foot"><span><i class="fa-solid ${subject.articles.length ? 'fa-file-lines' : 'fa-clock'}"></i> ${subject.articles.length ? `${subject.articles.length} bài đăng` : 'Chưa có bài đăng'}</span><i class="fa-solid fa-arrow-right"></i></span></button>`).join('') : '<div class="study-space-empty">Không tìm thấy môn học phù hợp.</div>'}</section><section class="study-hub-support"><div><span>HỌC CÙNG TRỢ LÝ THÔNG MINH</span><h2>Bạn cần hỗ trợ tìm môn học?</h2><p>Trợ lý AI luôn sẵn sàng giúp bạn định hướng và lựa chọn môn học phù hợp.</p><button onclick="studySpaceAIAction('chat')"><i class="fa-solid fa-comment-dots"></i> Trò chuyện với AI</button></div><div class="study-hub-support-visual"><i class="fa-solid fa-robot"></i><i class="fa-solid fa-book-open"></i></div></section></main><aside class="study-hub-ai-panel"><div class="study-hub-ai-heading"><span>TRUNG TÂM HỌC TẬP AI</span><p>Công cụ đồng hành cùng bạn</p></div>${aiTools.map(([action,icon,title,description,theme]) => `<button class="study-hub-ai-tool ${theme}" onclick="studySpaceAIAction('${action}')"><i class="fa-solid ${icon}"></i><span><b>${title}</b><small>${description}</small></span><em><i class="fa-solid fa-arrow-right"></i></em></button>`).join('')}<div class="study-hub-stats"><span>THỐNG KÊ HỌC TẬP</span><p>Kho tài liệu được cập nhật liên tục theo chương trình đào tạo.</p><button onclick="showToast('Báo cáo học tập đang được chuẩn bị.', 'info')">Xem báo cáo chi tiết <i class="fa-solid fa-arrow-up-right-from-square"></i></button></div></aside></div>`;
 }
 
 function setStudySpaceFilter(blockId, hasArticlesOnly) { if (blockId) StudySpace.blockId = blockId; if (typeof hasArticlesOnly === 'boolean') StudySpace.hasArticlesOnly = hasArticlesOnly; renderStudySpace(); }
@@ -3463,7 +3522,7 @@ function selectStudySpaceSubject(subjectId) {
   StudySpace.selectedId = subjectId;
   NavController.openSubjectDetail(subjectId, 'study-space');
 }
-Object.assign(window, { renderStudySpace, setStudySpaceFilter, searchStudySpaceSubjects, selectStudySpaceSubject });
+Object.assign(window, { renderStudySpace, setStudySpaceFilter, searchStudySpaceSubjects, selectStudySpaceSubject, studySpaceAIAction });
 
 /* ═══════════════════════════════════════════════════════════════════
    NOTIFICATIONS PAGE FUNCTIONS
@@ -3502,7 +3561,7 @@ function notificationUser() {
 }
 
 function updateNotificationBadge() {
-  const badge = document.querySelector('#snav-notifications .badge-dot');
+  const badge = document.querySelector('#btn-notifications-top .badge-dot') || document.querySelector('#snav-notifications .badge-dot');
   if (!badge) return 0;
   const user = notificationUser();
   const read = DB.getNotificationReadState(user.email || user.id || 'guest');

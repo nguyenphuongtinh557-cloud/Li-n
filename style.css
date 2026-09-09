@@ -5269,3 +5269,110 @@ body.dark-mode #admin-subtab-review-lessons .review-lesson-admin-paper { backgro
 .study-reader-content .student-reader-body p:empty,
 .study-reader-content .student-reader-body div:empty{min-height:1.8em;margin-bottom:0}
 .study-reader-content .student-reader-body p br:only-child{display:block;content:"";min-height:1.8em}
+
+/* Header notification shortcut: replaces the old sidebar entry */
+.notification-top-btn{position:relative;display:inline-flex;align-items:center;justify-content:center;color:var(--text-primary)}
+.notification-top-btn .badge-dot{position:absolute;top:7px;right:7px;width:7px;height:7px;margin:0;border:2px solid var(--bg-card);border-radius:50%;background:var(--danger);display:block}
+.notification-top-btn .badge-dot[hidden]{display:none}
+@media(max-width:480px){.notification-top-btn{width:40px;height:40px;flex-basis:40px}}
+
+/* Safe narrow viewport behavior: prevent Home Hero copy from collapsing beside the fixed artwork */
+@media (max-width:1200px) and (min-width:901px){
+  .home-hero-section{height:auto;min-height:0;display:grid;grid-template-columns:minmax(0,1fr);gap:24px;padding:36px 32px 28px;}
+  .home-hero-left{min-width:0;width:100%;}
+  .home-hero-desc{max-width:720px;}
+  .home-hero-right{width:100%;min-height:340px;height:340px;}
+}
+@media (max-width:900px){
+  .home-hero-left{width:100%;min-width:0;}
+  .home-hero-desc{max-width:none;overflow-wrap:break-word;word-break:normal;}
+}
+
+/* Study Hub hero artwork: larger, centered in its existing art column */
+#study-space-root .study-hub-hero-art{min-height:250px;height:250px;align-self:end}
+#study-space-root .study-hub-art-img{right:8px;bottom:-1px;height:320px;max-height:320px;object-fit:contain;object-position:center bottom}
+@media(max-width:1100px){#study-space-root .study-hub-hero-art{min-height:220px;height:220px}#study-space-root .study-hub-art-img{right:2px;height:270px;max-height:270px}}
+@media(max-width:720px){#study-space-root .study-hub-hero-art{min-height:150px;height:150px}#study-space-root .study-hub-art-img{right:0;height:195px;max-height:195px}}
+
+/* Align enlarged Study Hub artwork with the hero frame bottom */
+#study-space-root .study-hub-art-img{bottom:-29px}
+@media(max-width:1100px){#study-space-root .study-hub-art-img{bottom:-26px}}
+@media(max-width:720px){#study-space-root .study-hub-art-img{bottom:-18px}}
+
+/* Study Hub hero artwork: stronger visual presence while preserving the existing layout */
+#study-space-root .study-hub-art-img{right:-2px;bottom:-29px;height:400px;max-height:400px;width:auto;max-width:46%;object-fit:contain;object-position:center bottom}
+#study-space-root .study-hub-hero-art{min-height:285px;height:285px}
+@media(max-width:1100px){#study-space-root .study-hub-hero-art{min-height:235px;height:235px}#study-space-root .study-hub-art-img{right:-2px;bottom:-26px;height:330px;max-height:330px;max-width:48%}}
+@media(max-width:720px){#study-space-root .study-hub-hero-art{min-height:165px;height:165px}#study-space-root .study-hub-art-img{right:0;bottom:-18px;height:225px;max-height:225px;max-width:56%}}
+
+/* Correct only the Study Hub image scale; restore the original hero layout height */
+#study-space-root .study-hub-hero-art{min-height:210px;height:210px;}
+#study-space-root .study-hub-art-img{right:8px;bottom:-29px;height:400px;max-height:400px;max-width:none;width:auto;object-fit:contain;object-position:center bottom;}
+@media(max-width:1100px){#study-space-root .study-hub-hero-art{min-height:190px;height:190px}#study-space-root .study-hub-art-img{right:2px;bottom:-26px;height:330px;max-height:330px;max-width:none}}
+@media(max-width:720px){#study-space-root .study-hub-hero-art{min-height:135px;height:135px}#study-space-root .study-hub-art-img{right:0;bottom:-18px;height:225px;max-height:225px;max-width:none}}
+
+/* Final image-only scale: enlarge the asset without enlarging or reshaping the hero */
+#study-space-root .study-hub-art-img{right:0;bottom:-2px;width:360px;height:auto;max-width:none;max-height:none;object-fit:contain;object-position:center bottom}
+@media(max-width:1100px){#study-space-root .study-hub-art-img{right:0;bottom:-2px;width:300px;height:auto}}
+@media(max-width:720px){#study-space-root .study-hub-art-img{right:0;bottom:-2px;width:230px;height:auto}}
+
+/* Anchor the image-only enlargement to the bottom edge of the existing hero */
+#study-space-root .study-hub-art-img{bottom:-29px}
+@media(max-width:1100px){#study-space-root .study-hub-art-img{bottom:-26px}}
+@media(max-width:720px){#study-space-root .study-hub-art-img{bottom:-18px}}
+
+/* Study Hub Gen Z visual layer — scoped to learning space only */
+#study-space-root .study-hub-shell{position:relative;isolation:isolate;background:radial-gradient(circle at 12% 8%,rgba(71,225,173,.16),transparent 22%),radial-gradient(circle at 78% 0%,rgba(117,152,255,.11),transparent 21%);border-radius:28px}
+#study-space-root .study-hub-hero{border-color:rgba(16,185,129,.34);background:linear-gradient(118deg,#f8fffd 0%,#effff7 52%,#ebfdf6 100%);box-shadow:0 18px 38px rgba(24,152,103,.12)}
+#study-space-root .study-hub-hero::before{content:"";position:absolute;z-index:0;left:46%;top:18px;width:76px;height:16px;background:repeating-linear-gradient(90deg,#4f46e5 0 7px,transparent 7px 13px);opacity:.42;transform:rotate(-6deg)}
+#study-space-root .study-hub-hero-copy{isolation:isolate}
+#study-space-root .study-hub-kicker{border:1px solid rgba(16,185,129,.25);background:rgba(255,255,255,.76);box-shadow:0 5px 14px rgba(16,185,129,.1)}
+#study-space-root .study-hub-hero h1{letter-spacing:0;text-wrap:balance}
+#study-space-root .study-hub-hero-actions button{border:1px solid rgba(255,255,255,.55);border-radius:14px;box-shadow:0 11px 22px rgba(0,185,107,.24)}
+#study-space-root .study-hub-catalog{position:relative;border-color:rgba(16,185,129,.22);background:linear-gradient(155deg,rgba(255,255,255,.96),rgba(241,255,248,.92));box-shadow:0 14px 28px rgba(32,91,75,.08)}
+#study-space-root .study-hub-catalog::after{content:"";position:absolute;right:24px;bottom:17px;width:48px;height:10px;background:repeating-linear-gradient(90deg,#14b8a6 0 6px,transparent 6px 12px);opacity:.38}
+#study-space-root .study-hub-search{background:#fff;border-color:rgba(20,184,166,.35);box-shadow:0 5px 16px rgba(20,184,166,.08)}
+#study-space-root .study-space-filter{border-color:rgba(79,70,229,.16);background:#fff;box-shadow:0 3px 9px rgba(15,23,42,.04)}
+#study-space-root .study-space-filter.active{background:linear-gradient(135deg,#00bd73,#0fd68b);border-color:#00bd73;box-shadow:0 8px 16px rgba(0,185,107,.26)}
+#study-space-root .study-hub-subject-card{border-color:rgba(20,184,166,.2);background:linear-gradient(160deg,#fff,#f5fffa);box-shadow:0 8px 18px rgba(21,91,72,.07)}
+#study-space-root .study-hub-subject-card::before{height:5px;background:linear-gradient(90deg,#00c47a,#14b8a6,#6366f1)}
+#study-space-root .study-hub-subject-card:hover{transform:translateY(-5px) rotate(-.35deg);box-shadow:0 17px 28px rgba(25,143,103,.16)}
+#study-space-root .study-hub-ai-panel{border-color:rgba(99,102,241,.22);background:linear-gradient(165deg,#fbfaff,#f3fff9 42%,#fff);box-shadow:0 16px 30px rgba(61,73,144,.1)}
+#study-space-root .study-hub-ai-heading{background:linear-gradient(135deg,#e8fff4,#eef0ff);border:1px solid rgba(99,102,241,.13)}
+#study-space-root .study-hub-ai-tool{border-color:rgba(20,184,166,.18);background:rgba(255,255,255,.82)}
+#study-space-root .study-hub-ai-tool:hover{transform:translateX(-3px);border-color:rgba(99,102,241,.4);box-shadow:0 9px 18px rgba(99,102,241,.12)}
+#study-space-root .study-hub-stats{border-color:rgba(251,146,60,.24);background:linear-gradient(135deg,#fffaf0,#f3fff9)}
+[data-theme="dark"] #study-space-root .study-hub-shell{background:radial-gradient(circle at 12% 8%,rgba(16,185,129,.13),transparent 22%),radial-gradient(circle at 78% 0%,rgba(99,102,241,.13),transparent 21%)}
+[data-theme="dark"] #study-space-root .study-hub-hero{background:linear-gradient(118deg,#0e1917,#102920 52%,#14251f);border-color:#265d4c}
+[data-theme="dark"] #study-space-root .study-hub-catalog{background:linear-gradient(155deg,#101d1a,#12251f);border-color:#254c40}
+[data-theme="dark"] #study-space-root .study-hub-search,[data-theme="dark"] #study-space-root .study-space-filter,[data-theme="dark"] #study-space-root .study-hub-ai-tool{background:#14231f;border-color:#285448}
+[data-theme="dark"] #study-space-root .study-hub-ai-panel{background:linear-gradient(165deg,#151b2a,#10241e);border-color:#39476d}
+[data-theme="dark"] #study-space-root .study-hub-ai-heading{background:linear-gradient(135deg,#173429,#1d2440);border-color:#334b68}
+[data-theme="dark"] #study-space-root .study-hub-subject-card{background:linear-gradient(160deg,#12231e,#101b19);border-color:#254a40}
+@media(max-width:720px){#study-space-root .study-hub-hero::before,#study-space-root .study-hub-catalog::after{display:none}#study-space-root .study-hub-subject-card:hover{transform:translateY(-2px)}}
+
+/* Study Hub — calm base with small Gen Z stickers (overrides the heavy visual layer) */
+#study-space-root .study-hub-shell{background:transparent}
+#study-space-root .study-hub-hero{isolation:isolate;background:#fff;border-color:#d9eee5;box-shadow:0 12px 28px rgba(15,23,42,.06)}
+#study-space-root .study-hub-hero::before{left:auto;right:300px;top:18px;width:48px;height:9px;background:repeating-linear-gradient(90deg,#6d5dfc 0 6px,transparent 6px 11px);opacity:.35;transform:rotate(-8deg)}
+#study-space-root .study-hub-hero::after{content:"✦  ✧  ✦";position:absolute;z-index:1;right:28px;top:20px;color:#ffb703;font-size:18px;letter-spacing:6px;text-shadow:0 2px 0 #fff;pointer-events:none}
+#study-space-root .study-hub-kicker{background:#fff;border-color:#ccebdc;box-shadow:none}
+#study-space-root .study-hub-catalog{background:#fff;border-color:#dcebe6;box-shadow:0 10px 24px rgba(15,23,42,.05)}
+#study-space-root .study-hub-catalog::after{right:26px;bottom:18px;width:44px;height:8px;background:repeating-linear-gradient(90deg,#14b8a6 0 5px,transparent 5px 10px);opacity:.32}
+#study-space-root .study-hub-search{background:#fff;border-color:#bfe5d5;box-shadow:none}
+#study-space-root .study-space-filter{background:#fff;border-color:#e0e7e4;box-shadow:none}
+#study-space-root .study-space-filter.active{background:#00b96b;border-color:#00b96b;box-shadow:0 7px 14px rgba(0,185,107,.2)}
+#study-space-root .study-hub-subject-card{background:#fff;border-color:#deebe6;box-shadow:0 6px 14px rgba(15,23,42,.045)}
+#study-space-root .study-hub-subject-card:hover{transform:translateY(-4px);box-shadow:0 14px 24px rgba(15,23,42,.1)}
+#study-space-root .study-hub-ai-panel{background:#fff;border-color:#dce8e3;box-shadow:0 12px 25px rgba(15,23,42,.06)}
+#study-space-root .study-hub-ai-heading{background:#f5fff9;border-color:#d9eee4}
+#study-space-root .study-hub-ai-tool{background:#fff;border-color:#dfeae5}
+#study-space-root .study-hub-ai-tool:hover{transform:translateX(-2px);box-shadow:0 8px 16px rgba(15,23,42,.08)}
+#study-space-root .study-hub-stats{background:#fff;border-color:#dfe9e5}
+[data-theme="dark"] #study-space-root .study-hub-shell{background:#050505}
+[data-theme="dark"] #study-space-root .study-hub-hero{background:#080808;border-color:#222;box-shadow:none}
+[data-theme="dark"] #study-space-root .study-hub-hero::before{opacity:.5}[data-theme="dark"] #study-space-root .study-hub-hero::after{text-shadow:none}
+[data-theme="dark"] #study-space-root .study-hub-catalog,[data-theme="dark"] #study-space-root .study-hub-ai-panel,[data-theme="dark"] #study-space-root .study-hub-stats{background:#0b0b0b;border-color:#242424;box-shadow:none}
+[data-theme="dark"] #study-space-root .study-hub-search,[data-theme="dark"] #study-space-root .study-space-filter,[data-theme="dark"] #study-space-root .study-hub-ai-tool,[data-theme="dark"] #study-space-root .study-hub-subject-card{background:#101010;border-color:#282828;box-shadow:none}
+[data-theme="dark"] #study-space-root .study-hub-ai-heading{background:#111;border-color:#292929}
+@media(max-width:720px){#study-space-root .study-hub-hero::after{right:16px;top:13px;font-size:14px;letter-spacing:3px}#study-space-root .study-hub-hero::before{display:none}}

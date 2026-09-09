@@ -72,26 +72,26 @@
           <button id="snav-study-space" class="sidebar-nav-item" onclick="NavController.navigateToPage('study-space')">
             <i class="fa-solid fa-graduation-cap"></i> <span>Không gian học tập</span>
           </button>
-          <button id="snav-aigen" class="sidebar-nav-item" onclick="NavController.navigateToPage('aigen')">
-            <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Tạo câu hỏi bằng AI</span>
+          <button id="snav-guide" class="sidebar-nav-item" onclick="">
+            <i class="fa-solid fa-circle-info"></i> <span>Hướng dẫn tính năng</span>
           </button>
         </div>
 
-        <div class="sidebar-divider"><span>TÀI KHOẢN & HỖ TRỢ</span></div>
+        <div class="sidebar-divider"><span>TÍNH NĂNG AI NÂNG CAO</span></div>
 
         <div class="sidebar-nav-group">
-          <button id="snav-history" class="sidebar-nav-item" onclick="NavController.navigateToPage('history')">
-            <i class="fa-solid fa-chart-line"></i> <span>Lịch sử làm bài</span>
+          <button id="snav-aigen" class="sidebar-nav-item" onclick="NavController.navigateToPage('aigen')">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Tạo câu hỏi bằng AI</span>
           </button>
-          <button id="snav-settings" class="sidebar-nav-item" onclick="openSettings()">
-            <i class="fa-solid fa-gear"></i> <span>Cài đặt tài khoản</span>
+          <button id="snav-plan" class="sidebar-nav-item" onclick="">
+            <i class="fa-solid fa-calendar-check"></i> <span>Lên kế hoạch ôn thi</span>
           </button>
-          <button id="snav-notifications" class="sidebar-nav-item" onclick="NavController.navigateToPage('notifications')">
-            <i class="fa-solid fa-bell"></i> <span>Thông báo</span>
-            <span class="badge-dot"></span>
+          <button id="snav-exam-ai" class="sidebar-nav-item" onclick="">
+            <i class="fa-solid fa-file-circle-plus"></i> <span>Tạo đề thi AI</span>
           </button>
-          <button id="snav-report" class="sidebar-nav-item" onclick="NavController.navigateToPage('report')">
-            <i class="fa-solid fa-bug"></i> <span>Báo cáo lỗi</span>
+          <button id="snav-more-subjects" class="sidebar-nav-item upgrade-item" onclick="NavController.navigateToPage('upgrade')">
+            <i class="fa-solid fa-book-open"></i> <span>Mở thêm môn học</span>
+            <span class="badge-pro">PRO</span>
           </button>
           <button id="snav-upgrade" class="sidebar-nav-item upgrade-item" onclick="NavController.navigateToPage('upgrade')">
             <i class="fa-solid fa-crown"></i> <span>Nâng cấp tài khoản</span>
@@ -139,6 +139,9 @@
           <button id="btn-theme-top" class="btn-icon" onclick="toggleTheme()" title="Chuyển chế độ tối/sáng">
             <i class="fa-solid fa-moon"></i>
           </button>
+          <button id="btn-notifications-top" class="btn-icon notification-top-btn" onclick="NavController.navigateToPage('notifications')" title="Thông báo" aria-label="Mở thông báo">
+            <i class="fa-solid fa-bell"></i><span class="badge-dot"></span>
+          </button>
 
           <!-- User Auth Zone -->
           <div class="user-auth-zone" id="user-auth-zone">
@@ -161,7 +164,7 @@
                 <span>🎓 Ngành Công Nghệ Thực Phẩm · FTECA 24</span>
               </div>
               <h1 class="home-hero-title">
-                Xin chào! Chúng tôi là <span class="home-hero-accent">ĐHCNTP 24A</span>
+                Xin chào! Chúng tôi là <span class="home-hero-accent">FTECA 24</span>
               </h1>
               <p class="home-hero-desc">
                 Đây là nơi mà tụi mình chia sẻ, đăng tải và lưu trữ những thông tin, tài liệu, đề thi, trải nghiệm và phương pháp tiếp cận theo góc nhìn cá nhân. <strong>Một lần nữa, chào mừng các bạn đến với đại gia đình này!</strong>
@@ -184,7 +187,7 @@
               <div class="home-float-card home-float-card-top">
                 <div class="float-card-icon">📚</div>
                 <div>
-                  <div class="float-card-num">35+</div>
+                  <div class="float-card-num" id="stat-subjects-float">35+</div>
                   <div class="float-card-label">Môn học CNTP</div>
                 </div>
               </div>
@@ -215,7 +218,7 @@
                 <i class="fa-solid fa-book"></i>
               </div>
               <div>
-                <div class="home-stat-num">35+</div>
+                <div class="home-stat-num" id="stat-subjects">35+</div>
                 <div class="home-stat-label">Môn học hỗ trợ</div>
               </div>
             </div>
@@ -225,7 +228,7 @@
                 <i class="fa-solid fa-circle-question"></i>
               </div>
               <div>
-                <div class="home-stat-num">5.000+</div>
+                <div class="home-stat-num" id="stat-questions">5.000+</div>
                 <div class="home-stat-label">Câu hỏi ngân hàng đề</div>
               </div>
             </div>
@@ -245,7 +248,7 @@
                 <i class="fa-solid fa-trophy"></i>
               </div>
               <div>
-                <div class="home-stat-num">1K+</div>
+                <div class="home-stat-num" id="stat-users">1K+</div>
                 <div class="home-stat-label">Sinh viên đang học</div>
               </div>
             </div>
@@ -1645,7 +1648,7 @@
         </div>
         <div class="cera-msg-bubble">
           <p>Xin chào! Tôi là <strong>FTECA 24</strong> — trợ lý AI ôn thi QLCL & ATTP. 👋</p>
-          <p style="margin-top:4px;font-size:12px;opacity:0.85;">📷 Gửi ảnh bài tập &nbsp;·&nbsp; 📝 Hỏi đáp &nbsp;·&nbsp; ☰ Menu cài đặt góc trên</p>
+
         </div>
       </div>
     </div>
