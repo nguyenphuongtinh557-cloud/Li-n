@@ -5219,3 +5219,53 @@ body.dark-mode #admin-subtab-review-lessons .review-lesson-admin-paper { backgro
   .review-lesson-document img.review-floating-media,
   .study-reader-content .student-reader-body img.review-floating-media { max-width: 82%; }
 }
+
+/* Study Hub hero illustration — hero_student.webp */
+#study-space-root .study-hub-art-img{position:absolute;z-index:2;right:34px;bottom:0;height:222px;width:auto;border-radius:20px 20px 6px 6px;object-fit:cover;box-shadow:0 18px 34px color-mix(in srgb,var(--primary) 26%,transparent),0 4px 10px color-mix(in srgb,var(--foreground) 12%,transparent);border:2px solid color-mix(in srgb,var(--card) 78%,transparent)}
+@media (max-width:1100px){#study-space-root .study-hub-art-img{right:24px;height:185px}}
+@media (max-width:720px){#study-space-root .study-hub-art-img{right:20px;height:124px;border-radius:16px 16px 4px 4px}}
+
+/* Study Hub cleanup: focus the hero on the learning action, not repeated counts */
+#study-space-root .study-hub-hero-copy{max-width:680px}
+#study-space-root .study-hub-hero-actions{display:flex;align-items:center;margin-top:22px}
+#study-space-root .study-hub-hero-art{min-height:220px}
+#study-space-root .study-hub-stats p{margin:7px 0 12px;color:var(--text-muted);font-size:12px;line-height:1.5}
+#study-space-root .study-hub-stats button{margin-top:2px}
+@media(max-width:720px){#study-space-root .study-hub-hero-actions{margin-top:18px}#study-space-root .study-hub-hero-art{min-height:145px}}
+
+/* Study Hub hero character: match the larger anchored treatment used by News */
+#study-space-root .study-hub-hero{overflow:visible}
+#study-space-root .study-hub-hero-art{height:236px;min-height:236px;align-self:end;overflow:visible}
+#study-space-root .study-hub-art-img{right:22px;bottom:-10px;height:278px;max-height:none;border:0;border-radius:0;box-shadow:0 18px 30px color-mix(in srgb,var(--primary) 20%,transparent);object-fit:contain;object-position:center bottom}
+@media (max-width:1100px){#study-space-root .study-hub-hero-art{height:210px;min-height:210px}#study-space-root .study-hub-art-img{right:12px;height:246px}}
+@media (max-width:720px){#study-space-root .study-hub-hero-art{height:158px;min-height:158px}#study-space-root .study-hub-art-img{right:12px;bottom:-5px;height:180px}}
+
+/* Final Study Hub hero balance: contained character, clear copy, no panel overlap */
+#study-space-root .study-hub-hero{overflow:hidden}
+#study-space-root .study-hub-hero-art{height:210px;min-height:210px;overflow:hidden}
+#study-space-root .study-hub-art-img{right:26px;bottom:0;height:238px;max-height:238px;object-fit:contain;object-position:center bottom;filter:drop-shadow(0 14px 16px rgba(0,90,60,.16))}
+@media(max-width:1100px){#study-space-root .study-hub-hero-art{height:190px;min-height:190px}#study-space-root .study-hub-art-img{right:10px;height:215px;max-height:215px}}
+@media(max-width:720px){#study-space-root .study-hub-hero-art{height:135px;min-height:135px}#study-space-root .study-hub-art-img{right:8px;bottom:0;height:154px;max-height:154px}}
+
+/* Keep the character fully visible while the hero still clips at its outer frame */
+#study-space-root .study-hub-hero-art{overflow:visible}
+
+/* Hero character final alignment: enlarge and anchor the feet to the frame bottom */
+#study-space-root .study-hub-art-img{right:18px;bottom:-1px;height:268px;max-height:268px}
+@media(max-width:1100px){#study-space-root .study-hub-art-img{right:8px;bottom:-1px;height:240px;max-height:240px}}
+@media(max-width:720px){#study-space-root .study-hub-art-img{right:6px;bottom:-1px;height:174px;max-height:174px}}
+
+/* Remove the grid-cell bottom gap so the character meets the hero frame */
+#study-space-root .study-hub-art-img{bottom:-29px}
+@media(max-width:1100px){#study-space-root .study-hub-art-img{bottom:-26px}}
+@media(max-width:720px){#study-space-root .study-hub-art-img{bottom:-18px}}
+
+/* Transparent character asset: no rectangular source background or artificial shadow */
+#study-space-root .study-hub-art-img{filter:none;box-shadow:none;background:transparent}
+
+/* Preserve Admin Enter paragraphs in the User reader without oversized gaps */
+.study-reader-content .student-reader-body p,
+.study-reader-content .student-reader-body div{margin:0 0 14px;line-height:1.8}
+.study-reader-content .student-reader-body p:empty,
+.study-reader-content .student-reader-body div:empty{min-height:1.8em;margin-bottom:0}
+.study-reader-content .student-reader-body p br:only-child{display:block;content:"";min-height:1.8em}
