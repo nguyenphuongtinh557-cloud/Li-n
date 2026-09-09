@@ -5136,3 +5136,86 @@ body.dark-mode #admin-subtab-review-lessons .review-lesson-admin-paper { backgro
 #admin-subtab-review-lessons .tox-edit-area img.review-floating-media { outline: 2px dashed var(--primary); outline-offset: 3px; cursor: move; }
 #admin-subtab-review-lessons .tox-edit-area__iframe { min-height: 520px; }
 #admin-subtab-review-lessons .tox-edit-area img.review-floating-media:hover { outline-style: solid; }
+
+/* Study Reader dark mode — low-glare palette for extended reading */
+[data-theme="dark"] .study-reader-page{background:#0b1213!important;color:#d7e4df!important}
+[data-theme="dark"] .study-reader-frame{background:radial-gradient(circle at 4% 0%,rgba(44,125,97,.14),transparent 25%),radial-gradient(circle at 100% 4%,rgba(34,104,88,.12),transparent 22%),#0b1213!important}
+[data-theme="dark"] .study-reader-header{border-color:#263a37!important;background:rgba(14,24,24,.88)!important}
+[data-theme="dark"] .study-reader-back,[data-theme="dark"] .study-reader-header-actions button{border-color:#356357!important;background:#142522!important;color:#bfe8d9!important}
+[data-theme="dark"] .study-reader-crumb{color:#91aaa3!important}
+[data-theme="dark"] .study-reader-toc,[data-theme="dark"] .study-reader-main,[data-theme="dark"] .study-reader-right-panel{border-color:#263d38!important;background:#111d1c!important;box-shadow:0 14px 34px rgba(0,0,0,.25)!important}
+[data-theme="dark"] .study-reader-course-card,[data-theme="dark"] .study-reader-right-panel{background:linear-gradient(155deg,#142522,#101b1a)!important}
+[data-theme="dark"] .study-reader-course-icon,[data-theme="dark"] .study-reader-kicker{background:#173b31!important;color:#86d9b8!important}
+[data-theme="dark"] #study-reader-course-title,[data-theme="dark"] .study-reader-toc-head,[data-theme="dark"] .study-reader-panel-title,[data-theme="dark"] .study-reader-content h1,[data-theme="dark"] .study-reader-content h2,[data-theme="dark"] .study-reader-content h3{color:#dcebe5!important}
+[data-theme="dark"] .study-reader-find-wrap,[data-theme="dark"] .study-reader-toolbar,[data-theme="dark"] .study-reader-main-top{border-color:#263d38!important;background:#101b1a!important;color:#9bb6ae!important}
+[data-theme="dark"] .study-reader-find,[data-theme="dark"] .study-reader-ai input,[data-theme="dark"] .study-reader-key-row input{color:#d7e4df!important;background:#0d1716!important;border-color:#315149!important}
+[data-theme="dark"] .study-reader-toc-list:before{background:#29483f!important}
+[data-theme="dark"] .study-reader-toc-list button{color:#a9c1ba!important}
+[data-theme="dark"] .study-reader-toc-list button:hover,[data-theme="dark"] .study-reader-toc-list button.active{background:#17352e!important;color:#9ce3c4!important}
+[data-theme="dark"] .study-reader-toolbar button{border-color:#315149!important;background:#162725!important;color:#c5ddd5!important}
+[data-theme="dark"] .study-reader-toolbar button:first-child,[data-theme="dark"] .study-reader-toolbar button:hover{background:#1b4236!important;color:#a9ebca!important}
+[data-theme="dark"] .study-reader-content,[data-theme="dark"] .study-reader-empty{background:linear-gradient(135deg,#101a19,#0d1615)!important}
+[data-theme="dark"] .study-reader-document-head{background:linear-gradient(118deg,#142522 0%,#123126 60%,#174233 100%)!important}
+[data-theme="dark"] .study-reader-note-paper,[data-theme="dark"] .study-reader-share{border-color:#29463f!important;background:#121f1d!important}
+[data-theme="dark"] .study-reader-note-paper textarea{background:#16211a!important;background-image:repeating-linear-gradient(transparent,transparent 30px,#2a4035 31px)!important;color:#d4ded4!important}
+[data-theme="dark"] .study-reader-ai{background:linear-gradient(145deg,#153127,#10241e)!important}
+[data-theme="dark"] .study-reader-ai-copy,[data-theme="dark"] .study-reader-ai-status,[data-theme="dark"] .study-reader-ai-result,[data-theme="dark"] .study-reader-share small{color:#91aaa3!important}
+[data-theme="dark"] .study-reader-share-actions button{border-color:#315149!important;background:#162d26!important;color:#a9e3c6!important}
+[data-theme="dark"] .student-reader-body,[data-theme="dark"] .student-reader-body *,[data-theme="dark"] .document-paper-view,[data-theme="dark"] .document-paper-view *{color:#d5ded8!important}
+[data-theme="dark"] .student-reader-body a{color:#8bdabd!important}
+[data-theme="dark"] .study-reader-highlight{background:#665a20!important;color:#fff4ba!important}
+
+/* Shared lesson document rhythm: keep Admin editor and User reader aligned */
+.review-lesson-document,
+#admin-subtab-review-lessons .tox-edit-area__iframe {
+  --lesson-content-max: 820px;
+}
+.review-lesson-document {
+  max-width: var(--lesson-content-max);
+  margin: 0 auto;
+  padding: 18px 24px 34px;
+  line-height: 1.8;
+}
+.review-lesson-document p,
+.study-reader-content .student-reader-body p {
+  margin: 0 0 14px;
+}
+.review-lesson-document h2,
+.review-lesson-document h3,
+.review-lesson-document h4,
+.study-reader-content .student-reader-body h2,
+.study-reader-content .student-reader-body h3,
+.study-reader-content .student-reader-body h4 {
+  margin: 26px 0 10px;
+  line-height: 1.3;
+}
+.review-lesson-document ul,
+.review-lesson-document ol,
+.study-reader-content .student-reader-body ul,
+.study-reader-content .student-reader-body ol {
+  margin: 0 0 16px;
+  padding-left: 1.5em;
+}
+.review-lesson-document img:not(.review-floating-media),
+.study-reader-content .student-reader-body img:not(.review-floating-media) {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin: 18px auto;
+}
+.review-lesson-document img.review-floating-media,
+.study-reader-content .student-reader-body img.review-floating-media {
+  max-width: min(70%, 560px);
+  height: auto;
+  box-sizing: border-box;
+}
+.review-lesson-document table,
+.study-reader-content .student-reader-body table {
+  width: 100%;
+  margin: 16px 0;
+}
+@media (max-width: 720px) {
+  .review-lesson-document { padding: 14px 18px 28px; }
+  .review-lesson-document img.review-floating-media,
+  .study-reader-content .student-reader-body img.review-floating-media { max-width: 82%; }
+}
