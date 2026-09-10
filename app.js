@@ -3228,6 +3228,71 @@ function mountStudyReaderAnnotationLayer() { const root = document.getElementByI
 function studyReaderToggleAnnotation() { _studyReaderAnnotationEnabled = !_studyReaderAnnotationEnabled; mountStudyReaderAnnotationLayer(); showToast(_studyReaderAnnotationEnabled ? 'Chế độ vẽ đã bật.' : 'Chế độ vẽ đã tắt.', 'info'); }
 function studyReaderUndoAnnotation() { saveStudyReaderNote({ annotations: getStudyReaderNote().annotations.slice(0, -1) }); mountStudyReaderAnnotationLayer(); }
 function studyReaderClearAnnotations() { saveStudyReaderNote({ annotations: [] }); mountStudyReaderAnnotationLayer(); }
+
+let _studyReaderSummaryMode = 'quick';
+let _studyReaderSummary = null;
+function getLessonSummarySource(lesson = {}) {
+  const allowed = new Set(['heading', 'text', 'lessonDocument', 'legacyHtml']);
+  return (Array.isArray(lesson.blocks) ? lesson.blocks : []).filter(block => allowed.has(block?.type))
+    .map(block => stripStudyReaderText(block.content)).filter(Boolean).join('\n\n') || stripStudyReaderText(lesson.content);
+}
+function lessonSummaryHash(chapter = {}, lesson = {}) {
+  const value = `${chapter.title || ''}\n${lesson.title || ''}\n${getLessonSummarySource(lesson)}`;
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index++) { hash ^= value.charCodeAt(index); hash = Math.imul(hash, 16777619); }
+  return `v1-${(hash >>> 0).toString(16)}-${value.length}`;
+}
+function renderStudyReaderSummary(summary) {
+  const result = document.getElementById('study-reader-ai-result');
+  if (!result) return;
+  if (!summary) { result.innerHTML = ''; return; }
+  const section = (title, items) => items?.length ? `<section><b>${title}</b><ul>${items.map(item => `<li>${escapeHtml(String(item))}</li>`).join('')}</ul></section>` : '';
+  result.innerHTML = `${section('Ý chính', summary.mainPoints)}${section('Từ khóa cần nhớ', summary.keywords)}${section('Lưu ý dễ nhầm', summary.pitfalls)}${section('Câu hỏi ôn nhanh', summary.quickQuestions)}<small>Nguồn: ${escapeHtml(summary.source || '')}</small>`;
+}
+function setStudyReaderSummaryStatus(text, state = '') {
+  const status = document.getElementById('study-reader-ai-status');
+  if (status) { status.textContent = text; status.dataset.state = state; }
+}
+function loadStudyReaderSummaryCache() {
+  const data = getStudyReaderDetails(_studyReaderContext || {}), lesson = data.lesson;
+  const button = document.getElementById('study-reader-ai-summary');
+  if (!lesson) { setStudyReaderSummaryStatus('Chỉ hỗ trợ tóm tắt bài giảng chính thức.', 'empty'); if (button) button.disabled = true; renderStudyReaderSummary(null); return; }
+  const source = getLessonSummarySource(lesson), ai = lesson.aiSummary || {}, hash = lessonSummaryHash(data.details.chapters?.find(ch => ch.id === data.chapterId) || {}, lesson);
+  if (!ai.enabled) { setStudyReaderSummaryStatus('Admin chưa bật AI tóm tắt cho bài này.', 'disabled'); if (button) button.disabled = true; renderStudyReaderSummary(null); return; }
+  if (source.length < 40) { setStudyReaderSummaryStatus('Bài học chưa có đủ nội dung để tóm tắt.', 'empty'); if (button) button.disabled = true; renderStudyReaderSummary(null); return; }
+  if (button) button.disabled = false;
+  const cached = ai.cache?.[_studyReaderSummaryMode];
+  if (cached?.contentHash === ai.contentHash && cached?.result) { _studyReaderSummary = cached.result; renderStudyReaderSummary(cached.result); setStudyReaderSummaryStatus('Đã có bản tóm tắt được lưu.', 'ready'); }
+  else { _studyReaderSummary = null; renderStudyReaderSummary(null); setStudyReaderSummaryStatus(ai.contentHash && ai.contentHash !== hash ? 'Bài học đã thay đổi, tóm tắt sẽ được cập nhật khi tạo.' : 'Chưa có tóm tắt cho chế độ này.', 'idle'); }
+}
+async function requestStudyReaderSummary(force = false) {
+  const data = getStudyReaderDetails(_studyReaderContext || {}), lesson = data.lesson;
+  if (!lesson?.aiSummary?.enabled) return loadStudyReaderSummaryCache();
+  const source = getLessonSummarySource(lesson); if (source.length < 40) return loadStudyReaderSummaryCache();
+  const button = document.getElementById('study-reader-ai-summary'), instruction = document.getElementById('study-reader-ai-instruction')?.value.trim() || '';
+  if (button) button.disabled = true;
+  setStudyReaderSummaryStatus('Đang tạo tóm tắt cho bài học này…', 'loading');
+  try {
+    const response = await fetch('/api/lesson-summary', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subjectId: data.subjectId, chapterId: data.chapterId, lessonId: lesson.id, mode: _studyReaderSummaryMode, instruction, force }) });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok || !payload.ok) {
+      const messages = { 'summary-service-not-configured': 'AI tóm tắt chưa được cấu hình trên máy chủ.', 'lesson-has-no-summary-content': 'Bài học chưa có đủ nội dung để tóm tắt.', 'summary-disabled-for-lesson': 'Admin chưa bật AI cho bài này.', 'summary-in-progress': 'Tóm tắt đang được tạo, vui lòng thử lại sau ít phút.', 'rate-limited': 'Bạn thao tác quá nhanh, vui lòng thử lại sau.' };
+      throw new Error(messages[payload.reason] || 'Không thể kết nối AI lúc này.');
+    }
+    _studyReaderSummary = payload.summary; renderStudyReaderSummary(payload.summary); setStudyReaderSummaryStatus(payload.cached ? 'Đã dùng bản tóm tắt có sẵn.' : 'Đã tạo tóm tắt.', 'ready');
+    ['study-reader-ai-save','study-reader-ai-regenerate','study-reader-ai-explain'].forEach(id => { const el = document.getElementById(id); if (el) el.disabled = false; });
+  } catch (error) { setStudyReaderSummaryStatus(error.message || 'Lỗi kết nối.', 'error'); }
+  finally { if (button) button.disabled = false; }
+}
+function initStudyReaderSummaryControls() {
+  document.querySelectorAll('[data-summary-mode]').forEach(button => button.onclick = () => { _studyReaderSummaryMode = button.dataset.summaryMode; document.querySelectorAll('[data-summary-mode]').forEach(item => item.classList.toggle('active', item === button)); loadStudyReaderSummaryCache(); });
+  document.getElementById('study-reader-ai-summary')?.addEventListener('click', () => requestStudyReaderSummary(false));
+  document.getElementById('study-reader-ai-regenerate')?.addEventListener('click', () => requestStudyReaderSummary(true));
+  document.getElementById('study-reader-ai-save')?.addEventListener('click', () => { if (!_studyReaderSummary) return; const text = ['Ý chính', ...(_studyReaderSummary.mainPoints || []), '', 'Từ khóa cần nhớ', ...(_studyReaderSummary.keywords || []), '', `Nguồn: ${_studyReaderSummary.source || ''}`].join('\n'); const input = document.getElementById('study-reader-note-input'); if (input) { input.value += `${input.value ? '\n\n' : ''}${text}`; saveStudyReaderNote({ text: input.value }); } });
+  document.getElementById('study-reader-ai-explain')?.addEventListener('click', () => showToast('Tính năng giải thích phần bôi đen sẽ hoàn thiện ở giai đoạn tiếp theo.', 'info'));
+  loadStudyReaderSummaryCache();
+}
+
 function bindStudyReaderControls() { document.getElementById('study-reader-back').onclick = () => NavController.closeStudyReader(); const input = document.getElementById('study-reader-note-input'); if (input) input.oninput = () => { clearTimeout(_studyReaderNoteTimer); _studyReaderNoteTimer = setTimeout(() => saveStudyReaderNote({ text: input.value }), 450); }; const find = document.getElementById('study-reader-find'); if (find) find.oninput = () => { const query = find.value.trim().toLocaleLowerCase('vi-VN'); document.querySelectorAll('#study-reader-toc-list button').forEach(b => { const match = !query || b.dataset.readerLabel.includes(query); b.hidden = !match; b.classList.toggle('reader-search-match', Boolean(query && match)); }); }; document.querySelectorAll('[data-reader-action]').forEach(b => b.onclick = ({ note: studyReaderCreateNoteFromSelection, highlight: studyReaderApplyHighlight, annotate: studyReaderToggleAnnotation, undo: studyReaderUndoAnnotation, clear: studyReaderClearAnnotations }[b.dataset.readerAction] || (() => {}))); document.querySelectorAll('[data-annotation-color]').forEach(button => button.onclick = () => { _studyReaderAnnotationColor = button.dataset.annotationColor; document.querySelectorAll('[data-annotation-color]').forEach(item => item.classList.toggle('active', item === button)); if (_studyReaderAnnotationEnabled) mountStudyReaderAnnotationLayer(); }); }
 function bindStudyReaderDrawers() {
   const pairs = [['study-reader-toc-toggle', 'study-reader-toc'], ['study-reader-panel-toggle', 'study-reader-right-panel']];
@@ -3254,7 +3319,7 @@ function renderStudyReaderHeaderResourceLink(context = _studyReaderContext || {}
   link.querySelector('span').textContent = resource.name ? `Tải: ${resource.name}` : 'Tải tài liệu';
 }
 
-function renderStudyReader(context = {}) { _studyReaderContext = { ...context, returnPage: context.returnPage || 'subject-detail' }; const subject = getAllSubjects().find(s => s.id === context.subjectId) || {}; const crumb = document.getElementById('study-reader-crumb'); if (crumb) crumb.textContent = `${subject.code || context.subjectId || ''} · ${subject.name || 'Tài liệu học tập'}`; renderStudyReaderContent(_studyReaderContext); renderStudyReaderToc(_studyReaderContext); renderStudyReaderHeaderResourceLink(_studyReaderContext); bindStudyReaderControls(); bindStudyReaderDrawers(); loadStudyReaderNote(); }
+function renderStudyReader(context = {}) { _studyReaderContext = { ...context, returnPage: context.returnPage || 'subject-detail' }; const subject = getAllSubjects().find(s => s.id === context.subjectId) || {}; const crumb = document.getElementById('study-reader-crumb'); if (crumb) crumb.textContent = `${subject.code || context.subjectId || ''} · ${subject.name || 'Tài liệu học tập'}`; renderStudyReaderContent(_studyReaderContext); renderStudyReaderToc(_studyReaderContext); renderStudyReaderHeaderResourceLink(_studyReaderContext); bindStudyReaderControls(); bindStudyReaderDrawers(); loadStudyReaderNote(); initStudyReaderSummaryControls(); }
 function isReaderResourceSupported(r) { return Boolean(r?.content || isStudyReaderAllowedUrl(r?.url)); }
 function openUnsupportedResourceViewer(subjectId, resource) { const modal = document.getElementById('modal-subject-resource-viewer'); if (!modal) return; document.getElementById('resource-viewer-title').textContent = resource.name || 'Tài liệu'; document.getElementById('resource-viewer-subject-code').textContent = subjectId; document.getElementById('resource-viewer-content').innerHTML = `<p>Định dạng này chưa được hỗ trợ trong Study Reader.</p>${studyReaderExternalButton(resource.url)}`; modal.classList.add('open'); }
 function openUserResourceViewer(subjectId, category) { if (category === 'quiz') return NavController.startSubjectExam(subjectId); const resources = DB.getResources(subjectId).filter(r => r.type === category && r.readerConfig?.visibility !== 'draft'); const picker = document.createElement('div'); picker.className = 'modal-overlay open study-reader-resource-picker'; picker.innerHTML = '<div class="modal-box"><div class="modal-header"><h2>Chọn tài liệu</h2><button class="btn-icon" type="button" aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button></div><div class="study-reader-picker-list"></div></div>'; const close = () => picker.remove(); picker.querySelector('.btn-icon').onclick = close; const list = picker.querySelector('.study-reader-picker-list'); (resources.length ? resources : [{ name: category === 'exam' ? 'Chưa có đề thi các năm được đăng' : 'Bài giảng tương tác', fallback: true, empty: category === 'exam' }]).forEach(r => { const button = document.createElement('button'); button.className = 'btn btn-outline'; button.type = 'button'; button.textContent = r.name; button.onclick = () => { close(); if (r.empty) return showToast('Đề thi các năm đang được cập nhật.', 'info'); if (r.fallback) NavController.openStudyReader({ subjectId, returnPage: 'subject-detail' }); else if (isReaderResourceSupported(r)) NavController.openStudyReader({ subjectId, resourceId: r.id, returnPage: 'subject-detail' }); else openUnsupportedResourceViewer(subjectId, r); }; list.appendChild(button); }); document.body.appendChild(picker); }
@@ -3886,6 +3951,18 @@ function adminHideInteractiveEditor() {
   if (settingsPanel) settingsPanel.innerHTML = '<div class="text-center text-muted py-8 text-xs"><i class="fa-solid fa-hand-pointer text-xl mb-2"></i><p>Chon mot khoi noi dung de xem va chinh sua.</p></div>';
 }
 
+function adminLessonAiSettings(lesson, chapter) {
+  const ai = lesson.aiSummary || (lesson.aiSummary = { enabled: false, contentHash: '', status: 'none', cache: {} });
+  const currentHash = lessonSummaryHash(chapter || {}, lesson);
+  const stale = ai.contentHash && ai.contentHash !== currentHash;
+  const label = !ai.enabled ? 'AI đang tắt cho bài này.' : !ai.contentHash ? 'Chưa có tóm tắt.' : stale ? 'Bài học đã thay đổi, cần cập nhật.' : 'Đã có tóm tắt.';
+  const host = document.getElementById('admin-ai-summary-settings');
+  if (!host) return;
+  host.innerHTML = `<div class="admin-ai-summary-heading"><b><i class="fa-solid fa-sparkles"></i> Thiết lập AI</b><span class="admin-ai-summary-status ${stale ? 'stale' : ''}">${label}</span></div><label class="admin-ai-summary-switch"><input type="checkbox" ${ai.enabled ? 'checked' : ''} onchange="adminToggleLessonAi(this.checked)"><span>Cho phép AI tóm tắt bài này</span></label><div class="admin-ai-summary-actions"><button type="button" class="btn btn-outline btn-sm" ${ai.enabled ? '' : 'disabled'} onclick="adminGenerateLessonAiSummaries()"><i class="fa-solid fa-wand-magic-sparkles"></i> Tạo/cập nhật tóm tắt AI</button><small>Tạo sẵn cho 1 phút, Học kỹ và Ôn thi.</small></div>`;
+}
+function adminToggleLessonAi(enabled) { const details = DB.getSubjectDetails(_interactiveCurrentSubjectId), chapter = details?.chapters?.find(item => item.id === _interactiveCurrentChapterId), lesson = chapter?.lessons?.find(item => item.id === _interactiveCurrentLessonId); if (!lesson) return; lesson.aiSummary = { ...(lesson.aiSummary || {}), enabled: Boolean(enabled), status: enabled ? (lesson.aiSummary?.contentHash ? 'ready' : 'none') : 'none', cache: lesson.aiSummary?.cache || {} }; DB.saveSubjectDetails(_interactiveCurrentSubjectId, details, true); adminLessonAiSettings(lesson, chapter); }
+async function adminGenerateLessonAiSummaries() { const details = DB.getSubjectDetails(_interactiveCurrentSubjectId), chapter = details?.chapters?.find(item => item.id === _interactiveCurrentChapterId), lesson = chapter?.lessons?.find(item => item.id === _interactiveCurrentLessonId); if (!lesson?.aiSummary?.enabled) return; const source = getLessonSummarySource(lesson); if (source.length < 40) return showToast('Bài học chưa có đủ nội dung để tạo tóm tắt.', 'info'); showToast('Đang tạo sẵn 3 bản tóm tắt AI…', 'info'); for (const mode of ['quick','study','exam']) { try { await fetch('/api/lesson-summary', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ subjectId:_interactiveCurrentSubjectId, chapterId:chapter.id, lessonId:lesson.id, mode, force:true }) }); } catch {} } showToast('Đã gửi yêu cầu tạo tóm tắt. Tải lại sau ít phút để xem cache.', 'success'); }
+
 function adminSelectInteractiveLesson(chapterId, lessonId) {
   _interactiveCurrentChapterId = chapterId;
   _interactiveCurrentLessonId = lessonId;
@@ -3900,6 +3977,7 @@ function adminSelectInteractiveLesson(chapterId, lessonId) {
   document.getElementById('admin-lesson-title-input').value = les.title || '';
   document.getElementById('admin-lesson-duration-input').value = les.duration || '';
   document.getElementById('admin-lesson-status-select').value = les.status || 'published';
+  var form = document.getElementById('admin-interactive-editor-form'); if (form && !document.getElementById('admin-ai-summary-settings')) { var aiHost = document.createElement('div'); aiHost.id = 'admin-ai-summary-settings'; aiHost.className = 'admin-ai-summary-settings'; form.appendChild(aiHost); } adminLessonAiSettings(les, chap);
   var badge = document.getElementById('admin-lesson-status-badge');
   badge.style.display = 'inline-block';
   if (les.status === 'draft') { badge.className = 'badge badge-sm badge-warning'; badge.textContent = 'Nhap'; }
@@ -4045,6 +4123,7 @@ function adminSaveInteractiveLesson(status) {
     else if (b.type === 'legacyHtml') genHtml += b.content || '';
   });
   les.content = genHtml; les.type = 'editor';
+  var ai = les.aiSummary || (les.aiSummary = { enabled:false, cache:{} }); if (ai.contentHash) ai.status = 'stale';
   DB.saveSubjectDetails(_interactiveCurrentSubjectId, details);
   showToast('Da luu bai hoc (' + formStatus + ')!', 'success');
   adminRenderInteractiveChaptersTree();

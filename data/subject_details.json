@@ -199,6 +199,80 @@
           }
         ],
         "order": 3
+      },
+      {
+        "id": "chap_ge4150_test",
+        "title": "Chương thử nghiệm AI — Quốc phòng và an ninh",
+        "lessons": [
+          {
+            "id": "les_ge4150_ai_test",
+            "title": "Bài thử nghiệm AI: Nhận thức quốc phòng và an ninh trong sinh viên",
+            "description": "Bài giảng mẫu dùng để kiểm tra ba chế độ tóm tắt AI.",
+            "duration": "08:00",
+            "status": "draft",
+            "type": "editor",
+            "order": 0,
+            "blocks": [
+              {
+                "id": "blk_ai_test_h1",
+                "type": "heading",
+                "content": "Vai trò của sinh viên trong bảo vệ Tổ quốc",
+                "settings": {
+                  "level": "H2"
+                },
+                "order": 0
+              },
+              {
+                "id": "blk_ai_test_p1",
+                "type": "text",
+                "content": "Quốc phòng và an ninh là trách nhiệm của toàn dân, trong đó sinh viên có vai trò học tập, rèn luyện và hình thành ý thức công dân. Nhận thức đúng giúp sinh viên biết tôn trọng pháp luật, bảo vệ thông tin cá nhân và chủ động trước các nguy cơ trong môi trường số.",
+                "settings": {},
+                "order": 1
+              },
+              {
+                "id": "blk_ai_test_h2",
+                "type": "heading",
+                "content": "Ba nội dung cần ghi nhớ",
+                "settings": {
+                  "level": "H3"
+                },
+                "order": 2
+              },
+              {
+                "id": "blk_ai_test_p2",
+                "type": "text",
+                "content": "Thứ nhất, sinh viên cần nắm những kiến thức cơ bản về chủ quyền, biên giới và trách nhiệm bảo vệ Tổ quốc. Thứ hai, cần biết nhận diện thông tin sai lệch, không chia sẻ nội dung chưa kiểm chứng. Thứ ba, cần kết hợp học tập chuyên môn với rèn luyện kỷ luật, tinh thần hợp tác và trách nhiệm với cộng đồng.",
+                "settings": {},
+                "order": 3
+              },
+              {
+                "id": "blk_ai_test_h3",
+                "type": "heading",
+                "content": "Điểm dễ nhầm",
+                "settings": {
+                  "level": "H3"
+                },
+                "order": 4
+              },
+              {
+                "id": "blk_ai_test_p3",
+                "type": "text",
+                "content": "Bảo vệ an ninh không chỉ là nhiệm vụ của lực lượng chuyên trách. Đây là trách nhiệm chung của Nhà nước, tổ chức và mỗi công dân. Trong môi trường mạng, cảnh giác không có nghĩa là từ chối mọi thông tin, mà là kiểm tra nguồn, đối chiếu bằng chứng và hành động có trách nhiệm.",
+                "settings": {},
+                "order": 5
+              }
+            ],
+            "content": "<h2>Vai trò của sinh viên trong bảo vệ Tổ quốc</h2><p>Quốc phòng và an ninh là trách nhiệm của toàn dân, trong đó sinh viên có vai trò học tập, rèn luyện và hình thành ý thức công dân. Nhận thức đúng giúp sinh viên biết tôn trọng pháp luật, bảo vệ thông tin cá nhân và chủ động trước các nguy cơ trong môi trường số.</p><h3>Ba nội dung cần ghi nhớ</h3><p>Thứ nhất, sinh viên cần nắm những kiến thức cơ bản về chủ quyền, biên giới và trách nhiệm bảo vệ Tổ quốc. Thứ hai, cần biết nhận diện thông tin sai lệch, không chia sẻ nội dung chưa kiểm chứng. Thứ ba, cần kết hợp học tập chuyên môn với rèn luyện kỷ luật, tinh thần hợp tác và trách nhiệm với cộng đồng.</p><h3>Điểm dễ nhầm</h3><p>Bảo vệ an ninh không chỉ là nhiệm vụ của lực lượng chuyên trách. Đây là trách nhiệm chung của Nhà nước, tổ chức và mỗi công dân. Trong môi trường mạng, cảnh giác không có nghĩa là từ chối mọi thông tin, mà là kiểm tra nguồn, đối chiếu bằng chứng và hành động có trách nhiệm.</p>",
+            "updatedAt": "2026-09-10T02:59:03.749Z",
+            "aiSummary": {
+              "enabled": true,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ]
       }
     ],
     "updatedAt": "2026-09-09T06:35:49.745Z",

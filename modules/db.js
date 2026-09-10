@@ -30,7 +30,9 @@ export function normalizeInteractiveBlock(block = {}, index = 0) {
 
 export function normalizeInteractiveLesson(lesson = {}, index = 0) {
   const blocks = Array.isArray(lesson.blocks) ? lesson.blocks.map(normalizeInteractiveBlock) : [];
-  return { ...lesson, id: lesson.id || `les_${Date.now()}_${index}`, title: String(lesson.title || 'Bài học mới'), description: String(lesson.description || ''), duration: String(lesson.duration || '10:00'), status: lesson.status === 'published' ? 'published' : 'draft', blocks, order: Number.isFinite(lesson.order) ? lesson.order : index, updatedAt: lesson.updatedAt || new Date().toISOString(), content: String(lesson.content || '') };
+  const rawAi = lesson.aiSummary && typeof lesson.aiSummary === 'object' ? lesson.aiSummary : {};
+  const aiSummary = { enabled: rawAi.enabled === true, contentHash: String(rawAi.contentHash || ''), status: ['ready','stale','empty','none'].includes(rawAi.status) ? rawAi.status : 'none', cache: rawAi.cache && typeof rawAi.cache === 'object' ? rawAi.cache : {}, updatedAt: rawAi.updatedAt || null };
+  return { ...lesson, id: lesson.id || `les_${Date.now()}_${index}`, title: String(lesson.title || 'Bài học mới'), description: String(lesson.description || ''), duration: String(lesson.duration || '10:00'), status: lesson.status === 'published' ? 'published' : 'draft', blocks, order: Number.isFinite(lesson.order) ? lesson.order : index, updatedAt: lesson.updatedAt || new Date().toISOString(), content: String(lesson.content || ''), aiSummary };
 }
 
 export function normalizeIntroCanvasItem(item = {}, index = 0) {
