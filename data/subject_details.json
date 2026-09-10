@@ -57,7 +57,14 @@
             ],
             "order": 0,
             "updatedAt": "2026-09-08T07:55:03.533Z",
-            "type": "editor"
+            "type": "editor",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           },
           {
             "id": "les_1_2",
@@ -77,7 +84,14 @@
             ],
             "order": 1,
             "updatedAt": "2026-09-08T07:55:03.533Z",
-            "type": "editor"
+            "type": "editor",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           },
           {
             "id": "les_1_3",
@@ -88,7 +102,14 @@
             "status": "draft",
             "blocks": [],
             "order": 2,
-            "updatedAt": "2026-09-08T07:55:03.533Z"
+            "updatedAt": "2026-09-08T07:55:03.533Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           },
           {
             "id": "les_review_1788877424143",
@@ -108,7 +129,14 @@
             "content": "",
             "description": "",
             "order": 3,
-            "updatedAt": "2026-09-08T14:23:44.144Z"
+            "updatedAt": "2026-09-08T14:23:44.144Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 0
@@ -126,7 +154,14 @@
             "status": "draft",
             "blocks": [],
             "order": 0,
-            "updatedAt": "2026-09-08T07:55:03.533Z"
+            "updatedAt": "2026-09-08T07:55:03.533Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           },
           {
             "id": "les_2_2",
@@ -137,7 +172,14 @@
             "status": "draft",
             "blocks": [],
             "order": 1,
-            "updatedAt": "2026-09-08T07:55:03.533Z"
+            "updatedAt": "2026-09-08T07:55:03.533Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 1
@@ -155,7 +197,14 @@
             "status": "draft",
             "blocks": [],
             "order": 0,
-            "updatedAt": "2026-09-08T07:55:03.533Z"
+            "updatedAt": "2026-09-08T07:55:03.533Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           },
           {
             "id": "les_3_2",
@@ -166,7 +215,14 @@
             "status": "draft",
             "blocks": [],
             "order": 1,
-            "updatedAt": "2026-09-08T07:55:03.533Z"
+            "updatedAt": "2026-09-08T07:55:03.533Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 2
@@ -184,7 +240,14 @@
             "status": "draft",
             "blocks": [],
             "order": 0,
-            "updatedAt": "2026-09-08T07:55:03.533Z"
+            "updatedAt": "2026-09-08T07:55:03.533Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           },
           {
             "id": "les_4_2",
@@ -195,7 +258,14 @@
             "status": "draft",
             "blocks": [],
             "order": 1,
-            "updatedAt": "2026-09-08T07:55:03.533Z"
+            "updatedAt": "2026-09-08T07:55:03.533Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 3
@@ -209,60 +279,19 @@
             "title": "Bài thử nghiệm AI: Nhận thức quốc phòng và an ninh trong sinh viên",
             "description": "Bài giảng mẫu dùng để kiểm tra ba chế độ tóm tắt AI.",
             "duration": "08:00",
-            "status": "draft",
+            "status": "published",
             "type": "editor",
             "order": 0,
             "blocks": [
               {
-                "id": "blk_ai_test_h1",
-                "type": "heading",
-                "content": "Vai trò của sinh viên trong bảo vệ Tổ quốc",
-                "settings": {
-                  "level": "H2"
-                },
+                "id": "block_1789009688684_0",
+                "type": "lessonDocument",
+                "content": "<p><strong>B&Agrave;I GIẢNG THỬ NGHIỆM</strong><br><strong>Chủ đề:</strong> Nhận thức quốc ph&ograve;ng v&agrave; an ninh trong sinh vi&ecirc;n</p>\n<hr>\n<h3>1. Kh&aacute;i niệm chung về quốc ph&ograve;ng v&agrave; an ninh</h3>\n<p>Quốc ph&ograve;ng l&agrave; tổng thể c&aacute;c hoạt động của Nh&agrave; nước nhằm bảo vệ độc lập, chủ quyền, thống nhất v&agrave; to&agrave;n vẹn l&atilde;nh thổ.<br>An ninh l&agrave; trạng th&aacute;i ổn định, kh&ocirc;ng bị đe dọa về ch&iacute;nh trị, kinh tế, x&atilde; hội v&agrave; trật tự an to&agrave;n x&atilde; hội.</p>\n<p>&rarr; Quốc ph&ograve;ng v&agrave; an ninh c&oacute; mối quan hệ chặt chẽ, bổ trợ cho nhau:</p>\n<ul>\n<li>\n<p>Quốc ph&ograve;ng mạnh &rarr; bảo vệ đất nước trước x&acirc;m lược</p>\n</li>\n<li>\n<p>An ninh vững &rarr; giữ ổn định b&ecirc;n trong</p>\n</li>\n</ul>\n<hr>\n<h3>2. Vai tr&ograve; của sinh vi&ecirc;n trong c&ocirc;ng t&aacute;c quốc ph&ograve;ng &ndash; an ninh</h3>\n<p>Sinh vi&ecirc;n l&agrave; lực lượng tr&iacute; thức trẻ, c&oacute; vai tr&ograve; quan trọng trong x&acirc;y dựng v&agrave; bảo vệ Tổ quốc:</p>\n<ul>\n<li>\n<p>L&agrave; nguồn nh&acirc;n lực chất lượng cao trong tương lai</p>\n</li>\n<li>\n<p>C&oacute; khả năng tiếp cận nhanh với khoa học &ndash; c&ocirc;ng nghệ</p>\n</li>\n<li>\n<p>L&agrave; lực lượng lan tỏa nhận thức trong x&atilde; hội</p>\n</li>\n</ul>\n<p>&rarr; V&igrave; vậy, việc n&acirc;ng cao nhận thức quốc ph&ograve;ng &ndash; an ninh cho sinh vi&ecirc;n l&agrave; cần thiết.</p>\n<hr>\n<h3>3. Nội dung nhận thức quốc ph&ograve;ng &ndash; an ninh trong sinh vi&ecirc;n</h3>\n<h4>3.1. Nhận thức về chủ quyền quốc gia</h4>\n<ul>\n<li>\n<p>Hiểu r&otilde; về l&atilde;nh thổ, biển đảo (Ho&agrave;ng Sa, Trường Sa)</p>\n</li>\n<li>\n<p>&Yacute; thức bảo vệ lợi &iacute;ch quốc gia</p>\n</li>\n</ul>\n<h4>3.2. Nhận thức về c&aacute;c mối đe dọa an ninh</h4>\n<ul>\n<li>\n<p>An ninh truyền thống: chiến tranh, xung đột</p>\n</li>\n<li>\n<p>An ninh phi truyền thống:</p>\n<ul>\n<li>\n<p>An ninh mạng</p>\n</li>\n<li>\n<p>Biến đổi kh&iacute; hậu</p>\n</li>\n<li>\n<p>Dịch bệnh</p>\n</li>\n<li>\n<p>Thực phẩm kh&ocirc;ng an to&agrave;n</p>\n</li>\n</ul>\n</li>\n</ul>\n<h4>3.3. Nhận thức về tr&aacute;ch nhiệm c&ocirc;ng d&acirc;n</h4>\n<ul>\n<li>\n<p>Tu&acirc;n thủ ph&aacute;p luật</p>\n</li>\n<li>\n<p>Tham gia nghĩa vụ qu&acirc;n sự khi cần</p>\n</li>\n<li>\n<p>Kh&ocirc;ng lan truyền th&ocirc;ng tin sai lệch</p>\n</li>\n</ul>\n<hr>\n<h3>4. Thực trạng nhận thức của sinh vi&ecirc;n hiện nay</h3>\n<p><strong>Ưu điểm:</strong></p>\n<ul>\n<li>\n<p>C&oacute; kiến thức cơ bản từ m&ocirc;n học GDQP-AN</p>\n</li>\n<li>\n<p>Nhạy b&eacute;n với c&ocirc;ng nghệ, dễ tiếp cận th&ocirc;ng tin</p>\n</li>\n</ul>\n<p><strong>Hạn chế:</strong></p>\n<ul>\n<li>\n<p>Một số sinh vi&ecirc;n c&ograve;n thờ ơ</p>\n</li>\n<li>\n<p>Dễ bị ảnh hưởng bởi tin giả tr&ecirc;n mạng</p>\n</li>\n<li>\n<p>Chưa hiểu s&acirc;u về c&aacute;c vấn đề an ninh phi truyền thống</p>\n</li>\n</ul>\n<hr>\n<h3>5. Giải ph&aacute;p n&acirc;ng cao nhận thức</h3>\n<h4>5.1. Đối với nh&agrave; trường</h4>\n<ul>\n<li>\n<p>Đổi mới phương ph&aacute;p giảng dạy (kết hợp AI, m&ocirc; phỏng)</p>\n</li>\n<li>\n<p>Tăng cường hoạt động thực tế, trải nghiệm</p>\n</li>\n</ul>\n<h4>5.2. Đối với sinh vi&ecirc;n</h4>\n<ul>\n<li>\n<p>Chủ động t&igrave;m hiểu kiến thức</p>\n</li>\n<li>\n<p>R&egrave;n luyện tư duy phản biện</p>\n</li>\n<li>\n<p>Sử dụng mạng x&atilde; hội c&oacute; tr&aacute;ch nhiệm</p>\n</li>\n</ul>\n<h4>5.3. Đối với x&atilde; hội</h4>\n<ul>\n<li>\n<p>Cung cấp th&ocirc;ng tin ch&iacute;nh thống</p>\n</li>\n<li>\n<p>Kiểm so&aacute;t tin giả</p>\n</li>\n</ul>\n<hr>\n<h3>6. Li&ecirc;n hệ thực tiễn</h3>\n<p>Trong bối cảnh hiện nay, c&aacute;c vấn đề như an ninh mạng, an to&agrave;n thực phẩm, truy xuất nguồn gốc (blockchain, AI) đang trở th&agrave;nh một phần của an ninh quốc gia.</p>\n<p>&rarr; Sinh vi&ecirc;n ng&agrave;nh C&ocirc;ng nghệ thực phẩm cần:</p>\n<ul>\n<li>\n<p>Đảm bảo chất lượng sản phẩm</p>\n</li>\n<li>\n<p>Ứng dụng c&ocirc;ng nghệ để minh bạch h&oacute;a th&ocirc;ng tin</p>\n</li>\n<li>\n<p>G&oacute;p phần bảo vệ sức khỏe cộng đồng</p>\n</li>\n</ul>\n<hr>\n<h3>7. Kết luận</h3>\n<p>Nhận thức quốc ph&ograve;ng v&agrave; an ninh kh&ocirc;ng chỉ l&agrave; kiến thức l&yacute; thuyết m&agrave; c&ograve;n l&agrave; tr&aacute;ch nhiệm của mỗi sinh vi&ecirc;n.<br>Việc n&acirc;ng cao nhận thức sẽ g&oacute;p phần x&acirc;y dựng một x&atilde; hội ổn định, ph&aacute;t triển v&agrave; bền vững.</p>\n<hr>\n<p><strong>C&acirc;u hỏi &ocirc;n tập:</strong></p>\n<ol>\n<li>\n<p>Tr&igrave;nh b&agrave;y kh&aacute;i niệm quốc ph&ograve;ng v&agrave; an ninh</p>\n</li>\n<li>\n<p>Ph&acirc;n t&iacute;ch vai tr&ograve; của sinh vi&ecirc;n trong bảo vệ Tổ quốc</p>\n</li>\n<li>\n<p>N&ecirc;u giải ph&aacute;p n&acirc;ng cao nhận thức quốc ph&ograve;ng &ndash; an ninh</p>\n</li>\n</ol>",
+                "settings": {},
                 "order": 0
-              },
-              {
-                "id": "blk_ai_test_p1",
-                "type": "text",
-                "content": "Quốc phòng và an ninh là trách nhiệm của toàn dân, trong đó sinh viên có vai trò học tập, rèn luyện và hình thành ý thức công dân. Nhận thức đúng giúp sinh viên biết tôn trọng pháp luật, bảo vệ thông tin cá nhân và chủ động trước các nguy cơ trong môi trường số.",
-                "settings": {},
-                "order": 1
-              },
-              {
-                "id": "blk_ai_test_h2",
-                "type": "heading",
-                "content": "Ba nội dung cần ghi nhớ",
-                "settings": {
-                  "level": "H3"
-                },
-                "order": 2
-              },
-              {
-                "id": "blk_ai_test_p2",
-                "type": "text",
-                "content": "Thứ nhất, sinh viên cần nắm những kiến thức cơ bản về chủ quyền, biên giới và trách nhiệm bảo vệ Tổ quốc. Thứ hai, cần biết nhận diện thông tin sai lệch, không chia sẻ nội dung chưa kiểm chứng. Thứ ba, cần kết hợp học tập chuyên môn với rèn luyện kỷ luật, tinh thần hợp tác và trách nhiệm với cộng đồng.",
-                "settings": {},
-                "order": 3
-              },
-              {
-                "id": "blk_ai_test_h3",
-                "type": "heading",
-                "content": "Điểm dễ nhầm",
-                "settings": {
-                  "level": "H3"
-                },
-                "order": 4
-              },
-              {
-                "id": "blk_ai_test_p3",
-                "type": "text",
-                "content": "Bảo vệ an ninh không chỉ là nhiệm vụ của lực lượng chuyên trách. Đây là trách nhiệm chung của Nhà nước, tổ chức và mỗi công dân. Trong môi trường mạng, cảnh giác không có nghĩa là từ chối mọi thông tin, mà là kiểm tra nguồn, đối chiếu bằng chứng và hành động có trách nhiệm.",
-                "settings": {},
-                "order": 5
               }
             ],
-            "content": "<h2>Vai trò của sinh viên trong bảo vệ Tổ quốc</h2><p>Quốc phòng và an ninh là trách nhiệm của toàn dân, trong đó sinh viên có vai trò học tập, rèn luyện và hình thành ý thức công dân. Nhận thức đúng giúp sinh viên biết tôn trọng pháp luật, bảo vệ thông tin cá nhân và chủ động trước các nguy cơ trong môi trường số.</p><h3>Ba nội dung cần ghi nhớ</h3><p>Thứ nhất, sinh viên cần nắm những kiến thức cơ bản về chủ quyền, biên giới và trách nhiệm bảo vệ Tổ quốc. Thứ hai, cần biết nhận diện thông tin sai lệch, không chia sẻ nội dung chưa kiểm chứng. Thứ ba, cần kết hợp học tập chuyên môn với rèn luyện kỷ luật, tinh thần hợp tác và trách nhiệm với cộng đồng.</p><h3>Điểm dễ nhầm</h3><p>Bảo vệ an ninh không chỉ là nhiệm vụ của lực lượng chuyên trách. Đây là trách nhiệm chung của Nhà nước, tổ chức và mỗi công dân. Trong môi trường mạng, cảnh giác không có nghĩa là từ chối mọi thông tin, mà là kiểm tra nguồn, đối chiếu bằng chứng và hành động có trách nhiệm.</p>",
+            "content": "<p><strong>B&Agrave;I GIẢNG THỬ NGHIỆM</strong><br><strong>Chủ đề:</strong> Nhận thức quốc ph&ograve;ng v&agrave; an ninh trong sinh vi&ecirc;n</p>\n<hr>\n<h3>1. Kh&aacute;i niệm chung về quốc ph&ograve;ng v&agrave; an ninh</h3>\n<p>Quốc ph&ograve;ng l&agrave; tổng thể c&aacute;c hoạt động của Nh&agrave; nước nhằm bảo vệ độc lập, chủ quyền, thống nhất v&agrave; to&agrave;n vẹn l&atilde;nh thổ.<br>An ninh l&agrave; trạng th&aacute;i ổn định, kh&ocirc;ng bị đe dọa về ch&iacute;nh trị, kinh tế, x&atilde; hội v&agrave; trật tự an to&agrave;n x&atilde; hội.</p>\n<p>&rarr; Quốc ph&ograve;ng v&agrave; an ninh c&oacute; mối quan hệ chặt chẽ, bổ trợ cho nhau:</p>\n<ul>\n<li>\n<p>Quốc ph&ograve;ng mạnh &rarr; bảo vệ đất nước trước x&acirc;m lược</p>\n</li>\n<li>\n<p>An ninh vững &rarr; giữ ổn định b&ecirc;n trong</p>\n</li>\n</ul>\n<hr>\n<h3>2. Vai tr&ograve; của sinh vi&ecirc;n trong c&ocirc;ng t&aacute;c quốc ph&ograve;ng &ndash; an ninh</h3>\n<p>Sinh vi&ecirc;n l&agrave; lực lượng tr&iacute; thức trẻ, c&oacute; vai tr&ograve; quan trọng trong x&acirc;y dựng v&agrave; bảo vệ Tổ quốc:</p>\n<ul>\n<li>\n<p>L&agrave; nguồn nh&acirc;n lực chất lượng cao trong tương lai</p>\n</li>\n<li>\n<p>C&oacute; khả năng tiếp cận nhanh với khoa học &ndash; c&ocirc;ng nghệ</p>\n</li>\n<li>\n<p>L&agrave; lực lượng lan tỏa nhận thức trong x&atilde; hội</p>\n</li>\n</ul>\n<p>&rarr; V&igrave; vậy, việc n&acirc;ng cao nhận thức quốc ph&ograve;ng &ndash; an ninh cho sinh vi&ecirc;n l&agrave; cần thiết.</p>\n<hr>\n<h3>3. Nội dung nhận thức quốc ph&ograve;ng &ndash; an ninh trong sinh vi&ecirc;n</h3>\n<h4>3.1. Nhận thức về chủ quyền quốc gia</h4>\n<ul>\n<li>\n<p>Hiểu r&otilde; về l&atilde;nh thổ, biển đảo (Ho&agrave;ng Sa, Trường Sa)</p>\n</li>\n<li>\n<p>&Yacute; thức bảo vệ lợi &iacute;ch quốc gia</p>\n</li>\n</ul>\n<h4>3.2. Nhận thức về c&aacute;c mối đe dọa an ninh</h4>\n<ul>\n<li>\n<p>An ninh truyền thống: chiến tranh, xung đột</p>\n</li>\n<li>\n<p>An ninh phi truyền thống:</p>\n<ul>\n<li>\n<p>An ninh mạng</p>\n</li>\n<li>\n<p>Biến đổi kh&iacute; hậu</p>\n</li>\n<li>\n<p>Dịch bệnh</p>\n</li>\n<li>\n<p>Thực phẩm kh&ocirc;ng an to&agrave;n</p>\n</li>\n</ul>\n</li>\n</ul>\n<h4>3.3. Nhận thức về tr&aacute;ch nhiệm c&ocirc;ng d&acirc;n</h4>\n<ul>\n<li>\n<p>Tu&acirc;n thủ ph&aacute;p luật</p>\n</li>\n<li>\n<p>Tham gia nghĩa vụ qu&acirc;n sự khi cần</p>\n</li>\n<li>\n<p>Kh&ocirc;ng lan truyền th&ocirc;ng tin sai lệch</p>\n</li>\n</ul>\n<hr>\n<h3>4. Thực trạng nhận thức của sinh vi&ecirc;n hiện nay</h3>\n<p><strong>Ưu điểm:</strong></p>\n<ul>\n<li>\n<p>C&oacute; kiến thức cơ bản từ m&ocirc;n học GDQP-AN</p>\n</li>\n<li>\n<p>Nhạy b&eacute;n với c&ocirc;ng nghệ, dễ tiếp cận th&ocirc;ng tin</p>\n</li>\n</ul>\n<p><strong>Hạn chế:</strong></p>\n<ul>\n<li>\n<p>Một số sinh vi&ecirc;n c&ograve;n thờ ơ</p>\n</li>\n<li>\n<p>Dễ bị ảnh hưởng bởi tin giả tr&ecirc;n mạng</p>\n</li>\n<li>\n<p>Chưa hiểu s&acirc;u về c&aacute;c vấn đề an ninh phi truyền thống</p>\n</li>\n</ul>\n<hr>\n<h3>5. Giải ph&aacute;p n&acirc;ng cao nhận thức</h3>\n<h4>5.1. Đối với nh&agrave; trường</h4>\n<ul>\n<li>\n<p>Đổi mới phương ph&aacute;p giảng dạy (kết hợp AI, m&ocirc; phỏng)</p>\n</li>\n<li>\n<p>Tăng cường hoạt động thực tế, trải nghiệm</p>\n</li>\n</ul>\n<h4>5.2. Đối với sinh vi&ecirc;n</h4>\n<ul>\n<li>\n<p>Chủ động t&igrave;m hiểu kiến thức</p>\n</li>\n<li>\n<p>R&egrave;n luyện tư duy phản biện</p>\n</li>\n<li>\n<p>Sử dụng mạng x&atilde; hội c&oacute; tr&aacute;ch nhiệm</p>\n</li>\n</ul>\n<h4>5.3. Đối với x&atilde; hội</h4>\n<ul>\n<li>\n<p>Cung cấp th&ocirc;ng tin ch&iacute;nh thống</p>\n</li>\n<li>\n<p>Kiểm so&aacute;t tin giả</p>\n</li>\n</ul>\n<hr>\n<h3>6. Li&ecirc;n hệ thực tiễn</h3>\n<p>Trong bối cảnh hiện nay, c&aacute;c vấn đề như an ninh mạng, an to&agrave;n thực phẩm, truy xuất nguồn gốc (blockchain, AI) đang trở th&agrave;nh một phần của an ninh quốc gia.</p>\n<p>&rarr; Sinh vi&ecirc;n ng&agrave;nh C&ocirc;ng nghệ thực phẩm cần:</p>\n<ul>\n<li>\n<p>Đảm bảo chất lượng sản phẩm</p>\n</li>\n<li>\n<p>Ứng dụng c&ocirc;ng nghệ để minh bạch h&oacute;a th&ocirc;ng tin</p>\n</li>\n<li>\n<p>G&oacute;p phần bảo vệ sức khỏe cộng đồng</p>\n</li>\n</ul>\n<hr>\n<h3>7. Kết luận</h3>\n<p>Nhận thức quốc ph&ograve;ng v&agrave; an ninh kh&ocirc;ng chỉ l&agrave; kiến thức l&yacute; thuyết m&agrave; c&ograve;n l&agrave; tr&aacute;ch nhiệm của mỗi sinh vi&ecirc;n.<br>Việc n&acirc;ng cao nhận thức sẽ g&oacute;p phần x&acirc;y dựng một x&atilde; hội ổn định, ph&aacute;t triển v&agrave; bền vững.</p>\n<hr>\n<p><strong>C&acirc;u hỏi &ocirc;n tập:</strong></p>\n<ol>\n<li>\n<p>Tr&igrave;nh b&agrave;y kh&aacute;i niệm quốc ph&ograve;ng v&agrave; an ninh</p>\n</li>\n<li>\n<p>Ph&acirc;n t&iacute;ch vai tr&ograve; của sinh vi&ecirc;n trong bảo vệ Tổ quốc</p>\n</li>\n<li>\n<p>N&ecirc;u giải ph&aacute;p n&acirc;ng cao nhận thức quốc ph&ograve;ng &ndash; an ninh</p>\n</li>\n</ol>",
             "updatedAt": "2026-09-10T02:59:03.749Z",
             "aiSummary": {
               "enabled": true,
@@ -272,10 +301,11 @@
               "updatedAt": null
             }
           }
-        ]
+        ],
+        "order": 4
       }
     ],
-    "updatedAt": "2026-09-09T06:35:49.745Z",
+    "updatedAt": "2026-09-10T03:08:09.460Z",
     "introCanvas": [
       {
         "id": "intro_1788855409691",
