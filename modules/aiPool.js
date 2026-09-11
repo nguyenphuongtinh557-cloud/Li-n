@@ -42,7 +42,7 @@ export const POOL_MODELS = {
   // 1. Phân tích hình ảnh (Giải bài tập toán / OCR / Phân tích ảnh)
   IMAGE_ANALYSIS: [
     { provider: 'gemini', model: 'gemini-3.7-flash', type: 'native' }, // ✅ Rollback từ 3.8 (RPD=20) về 3.7 (RPD=1000)
-    { provider: 'openrouter', model: 'openai/gpt-4o-mini', type: 'openrouter' }, // ✅ Free trên OpenRouter
+    { provider: 'openrouter', model: 'openai/gpt-4o-mini', type: 'openrouter' },
     { provider: 'openrouter', model: 'qwen/qwen-2.5-vl-72b-instruct', type: 'openrouter' },
     { provider: 'mistral', model: 'pixtral-12b-2409', type: 'mistral-vision' }
   ],
@@ -51,9 +51,9 @@ export const POOL_MODELS = {
   QUESTION_GENERATION: [
     { provider: 'groq', model: 'openai/gpt-oss-120b', type: 'openai-compat', endpoint: 'https://api.groq.com/openai/v1/chat/completions' },
     { provider: 'gemini', model: 'gemini-3.7-flash', type: 'gemini-native' }, // ✅ Rollback từ 3.8 (RPD=20) về 3.7 (RPD=1000)
-    { provider: 'mistral', model: 'open-mistral-nemo-2407', type: 'openai-compat', endpoint: 'https://api.mistral.ai/v1/chat/completions' }, // ✅ Đổi sang Nemo (không bị rate limit)
-    { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct', type: 'openrouter' }, // ✅ Free trên OpenRouter
-    { provider: 'openrouter', model: 'openai/gpt-4o-mini', type: 'openrouter' } // ✅ Free trên OpenRouter
+    { provider: 'mistral', model: 'open-mistral-nemo-2407', type: 'openai-compat', endpoint: 'https://api.mistral.ai/v1/chat/completions' },
+    { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct', type: 'openrouter' },
+    { provider: 'openrouter', model: 'openai/gpt-4o-mini', type: 'openrouter' }
   ],
 
   // 3. Khu vực Premium (Dành cho nội dung nâng cao, suy luận logic phức tạp)
@@ -141,7 +141,7 @@ export const AIPool = {
     // Thử Gemini Native trước (hỗ trợ multimodal cực nhanh & chính xác)
     for (let i = 0; i < RAW_KEYS.gemini.length; i++) {
       const key = rotator.getKey('gemini');
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${key}`; // ✅ Rollback về 3.7 (RPD=1000)
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${key}`;
       
       const payload = {
         contents: [
@@ -240,5 +240,82 @@ export const AIPool = {
         max_tokens: 3000
       });
     }
+  },
+
+  /**
+   * Sinh tóm tắt bài học AI (Client-side, trực tiếp dùng Gemini Keys)
+   */
+  async generateLessonSummary({ mode = 'quick', chapterTitle = 'Chương học', lessonTitle = 'Bài học', source = '', instruction = '' }) {
+    const modeRules = {
+      quick: 'Tạo 3–5 ý quan trọng nhất, ngắn gọn.',
+      study: 'Nêu ý chính, khái niệm và ví dụ/ngữ cảnh nếu nguồn có.',
+      exam: 'Nêu từ khóa, điểm dễ nhầm và đúng 3 câu tự kiểm tra.'
+    };
+
+    const prompt = `Bạn là trợ lý học tập. CHỈ dùng NGUỒN BÀI HỌC bên dưới, không thêm kiến thức ngoài nguồn. Nếu nguồn không đủ, phải nói rõ: "Nội dung bài học chưa đủ để kết luận".\n\nCHƯƠNG: ${chapterTitle}\nBÀI: ${lessonTitle}\nCHẾ ĐỘ: ${mode}\nYÊU CẦU: ${modeRules[mode] || modeRules.quick}\nGỢI Ý THÊM: ${instruction || 'Không có'}\n\nNGUỒN BÀI HỌC:\n${source.slice(0, 28000)}\n\nTrả về JSON hợp lệ duy nhất có cấu trúc:\n{\n  "mainPoints": ["..."],\n  "keywords": ["..."],\n  "pitfalls": ["..."],\n  "quickQuestions": ["..."],\n  "source": "${chapterTitle} — ${lessonTitle}"\n}`;
+
+    // 1. Thử gọi trực tiếp các Gemini Keys trong pool
+    for (let i = 0; i < RAW_KEYS.gemini.length; i++) {
+      const key = rotator.getKey('gemini');
+      if (!key) continue;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${key}`;
+
+      const payload = {
+        contents: [{ parts: [{ text: prompt }] }],
+        generationConfig: {
+          temperature: 0.2,
+          responseMimeType: 'application/json'
+        }
+      };
+
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const text = data.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
+          if (text) {
+            const parsed = JSON.parse(text);
+            return {
+              mainPoints: Array.isArray(parsed.mainPoints) ? parsed.mainPoints.slice(0, 8) : [],
+              keywords: Array.isArray(parsed.keywords) ? parsed.keywords.slice(0, 12) : [],
+              pitfalls: Array.isArray(parsed.pitfalls) ? parsed.pitfalls.slice(0, 6) : [],
+              quickQuestions: Array.isArray(parsed.quickQuestions) ? parsed.quickQuestions.slice(0, 3) : [],
+              source: String(parsed.source || `${chapterTitle} — ${lessonTitle}`)
+            };
+          }
+        }
+      } catch (e) {
+        console.warn(`[AIPool Summary] Gemini Key ${i + 1} lỗi, thử key tiếp theo...`, e);
+      }
+    }
+
+    // 2. Fallback sang OpenRouter (dùng gpt-4o-mini hoặc llama-3.3-70b)
+    try {
+      const openRouterReply = await this.callOpenRouter({
+        model: 'openai/gpt-4o-mini',
+        messages: [{ role: 'user', content: prompt }],
+        response_format: { type: 'json_object' }
+      });
+      if (openRouterReply) {
+        const jsonMatch = openRouterReply.match(/\{[\s\S]*\}/);
+        const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : openRouterReply);
+        return {
+          mainPoints: Array.isArray(parsed.mainPoints) ? parsed.mainPoints.slice(0, 8) : [],
+          keywords: Array.isArray(parsed.keywords) ? parsed.keywords.slice(0, 12) : [],
+          pitfalls: Array.isArray(parsed.pitfalls) ? parsed.pitfalls.slice(0, 6) : [],
+          quickQuestions: Array.isArray(parsed.quickQuestions) ? parsed.quickQuestions.slice(0, 3) : [],
+          source: String(parsed.source || `${chapterTitle} — ${lessonTitle}`)
+        };
+      }
+    } catch (err) {
+      console.warn('[AIPool Summary] OpenRouter Fallback lỗi:', err);
+    }
+
+    throw new Error('Không thể kết nối dịch vụ AI tóm tắt lúc này. Vui lòng thử lại sau!');
   }
 };

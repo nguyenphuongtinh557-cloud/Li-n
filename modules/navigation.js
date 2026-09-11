@@ -81,6 +81,9 @@ export const NavController = {
     if (pageId === 'study-space') {
       setTimeout(() => window.renderStudySpace?.(), 20);
     }
+    if (pageId === 'curriculum-summary') {
+      setTimeout(() => window.initCurriculumSummaryPage?.(), 20);
+    }
     if (pageId === 'home') {
       setTimeout(() => window.updateHomeStats?.(), 20);
     }
@@ -120,6 +123,7 @@ export const NavController = {
     let snavId = `snav-${pageId}`;
     if (subTabId === 'source-tab') snavId = 'snav-aigen';
     if (subTabId === 'history-tab') snavId = 'snav-history';
+    if (pageId === 'curriculum-summary') snavId = 'snav-summary';
 
     const activeNav = document.getElementById(snavId) || document.getElementById(`snav-${pageId}`);
     if (activeNav) activeNav.classList.add('active');

@@ -83,10 +83,13 @@
           <button id="snav-aigen" class="sidebar-nav-item" onclick="NavController.navigateToPage('aigen')">
             <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Tạo câu hỏi bằng AI</span>
           </button>
+          <button id="snav-summary" class="sidebar-nav-item" onclick="NavController.navigateToPage('curriculum-summary')">
+            <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Tóm tắt giáo trình</span>
+          </button>
           <button id="snav-plan" class="sidebar-nav-item" onclick="">
             <i class="fa-solid fa-calendar-check"></i> <span>Lên kế hoạch ôn thi</span>
           </button>
-          <button id="snav-exam-ai" class="sidebar-nav-item" onclick="">
+          <button id="snav-exam-ai" class="sidebar-nav-item hidden" onclick="">
             <i class="fa-solid fa-file-circle-plus"></i> <span>Tạo đề thi AI</span>
           </button>
           <button id="snav-more-subjects" class="sidebar-nav-item upgrade-item" onclick="NavController.navigateToPage('upgrade')">
@@ -790,7 +793,7 @@
             <div class="study-reader-grid">
               <aside id="study-reader-toc" class="study-reader-toc" aria-label="Mục lục bài giảng"><div class="study-reader-course-card"><div class="study-reader-course-icon"><i class="fa-solid fa-graduation-cap"></i></div><div><span id="study-reader-course-code">FTECA</span><strong id="study-reader-course-title">Tài liệu học tập &amp; Bài giảng ôn tập</strong></div></div><div class="study-reader-toc-head"><span>Tiến độ học tập</span><b id="study-reader-progress">0%</b></div><div class="study-reader-progress-track" aria-label="Tiến độ học"><i id="study-reader-progress-bar" style="width:0%"></i></div><label class="study-reader-find-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="study-reader-find" class="study-reader-find" type="search" placeholder="Tìm trong bài giảng…" autocomplete="off"></label><nav id="study-reader-toc-list" class="study-reader-toc-list"></nav></aside>
               <main class="study-reader-main"><div class="study-reader-main-top"><span id="study-reader-location"><i class="fa-solid fa-book-open"></i> Không gian học tập</span><span class="study-reader-page-count">Reader <b id="study-reader-page-indicator">1 / 1</b></span></div><div id="study-reader-toolbar" class="study-reader-toolbar" aria-label="Công cụ học"><button type="button" data-reader-action="note"><i class="fa-solid fa-note-sticky"></i> Tạo ghi chú</button><button type="button" data-reader-action="highlight"><i class="fa-solid fa-highlighter"></i> Highlight</button><button type="button" data-reader-action="annotate"><i class="fa-solid fa-pen-ruler"></i> Vẽ</button><button type="button" data-reader-action="undo"><i class="fa-solid fa-rotate-left"></i> Hoàn tác</button><button type="button" data-reader-action="clear"><i class="fa-solid fa-eraser"></i> Xóa nét vẽ</button><div class="study-reader-color-palette" role="group" aria-label="Chọn màu bút"><button type="button" class="active" data-annotation-color="#10b981" aria-label="Màu xanh lá" title="Xanh lá"></button><button type="button" data-annotation-color="#2563eb" aria-label="Màu xanh dương" title="Xanh dương"></button><button type="button" data-annotation-color="#8b5cf6" aria-label="Màu tím" title="Tím"></button><button type="button" data-annotation-color="#ec4899" aria-label="Màu hồng" title="Hồng"></button><button type="button" data-annotation-color="#f97316" aria-label="Màu cam" title="Cam"></button><button type="button" data-annotation-color="#eab308" aria-label="Màu vàng" title="Vàng"></button><button type="button" data-annotation-color="#1f2937" aria-label="Màu đen" title="Đen"></button></div></div><article id="study-reader-content" class="study-reader-content" tabindex="-1"></article><footer class="study-reader-document-footer" aria-label="Trạng thái tài liệu"><span><i class="fa-solid fa-sparkles"></i> Học từng chút, giỏi từng ngày</span><div class="study-reader-footer-progress"><i></i></div></footer></main>
-              <aside id="study-reader-right-panel" class="study-reader-right-panel"><div class="study-reader-panel-orb" aria-hidden="true"></div><section id="study-reader-note" class="study-reader-note-paper"><div class="study-reader-panel-title"><span><i class="fa-solid fa-note-sticky"></i> Ghi chú của bạn</span><small id="study-reader-note-status">Chưa lưu</small></div><textarea id="study-reader-note-input" placeholder="Viết ghi chú để tiện ghi nhớ…"></textarea><div class="study-reader-note-tools"><button type="button" data-note-format="bold"><b>B</b></button><button type="button" data-note-format="italic"><i>I</i></button><button type="button" data-note-format="list"><i class="fa-solid fa-list"></i></button></div></section><section id="study-reader-ai" class="study-reader-ai"><div class="study-reader-panel-title"><span><i class="fa-solid fa-sparkles"></i> Tóm tắt bài học</span></div><p class="study-reader-ai-copy">AI chỉ dựa trên bài giảng bạn đang mở.</p><div class="study-reader-ai-modes" role="group" aria-label="Chế độ tóm tắt"><button type="button" data-summary-mode="quick" class="active">1 phút</button><button type="button" data-summary-mode="study">Học kỹ</button><button type="button" data-summary-mode="exam">Ôn thi</button></div><input id="study-reader-ai-instruction" type="text" maxlength="300" placeholder="Bạn chưa hiểu phần nào? (không bắt buộc)"><button id="study-reader-ai-summary" type="button" class="study-reader-ai-action"><i class="fa-solid fa-wand-magic-sparkles"></i> Tóm tắt bài này</button><div id="study-reader-ai-status" class="study-reader-ai-status" aria-live="polite">Chọn chế độ rồi tạo tóm tắt.</div><div id="study-reader-ai-result" class="study-reader-ai-result"></div><div class="study-reader-ai-actions"><button type="button" id="study-reader-ai-save" disabled>Lưu vào ghi chú</button><button type="button" id="study-reader-ai-regenerate" disabled>Tạo lại</button><button type="button" id="study-reader-ai-explain" disabled>Giải thích phần đang bôi đen</button></div></section><section id="study-reader-share" class="study-reader-share"><div class="study-reader-panel-title"><span><i class="fa-solid fa-link"></i> Tài liệu &amp; Chia sẻ</span></div><div class="study-reader-key-row"><input id="study-reader-key-input" type="text" placeholder="Nhập key để truy cập ghi chú"><button id="study-reader-key-open" type="button">Xác nhận</button></div><div class="study-reader-share-actions"><button id="study-reader-save" type="button"><i class="fa-regular fa-bookmark"></i> Lưu lại</button><button id="study-reader-share-create" type="button"><i class="fa-solid fa-share-nodes"></i> Chia sẻ</button></div><small id="study-reader-share-status">Chia sẻ hoạt động cục bộ trên thiết bị này.</small></section></aside>
+              <aside id="study-reader-right-panel" class="study-reader-right-panel"><div class="study-reader-panel-orb" aria-hidden="true"></div><section id="study-reader-note" class="study-reader-note-paper"><div class="study-reader-panel-title"><span><i class="fa-solid fa-note-sticky"></i> Ghi chú của bạn</span><small id="study-reader-note-status">Chưa lưu</small></div><textarea id="study-reader-note-input" placeholder="Viết ghi chú để tiện ghi nhớ…"></textarea><div class="study-reader-note-tools"><button type="button" data-note-format="bold"><b>B</b></button><button type="button" data-note-format="italic"><i>I</i></button><button type="button" data-note-format="list"><i class="fa-solid fa-list"></i></button></div></section><section id="study-reader-ai" class="study-reader-ai"><div class="study-reader-panel-title"><span><i class="fa-solid fa-sparkles"></i> Tóm tắt bài học</span></div><p class="study-reader-ai-copy">Tóm tắt tiêu chuẩn do hệ thống phát hành.</p><div class="study-reader-ai-modes" role="group" aria-label="Chế độ tóm tắt"><button type="button" data-summary-mode="quick" class="active">1 phút</button><button type="button" data-summary-mode="study">Học kỹ</button><button type="button" data-summary-mode="exam">Ôn thi</button></div><input id="study-reader-ai-instruction" type="text" maxlength="300" placeholder="Bạn chưa hiểu phần nào? (không bắt buộc)" style="display:none;"><button id="study-reader-ai-summary" type="button" class="study-reader-ai-action" style="display:none;"><i class="fa-solid fa-wand-magic-sparkles"></i> Tóm tắt bài này</button><div id="study-reader-ai-status" class="study-reader-ai-status" aria-live="polite">Đang tải tóm tắt…</div><div id="study-reader-ai-result" class="study-reader-ai-result"></div><div class="study-reader-ai-actions"><button type="button" id="study-reader-ai-save" disabled>Lưu vào ghi chú</button><button type="button" id="study-reader-ai-regenerate" disabled><i class="fa-solid fa-rotate-right"></i> Tạo lại bằng AI</button><button type="button" id="study-reader-ai-explain" disabled>Giải thích phần đang bôi đen</button></div></section><section id="study-reader-share" class="study-reader-share"><div class="study-reader-panel-title"><span><i class="fa-solid fa-link"></i> Tài liệu &amp; Chia sẻ</span></div><div class="study-reader-key-row"><input id="study-reader-key-input" type="text" placeholder="Nhập key để truy cập ghi chú"><button id="study-reader-key-open" type="button">Xác nhận</button></div><div class="study-reader-share-actions"><button id="study-reader-save" type="button"><i class="fa-regular fa-bookmark"></i> Lưu lại</button><button id="study-reader-share-create" type="button"><i class="fa-solid fa-share-nodes"></i> Chia sẻ</button></div><small id="study-reader-share-status">Chia sẻ hoạt động cục bộ trên thiết bị này.</small></section></aside>
             </div>
           </div>
         </section>
@@ -812,6 +815,262 @@
               </button>
             </div>
           </div>
+        </section>
+
+        <!-- ══════ PAGE 5B: TÓM TẮT GIÁO TRÌNH CÁ NHÂN (GEN Z UI) ══════ -->
+        <section id="page-curriculum-summary" class="page-container hidden">
+          <div class="curriculum-summary-shell">
+
+            <!-- STICKER OVERLAYS -->
+            <div class="cs-sticker-layer">
+              <div class="cs-sticker-washi-tape"></div>
+              <div class="cs-sticker-sparkles">
+                <svg class="cs-sparkle-star" width="24" height="24" viewBox="0 0 24 24"><path d="M12 0 C12 6.6 17.4 12 24 12 C17.4 12 12 17.4 12 24 C12 17.4 6.6 12 0 12 C6.6 12 12 6.6 12 0 Z" fill="#FFC107" stroke="#FFFFFF" stroke-width="1.5"/></svg>
+                <svg class="cs-sparkle-star" width="18" height="18" viewBox="0 0 24 24" style="animation-delay: 0.8s;"><path d="M12 0 C12 6.6 17.4 12 24 12 C17.4 12 12 17.4 12 24 C12 17.4 6.6 12 0 12 C6.6 12 12 6.6 12 0 Z" fill="#FFFFFF" stroke="#FFC107" stroke-width="2.5"/></svg>
+              </div>
+              <div class="cs-sticker-dot-grid"></div>
+              <div class="cs-sticker-mint-wave"></div>
+            </div>
+
+            <!-- STAGE 1: INPUT STAGE (SCREENSHOT 2 STYLE) -->
+            <div id="cs-input-stage" class="cs-input-stage">
+              
+              <!-- HEADER HERO -->
+              <div class="cs-header-hero">
+                <div class="cs-hero-badge-icon">
+                  <i class="fa-solid fa-file-signature"></i>
+                </div>
+                <div class="cs-hero-copy">
+                  <h1>Tóm tắt tài liệu bằng AI</h1>
+                  <p>Đọc nhanh &mdash; Hiểu sâu &mdash; Học hiệu quả hơn</p>
+                </div>
+              </div>
+
+              <!-- MAIN GRID 2 COLS (SCREENSHOT 2) -->
+              <div class="curriculum-summary-body">
+                
+                <!-- LEFT: DROPZONE + TEXTAREA -->
+                <div class="curriculum-input-panel">
+                  <div class="curriculum-dropzone" id="curriculum-dropzone">
+                    <div class="curriculum-dropzone-inner">
+                      <i class="fa-solid fa-cloud-arrow-up curriculum-dropzone-icon"></i>
+                      <p class="curriculum-dropzone-label">Kéo thả file vào đây hoặc</p>
+                      <label class="btn btn-primary btn-sm curriculum-upload-btn" for="curriculum-file-input" style="border-radius:20px;padding:8px 20px;background:#4f46e5;border:none;">
+                        <i class="fa-solid fa-folder-open"></i> Chọn file
+                      </label>
+                      <input type="file" id="curriculum-file-input" accept=".pdf,.docx,.doc,.txt,.pptx" style="display:none">
+                      <small style="color:var(--text-muted);font-size:11px;margin-top:6px;">Hỗ trợ: PDF, DOCX, TXT, PPTX &nbsp;|&nbsp; Dung lượng tối đa: 20MB</small>
+                    </div>
+                    <div class="curriculum-file-preview hidden" id="curriculum-file-preview">
+                      <i class="fa-solid fa-file-pdf" id="curriculum-file-icon" style="color:#ef4444;font-size:32px;"></i>
+                      <div>
+                        <b id="curriculum-file-name">file.pdf</b>
+                        <small id="curriculum-file-size">0 KB</small>
+                      </div>
+                      <button type="button" class="curriculum-remove-file" id="curriculum-remove-file" title="Xóa file"><i class="fa-solid fa-xmark"></i></button>
+                    </div>
+                  </div>
+
+                  <div class="curriculum-or-divider"><span>hoặc dán văn bản trực tiếp</span></div>
+
+                  <textarea
+                    id="curriculum-text-input"
+                    class="curriculum-text-area"
+                    placeholder="Dán nội dung giáo trình, tài liệu hoặc ghi chú vào đây…"
+                    rows="6"
+                    maxlength="100000"
+                  ></textarea>
+                  <small class="curriculum-char-count" id="curriculum-char-count">0 / 100.000 ký tự</small>
+                </div>
+
+                <!-- RIGHT: MODE SELECTION CARDS (SCREENSHOT 2) -->
+                <div class="curriculum-input-panel">
+                  <div style="font-size:15px;font-weight:800;color:var(--text-primary);display:flex;align-items:center;gap:8px;">
+                    <i class="fa-solid fa-wand-magic-sparkles" style="color:#4f46e5;"></i> Chọn kiểu tóm tắt
+                  </div>
+
+                  <div class="cs-mode-cards-grid">
+                    <!-- MODE 1 -->
+                    <div class="cs-mode-card active" data-cs-mode="quick" id="cs-mode-card-quick">
+                      <div class="cs-mc-icon"><i class="fa-solid fa-file-circle-check"></i></div>
+                      <div class="cs-mc-content">
+                        <div class="cs-mc-title">Tóm tắt nhanh</div>
+                        <div class="cs-mc-desc">Nội dung cốt lõi, 5&ndash;10 ý chính</div>
+                      </div>
+                      <div class="cs-mc-check"><i class="fa-solid fa-check"></i></div>
+                    </div>
+
+                    <!-- MODE 2 -->
+                    <div class="cs-mode-card" data-cs-mode="study" id="cs-mode-card-study">
+                      <div class="cs-mc-icon"><i class="fa-solid fa-file-lines"></i></div>
+                      <div class="cs-mc-content">
+                        <div class="cs-mc-title">Tóm tắt chi tiết</div>
+                        <div class="cs-mc-desc">Phân tích sâu, có ví dụ minh họa</div>
+                      </div>
+                      <div class="cs-mc-check"><i class="fa-solid fa-check"></i></div>
+                    </div>
+
+                    <!-- MODE 3 -->
+                    <div class="cs-mode-card" data-cs-mode="exam" id="cs-mode-card-exam">
+                      <div class="cs-mc-icon"><i class="fa-solid fa-book-bookmark"></i></div>
+                      <div class="cs-mc-content">
+                        <div class="cs-mc-title">Tóm tắt theo chủ đề</div>
+                        <div class="cs-mc-desc">Tập trung vào phần bạn quan tâm</div>
+                      </div>
+                      <div class="cs-mc-check"><i class="fa-solid fa-check"></i></div>
+                    </div>
+                  </div>
+
+                  <input
+                    type="text"
+                    id="curriculum-doc-title"
+                    class="curriculum-title-input"
+                    placeholder="Tên tài liệu / môn học (tuỳ chọn)"
+                    maxlength="120"
+                    style="margin-top:10px;"
+                  >
+
+                  <button type="button" id="curriculum-run-btn" class="btn btn-primary curriculum-run-btn" style="background:linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i> Tóm tắt bằng AI
+                  </button>
+
+                  <div class="curriculum-status" id="curriculum-status" aria-live="polite"></div>
+                </div>
+
+              </div><!-- /.curriculum-summary-body -->
+
+              <!-- HISTORY NEARBY -->
+              <div class="curriculum-history-card" style="margin-top:28px;">
+                <div class="curriculum-history-header">
+                  <b><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử tóm tắt gần đây</b>
+                  <button type="button" id="curriculum-clear-history-btn" class="btn btn-ghost btn-xs">Xóa tất cả</button>
+                </div>
+                <div id="curriculum-history-list" class="curriculum-history-list">
+                  <div class="curriculum-history-empty">Chưa có lịch sử tóm tắt nào.</div>
+                </div>
+              </div>
+
+            </div><!-- /#cs-input-stage -->
+
+            <!-- STAGE 2: RESULT STAGE (SCREENSHOT 3 & 4 STYLE) -->
+            <div id="cs-result-stage" class="cs-result-stage hidden">
+
+              <!-- DOCUMENT BANNER (SCREENSHOT 3) -->
+              <div class="cs-doc-banner">
+                <div class="cs-doc-info">
+                  <button type="button" id="cs-btn-back-input" class="btn btn-secondary btn-sm" style="border-radius:12px;">
+                    <i class="fa-solid fa-chevron-left"></i> Quay lại
+                  </button>
+                  <div class="cs-doc-badge">
+                    <i class="fa-solid fa-file-pdf"></i>
+                  </div>
+                  <div class="cs-doc-details">
+                    <h3 id="cs-active-doc-title">Tài liệu học tập</h3>
+                    <div class="cs-doc-meta" id="cs-active-doc-meta">
+                      <span><i class="fa-solid fa-file"></i> Tài liệu</span>
+                      <span>&bull;</span>
+                      <span id="cs-doc-timestamp">Tóm tắt vừa xong</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="cs-doc-actions">
+                  <button type="button" id="cs-btn-reload-summary" class="btn btn-secondary btn-sm" style="border-radius:12px;">
+                    <i class="fa-solid fa-rotate-right"></i> Tải lại
+                  </button>
+                </div>
+              </div>
+
+              <!-- SUB-NAVIGATION TABS (SCREENSHOT 3 & 4) -->
+              <div class="cs-tab-bar" role="tablist">
+                <button type="button" class="cs-tab-item active" data-cs-tab="summary" id="cs-tab-btn-summary">
+                  <i class="fa-solid fa-file-lines"></i> Tóm tắt
+                </button>
+                <button type="button" class="cs-tab-item" data-cs-tab="mindmap" id="cs-tab-btn-mindmap">
+                  <i class="fa-solid fa-diagram-project"></i> Sơ đồ tư duy
+                </button>
+                <button type="button" class="cs-tab-item" data-cs-tab="questions" id="cs-tab-btn-questions">
+                  <i class="fa-solid fa-circle-question"></i> Câu hỏi liên quan
+                </button>
+                <button type="button" class="cs-tab-item" data-cs-tab="source" id="cs-tab-btn-source">
+                  <i class="fa-solid fa-book-open"></i> Nguồn tài liệu
+                </button>
+              </div>
+
+              <!-- TAB PANES CONTAINER -->
+              <div class="cs-tab-panes">
+
+                <!-- TAB 1: SUMMARY (SCREENSHOT 3) -->
+                <div id="cs-pane-summary" class="cs-pane">
+                  <div class="cs-result-grid">
+
+                    <!-- LEFT MAIN COL -->
+                    <div class="cs-summary-main-col" id="cs-summary-main-col">
+                      <!-- Dynamic Content Rendered Here -->
+                    </div>
+
+                    <!-- RIGHT WIDGETS COL (SCREENSHOT 3) -->
+                    <div class="cs-widgets-col">
+                      <!-- GREEN WIDGET: Ý chính cần nhớ -->
+                      <div class="cs-widget-green">
+                        <h5><i class="fa-solid fa-circle-check"></i> Ý chính cần nhớ</h5>
+                        <ul id="cs-widget-green-list">
+                          <li>Nội dung cốt lõi của tài liệu được tổng hợp tự động.</li>
+                        </ul>
+                      </div>
+
+                      <!-- PINK WIDGET: Cần lưu ý -->
+                      <div class="cs-widget-pink">
+                        <h5><i class="fa-solid fa-triangle-exclamation"></i> Cần lưu ý</h5>
+                        <ul id="cs-widget-pink-list">
+                          <li>Chú ý các thuật ngữ và khái niệm dễ nhầm lẫn.</li>
+                        </ul>
+                      </div>
+
+                      <!-- PURPLE WIDGET: Từ khóa -->
+                      <div class="cs-widget-purple">
+                        <h5><i class="fa-solid fa-tags"></i> Từ khóa</h5>
+                        <div class="cs-pill-tags-wrap" id="cs-widget-purple-tags">
+                          <span class="cs-pill-tag">Giáo trình</span>
+                        </div>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
+                <!-- TAB 2: MINDMAP & DOC ASSISTANT (SCREENSHOT 4) -->
+                <div id="cs-pane-mindmap" class="cs-pane hidden">
+                  <div class="cs-mindmap-grid">
+                    <!-- LEFT: MINDMAP SVG CANVAS -->
+                    <div id="cs-mindmap-container"></div>
+
+                    <!-- RIGHT: DOC ASSISTANT SIDEBAR -->
+                    <div id="cs-doc-assistant-container"></div>
+                  </div>
+                </div>
+
+                <!-- TAB 3: QUESTIONS -->
+                <div id="cs-pane-questions" class="cs-pane hidden">
+                  <div class="cs-section-card">
+                    <h4><i class="fa-solid fa-circle-question"></i> Câu hỏi ôn tập tự động từ tài liệu</h4>
+                    <div id="cs-questions-body" class="cs-questions-body"></div>
+                  </div>
+                </div>
+
+                <!-- TAB 4: SOURCE TEXT -->
+                <div id="cs-pane-source" class="cs-pane hidden">
+                  <div class="cs-section-card">
+                    <h4><i class="fa-solid fa-book-open"></i> Nguồn văn bản trích xuất</h4>
+                    <pre id="cs-source-body" style="white-space:pre-wrap;font-family:inherit;font-size:13px;color:#475569;line-height:1.7;max-height:480px;overflow-y:auto;background:#f8fafc;padding:16px;border-radius:12px;border:1px solid #e2e8f0;"></pre>
+                  </div>
+                </div>
+
+              </div><!-- /.cs-tab-panes -->
+
+            </div><!-- /#cs-result-stage -->
+
+          </div><!-- /.curriculum-summary-shell -->
         </section>
 
         <!-- ══════ PAGE 6: THÔNG BÁO ══════ -->
