@@ -3692,11 +3692,6 @@ let _csCurrentResult = null;       // Kết quả AI hiện tại
 let _csInited = false;             // đã init listener chưa
 
 // ─ Khởi tạo trang và gắn tất cả listeners ──────────────────────────────
-function initCurriculumSummaryPage() {
-  // Render lịch sử ngay khi mở trang
-  renderCurriculumSummaryHistory();
-
-  if (_csInited) return; // Listeners chỉ gắn 1 lần
 let _csCurrentSourceText = '';
 
 function initCurriculumSummaryPage() {
