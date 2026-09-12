@@ -3756,6 +3756,12 @@ function initCurriculumSummaryPage() {
   // ― Remove file button
   document.getElementById('curriculum-remove-file')?.addEventListener('click', () => {
     _csCurrentFile = null;
+    
+    // ✅ Reset cache tracking
+    window._csLastFileHash = null;
+    _csCurrentResult = null;
+    _csCurrentSourceText = '';
+    
     const fi = document.getElementById('curriculum-file-input');
     if (fi) fi.value = '';
     document.getElementById('curriculum-file-preview')?.classList.add('hidden');
@@ -3819,6 +3825,13 @@ function csHandleFileSelect(file) {
   }
 
   _csCurrentFile = file;
+  
+  // ✅ Reset file hash tracking để cache được kiểm tra lại với file mới
+  window._csLastFileHash = null;
+  _csCurrentResult = null;
+  _csCurrentSourceText = '';
+  console.log(`[File] 🆕 File mới được chọn: ${file.name}`);
+  
   const inner = document.querySelector('.curriculum-dropzone-inner');
   if (inner) inner.style.display = 'none';
 
@@ -3963,7 +3976,7 @@ function getCachedSummary(hash, mode) {
 }
 
 // Store summary in cache
-function setCachedSummary(hash, mode, result, title) {
+function setCachedSummary(hash, mode, result, title, sourceText = '') {
   try {
     const cacheKey = `${CACHE_KEY_PREFIX}${CACHE_VERSION}_${hash}_${mode}`;
     const data = {
@@ -3971,6 +3984,7 @@ function setCachedSummary(hash, mode, result, title) {
       mode,
       title,
       result,
+      sourceText, // ✅ Lưu cả source text để render đầy đủ các tab
       timestamp: Date.now(),
       version: CACHE_VERSION
     };
@@ -4031,22 +4045,35 @@ async function runCurriculumSummary() {
     setStatus('Đang kiểm tra cache...', 'loading');
     try {
       const fileHash = await calculateFileHash(_csCurrentFile);
-      const cached = getCachedSummary(fileHash, _csMode);
       
-      if (cached) {
-        _csCurrentResult = cached.result;
-        _csCurrentSourceText = ''; // Không lưu source để tiết kiệm memory
+      // ✅ Kiểm tra xem có phải file mới không (so với lần cuối)
+      const isNewFile = !window._csLastFileHash || window._csLastFileHash !== fileHash;
+      window._csLastFileHash = fileHash;
+      
+      // Chỉ dùng cache nếu KHÔNG phải file mới
+      if (!isNewFile) {
+        const cached = getCachedSummary(fileHash, _csMode);
         
-        // Check if hierarchical or flat
-        if (cached.result.chapters && cached.result.globalSummary) {
-          renderHierarchicalSummaryResult(cached.result, cached.title || title);
-        } else {
-          renderCurriculumSummaryResult(cached.result, cached.title || title);
+        if (cached) {
+          _csCurrentResult = cached.result;
+          _csCurrentSourceText = cached.sourceText || ''; // ✅ Lưu source text từ cache
+          
+          // Check if hierarchical or flat
+          if (cached.result.chapters && cached.result.globalSummary) {
+            renderHierarchicalSummaryResult(cached.result, cached.title || title);
+          } else {
+            renderCurriculumSummaryResult(cached.result, cached.title || title);
+          }
+          
+          setStatus('✓ Đã tải từ cache (tiết kiệm thời gian & API calls)', 'success');
+          showToast('⚡ Tải từ cache thành công!', 'info');
+          return;
         }
-        
-        setStatus('✓ Đã tải từ cache (tiết kiệm thời gian & API calls)', 'success');
-        showToast('⚡ Tải từ cache thành công!', 'info');
-        return;
+      } else {
+        // ✅ File mới → xóa kết quả cũ để tránh hiển thị sai
+        _csCurrentResult = null;
+        _csCurrentSourceText = '';
+        console.log(`[Cache] 🆕 File mới được upload, bỏ qua cache`);
       }
     } catch (err) {
       console.warn('[Cache] Error checking cache:', err);
@@ -4108,7 +4135,7 @@ async function runCurriculumSummary() {
     if (_csCurrentFile) {
       try {
         const fileHash = await calculateFileHash(_csCurrentFile);
-        setCachedSummary(fileHash, _csMode, result, title);
+        setCachedSummary(fileHash, _csMode, result, title, source); // ✅ Lưu cả source text
       } catch (err) {
         console.warn('[Cache] Error storing:', err);
       }
