@@ -32,9 +32,11 @@ export function setCurrentQuestion(question) {
   _currentContext = question;
 }
 
-// ─── Gọi Groq AI (Dự phòng cực nhanh & miễn phí) ────────────────────────────
+// ─── Gọi Groq AI (PRIMARY ENGINE - Siêu nhanh & FREE) ────────────────────────────
 async function callGroq(userMessage, systemPrompt) {
-  const models = ['groq/compound-mini', 'openai/gpt-oss-120b'];
+  // ✅ Ưu tiên model tốt nhất: openai/gpt-oss-120b (120B params, Tiếng Việt xuất sắc)
+  const models = ['openai/gpt-oss-120b', 'groq/compound-mini'];
+  
   for (const model of models) {
     for (let attempt = 0; attempt < 3; attempt++) {
       const key = AIPool.getKey('groq');
@@ -55,24 +57,41 @@ async function callGroq(userMessage, systemPrompt) {
             max_tokens: 1500,
           }),
         });
-        if (!res.ok) continue;
+        
+        if (!res.ok) {
+          console.warn(`[Groq] Model ${model} attempt ${attempt + 1} failed: ${res.status}`);
+          continue;
+        }
+        
         const data = await res.json();
         const output = data.choices?.[0]?.message?.content;
-        if (output) return output;
-      } catch {
+        if (output) {
+          console.log(`[Groq] ✅ Thành công với model ${model}`);
+          return output;
+        }
+      } catch (err) {
+        console.warn(`[Groq] Error with ${model}:`, err.message);
         continue;
       }
     }
   }
+  
   throw new Error('Groq AI Failed');
 }
 
-// ─── Gọi Cerebras (CERA) AI hoặc AIPool ──────────────────────────────────────
+// ─── Gọi AI (Groq làm PRIMARY ENGINE) ──────────────────────────────────────
 async function askAI(userMessage, systemPrompt = CERA_SYSTEM) {
-  const models = ['gpt-oss-120b'];
-
-  for (const model of models) {
-    for (let attempt = 0; attempt < 2; attempt++) {
+  // ✅ GROQ LÀM ENGINE CHÍNH - Siêu nhanh, FREE, Unlimited quota
+  console.log('[CERA] 🚀 Sử dụng Groq AI (Primary Engine)');
+  
+  try {
+    return await callGroq(userMessage, systemPrompt);
+  } catch (groqError) {
+    console.warn('[CERA] ⚠️ Groq lỗi, thử Cerebras backup...', groqError);
+    
+    // Fallback sang Cerebras (nếu có credits)
+    const models = ['gpt-oss-120b'];
+    for (const model of models) {
       const key = AIPool.getKey('cerebras');
       try {
         const res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
@@ -93,24 +112,23 @@ async function askAI(userMessage, systemPrompt = CERA_SYSTEM) {
         });
         
         if (res.status === 402) {
-          console.warn('Cerebras hết quota (402). Tự động chuyển sang Groq AI...');
-          return await callGroq(userMessage, systemPrompt);
+          console.warn('[CERA] Cerebras hết quota (402)');
+          continue;
         }
 
         if (!res.ok) continue;
         const data = await res.json();
         const output = data.choices?.[0]?.message?.content;
-        if (output) return output;
+        if (output) {
+          console.log('[CERA] ✅ Cerebras backup thành công');
+          return output;
+        }
       } catch {
         continue;
       }
     }
-  }
-
-  try {
-    return await callGroq(userMessage, systemPrompt);
-  } catch (e) {
-    throw new Error('⚠️ Cera AI đang bận. Vui lòng thử lại sau vài giây!');
+    
+    throw new Error('⚠️ FTECA 24 AI đang bận. Vui lòng thử lại sau vài giây!');
   }
 }
 
