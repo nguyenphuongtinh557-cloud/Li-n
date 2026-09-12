@@ -86,15 +86,17 @@
           <button id="snav-summary" class="sidebar-nav-item" onclick="NavController.navigateToPage('curriculum-summary')">
             <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Tóm tắt giáo trình</span>
           </button>
-          <button id="snav-plan" class="sidebar-nav-item" onclick="">
+          <button id="snav-plan" class="sidebar-nav-item" onclick="window._guardDevFeature('Lên kế hoạch ôn thi')">
             <i class="fa-solid fa-calendar-check"></i> <span>Lên kế hoạch ôn thi</span>
+            <span class="badge-soon">Sắp ra</span>
           </button>
           <button id="snav-exam-ai" class="sidebar-nav-item hidden" onclick="">
             <i class="fa-solid fa-file-circle-plus"></i> <span>Tạo đề thi AI</span>
           </button>
-          <button id="snav-more-subjects" class="sidebar-nav-item upgrade-item" onclick="NavController.navigateToPage('upgrade')">
+          <button id="snav-more-subjects" class="sidebar-nav-item upgrade-item" onclick="window._guardDevFeature('Mở thêm môn học')">
             <i class="fa-solid fa-book-open"></i> <span>Mở thêm môn học</span>
             <span class="badge-pro">PRO</span>
+            <span class="badge-soon">Sắp ra</span>
           </button>
           <button id="snav-upgrade" class="sidebar-nav-item upgrade-item" onclick="NavController.navigateToPage('upgrade')">
             <i class="fa-solid fa-crown"></i> <span>Nâng cấp tài khoản</span>
@@ -793,7 +795,7 @@
             <div class="study-reader-grid">
               <aside id="study-reader-toc" class="study-reader-toc" aria-label="Mục lục bài giảng"><div class="study-reader-course-card"><div class="study-reader-course-icon"><i class="fa-solid fa-graduation-cap"></i></div><div><span id="study-reader-course-code">FTECA</span><strong id="study-reader-course-title">Tài liệu học tập &amp; Bài giảng ôn tập</strong></div></div><div class="study-reader-toc-head"><span>Tiến độ học tập</span><b id="study-reader-progress">0%</b></div><div class="study-reader-progress-track" aria-label="Tiến độ học"><i id="study-reader-progress-bar" style="width:0%"></i></div><label class="study-reader-find-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="study-reader-find" class="study-reader-find" type="search" placeholder="Tìm trong bài giảng…" autocomplete="off"></label><nav id="study-reader-toc-list" class="study-reader-toc-list"></nav></aside>
               <main class="study-reader-main"><div class="study-reader-main-top"><span id="study-reader-location"><i class="fa-solid fa-book-open"></i> Không gian học tập</span><span class="study-reader-page-count">Reader <b id="study-reader-page-indicator">1 / 1</b></span></div><div id="study-reader-toolbar" class="study-reader-toolbar" aria-label="Công cụ học"><button type="button" data-reader-action="note"><i class="fa-solid fa-note-sticky"></i> Tạo ghi chú</button><button type="button" data-reader-action="highlight"><i class="fa-solid fa-highlighter"></i> Highlight</button><button type="button" data-reader-action="annotate"><i class="fa-solid fa-pen-ruler"></i> Vẽ</button><button type="button" data-reader-action="undo"><i class="fa-solid fa-rotate-left"></i> Hoàn tác</button><button type="button" data-reader-action="clear"><i class="fa-solid fa-eraser"></i> Xóa nét vẽ</button><div class="study-reader-color-palette" role="group" aria-label="Chọn màu bút"><button type="button" class="active" data-annotation-color="#10b981" aria-label="Màu xanh lá" title="Xanh lá"></button><button type="button" data-annotation-color="#2563eb" aria-label="Màu xanh dương" title="Xanh dương"></button><button type="button" data-annotation-color="#8b5cf6" aria-label="Màu tím" title="Tím"></button><button type="button" data-annotation-color="#ec4899" aria-label="Màu hồng" title="Hồng"></button><button type="button" data-annotation-color="#f97316" aria-label="Màu cam" title="Cam"></button><button type="button" data-annotation-color="#eab308" aria-label="Màu vàng" title="Vàng"></button><button type="button" data-annotation-color="#1f2937" aria-label="Màu đen" title="Đen"></button></div></div><article id="study-reader-content" class="study-reader-content" tabindex="-1"></article><footer class="study-reader-document-footer" aria-label="Trạng thái tài liệu"><span><i class="fa-solid fa-sparkles"></i> Học từng chút, giỏi từng ngày</span><div class="study-reader-footer-progress"><i></i></div></footer></main>
-              <aside id="study-reader-right-panel" class="study-reader-right-panel"><div class="study-reader-panel-orb" aria-hidden="true"></div><section id="study-reader-note" class="study-reader-note-paper"><div class="study-reader-panel-title"><span><i class="fa-solid fa-note-sticky"></i> Ghi chú của bạn</span><small id="study-reader-note-status">Chưa lưu</small></div><textarea id="study-reader-note-input" placeholder="Viết ghi chú để tiện ghi nhớ…"></textarea><div class="study-reader-note-tools"><button type="button" data-note-format="bold"><b>B</b></button><button type="button" data-note-format="italic"><i>I</i></button><button type="button" data-note-format="list"><i class="fa-solid fa-list"></i></button></div></section><section id="study-reader-ai" class="study-reader-ai"><div class="study-reader-panel-title"><span><i class="fa-solid fa-sparkles"></i> Tóm tắt bài học</span></div><p class="study-reader-ai-copy">Tóm tắt tiêu chuẩn do hệ thống phát hành.</p><div class="study-reader-ai-modes" role="group" aria-label="Chế độ tóm tắt"><button type="button" data-summary-mode="quick" class="active">1 phút</button><button type="button" data-summary-mode="study">Học kỹ</button><button type="button" data-summary-mode="exam">Ôn thi</button></div><input id="study-reader-ai-instruction" type="text" maxlength="300" placeholder="Bạn chưa hiểu phần nào? (không bắt buộc)" style="display:none;"><button id="study-reader-ai-summary" type="button" class="study-reader-ai-action" style="display:none;"><i class="fa-solid fa-wand-magic-sparkles"></i> Tóm tắt bài này</button><div id="study-reader-ai-status" class="study-reader-ai-status" aria-live="polite">Đang tải tóm tắt…</div><div id="study-reader-ai-result" class="study-reader-ai-result"></div><div class="study-reader-ai-actions"><button type="button" id="study-reader-ai-save" disabled>Lưu vào ghi chú</button><button type="button" id="study-reader-ai-regenerate" disabled><i class="fa-solid fa-rotate-right"></i> Tạo lại bằng AI</button><button type="button" id="study-reader-ai-explain" disabled>Giải thích phần đang bôi đen</button></div></section><section id="study-reader-share" class="study-reader-share"><div class="study-reader-panel-title"><span><i class="fa-solid fa-link"></i> Tài liệu &amp; Chia sẻ</span></div><div class="study-reader-key-row"><input id="study-reader-key-input" type="text" placeholder="Nhập key để truy cập ghi chú"><button id="study-reader-key-open" type="button">Xác nhận</button></div><div class="study-reader-share-actions"><button id="study-reader-save" type="button"><i class="fa-regular fa-bookmark"></i> Lưu lại</button><button id="study-reader-share-create" type="button"><i class="fa-solid fa-share-nodes"></i> Chia sẻ</button></div><small id="study-reader-share-status">Chia sẻ hoạt động cục bộ trên thiết bị này.</small></section></aside>
+              <aside id="study-reader-right-panel" class="study-reader-right-panel"><div class="study-reader-panel-orb" aria-hidden="true"></div><section id="study-reader-note" class="study-reader-note-paper"><div class="study-reader-panel-title"><span><i class="fa-solid fa-note-sticky"></i> Ghi chú của bạn</span><small id="study-reader-note-status">Chưa lưu</small></div><textarea id="study-reader-note-input" placeholder="Viết ghi chú để tiện ghi nhớ…"></textarea><div class="study-reader-note-tools"><button type="button" data-note-format="bold"><b>B</b></button><button type="button" data-note-format="italic"><i>I</i></button><button type="button" data-note-format="list"><i class="fa-solid fa-list"></i></button></div></section><section id="study-reader-ai" class="study-reader-ai"><div class="study-reader-panel-title"><span><i class="fa-solid fa-sparkles"></i> Tóm tắt bài học</span></div><p class="study-reader-ai-copy">Tóm tắt tiêu chuẩn do hệ thống phát hành.</p><div class="study-reader-ai-modes" role="group" aria-label="Chế độ tóm tắt"><button type="button" data-summary-mode="quick" class="active">1 phút</button></div><input id="study-reader-ai-instruction" type="text" maxlength="300" placeholder="Bạn chưa hiểu phần nào? (không bắt buộc)" style="display:none;"><button id="study-reader-ai-summary" type="button" class="study-reader-ai-action" style="display:none;"><i class="fa-solid fa-wand-magic-sparkles"></i> Tóm tắt bài này</button><div id="study-reader-ai-status" class="study-reader-ai-status" aria-live="polite">Đang tải tóm tắt…</div><div id="study-reader-ai-result" class="study-reader-ai-result"></div><div class="study-reader-ai-actions"><button type="button" id="study-reader-ai-save" disabled>Lưu vào ghi chú</button><button type="button" id="study-reader-ai-regenerate" disabled><i class="fa-solid fa-rotate-right"></i> Tạo lại bằng AI</button><button type="button" id="study-reader-ai-explain" disabled>Giải thích phần đang bôi đen</button></div></section><section id="study-reader-share" class="study-reader-share"><div class="study-reader-panel-title"><span><i class="fa-solid fa-link"></i> Tài liệu &amp; Chia sẻ</span></div><div class="study-reader-key-row"><input id="study-reader-key-input" type="text" placeholder="Nhập key để truy cập ghi chú"><button id="study-reader-key-open" type="button">Xác nhận</button></div><div class="study-reader-share-actions"><button id="study-reader-save" type="button"><i class="fa-regular fa-bookmark"></i> Lưu lại</button><button id="study-reader-share-create" type="button"><i class="fa-solid fa-share-nodes"></i> Chia sẻ</button></div><small id="study-reader-share-status">Chia sẻ hoạt động cục bộ trên thiết bị này.</small></section></aside>
             </div>
           </div>
         </section>
@@ -835,14 +837,56 @@
             <!-- STAGE 1: INPUT STAGE (SCREENSHOT 2 STYLE) -->
             <div id="cs-input-stage" class="cs-input-stage">
               
-              <!-- HEADER HERO -->
+              <!-- HEADER HERO WITH HIGH-TECH TECH DECORATIONS -->
               <div class="cs-header-hero">
-                <div class="cs-hero-badge-icon">
-                  <i class="fa-solid fa-file-signature"></i>
+                <div class="cs-hero-cyber-bg"></div>
+                <div class="cs-hero-left">
+                  <div class="cs-hero-badge-icon">
+                    <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <defs>
+                        <linearGradient id="ai-grad" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse">
+                          <stop offset="0%" stop-color="#10b981"/>
+                          <stop offset="100%" stop-color="#2563eb"/>
+                        </linearGradient>
+                      </defs>
+                      <!-- Brain circuit icon -->
+                      <circle cx="26" cy="26" r="24" fill="url(#ai-grad)" opacity="0.15"/>
+                      <path d="M18 20c0-4.4 3.6-8 8-8s8 3.6 8 8c2.2 0 4 1.8 4 4s-1.8 4-4 4H18c-2.2 0-4-1.8-4-4s1.8-4 4-4z" fill="url(#ai-grad)" stroke="white" stroke-width="1.2"/>
+                      <circle cx="20" cy="22" r="2" fill="white"/>
+                      <circle cx="26" cy="19" r="2" fill="white"/>
+                      <circle cx="32" cy="22" r="2" fill="white"/>
+                      <path d="M20 28v6M26 28v8M32 28v5" stroke="url(#ai-grad)" stroke-width="2" stroke-linecap="round"/>
+                      <circle cx="20" cy="35" r="2" fill="url(#ai-grad)"/>
+                      <circle cx="26" cy="37" r="2" fill="url(#ai-grad)"/>
+                      <circle cx="32" cy="34" r="2" fill="url(#ai-grad)"/>
+                    </svg>
+                    <span class="cs-hero-pulse-ring"></span>
+                  </div>
+                  <div class="cs-hero-copy">
+                    <div class="cs-hero-kicker">
+                      <span class="cs-tech-pill green"><i class="fa-solid fa-microchip"></i> AI Engine v4.5</span>
+                      <span class="cs-tech-pill blue"><i class="fa-solid fa-bolt"></i> Multimodal Vision OCR</span>
+                    </div>
+                    <h1>Tóm tắt tài liệu bằng AI</h1>
+                    <p>Đọc nhanh &mdash; Hiểu sâu &mdash; Phân tích đa tầng tự động bằng Trí Tuệ Nhân Tạo</p>
+                  </div>
                 </div>
-                <div class="cs-hero-copy">
-                  <h1>Tóm tắt tài liệu bằng AI</h1>
-                  <p>Đọc nhanh &mdash; Hiểu sâu &mdash; Học hiệu quả hơn</p>
+
+                <div class="cs-hero-tech-widgets">
+                  <div class="cs-tech-stat-card">
+                    <div class="cs-stat-icon green"><i class="fa-solid fa-shield-halved"></i></div>
+                    <div>
+                      <div class="cs-stat-val">99.8%</div>
+                      <div class="cs-stat-lbl">Chính xác AI</div>
+                    </div>
+                  </div>
+                  <div class="cs-tech-stat-card">
+                    <div class="cs-stat-icon blue"><i class="fa-solid fa-gauge-high"></i></div>
+                    <div>
+                      <div class="cs-stat-val">&lt; 3s</div>
+                      <div class="cs-stat-lbl">Tốc độ xử lý</div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -855,7 +899,7 @@
                     <div class="curriculum-dropzone-inner">
                       <i class="fa-solid fa-cloud-arrow-up curriculum-dropzone-icon"></i>
                       <p class="curriculum-dropzone-label">Kéo thả file vào đây hoặc</p>
-                      <label class="btn btn-primary btn-sm curriculum-upload-btn" for="curriculum-file-input" style="border-radius:20px;padding:8px 20px;background:#4f46e5;border:none;">
+                      <label class="btn btn-primary btn-sm curriculum-upload-btn" for="curriculum-file-input" style="border-radius:20px;padding:8px 20px;background:linear-gradient(135deg, #10b981 0%, #2563eb 100%);border:none;box-shadow:0 4px 14px rgba(16,185,129,0.3);">
                         <i class="fa-solid fa-folder-open"></i> Chọn file
                       </label>
                       <input type="file" id="curriculum-file-input" accept=".pdf,.docx,.doc,.txt,.pptx" style="display:none">
@@ -885,8 +929,8 @@
 
                 <!-- RIGHT: MODE SELECTION CARDS (SCREENSHOT 2) -->
                 <div class="curriculum-input-panel">
-                  <div style="font-size:15px;font-weight:800;color:var(--text-primary);display:flex;align-items:center;gap:8px;">
-                    <i class="fa-solid fa-wand-magic-sparkles" style="color:#4f46e5;"></i> Chọn kiểu tóm tắt
+                  <div style="font-size:15px;font-weight:800;color:var(--text-primary);display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                    <i class="fa-solid fa-wand-magic-sparkles" style="color:#10b981;"></i> Chọn kiểu tóm tắt
                   </div>
 
                   <div class="cs-mode-cards-grid">
@@ -911,10 +955,10 @@
                     </div>
 
                     <!-- MODE 3 -->
-                    <div class="cs-mode-card" data-cs-mode="exam" id="cs-mode-card-exam">
+                    <div class="cs-mode-card" data-cs-mode="exam" id="cs-mode-card-exam" onclick="window._guardDevFeature('Học sâu')" style="cursor:pointer">
                       <div class="cs-mc-icon"><i class="fa-solid fa-book-bookmark"></i></div>
                       <div class="cs-mc-content">
-                        <div class="cs-mc-title">Tóm tắt theo chủ đề</div>
+                        <div class="cs-mc-title">Học sâu <span class="badge-soon">Sắp ra</span></div>
                         <div class="cs-mc-desc">Tập trung vào phần bạn quan tâm</div>
                       </div>
                       <div class="cs-mc-check"><i class="fa-solid fa-check"></i></div>
@@ -930,7 +974,7 @@
                     style="margin-top:10px;"
                   >
 
-                  <button type="button" id="curriculum-run-btn" class="btn btn-primary curriculum-run-btn" style="background:linear-gradient(135deg, #4f46e5 0%, #2563eb 100%);">
+                  <button type="button" id="curriculum-run-btn" class="btn btn-primary curriculum-run-btn" style="background:linear-gradient(135deg, #10b981 0%, #2563eb 100%);box-shadow:0 6px 20px rgba(16,185,129,0.35);">
                     <i class="fa-solid fa-wand-magic-sparkles"></i> Tóm tắt bằng AI
                   </button>
 
@@ -1062,7 +1106,7 @@
                 <div id="cs-pane-source" class="cs-pane hidden">
                   <div class="cs-section-card">
                     <h4><i class="fa-solid fa-book-open"></i> Nguồn văn bản trích xuất</h4>
-                    <pre id="cs-source-body" style="white-space:pre-wrap;font-family:inherit;font-size:13px;color:#475569;line-height:1.7;max-height:480px;overflow-y:auto;background:#f8fafc;padding:16px;border-radius:12px;border:1px solid #e2e8f0;"></pre>
+                    <pre id="cs-source-body" style="white-space:pre-wrap;font-family:inherit;font-size:13px;line-height:1.7;max-height:480px;overflow-y:auto;padding:16px;border-radius:12px;"></pre>
                   </div>
                 </div>
 

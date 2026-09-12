@@ -246,13 +246,79 @@ export const AIPool = {
    * Sinh tóm tắt bài học AI (Client-side, trực tiếp dùng Gemini Keys)
    */
   async generateLessonSummary({ mode = 'quick', chapterTitle = 'Chương học', lessonTitle = 'Bài học', source = '', instruction = '' }) {
-    const modeRules = {
-      quick: 'Tạo 3–5 ý quan trọng nhất, ngắn gọn.',
-      study: 'Nêu ý chính, khái niệm và ví dụ/ngữ cảnh nếu nguồn có.',
-      exam: 'Nêu từ khóa, điểm dễ nhầm và đúng 3 câu tự kiểm tra.'
+
+    // ✅ KHÔNG TRUNCATE - nhận full source từ chunking layer
+    const src = source; // No slice!
+    const extra = instruction ? `\nYÊU CẦU THÊM CỦA NGƯỜI DÙNG: ${instruction}` : '';
+
+    const prompts = {
+
+      // MODE 1: Tóm tắt nhanh — súc tích, bullet points, đọc trong 1 phút
+      quick: `Bạn là trợ lý học tập chuyên tóm tắt nhanh. 
+
+NHIỆM VỤ:
+- Đọc TOÀN BỘ tài liệu dưới đây
+- Trích xuất 8-12 ý QUAN TRỌNG NHẤT từ toàn bộ tài liệu
+- Mỗi ý 1 câu ngắn gọn dưới 25 từ
+- Bao quát TẤT CẢ các phần quan trọng (đầu, giữa, cuối)
+- KHÔNG chỉ lấy ý từ phần đầu tài liệu
+
+CHƯƠNG: ${chapterTitle}
+BÀI: ${lessonTitle}
+${extra}
+
+NGUỒN TÀI LIỆU (ĐỌC TOÀN BỘ):
+${src}
+
+Trả về JSON hợp lệ:
+{
+  "mainPoints": ["ý 1", "ý 2", ..., "ý 8-12"],
+  "keywords": ["từ khóa 1", "từ khóa 2", ...],
+  "pitfalls": [],
+  "quickQuestions": [],
+  "source": "${chapterTitle} — ${lessonTitle}"
+}`,
+
+      // MODE 2: Tóm tắt chi tiết — phân tích sâu, có ví dụ minh họa
+      study: `Bạn là gia sư học thuật chuyên phân tích tài liệu chuyên sâu. Nhiệm vụ: phân tích kỹ tài liệu và trình bày đầy đủ các khái niệm cốt lõi kèm ví dụ/ngữ cảnh cụ thể. Mỗi ý chính cần giải thích RÕ RÀNG tại sao quan trọng. KHÔNG bịa thêm thông tin ngoài tài liệu.
+${extra}
+
+CHƯƠNG: ${chapterTitle}
+BÀI: ${lessonTitle}
+
+NGUỒN TÀI LIỆU:
+${src}
+
+Trả về JSON hợp lệ duy nhất:
+{
+  "mainPoints": ["[Khái niệm]: giải thích chi tiết kèm ví dụ nếu có", ...],
+  "keywords": ["thuật ngữ quan trọng 1", "thuật ngữ 2", ...],
+  "pitfalls": ["lỗi hay gặp hoặc điểm cần chú ý 1", ...],
+  "quickQuestions": ["câu hỏi ôn tập 1?", "câu hỏi 2?", "câu hỏi 3?"],
+  "source": "${chapterTitle} — ${lessonTitle}"
+}`,
+
+      // MODE 3: Tóm tắt theo chủ đề — hướng ôn thi, điểm dễ nhầm, câu hỏi kiểm tra
+      exam: `Bạn là chuyên gia luyện thi. Nhiệm vụ: phân tích tài liệu theo góc độ ÔN THI — tập trung vào những gì HAY RA THI, điểm DỄ NHẦM, và câu hỏi kiểm tra kiến thức. Định dạng phải súc tích, dễ nhớ, phù hợp flashcard.
+${extra}
+
+CHƯƠNG: ${chapterTitle}
+BÀI: ${lessonTitle}
+
+NGUỒN TÀI LIỆU:
+${src}
+
+Trả về JSON hợp lệ duy nhất:
+{
+  "mainPoints": ["điểm hay ra thi 1", "điểm hay ra thi 2", ...],
+  "keywords": ["từ khóa quan trọng cho thi 1", ...],
+  "pitfalls": ["⚠️ Dễ nhầm: ... thực ra là ...", "⚠️ Không được nhầm: ...", ...],
+  "quickQuestions": ["Câu hỏi thi thử 1?", "Câu hỏi thi thử 2?", "Câu hỏi thi thử 3?"],
+  "source": "${chapterTitle} — ${lessonTitle}"
+}`
     };
 
-    const prompt = `Bạn là trợ lý học tập. CHỈ dùng NGUỒN BÀI HỌC bên dưới, không thêm kiến thức ngoài nguồn. Nếu nguồn không đủ, phải nói rõ: "Nội dung bài học chưa đủ để kết luận".\n\nCHƯƠNG: ${chapterTitle}\nBÀI: ${lessonTitle}\nCHẾ ĐỘ: ${mode}\nYÊU CẦU: ${modeRules[mode] || modeRules.quick}\nGỢI Ý THÊM: ${instruction || 'Không có'}\n\nNGUỒN BÀI HỌC:\n${source.slice(0, 28000)}\n\nTrả về JSON hợp lệ duy nhất có cấu trúc:\n{\n  "mainPoints": ["..."],\n  "keywords": ["..."],\n  "pitfalls": ["..."],\n  "quickQuestions": ["..."],\n  "source": "${chapterTitle} — ${lessonTitle}"\n}`;
+    const prompt = prompts[mode] || prompts.quick;
 
     // 1. Thử gọi trực tiếp các Gemini Keys trong pool
     for (let i = 0; i < RAW_KEYS.gemini.length; i++) {

@@ -72,7 +72,7 @@ export function renderMindmap(container, data) {
     // Branch Card
     svgHtml += `
       <g transform="translate(${branchX}, ${branchY - 45})" filter="url(#node-shadow)">
-        <rect x="0" y="0" width="200" height="90" rx="14" fill="#ffffff" stroke="${branch.color}" stroke-width="2.5"/>
+        <rect class="cs-mm-card-rect" x="0" y="0" width="200" height="90" rx="14" fill="#ffffff" stroke="${branch.color}" stroke-width="2.5"/>
         <rect x="0" y="0" width="200" height="32" rx="14" fill="${branch.color}" opacity="0.12"/>
         <text x="14" y="22" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="${branch.color}">${escapeSvgText(branch.title)}</text>
     `;
@@ -81,7 +81,7 @@ export function renderMindmap(container, data) {
     (branch.items || []).slice(0, 3).forEach((item, itemIdx) => {
       svgHtml += `
         <circle cx="16" cy="${44 + itemIdx * 16}" r="3" fill="${branch.color}" />
-        <text x="26" y="${48 + itemIdx * 16}" font-family="Inter, sans-serif" font-size="11" fill="#475569">${escapeSvgText(truncateText(item, 26))}</text>
+        <text class="cs-mm-item-text" x="26" y="${48 + itemIdx * 16}" font-family="Inter, sans-serif" font-size="11" fill="#475569">${escapeSvgText(truncateText(item, 26))}</text>
       `;
     });
 
@@ -107,7 +107,7 @@ export function renderMindmap(container, data) {
 
     svgHtml += `
       <g transform="translate(${branchX - 200}, ${branchY - 45})" filter="url(#node-shadow)">
-        <rect x="0" y="0" width="200" height="90" rx="14" fill="#ffffff" stroke="${branch.color}" stroke-width="2.5"/>
+        <rect class="cs-mm-card-rect" x="0" y="0" width="200" height="90" rx="14" fill="#ffffff" stroke="${branch.color}" stroke-width="2.5"/>
         <rect x="0" y="0" width="200" height="32" rx="14" fill="${branch.color}" opacity="0.12"/>
         <text x="14" y="22" font-family="Inter, sans-serif" font-size="13" font-weight="700" fill="${branch.color}">${escapeSvgText(branch.title)}</text>
     `;
@@ -115,7 +115,7 @@ export function renderMindmap(container, data) {
     (branch.items || []).slice(0, 3).forEach((item, itemIdx) => {
       svgHtml += `
         <circle cx="16" cy="${44 + itemIdx * 16}" r="3" fill="${branch.color}" />
-        <text x="26" y="${48 + itemIdx * 16}" font-family="Inter, sans-serif" font-size="11" fill="#475569">${escapeSvgText(truncateText(item, 26))}</text>
+        <text class="cs-mm-item-text" x="26" y="${48 + itemIdx * 16}" font-family="Inter, sans-serif" font-size="11" fill="#475569">${escapeSvgText(truncateText(item, 26))}</text>
       `;
     });
 

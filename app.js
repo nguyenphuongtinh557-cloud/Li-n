@@ -13,7 +13,7 @@ import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServe
 import { initAdminAuth } from './modules/admin.js';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js?v=20260901c';
 import { NavController } from './modules/navigation.js';
-import { AuthModule, getUserRole } from './modules/auth.js';
+import { AuthModule, getUserRole, SUPER_ADMIN_EMAILS } from './modules/auth.js';
 import { ArticlesModule } from './modules/articles.js';
 import { readSummary, writeSummary, clearSessionCache, summaryIsComplete, summaryIsStale } from './modules/firestoreSummary.js';
 import { renderMindmap } from './modules/mindmap.js';
@@ -3582,6 +3582,18 @@ function studySpaceSubjectIcon(subject) {
   return 'fa-book-open';
 }
 
+// ── Khoá tính năng đang phát triển với user thường ───────────────────────────
+window._guardDevFeature = function(featureName = 'Tính năng này') {
+  const user = NavController?.currentUser;
+  const isAdmin = user && user.email && SUPER_ADMIN_EMAILS.map(e => e.toLowerCase()).includes(user.email.toLowerCase());
+  if (isAdmin) {
+    showToast(`🛠️ [Admin] Đang phát triển: ${featureName}`, 'info');
+    return true;
+  }
+  showToast(`🚧 ${featureName} đang được phát triển — sẽ sớm ra mắt!`, 'info');
+  return false;
+};
+
 // ── Cập nhật stats trang chủ theo thời gian thực ──────────────────────────────
 function updateHomeStats() {
   const elSubjects  = document.getElementById('stat-subjects');
@@ -3910,7 +3922,99 @@ async function extractPdfTextClient(file, onStatus) {
   return ocrTexts.join('\n\n').trim();
 }
 
-// ─ Chạy tóm tắt AI ───────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+// CACHING SYSTEM
+// ═══════════════════════════════════════════════════════════════════
+
+const CACHE_KEY_PREFIX = 'doc_summary_cache_';
+const CACHE_VERSION = 'v1';
+
+// Calculate file hash for caching
+async function calculateFileHash(file) {
+  const arrayBuffer = await file.arrayBuffer();
+  const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+}
+
+// Get cached summary
+function getCachedSummary(hash, mode) {
+  try {
+    const cacheKey = `${CACHE_KEY_PREFIX}${CACHE_VERSION}_${hash}_${mode}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (!cached) return null;
+    
+    const data = JSON.parse(cached);
+    const age = Date.now() - data.timestamp;
+    const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+    
+    if (age > maxAge) {
+      localStorage.removeItem(cacheKey);
+      return null;
+    }
+    
+    console.log(`[Cache] ✅ Hit for hash ${hash.slice(0, 8)}... (age: ${Math.round(age/1000/60)} min)`);
+    return data;
+  } catch (err) {
+    console.warn('[Cache] Error reading:', err);
+    return null;
+  }
+}
+
+// Store summary in cache
+function setCachedSummary(hash, mode, result, title) {
+  try {
+    const cacheKey = `${CACHE_KEY_PREFIX}${CACHE_VERSION}_${hash}_${mode}`;
+    const data = {
+      hash,
+      mode,
+      title,
+      result,
+      timestamp: Date.now(),
+      version: CACHE_VERSION
+    };
+    localStorage.setItem(cacheKey, JSON.stringify(data));
+    console.log(`[Cache] ✅ Stored hash ${hash.slice(0, 8)}...`);
+  } catch (err) {
+    console.warn('[Cache] Error storing:', err);
+  }
+}
+
+// Clear old caches
+function clearOldCaches() {
+  try {
+    const now = Date.now();
+    const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
+    let cleared = 0;
+    
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key?.startsWith(CACHE_KEY_PREFIX)) {
+        try {
+          const data = JSON.parse(localStorage.getItem(key));
+          if (now - data.timestamp > maxAge) {
+            localStorage.removeItem(key);
+            cleared++;
+          }
+        } catch {}
+      }
+    }
+    
+    if (cleared > 0) {
+      console.log(`[Cache] 🗑️ Cleared ${cleared} old cache entries`);
+    }
+  } catch (err) {
+    console.warn('[Cache] Error clearing old caches:', err);
+  }
+}
+
+// Clear caches on page load (cleanup)
+if (typeof window !== 'undefined') {
+  clearOldCaches();
+}
+
+// ─ Chạy tóm tắt AI với Caching ──────────────────────────────────────
 async function runCurriculumSummary() {
   const btn = document.getElementById('curriculum-run-btn');
   const status = document.getElementById('curriculum-status');
@@ -3922,7 +4026,35 @@ async function runCurriculumSummary() {
     status.className = `curriculum-status${cls ? ' ' + cls : ''}`;
   }
 
-  // 1. Lấy source text
+  // 1. Check cache first if file exists
+  if (_csCurrentFile) {
+    setStatus('Đang kiểm tra cache...', 'loading');
+    try {
+      const fileHash = await calculateFileHash(_csCurrentFile);
+      const cached = getCachedSummary(fileHash, _csMode);
+      
+      if (cached) {
+        _csCurrentResult = cached.result;
+        _csCurrentSourceText = ''; // Không lưu source để tiết kiệm memory
+        
+        // Check if hierarchical or flat
+        if (cached.result.chapters && cached.result.globalSummary) {
+          renderHierarchicalSummaryResult(cached.result, cached.title || title);
+        } else {
+          renderCurriculumSummaryResult(cached.result, cached.title || title);
+        }
+        
+        setStatus('✓ Đã tải từ cache (tiết kiệm thời gian & API calls)', 'success');
+        showToast('⚡ Tải từ cache thành công!', 'info');
+        return;
+      }
+    } catch (err) {
+      console.warn('[Cache] Error checking cache:', err);
+      // Continue to normal processing
+    }
+  }
+
+  // 2. Lấy source text
   let source = '';
   const textInput = document.getElementById('curriculum-text-input');
 
@@ -3955,19 +4087,33 @@ async function runCurriculumSummary() {
 
   // 2. Disable button & gọi AI
   if (btn) btn.disabled = true;
-  const modeLabels = { quick: 'Tóm tắt nhanh', study: 'Tóm tắt chi tiết', exam: 'Tóm tắt theo chủ đề' };
+  const modeLabels = { quick: 'Tóm tắt nhanh', study: 'Tóm tắt chi tiết', exam: 'Học sâu' };
   setStatus(`Đang gọi AI tóm tắt (${modeLabels[_csMode] || _csMode})…`, 'loading');
 
   try {
+    // ✅ GỬI FULL DOCUMENT (Gemini context = 1M tokens)
+    setStatus(`Đang tóm tắt toàn bộ tài liệu...`, 'loading');
+    
     const result = await AIPool.generateLessonSummary({
       mode: _csMode,
       chapterTitle: 'Giáo trình cá nhân',
       lessonTitle: title,
-      source: source.slice(0, 28000)
+      source: source // ✅ FULL source (no slice, no chunking)
     });
 
     _csCurrentResult = result;
     renderCurriculumSummaryResult(result, title);
+    
+    // ✅ Cache the result
+    if (_csCurrentFile) {
+      try {
+        const fileHash = await calculateFileHash(_csCurrentFile);
+        setCachedSummary(fileHash, _csMode, result, title);
+      } catch (err) {
+        console.warn('[Cache] Error storing:', err);
+      }
+    }
+    
     setStatus(`✓ Đã tóm tắt xong!`, 'success');
     showToast('✨ Tóm tắt tài liệu thành công!', 'success');
   } catch (err) {
@@ -3979,7 +4125,160 @@ async function runCurriculumSummary() {
   }
 }
 
-// ─ Render kết quả chuẩn Screenshots 3 & 4 ─────────────────────────────
+// ─ Render kết quả HIERARCHICAL (multi-chapter documents) ─────────────
+function renderHierarchicalSummaryResult(hierarchicalResult, titleLabel) {
+  // Show Result Stage, Hide Input Stage
+  document.getElementById('cs-input-stage')?.classList.add('hidden');
+  document.getElementById('cs-result-stage')?.classList.remove('hidden');
+
+  // Set Document Banner Details
+  const activeTitle = document.getElementById('cs-active-doc-title');
+  if (activeTitle) activeTitle.textContent = titleLabel || 'Tài liệu học tập';
+
+  const timestampEl = document.getElementById('cs-doc-timestamp');
+  if (timestampEl) {
+    const now = new Date();
+    const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
+    const dateStr = now.toLocaleDateString('vi-VN');
+    timestampEl.textContent = `Tóm tắt lúc ${timeStr} - ${dateStr}`;
+  }
+
+  // ── HIERARCHICAL TAB RENDERING ──
+  const mainCol = document.getElementById('cs-summary-main-col');
+  if (!mainCol) return;
+
+  let mainHtml = '<div class="cs-hierarchical-summary">';
+
+  // Global Summary Section
+  if (hierarchicalResult.globalSummary) {
+    const insights = hierarchicalResult.globalSummary.insights || [];
+    const keywords = hierarchicalResult.globalSummary.keywords || [];
+    
+    mainHtml += `
+      <div class="cs-overview-card" style="background:linear-gradient(135deg, #10b981 0%, #2563eb 100%);color:white;padding:24px;border-radius:16px;margin-bottom:24px;">
+        <div class="cs-overview-header" style="color:white;border-bottom:1px solid rgba(255,255,255,0.2);padding-bottom:12px;margin-bottom:16px;">
+          <b style="font-size:18px;"><i class="fa-solid fa-globe"></i> Tóm tắt tổng thể</b>
+          <span class="cs-badge-count" style="background:rgba(255,255,255,0.25);color:white;">${insights.length} insight</span>
+        </div>
+        <ul style="margin:0;padding-left:20px;">
+          ${insights.map(ins => `<li style="margin-bottom:10px;line-height:1.6;">${escapeHtml(String(ins))}</li>`).join('')}
+        </ul>
+        ${keywords.length > 0 ? `
+          <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.2);">
+            <small style="opacity:0.85;display:block;margin-bottom:8px;">Từ khóa chính:</small>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              ${keywords.slice(0, 15).map(k => `<span style="background:rgba(255,255,255,0.2);padding:4px 12px;border-radius:12px;font-size:12px;">${escapeHtml(String(k))}</span>`).join('')}
+            </div>
+          </div>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  // Chapter Tabs (Tab Switching UI)
+  const chapters = hierarchicalResult.chapters || [];
+  if (chapters.length > 0) {
+    mainHtml += '<div class="cs-chapter-tabs" style="display:flex;gap:8px;margin-bottom:20px;overflow-x:auto;padding-bottom:8px;">';
+    chapters.forEach((ch, idx) => {
+      mainHtml += `
+        <button type="button" class="cs-chapter-tab-btn ${idx === 0 ? 'active' : ''}" data-chapter-idx="${idx}" style="flex-shrink:0;padding:10px 16px;border:2px solid var(--border);border-radius:12px;background:var(--bg-secondary);cursor:pointer;transition:all 0.2s;font-size:13px;font-weight:600;">
+          <i class="fa-solid fa-book"></i> ${escapeHtml(String(ch.title).substring(0, 40))}
+        </button>
+      `;
+    });
+    mainHtml += '</div>';
+
+    // Chapter Content Panes
+    mainHtml += '<div class="cs-chapter-panes">';
+    chapters.forEach((ch, chIdx) => {
+      mainHtml += `<div class="cs-chapter-pane ${chIdx === 0 ? 'active' : ''}" data-chapter-idx="${chIdx}" style="display:${chIdx === 0 ? 'block' : 'none'};">`;
+      
+      // Chapter Aggregated Summary
+      if (ch.aggregatedSummary) {
+        const chMainPoints = ch.aggregatedSummary.mainPoints || [];
+        mainHtml += `
+          <div class="cs-section-card" style="background:#f0fdf4;border-left:4px solid #10b981;">
+            <h4 style="color:#10b981;"><i class="fa-solid fa-layer-group"></i> Tóm tắt chương</h4>
+            <ul>
+              ${chMainPoints.map(p => `<li>${escapeHtml(String(p))}</li>`).join('')}
+            </ul>
+          </div>
+        `;
+      }
+
+      // Lessons
+      const lessons = ch.lessons || [];
+      if (lessons.length > 0) {
+        mainHtml += `<div style="margin-top:20px;"><h5 style="font-size:14px;font-weight:700;color:var(--text-secondary);margin-bottom:12px;"><i class="fa-solid fa-list"></i> Chi tiết các bài học (${lessons.length})</h5>`;
+        lessons.forEach((lesson, lesIdx) => {
+          const summary = lesson.summary || {};
+          const mainPoints = summary.mainPoints || [];
+          mainHtml += `
+            <details class="cs-lesson-details" style="margin-bottom:12px;border:1px solid var(--border);border-radius:12px;padding:12px;">
+              <summary style="cursor:pointer;font-weight:600;color:var(--text-primary);"><i class="fa-solid fa-book-open"></i> ${escapeHtml(String(lesson.title))}</summary>
+              <div style="margin-top:12px;">
+                ${mainPoints.length > 0 ? `<ul style="margin:0;padding-left:20px;">${mainPoints.map(p => `<li style="margin-bottom:6px;font-size:13px;">${escapeHtml(String(p))}</li>`).join('')}</ul>` : '<p style="font-size:13px;color:var(--text-muted);">Không có tóm tắt chi tiết.</p>'}
+              </div>
+            </details>
+          `;
+        });
+        mainHtml += '</div>';
+      }
+
+      mainHtml += '</div>'; // close chapter pane
+    });
+    mainHtml += '</div>'; // close chapter panes
+  }
+
+  mainHtml += '</div>'; // close hierarchical summary
+  mainCol.innerHTML = mainHtml;
+
+  // Add click handlers for chapter tabs
+  document.querySelectorAll('.cs-chapter-tab-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const idx = this.dataset.chapterIdx;
+      document.querySelectorAll('.cs-chapter-tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.cs-chapter-pane').forEach(pane => pane.style.display = 'none');
+      this.classList.add('active');
+      const pane = document.querySelector(`.cs-chapter-pane[data-chapter-idx="${idx}"]`);
+      if (pane) pane.style.display = 'block';
+    });
+  });
+
+  // Update side widgets with global summary data
+  if (hierarchicalResult.globalSummary) {
+    const insights = hierarchicalResult.globalSummary.insights || [];
+    const keywords = hierarchicalResult.globalSummary.keywords || [];
+
+    // Green Widget
+    const greenList = document.getElementById('cs-widget-green-list');
+    if (greenList) {
+      greenList.innerHTML = insights.slice(0, 4).length > 0
+        ? insights.slice(0, 4).map(p => `<li>${escapeHtml(String(p))}</li>`).join('')
+        : '<li>Đã tổng hợp toàn bộ nội dung cốt lõi của tài liệu.</li>';
+    }
+
+    // Purple Widget (Keywords)
+    const purpleTags = document.getElementById('cs-widget-purple-tags');
+    if (purpleTags) {
+      purpleTags.innerHTML = keywords.length > 0
+        ? keywords.slice(0, 12).map(k => `<span class="cs-pill-tag">${escapeHtml(String(k))}</span>`).join('')
+        : '<span class="cs-pill-tag">Giáo trình</span>';
+    }
+  }
+
+  // Pink Widget (Pitfalls) - aggregate from first chapter
+  const pinkList = document.getElementById('cs-widget-pink-list');
+  if (pinkList && chapters[0]?.lessons[0]?.summary?.pitfalls?.length > 0) {
+    const pitfalls = chapters[0].lessons[0].summary.pitfalls;
+    pinkList.innerHTML = pitfalls.map(p => `<li>${escapeHtml(String(p))}</li>`).join('');
+  }
+
+  // Reset tab active state
+  document.getElementById('cs-tab-btn-summary')?.click();
+}
+
+// ─ Render kết quả chuẩn Screenshots 3 & 4 (flat document) ────────────
 function renderCurriculumSummaryResult(result, titleLabel) {
   // Show Result Stage, Hide Input Stage
   document.getElementById('cs-input-stage')?.classList.add('hidden');
@@ -4011,7 +4310,7 @@ function renderCurriculumSummaryResult(result, titleLabel) {
           <b><i class="fa-solid fa-file-circle-check"></i> Tóm tắt nhanh</b>
           <span class="cs-badge-count">${mainPoints.length} ý chính</span>
         </div>
-        <p style="font-size:13.5px;color:#1e293b;line-height:1.6;margin:0;">
+        <p style="font-size:13.5px;line-height:1.6;margin:0;">
           Tài liệu "${escapeHtml(titleLabel)}" tổng hợp đầy đủ các khái niệm cốt lõi, quy trình chính và điểm quan trọng cần ghi nhớ để chuẩn bị cho học tập và ôn thi.
         </p>
       </div>
@@ -4093,7 +4392,7 @@ function renderCurriculumSummaryResult(result, titleLabel) {
   const questionsBody = document.getElementById('cs-questions-body');
   if (questionsBody) {
     questionsBody.innerHTML = quickQuestions.length > 0
-      ? `<ol style="padding-left:20px;margin:0;">${quickQuestions.map(q => `<li style="margin-bottom:12px;font-size:14px;color:#334155;line-height:1.6;"><b>${escapeHtml(String(q))}</b></li>`).join('')}</ol>`
+      ? `<ol style="padding-left:20px;margin:0;">${quickQuestions.map(q => `<li style="margin-bottom:12px;font-size:14px;line-height:1.6;"><b>${escapeHtml(String(q))}</b></li>`).join('')}</ol>`
       : '<p style="color:var(--text-muted);font-size:13px;">Không có câu hỏi ôn tập tự động.</p>';
   }
 
