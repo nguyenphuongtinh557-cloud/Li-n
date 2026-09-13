@@ -329,186 +329,204 @@ export const NavController = {
     const learningFormatContent = cards.learningFormat?.content || '';
 
     // Render presentation shell; lesson, resource, and exam handlers remain unchanged.
+    const lessonCount = chapters.reduce((sum, chap) => sum + ((chap && chap.lessons || []).length), 0);
     detailContainer.innerHTML = `
-      <div class="subject-detail-page-shell">
-        <button class="subject-back-button" onclick="NavController.navigateToPage('${returnPage === 'ontap' ? 'ontap' : 'study-space'}')" aria-label="Quay lại danh sách môn học">
+      <div class="sd2-shell">
+        <button class="sd2-back" onclick="NavController.navigateToPage('${returnPage === 'ontap' ? 'ontap' : 'study-space'}')" aria-label="Quay lại danh sách môn học">
           <i class="fa-solid fa-arrow-left"></i><span>Quay lại</span>
         </button>
 
-        <!-- TOP HERO BANNER (Image 2 Style) -->
-        <article class="subject-detail-hero subject-theme-${visualThemeKey}" style="${banner ? `background-image: url('${banner}'); background-size: cover; background-position: center;` : ''}">
-          <div class="subject-hero-copy">
-            <div class="subject-meta-row" aria-label="Thông tin học phần">
-              <span class="subject-detail-badge"><i class="fa-solid fa-circle text-xs" style="color:#10b981;font-size:8px;"></i> ${safe(code)} — ${safe(name).toUpperCase()}</span>
+        <!-- SECTION 1 · HERO -->
+        <article class="sd2-hero subject-theme-${visualThemeKey}" style="${banner ? `background-image: url('${banner}'); background-size: cover; background-position: center;` : ''}">
+          <div class="sd2-hero-decor" aria-hidden="true">
+            <div class="sd2-orb sd2-orb-one"></div>
+            <div class="sd2-orb sd2-orb-two"></div>
+            <div class="sd2-dots"></div>
+          </div>
+          <div class="sd2-hero-copy">
+            <span class="sd2-badge"><i class="sd2-badge-dot"></i>${safe(code)} — ${safe(name).toUpperCase()}</span>
+            <h1 class="sd2-title">${safe(name)}</h1>
+            <p class="sd2-desc">${safe(shortDesc)}</p>
+            <div class="sd2-meta">
+              <span class="sd2-meta-chip"><i class="fa-solid fa-book-bookmark"></i>${credits} tín chỉ</span>
+              <span class="sd2-meta-chip"><i class="fa-solid fa-graduation-cap"></i>${safe(program)}</span>
+              <span class="sd2-meta-chip"><i class="fa-solid fa-calendar-days"></i>Học kỳ: ${semester}</span>
             </div>
-            <h1 class="subject-detail-title">${safe(name)}</h1>
-            <p class="subject-detail-description">
-              ${safe(shortDesc)}
-            </p>
-            <div class="subject-meta-row mt-4" style="margin-top:20px;">
-              <span class="badge badge-subtle" style="background:var(--bg-card);color:var(--text-primary);padding:8px 14px;border-radius:12px;font-weight:700;"><i class="fa-solid fa-book-bookmark" style="color:var(--primary);margin-right:6px;"></i> ${credits} tín chỉ</span>
-              <span class="badge badge-subtle" style="background:var(--bg-card);color:var(--text-primary);padding:8px 14px;border-radius:12px;font-weight:700;"><i class="fa-solid fa-graduation-cap" style="color:var(--primary);margin-right:6px;"></i> ${program}</span>
-              <span class="badge badge-subtle" style="background:var(--bg-card);color:var(--text-primary);padding:8px 14px;border-radius:12px;font-weight:700;"><i class="fa-solid fa-calendar-days" style="color:var(--primary);margin-right:6px;"></i> Học kỳ: ${semester}</span>
+            <div class="sd2-cta">
+              <button class="sd2-btn-primary" onclick="NavController.startSubjectExam('${s.id}')"><i class="fa-solid fa-bolt"></i>Ôn tập ngay</button>
+              <button class="sd2-btn-ghost" onclick="openUserResourceViewer('${s.id}', 'lecture')"><i class="fa-solid fa-folder-open"></i>Tài liệu học tập</button>
             </div>
           </div>
           ${!banner ? `
-          <div class="subject-hero-art theme-${visualThemeKey}" aria-hidden="true">
-            <div class="subject-art-glow subject-art-glow-one"></div>
-            <div class="subject-art-glow subject-art-glow-two"></div>
-            <i class="fa-solid ${visualTheme.art[1]} subject-art-float subject-art-float-one"></i>
-            <i class="fa-solid ${visualTheme.art[2]} subject-art-float subject-art-float-two"></i>
-            <div class="subject-art-platform"></div>
-            <div class="subject-art-orbit subject-art-orbit-one"></div>
-            <div class="subject-art-orbit subject-art-orbit-two"></div>
-            <div class="subject-art-emblem"><i class="fa-solid ${visualTheme.art[0]}"></i></div>
-          </div>
-          ` : ''}
+          <div class="sd2-hero-art" aria-hidden="true">
+            <div class="sd2-art-ring sd2-art-ring-one"></div>
+            <div class="sd2-art-ring sd2-art-ring-two"></div>
+            <div class="sd2-art-platform"></div>
+            <i class="fa-solid ${visualTheme.art[1]} sd2-art-float sd2-art-float-one"></i>
+            <i class="fa-solid ${visualTheme.art[2]} sd2-art-float sd2-art-float-two"></i>
+            <div class="sd2-art-emblem"><i class="fa-solid ${visualTheme.art[0]}"></i></div>
+          </div>` : ''}
         </article>
 
-        <!-- MAIN 2-COLUMN GRID -->
-        <div class="subject-detail-layout">
-          <!-- LEFT MAIN CONTENT COLUMN -->
-          <div class="subject-main-col" id="subject-main-col-root">
+        <!-- SECTION 2 · CHỈ SỐ QUAN TRỌNG -->
+        <section class="sd2-stats" aria-label="Thông tin quan trọng của môn học">
+          <div class="sd2-stat">
+            <span class="sd2-stat-icon sd2-tint-green"><i class="fa-solid fa-layer-group"></i></span>
+            <div><strong>${chapters.length}</strong><span>Chương học</span></div>
+          </div>
+          <div class="sd2-stat">
+            <span class="sd2-stat-icon sd2-tint-blue"><i class="fa-solid fa-book-open"></i></span>
+            <div><strong>${lessonCount}</strong><span>Bài học</span></div>
+          </div>
+          <div class="sd2-stat">
+            <span class="sd2-stat-icon sd2-tint-orange"><i class="fa-solid fa-star"></i></span>
+            <div><strong>${credits}</strong><span>Tín chỉ</span></div>
+          </div>
+          <div class="sd2-stat">
+            <span class="sd2-stat-icon sd2-tint-purple"><i class="fa-solid fa-calendar-days"></i></span>
+            <div><strong>${safe(semester)}</strong><span>Học kỳ</span></div>
+          </div>
+        </section>
 
-            <!-- SECTION 1: Giới thiệu môn học -->
-            <section class="subject-section-card" id="section-subject-intro">
-              <h2 class="subject-section-title">Giới thiệu môn học</h2>
+        <!-- SECTION 3 + 4 · NỘI DUNG CHÍNH & MỤC LỤC -->
+        <div class="sd2-grid">
+          <div class="sd2-main" id="subject-main-col-root">
+
+            <section class="sd2-card" id="section-subject-intro">
+              <header class="sd2-card-head">
+                <span class="sd2-head-icon sd2-tint-green"><i class="fa-solid fa-book-open"></i></span>
+                <div>
+                  <h2 class="sd2-card-title">Giới thiệu môn học</h2>
+                  <p class="sd2-card-sub">Tổng quan nội dung giảng dạy</p>
+                </div>
+              </header>
               ${canDisplayPublishedCanvas && introCanvas.length ? `<div class="student-intro-canvas ${introCanvasVariant}" style="min-height:${introCanvasHeight}px"><div class="student-intro-canvas-backdrop" aria-hidden="true"></div><div class="student-intro-canvas-course-label" aria-hidden="true"><span>${safe(code)}</span><strong>${safe(name)}</strong></div>${renderIntroCanvas()}</div>` : intro ? `
-                <p class="subject-intro-text">${safe(intro).replace(/\n/g, '<br>')}</p>
+                <p class="sd2-intro-text">${safe(intro).replace(/\n/g, '<br>')}</p>
               ` : `
-                <div class="text-xs text-muted py-2" style="font-style:italic;">Admin chưa cập nhật nội dung giới thiệu chi tiết cho môn học này.</div>
+                <div class="sd2-empty"><i class="fa-solid fa-feather-pointed"></i>Admin chưa cập nhật nội dung giới thiệu chi tiết cho môn học này.</div>
               `}
             </section>
 
-            <!-- SECTION 2: Bốn thẻ thông tin -->
-            <section class="subject-4cards-grid" id="section-subject-cards">
-              <!-- Card 1: Mục tiêu -->
-              <div class="subject-info-card">
-                <div class="card-icon-wrapper card-icon-objectives"><i class="fa-solid fa-bullseye"></i></div>
-                <div>
-                  <h3 class="card-text-title">${safe(cards.objectives?.title || 'Mục tiêu môn học')}</h3>
-                  <p class="card-text-desc">${safe(objectivesContent || 'Đang cập nhật mục tiêu môn học.')}</p>
-                </div>
+            <section class="sd2-infogrid" id="section-subject-cards" aria-label="Thông tin môn học">
+              <div class="sd2-info sd2-tint-card-green">
+                <span class="sd2-info-icon sd2-tint-green"><i class="fa-solid fa-bullseye"></i></span>
+                <h3>${safe(cards.objectives?.title || 'Mục tiêu môn học')}</h3>
+                <p>${safe(objectivesContent || 'Đang cập nhật mục tiêu môn học.')}</p>
               </div>
-
-              <!-- Card 2: Nội dung chính -->
-              <div class="subject-info-card">
-                <div class="card-icon-wrapper card-icon-mainContent"><i class="fa-solid fa-book-open"></i></div>
-                <div>
-                  <h3 class="card-text-title">${safe(cards.mainContent?.title || 'Nội dung chính')}</h3>
-                  <p class="card-text-desc">${safe(mainContentContent || 'Đang cập nhật nội dung chính.')}</p>
-                </div>
+              <div class="sd2-info sd2-tint-card-blue">
+                <span class="sd2-info-icon sd2-tint-blue"><i class="fa-solid fa-book-open"></i></span>
+                <h3>${safe(cards.mainContent?.title || 'Nội dung chính')}</h3>
+                <p>${safe(mainContentContent || 'Đang cập nhật nội dung chính.')}</p>
               </div>
-
-              <!-- Card 3: Đối tượng học -->
-              <div class="subject-info-card">
-                <div class="card-icon-wrapper card-icon-targetAudience"><i class="fa-solid fa-users"></i></div>
-                <div>
-                  <h3 class="card-text-title">${safe(cards.targetAudience?.title || 'Đối tượng học')}</h3>
-                  <p class="card-text-desc">${safe(targetAudienceContent || 'Đang cập nhật đối tượng học.')}</p>
-                </div>
+              <div class="sd2-info sd2-tint-card-orange">
+                <span class="sd2-info-icon sd2-tint-orange"><i class="fa-solid fa-users"></i></span>
+                <h3>${safe(cards.targetAudience?.title || 'Đối tượng học')}</h3>
+                <p>${safe(targetAudienceContent || 'Đang cập nhật đối tượng học.')}</p>
               </div>
-
-              <!-- Card 4: Hình thức học -->
-              <div class="subject-info-card">
-                <div class="card-icon-wrapper card-icon-learningFormat"><i class="fa-solid fa-shield-halved"></i></div>
-                <div>
-                  <h3 class="card-text-title">${safe(cards.learningFormat?.title || 'Hình thức học')}</h3>
-                  <p class="card-text-desc">${safe(learningFormatContent || 'Đang cập nhật hình thức học.')}</p>
-                </div>
+              <div class="sd2-info sd2-tint-card-purple">
+                <span class="sd2-info-icon sd2-tint-purple"><i class="fa-solid fa-shield-halved"></i></span>
+                <h3>${safe(cards.learningFormat?.title || 'Hình thức học')}</h3>
+                <p>${safe(learningFormatContent || 'Đang cập nhật hình thức học.')}</p>
               </div>
             </section>
 
             <!-- DYNAMIC LESSON / SELECTED CONTENT DISPLAY ZONE -->
             <div id="subject-selected-lesson-container" style="display:none;"></div>
 
-            <!-- SECTION 3: Thông tin giảng viên -->
-            <section class="subject-instructor-card" id="section-subject-instructor">
-              <div class="instructor-left">
+            <section class="sd2-card sd2-instructor" id="section-subject-instructor">
+              <div class="sd2-instructor-left">
                 ${instructor.avatar ? `
-                  <img src="${instructor.avatar}" alt="Avatar" class="instructor-avatar" referrerpolicy="no-referrer">
+                  <img src="${instructor.avatar}" alt="Avatar" class="sd2-instructor-avatar" referrerpolicy="no-referrer">
                 ` : `
-                  <div class="instructor-avatar-fallback"><i class="fa-solid fa-user"></i></div>
+                  <div class="sd2-instructor-fallback"><i class="fa-solid fa-user"></i></div>
                 `}
                 <div>
-                  <h3 class="instructor-name">${safe(instructor.name || 'Đang cập nhật tên giảng viên')}</h3>
-                  <p class="instructor-role">${safe(instructor.role || 'Giảng viên phụ trách')}</p>
+                  <h3 class="sd2-instructor-name">${safe(instructor.name || 'Đang cập nhật tên giảng viên')}</h3>
+                  <p class="sd2-instructor-role">${safe(instructor.role || 'Giảng viên phụ trách')}</p>
                 </div>
               </div>
-              <div>
-                ${instructor.email ? `
-                  <a href="mailto:${instructor.email}" class="instructor-contact-btn">
-                    <i class="fa-solid fa-envelope"></i> Liên hệ giảng viên <i class="fa-solid fa-chevron-right text-xs"></i>
-                  </a>
-                ` : `
-                  <button class="instructor-contact-btn" onclick="showToast('Giảng viên chưa để lại email liên hệ.', 'info')">
-                    <i class="fa-solid fa-envelope"></i> Liên hệ giảng viên <i class="fa-solid fa-chevron-right text-xs"></i>
-                  </button>
-                `}
-              </div>
+              ${instructor.email ? `
+                <a href="mailto:${instructor.email}" class="sd2-instructor-contact">
+                  <i class="fa-solid fa-envelope"></i>Liên hệ giảng viên<i class="fa-solid fa-chevron-right"></i>
+                </a>
+              ` : `
+                <button class="sd2-instructor-contact" onclick="showToast('Giảng viên chưa để lại email liên hệ.', 'info')">
+                  <i class="fa-solid fa-envelope"></i>Liên hệ giảng viên<i class="fa-solid fa-chevron-right"></i>
+                </button>
+              `}
             </section>
 
           </div>
 
-          <!-- RIGHT TOC SIDEBAR COLUMN (Image 2 Style) -->
-          <aside class="subject-toc-sidebar">
-            <div class="toc-card">
-              <div class="toc-header">
-                <span><i class="fa-solid fa-list-ul" style="color:var(--primary);margin-right:8px;"></i> Mục lục môn học</span>
-                <button class="toc-toggle-btn" onclick="window.toggleSubjectSidebarAllChapters()"><span id="toc-toggle-text">Thu gọn</span> <i class="fa-solid fa-chevron-up" id="toc-all-arrow"></i></button>
-              </div>
+          <!-- RIGHT TOC SIDEBAR -->
+          <aside class="sd2-side">
+            <div class="sd2-card sd2-toc">
+              <header class="sd2-toc-head">
+                <h2><i class="fa-solid fa-list-ul"></i>Mục lục môn học</h2>
+                <button class="sd2-toc-toggle" onclick="window.toggleSubjectSidebarAllChapters()"><span id="toc-toggle-text">Thu gọn</span><i class="fa-solid fa-chevron-up" id="toc-all-arrow"></i></button>
+              </header>
 
-              <!-- Top Item: Tổng quan -->
-              <div class="toc-overview-item" id="toc-item-overview" onclick="window.selectSubjectOverview()">
-                <span><i class="fa-solid fa-house" style="margin-right:8px;"></i> Tổng quan</span>
-                <i class="fa-solid fa-chevron-right text-xs"></i>
-              </div>
+              <button class="sd2-toc-overview" id="toc-item-overview" onclick="window.selectSubjectOverview()">
+                <i class="fa-solid fa-house"></i><span>Tổng quan</span><i class="fa-solid fa-chevron-right sd2-chev"></i>
+              </button>
 
-              <!-- Collapsible Chapters List -->
-              <div class="toc-chapters-wrapper" id="toc-chapters-wrapper">
+              <div class="sd2-toc-chapters" id="toc-chapters-wrapper">
                 ${chapters.length > 0 ? chapters.map((chap, cIdx) => `
-                  <div class="toc-chapter-item">
-                    <div class="toc-chapter-header" onclick="window.toggleSubjectSidebarChapter('${chap.id || 'c_' + cIdx}')">
-                      <span><i class="fa-solid fa-book" style="color:var(--primary);margin-right:6px;"></i> ${safe(chap.title)}</span>
+                  <div class="sd2-chap">
+                    <button class="sd2-chap-head" onclick="window.toggleSubjectSidebarChapter('${chap.id || 'c_' + cIdx}')">
+                      <span class="sd2-chap-idx">${String(cIdx + 1).padStart(2, '0')}</span>
+                      <span class="sd2-chap-title">${safe(chap.title)}</span>
                       <i class="fa-solid fa-chevron-down text-xs toc-chap-arrow" id="arrow-${chap.id || 'c_' + cIdx}"></i>
-                    </div>
-                    <div class="toc-lesson-list" id="lessons-${chap.id || 'c_' + cIdx}">
+                    </button>
+                    <div class="toc-lesson-list sd2-lessons" id="lessons-${chap.id || 'c_' + cIdx}">
                       ${(chap.lessons || []).map((les, lIdx) => `
-                        <div class="toc-lesson-item" id="les-item-${les.id || 'l_' + cIdx + '_' + lIdx}" onclick="window.selectSubjectSidebarLesson('${chap.id || 'c_' + cIdx}', '${les.id || 'l_' + cIdx + '_' + lIdx}')">
-                          <span class="toc-lesson-dot"></span>
-                          <span>${safe(les.title)}</span>
-                        </div>
+                        <button class="toc-lesson-item sd2-lesson" id="les-item-${les.id || 'l_' + cIdx + '_' + lIdx}" onclick="window.selectSubjectSidebarLesson('${chap.id || 'c_' + cIdx}', '${les.id || 'l_' + cIdx + '_' + lIdx}')">
+                          <span class="sd2-lesson-dot"></span><span>${safe(les.title)}</span>
+                        </button>
                       `).join('')}
                     </div>
                   </div>
                 `).join('') : `
-                  <div class="text-xs text-muted py-2 text-center" style="font-style:italic;">Chưa có danh mục chương bài.</div>
+                  <div class="sd2-empty sd2-empty-sm">Chưa có danh mục chương bài.</div>
                 `}
               </div>
-
-              <!-- Bottom Categories List -->
-              <div class="toc-category-list">
-                <div class="toc-category-item" onclick="openUserResourceViewer('${s.id}', 'lecture')">
-                  <span><i class="fa-solid fa-file-lines" style="color:var(--text-muted);margin-right:8px;"></i> Tài liệu học tập</span>
-                  <i class="fa-solid fa-chevron-right"></i>
-                </div>
-                <div class="toc-category-item" onclick="NavController.startSubjectExam('${s.id}')">
-                  <span><i class="fa-solid fa-circle-question" style="color:var(--text-muted);margin-right:8px;"></i> Ngân hàng câu hỏi</span>
-                  <i class="fa-solid fa-chevron-right"></i>
-                </div>
-                <div class="toc-category-item" onclick="openUserResourceViewer('${s.id}', 'exam')">
-                  <span><i class="fa-solid fa-file-circle-check" style="color:var(--text-muted);margin-right:8px;"></i> Đề thi</span>
-                  <i class="fa-solid fa-chevron-right"></i>
-                </div>
-                <div class="toc-category-item" onclick="NavController.startSubjectExam('${s.id}')">
-                  <span><i class="fa-solid fa-sliders" style="color:var(--text-muted);margin-right:8px;"></i> Ôn tập</span>
-                  <i class="fa-solid fa-chevron-right"></i>
-                </div>
-              </div>
-
             </div>
           </aside>
         </div>
+
+        <!-- SECTION 5 · KHÁM PHÁ THÊM -->
+        <section class="sd2-explore" aria-label="Chức năng mở rộng">
+          <header class="sd2-section-head">
+            <h2>Khám phá thêm</h2>
+            <p>Công cụ học tập gắn liền với môn học này</p>
+          </header>
+          <div class="sd2-explore-grid">
+            <button class="sd2-explore-card" onclick="openUserResourceViewer('${s.id}', 'lecture')">
+              <span class="sd2-explore-icon sd2-tint-green"><i class="fa-solid fa-file-lines"></i></span>
+              <span class="sd2-explore-name">Tài liệu học tập</span>
+              <span class="sd2-explore-desc">Giáo trình, bài giảng & tài liệu tham khảo</span>
+              <span class="sd2-explore-open">Mở <i class="fa-solid fa-arrow-right"></i></span>
+            </button>
+            <button class="sd2-explore-card" onclick="NavController.startSubjectExam('${s.id}')">
+              <span class="sd2-explore-icon sd2-tint-purple"><i class="fa-solid fa-circle-question"></i></span>
+              <span class="sd2-explore-name">Ngân hàng câu hỏi</span>
+              <span class="sd2-explore-desc">Luyện tập với ngân hàng câu hỏi của môn học</span>
+              <span class="sd2-explore-open">Mở <i class="fa-solid fa-arrow-right"></i></span>
+            </button>
+            <button class="sd2-explore-card" onclick="openUserResourceViewer('${s.id}', 'exam')">
+              <span class="sd2-explore-icon sd2-tint-orange"><i class="fa-solid fa-file-circle-check"></i></span>
+              <span class="sd2-explore-name">Đề thi</span>
+              <span class="sd2-explore-desc">Kho đề thi các năm & đề minh họa</span>
+              <span class="sd2-explore-open">Mở <i class="fa-solid fa-arrow-right"></i></span>
+            </button>
+            <button class="sd2-explore-card" onclick="NavController.startSubjectExam('${s.id}')">
+              <span class="sd2-explore-icon sd2-tint-cyan"><i class="fa-solid fa-sliders"></i></span>
+              <span class="sd2-explore-name">Ôn tập</span>
+              <span class="sd2-explore-desc">Chế độ ôn tập trắc nghiệm nhanh theo chương</span>
+              <span class="sd2-explore-open">Mở <i class="fa-solid fa-arrow-right"></i></span>
+            </button>
+          </div>
+        </section>
       </div>
     `;
 

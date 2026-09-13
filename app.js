@@ -1982,7 +1982,8 @@ function switchAdminSubTab(tabName) {
   if (targetBtn) targetBtn.classList.add('active');
 
   // Render content per tab
-  if (tabName === 'users') { renderAdminUserList(); }
+  if (tabName === 'overview') { renderAdminDashboard(); }
+  else if (tabName === 'users') { renderAdminUserList(); }
   else if (tabName === 'cms') {
     renderAdminArticleList();
     _initTinyMCEEditors();
@@ -2039,9 +2040,24 @@ function renderAdminDashboard() {
   // Pre-populate dropdowns for all tabs
   _populateResourceSubjectDropdown();
   _populateBankSubjectDropdown();
+
+  if (window.renderAdminDashboardExtras) window.renderAdminDashboardExtras();
 }
 
 
+
+function formatRelativeTime(iso) {
+  const ts = Date.parse(iso || '');
+  if (!ts) return 'Chưa ghi nhận';
+  const min = Math.floor((Date.now() - ts) / 60000);
+  if (min < 1) return 'Vừa xong';
+  if (min < 60) return `${min} phút trước`;
+  const hours = Math.floor(min / 60);
+  if (hours < 24) return `${hours} giờ trước`;
+  const days = Math.floor(hours / 24);
+  if (days < 7) return `${days} ngày trước`;
+  return new Date(ts).toLocaleDateString('vi-VN');
+}
 
 function renderAdminUserList(filterText = '') {
   const tbody = document.getElementById('admin-users-table-body');
@@ -2058,7 +2074,7 @@ function renderAdminUserList(filterText = '') {
   });
 
   if (filteredUsers.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Không tìm thấy học viên nào phù hợp.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">Không tìm thấy học viên nào phù hợp.</td></tr>`;
     return;
   }
 
@@ -2087,19 +2103,22 @@ function renderAdminUserList(filterText = '') {
     `);
 
     const formattedDate = u.lastLogin ? new Date(u.lastLogin).toLocaleDateString('vi-VN') + ' ' + new Date(u.lastLogin).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : 'Vừa xong';
+    const lastLoginTs = Date.parse(u.lastLogin || '') || 0;
+    const online = lastLoginTs && (Date.now() - lastLoginTs) < 30 * 60 * 1000;
 
     return `
       <tr>
         <td class="font-bold">${idx + 1}</td>
         <td>
-          <div class="flex items-center gap-2">
-            <img src="${u.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(u.name || 'User')}" referrerpolicy="no-referrer" style="width:26px;height:26px;border-radius:50%;object-fit:cover;">
+          <div class="adm-user-cell">
+            <img class="adm-avatar" src="${u.avatar || 'https://api.dicebear.com/7.x/avataaars/svg?seed=' + encodeURIComponent(u.name || 'User')}" referrerpolicy="no-referrer" alt="">
             <span class="font-semibold">${escapeHtml(u.name || 'Học viên')}</span>
           </div>
         </td>
         <td class="font-mono text-xs">${escapeHtml(u.email || '')}</td>
         <td>${roleBadge}</td>
-        <td class="text-xs text-muted">${formattedDate}</td>
+        <td class="text-xs text-muted" title="${escapeHtml(formattedDate)}">${formatRelativeTime(u.lastLogin)}</td>
+        <td><span class="adm-status ${online ? 'online' : 'offline'}"><i></i>${online ? 'Online' : 'Offline'}</span></td>
         <td style="text-align:right;">${actionBtn}</td>
       </tr>
     `;

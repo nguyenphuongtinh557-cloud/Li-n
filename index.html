@@ -1294,113 +1294,270 @@
 
         <!-- ══════ PAGE 9: TRANG QUẢN TRỊ ADMIN CONTROL CENTER ══════ -->
         <section id="page-admin" class="page-container hidden">
-          <!-- Header Banner -->
-          <div class="admin-page-banner">
-            <div>
-              <div class="flex items-center gap-2 mb-1">
-                <span class="badge badge-admin font-bold"><i class="fa-solid fa-shield-halved"></i> ADMIN CONTROL CENTER</span>
-                <span class="text-xs text-muted" id="admin-server-sync-status">🟢 Server Cloud Sync Active (`nguyenphuongtinh557-cloud/Li-n`)</span>
+          <!-- ═══════════ HERO DASHBOARD ═══════════ -->
+          <header class="adm-hero">
+            <div class="adm-hero-decor" aria-hidden="true">
+              <span class="adm-orb adm-orb-1"></span>
+              <span class="adm-orb adm-orb-2"></span>
+              <span class="adm-dots"></span>
+              <span class="adm-sparkle adm-sparkle-1"></span>
+              <span class="adm-sparkle adm-sparkle-2"></span>
+            </div>
+            <div class="adm-hero-copy">
+              <div class="adm-hero-eyebrow">
+                <span class="adm-hero-badge"><i class="fa-solid fa-shield-halved"></i> ADMIN CONTROL CENTER</span>
+                <span class="adm-hero-sync" id="admin-server-sync-status"><span class="adm-sync-dot"></span> Server Cloud Sync Active · nguyenphuongtinh557-cloud/Li-n</span>
               </div>
-              <h1 class="text-2xl font-extrabold">Bảng Điều Khiển & Phân Quyền Quản Trị Hệ Thống</h1>
-              <p class="text-xs text-muted mt-1">Giám sát real-time, quản lý phân quyền 3 cấp (Admin - Premium - Newbie), nạp ngân hàng đề & phát thông báo toàn server.</p>
-            </div>
-            <div class="flex items-center gap-2">
-              <button class="btn btn-secondary btn-sm" onclick="renderAdminDashboard()"><i class="fa-solid fa-rotate"></i> Làm mới</button>
-            </div>
-          </div>
-
-          <!-- Top 4 Stats Metric Cards -->
-          <div class="grid-4 gap-3 my-4">
-            <div class="card card-sm admin-stat-card">
-              <div class="text-xs text-muted font-semibold">TỔNG HỌC VIÊN DÙNG WEB</div>
-              <div class="text-2xl font-extrabold text-primary mt-1" id="stat-total-users">0</div>
-              <div class="text-xs text-muted mt-1"><i class="fa-solid fa-users"></i> Đã đăng nhập hệ thống</div>
-            </div>
-            <div class="card card-sm admin-stat-card">
-              <div class="text-xs text-muted font-semibold">TÀI KHOẢN PREMIUM (VIP)</div>
-              <div class="text-2xl font-extrabold text-success mt-1" id="stat-premium-users">0</div>
-              <div class="text-xs text-muted mt-1"><i class="fa-solid fa-crown"></i> Mở khóa toàn bộ AI Models</div>
-            </div>
-            <div class="card card-sm admin-stat-card">
-              <div class="text-xs text-muted font-semibold">TỔNG CÂU HỎI TRONG NGÂN HÀNG</div>
-              <div class="text-2xl font-extrabold text-accent mt-1" id="stat-total-questions">0</div>
-              <div class="text-xs text-muted mt-1"><i class="fa-solid fa-database"></i> 35 Môn học + Môn tùy chỉnh</div>
-            </div>
-            <div class="card card-sm admin-stat-card">
-              <div class="text-xs text-muted font-semibold">MÔN HỌC & THƯ MỤC CÙNG CẤP</div>
-              <div class="text-2xl font-extrabold text-purple mt-1" id="stat-total-subjects">0</div>
-              <div class="text-xs text-muted mt-1"><i class="fa-solid fa-folder-tree"></i> Độc lập & Cách ly 100%</div>
-            </div>
-          </div>
-
-          <!-- Admin Categorized Zone Navigation Shell -->
-          <div class="admin-nav-zones mb-4">
-            <!-- Zone 1: Phân Quyền & Quản Lý User -->
-            <div class="admin-nav-group">
-              <div class="admin-nav-group-title"><i class="fa-solid fa-users-gear"></i> NHÓM 1: QUẢN TRỊ USER</div>
-              <div class="admin-nav-group-btns">
-                <button class="admin-zone-btn active" id="admin-users-tab-btn" onclick="switchAdminSubTab('users')">
-                  <i class="fa-solid fa-user-shield"></i> Học Viên & Quyền Premium
+              <h1 class="adm-hero-title">Trung tâm điều khiển <span class="adm-hero-brand">FTECA 24</span></h1>
+              <p class="adm-hero-sub">Quản lý hệ thống học tập · dữ liệu · AI · cộng đồng</p>
+              <div class="adm-hero-actions">
+                <button type="button" class="admin-zone-btn adm-hero-tab active" id="admin-overview-tab-btn" onclick="switchAdminSubTab('overview')">
+                  <i class="fa-solid fa-gauge-high"></i> Tổng quan
                 </button>
+                <button type="button" class="adm-hero-refresh" onclick="renderAdminDashboard()"><i class="fa-solid fa-rotate"></i> Làm mới</button>
               </div>
             </div>
+            <div class="adm-hero-art">
+              <span class="adm-float-chip adm-float-chip-1"><i class="fa-solid fa-database"></i> <strong id="adm-chip-questions">0</strong>&nbsp;câu hỏi</span>
+              <span class="adm-float-chip adm-float-chip-2"><i class="fa-solid fa-robot"></i> AI Studio sẵn sàng</span>
+              <!-- Thay asset WEBP nhân vật tại src bên dưới (nền trong suốt, object-fit: contain, không bóp méo) -->
+              <img class="adm-hero-character" src="upgrade-character-female.webp" alt="Nhân vật FTECA 24">
+            </div>
+          </header>
 
-            <!-- Zone 2: CMS Nội Dung & Tương Tác -->
-            <div class="admin-nav-group">
-              <div class="admin-nav-group-title"><i class="fa-solid fa-pen-to-square"></i> NHÓM 2: CMS & THÔNG BÁO</div>
-              <div class="admin-nav-group-btns">
-                <button class="admin-zone-btn" id="admin-cms-tab-btn" onclick="switchAdminSubTab('cms')">
-                  <i class="fa-solid fa-newspaper"></i> Bài Viết CMS
-                </button>
-                <button class="admin-zone-btn" id="admin-announcement-tab-btn" onclick="switchAdminSubTab('announcement')">
-                  <i class="fa-solid fa-bullhorn"></i> Thông Báo Rich
-                </button>
-                <button class="admin-zone-btn" id="admin-feedback-tab-btn" onclick="switchAdminSubTab('feedback')">
-                  <i class="fa-solid fa-inbox"></i> Phản Hồi <span id="admin-feedback-badge" class="badge-unread" style="display:none"></span>
-                </button>
-              </div>
+          <!-- ═══════════ TAB: TỔNG QUAN ═══════════ -->
+          <div id="admin-subtab-overview" class="admin-subtab-content">
+
+            <!-- KPI Cards -->
+            <div class="adm-kpi-grid">
+              <article class="adm-kpi adm-kpi-green">
+                <div class="adm-kpi-top">
+                  <span class="adm-kpi-icon"><i class="fa-solid fa-user-graduate"></i></span>
+                  <span class="adm-kpi-title">Học viên đang hoạt động</span>
+                </div>
+                <div class="adm-kpi-value" id="stat-total-users">0</div>
+                <div class="adm-kpi-foot">
+                  <span class="adm-kpi-delta" id="adm-kpi-delta-users"></span>
+                  <span class="adm-kpi-sub" id="adm-kpi-sub-users">Đã đăng nhập hệ thống</span>
+                </div>
+                <svg class="adm-spark" id="adm-spark-users" viewBox="0 0 120 36" preserveAspectRatio="none" aria-hidden="true"></svg>
+              </article>
+              <article class="adm-kpi adm-kpi-purple">
+                <div class="adm-kpi-top">
+                  <span class="adm-kpi-icon"><i class="fa-solid fa-crown"></i></span>
+                  <span class="adm-kpi-title">Tài khoản Premium</span>
+                </div>
+                <div class="adm-kpi-value" id="stat-premium-users">0</div>
+                <div class="adm-kpi-foot">
+                  <span class="adm-kpi-delta" id="adm-kpi-delta-premium"></span>
+                  <span class="adm-kpi-sub" id="adm-kpi-sub-premium">Mở khóa toàn bộ AI Models</span>
+                </div>
+                <svg class="adm-spark" id="adm-spark-premium" viewBox="0 0 120 36" preserveAspectRatio="none" aria-hidden="true"></svg>
+              </article>
+              <article class="adm-kpi adm-kpi-blue">
+                <div class="adm-kpi-top">
+                  <span class="adm-kpi-icon"><i class="fa-solid fa-database"></i></span>
+                  <span class="adm-kpi-title">Câu hỏi trong ngân hàng</span>
+                </div>
+                <div class="adm-kpi-value" id="stat-total-questions">0</div>
+                <div class="adm-kpi-foot">
+                  <span class="adm-kpi-delta" id="adm-kpi-delta-questions"></span>
+                  <span class="adm-kpi-sub" id="adm-kpi-sub-questions">35 môn học + môn tùy chỉnh</span>
+                </div>
+                <svg class="adm-spark" id="adm-spark-questions" viewBox="0 0 120 36" preserveAspectRatio="none" aria-hidden="true"></svg>
+              </article>
+              <article class="adm-kpi adm-kpi-pink">
+                <div class="adm-kpi-top">
+                  <span class="adm-kpi-icon"><i class="fa-solid fa-book-open"></i></span>
+                  <span class="adm-kpi-title">Môn học & thư mục</span>
+                </div>
+                <div class="adm-kpi-value" id="stat-total-subjects">0</div>
+                <div class="adm-kpi-foot">
+                  <span class="adm-kpi-delta" id="adm-kpi-delta-subjects"></span>
+                  <span class="adm-kpi-sub" id="adm-kpi-sub-subjects">Độc lập & cách ly 100%</span>
+                </div>
+                <svg class="adm-spark" id="adm-spark-subjects" viewBox="0 0 120 36" preserveAspectRatio="none" aria-hidden="true"></svg>
+              </article>
             </div>
 
-            <!-- Zone 3: Dữ Liệu & AI Studio -->
-            <div class="admin-nav-group">
-              <div class="admin-nav-group-title"><i class="fa-solid fa-brain"></i> NHÓM 3: NGÂN HÀNG ĐỀ & AI STUDIO</div>
-              <div class="admin-nav-group-btns">
-                <button class="admin-zone-btn" id="admin-resources-tab-btn" onclick="switchAdminSubTab('resources')">
-                  <i class="fa-solid fa-folder-open"></i> Tài Nguyên Học Tập
+            <!-- Analytics: chart tuần + activity timeline -->
+            <div class="adm-analytics-grid adm-section">
+              <article class="card adm-card adm-chart-card">
+                <header class="adm-card-head">
+                  <div>
+                    <h2 class="adm-card-title"><i class="fa-solid fa-chart-line adm-title-icon"></i> Hoạt động học tập theo tuần</h2>
+                    <p class="adm-card-sub">Lượt thi thử & đăng nhập hệ thống</p>
+                  </div>
+                  <div class="adm-range-toggle">
+                    <button type="button" class="adm-range-btn active" data-range="7" onclick="switchAdminAnalyticsRange(7)">7 ngày</button>
+                    <button type="button" class="adm-range-btn" data-range="30" onclick="switchAdminAnalyticsRange(30)">30 ngày</button>
+                  </div>
+                </header>
+                <div class="adm-chart-body">
+                  <div class="adm-chart-wrap">
+                    <svg id="adm-chart" class="adm-chart" viewBox="0 0 640 240" preserveAspectRatio="none" aria-hidden="true"></svg>
+                    <div id="adm-chart-empty" class="adm-chart-empty hidden">Chưa có dữ liệu hoạt động trong khoảng này.</div>
+                  </div>
+                  <div class="adm-side-stats">
+                    <div class="adm-side-stat">
+                      <span class="adm-side-label">Tổng lượt học</span>
+                      <strong class="adm-side-value" id="adm-stat-sessions">0</strong>
+                      <span class="adm-kpi-delta" id="adm-stat-sessions-delta"></span>
+                    </div>
+                    <div class="adm-side-stat">
+                      <span class="adm-side-label">Thời gian học TB</span>
+                      <strong class="adm-side-value" id="adm-stat-time">—</strong>
+                      <span class="adm-kpi-delta" id="adm-stat-time-delta"></span>
+                    </div>
+                    <div class="adm-side-stat">
+                      <span class="adm-side-label">Tỷ lệ hoàn thành</span>
+                      <strong class="adm-side-value" id="adm-stat-rate">—</strong>
+                      <span class="adm-kpi-delta" id="adm-stat-rate-delta"></span>
+                    </div>
+                  </div>
+                </div>
+              </article>
+              <article class="card adm-card adm-activity-card">
+                <header class="adm-card-head">
+                  <div>
+                    <h2 class="adm-card-title"><i class="fa-solid fa-timeline adm-title-icon"></i> Hoạt động hệ thống</h2>
+                    <p class="adm-card-sub">Sự kiện thật từ dữ liệu hệ thống</p>
+                  </div>
+                  <span class="adm-card-link"><i class="fa-solid fa-circle-check"></i> Real-time</span>
+                </header>
+                <ul class="adm-activity-list" id="adm-activity-list"></ul>
+              </article>
+            </div>
+
+            <!-- Quick Admin -->
+            <section class="adm-section">
+              <header class="adm-section-head">
+                <h2 class="adm-section-title"><i class="fa-solid fa-bolt"></i> Quản trị nhanh</h2>
+                <p class="adm-section-sub">Mở module chỉ với 1 click</p>
+              </header>
+              <div class="adm-quick-grid">
+                <button type="button" class="admin-zone-btn adm-quick-card adm-accent-green" id="admin-users-tab-btn" onclick="switchAdminSubTab('users')">
+                  <span class="adm-quick-icon"><i class="fa-solid fa-user-shield"></i></span>
+                  <span class="adm-quick-name">Học viên & quyền Premium</span>
+                  <span class="adm-quick-desc">Quản lý tài khoản, phân quyền 3 cấp và nâng cấp Premium.</span>
+                  <span class="adm-quick-foot">
+                    <span class="adm-quick-open">Mở <i class="fa-solid fa-arrow-right"></i></span>
+                  </span>
+                  <span class="adm-quick-badge" id="adm-badge-users" hidden></span>
                 </button>
-                <button class="admin-zone-btn" id="admin-subject-config-tab-btn" onclick="switchAdminSubTab('subject-config')">
-                  <i class="fa-solid fa-book-open-reader"></i> Thiết Lập Trang Môn Học
+                <button type="button" class="admin-zone-btn adm-quick-card adm-accent-purple" onclick="openAdminQuestionBank()">
+                  <span class="adm-quick-icon"><i class="fa-solid fa-database"></i></span>
+                  <span class="adm-quick-name">Kho câu hỏi</span>
+                  <span class="adm-quick-desc">Duyệt, chỉnh sửa và quản lý ngân hàng câu hỏi.</span>
+                  <span class="adm-quick-foot">
+                    <span class="adm-quick-open">Mở <i class="fa-solid fa-arrow-right"></i></span>
+                  </span>
+                  <span class="adm-quick-badge" id="adm-badge-questions" hidden></span>
                 </button>
-                <button class="admin-zone-btn" id="admin-review-lessons-tab-btn" onclick="switchAdminSubTab('review-lessons')">
-                  <i class="fa-solid fa-book-open-reader"></i> Thiết lập bài giảng ôn tập
+                <button type="button" class="admin-zone-btn adm-quick-card adm-accent-blue" id="admin-subject-config-tab-btn" onclick="switchAdminSubTab('subject-config')">
+                  <span class="adm-quick-icon"><i class="fa-solid fa-book-open"></i></span>
+                  <span class="adm-quick-name">Quản lý môn học</span>
+                  <span class="adm-quick-desc">Thiết lập trang môn học, chương và bài giảng.</span>
+                  <span class="adm-quick-foot">
+                    <span class="adm-quick-open">Mở <i class="fa-solid fa-arrow-right"></i></span>
+                  </span>
+                  <span class="adm-quick-badge" id="adm-badge-subjects" hidden></span>
                 </button>
-                <button class="admin-zone-btn" id="admin-bank-tab-btn" onclick="switchAdminSubTab('bank')">
-                  <i class="fa-solid fa-robot"></i> AI Soạn Câu (Jina Reader)
+                <button type="button" class="admin-zone-btn adm-quick-card adm-accent-pink" id="admin-cms-tab-btn" onclick="switchAdminSubTab('cms')">
+                  <span class="adm-quick-icon"><i class="fa-solid fa-newspaper"></i></span>
+                  <span class="adm-quick-name">CMS & Tin tức</span>
+                  <span class="adm-quick-desc">Quản lý bài viết, sự kiện và thông tin ngành.</span>
+                  <span class="adm-quick-foot">
+                    <span class="adm-quick-open">Mở <i class="fa-solid fa-arrow-right"></i></span>
+                  </span>
+                  <span class="adm-quick-badge" id="adm-badge-cms" hidden></span>
+                </button>
+                <button type="button" class="admin-zone-btn adm-quick-card adm-accent-violet" id="admin-bank-tab-btn" onclick="switchAdminSubTab('bank')">
+                  <span class="adm-quick-icon"><i class="fa-solid fa-robot"></i></span>
+                  <span class="adm-quick-name">AI Studio</span>
+                  <span class="adm-quick-desc">Cấu hình AI, sinh câu hỏi từ giáo trình và URL.</span>
+                  <span class="adm-quick-foot">
+                    <span class="adm-quick-open">Mở <i class="fa-solid fa-arrow-right"></i></span>
+                  </span>
+                  <span class="adm-quick-badge" id="adm-badge-ai" hidden></span>
+                </button>
+                <button type="button" class="admin-zone-btn adm-quick-card adm-accent-orange" id="admin-feedback-tab-btn" onclick="switchAdminSubTab('feedback')">
+                  <span class="adm-quick-icon"><i class="fa-solid fa-inbox"></i></span>
+                  <span class="adm-quick-name">Phản hồi</span>
+                  <span class="adm-quick-desc">Xem và xử lý phản hồi từ người dùng.</span>
+                  <span class="adm-quick-foot">
+                    <span class="adm-quick-open">Mở <i class="fa-solid fa-arrow-right"></i></span>
+                  </span>
+                  <span class="adm-quick-badge" id="admin-feedback-badge" style="display:none"></span>
                 </button>
               </div>
-            </div>
+              <div class="adm-quick-more">
+                <span class="adm-quick-more-label">Module khác:</span>
+                <button type="button" class="admin-zone-btn adm-chip-btn" id="admin-announcement-tab-btn" onclick="switchAdminSubTab('announcement')"><i class="fa-solid fa-bullhorn"></i> Thông báo Rich</button>
+                <button type="button" class="admin-zone-btn adm-chip-btn" id="admin-resources-tab-btn" onclick="switchAdminSubTab('resources')"><i class="fa-solid fa-folder-open"></i> Tài nguyên học tập</button>
+                <button type="button" class="admin-zone-btn adm-chip-btn" id="admin-review-lessons-tab-btn" onclick="switchAdminSubTab('review-lessons')"><i class="fa-solid fa-book-open-reader"></i> Bài giảng ôn tập</button>
+              </div>
+            </section>
+
+            <!-- Học viên gần đây -->
+            <section class="card adm-card adm-users-card adm-section">
+              <header class="adm-card-head">
+                <div>
+                  <h2 class="adm-card-title"><i class="fa-solid fa-users adm-title-icon"></i> Học viên gần đây</h2>
+                  <p class="adm-card-sub">Theo dõi trạng thái & cấp quyền nhanh</p>
+                </div>
+                <div class="adm-users-tools">
+                  <input type="text" id="adm-recent-user-search" class="form-input adm-search" placeholder="Tìm theo tên hoặc email..." oninput="filterAdminRecentUsers()">
+                  <select id="adm-recent-user-status" class="form-select adm-filter" onchange="filterAdminRecentUsers()">
+                    <option value="all">Tất cả trạng thái</option>
+                    <option value="online">Online</option>
+                    <option value="offline">Offline</option>
+                  </select>
+                </div>
+              </header>
+              <div class="table-responsive adm-table-wrap">
+                <table class="adm-table">
+                  <thead>
+                    <tr>
+                      <th>STT</th>
+                      <th>Học viên</th>
+                      <th>Email</th>
+                      <th>Cấp quyền</th>
+                      <th>Hoạt động gần nhất</th>
+                      <th>Trạng thái</th>
+                      <th style="text-align:right;">Thao tác</th>
+                    </tr>
+                  </thead>
+                  <tbody id="adm-recent-users-body"></tbody>
+                </table>
+              </div>
+              <footer class="adm-users-foot">
+                <button type="button" class="adm-link-btn" onclick="switchAdminSubTab('users')">Xem toàn bộ học viên & cấp quyền <i class="fa-solid fa-arrow-right"></i></button>
+              </footer>
+            </section>
           </div>
 
           <!-- Tab 1: Quản Lý Học Viên & Cấp Quyền Premium 1-Click -->
-          <div id="admin-subtab-users" class="admin-subtab-content">
+          <div id="admin-subtab-users" class="admin-subtab-content hidden">
             <div class="card">
               <div class="flex justify-between items-center mb-3">
                 <div>
-                  <h3 class="font-bold text-md">👥 Danh Sách Học Viên & Cấp Quyền 3 Cấp Độ</h3>
-                  <p class="text-xs text-muted">Admin có thể kích hoạt/hạ quyền **PREMIUM** trực tiếp bằng 1-Click. Dữ liệu sẽ đồng bộ tức thì lên Server Cloud.</p>
+                  <h3 class="font-bold text-md"><i class="fa-solid fa-users-gear text-primary"></i> Danh Sách Học Viên & Cấp Quyền 3 Cấp Độ</h3>
+                  <p class="text-xs text-muted">Admin có thể kích hoạt/hạ quyền PREMIUM trực tiếp bằng 1-Click. Dữ liệu sẽ đồng bộ tức thì lên Server Cloud.</p>
                 </div>
-                <input type="text" id="admin-user-search" class="form-input text-xs" style="max-width:250px;" placeholder="🔍 Tìm Email / Tên học viên..." oninput="filterAdminUserList(this.value)">
+                <input type="text" id="admin-user-search" class="form-input text-xs" style="max-width:250px;" placeholder="Tìm email / tên học viên..." oninput="filterAdminUserList(this.value)">
               </div>
 
               <div class="table-responsive">
-                <table class="history-table text-xs">
+                <table class="history-table adm-table text-xs">
                   <thead>
                     <tr>
                       <th>STT</th>
                       <th>Học Viên</th>
                       <th>Email Gmail</th>
-                      <th>Cấp Độ Hiện Tại</th>
-                      <th>Lần Đăng Nhập Cuối</th>
+                      <th>Cấp Quyền</th>
+                      <th>Hoạt Động Gần Nhất</th>
+                      <th>Trạng Thái</th>
                       <th style="text-align:right;">Thao Tác Cấp Quyền</th>
                     </tr>
                   </thead>
@@ -2181,7 +2338,7 @@
       document.getElementById('exam-duration-text').textContent = count + ' phút';
     }
   </script>
-  <script type="module" src="app.js?v=20260908review-editor-fix3"></script>
+  <script type="module" src="app.js?v=20260913-restore-admin-subject"></script>
   <script type="module" src="modules/adminDashboard.js?v=20260912-admin-redesign"></script>
 </body>
 </html>

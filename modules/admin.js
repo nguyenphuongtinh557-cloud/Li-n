@@ -41,6 +41,7 @@ export function initAdminAuth() {
 
   // Gắn hàm lưu toàn cục để HTML onclick gọi được
   window.adminSaveQuestion = adminSaveQuestion;
+  window.openAdminQuestionBank = openAdminPanel;
 }
 
 function openAdminPanel() {
