@@ -1,11 +1,20 @@
 {
   "name": "fteca-24",
+  "version": "1.0.0",
+  "description": "Hệ thống ôn thi và học tập Ngành Công nghệ Thực phẩm với AI",
   "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js",
+    "test:subject-canvas": "node test_subject_canvas.js",
+    "test:subject-api": "node test_subject_details_api.js"
+  },
   "dependencies": {
     "firebase-admin": "^13.0.2"
   },
-  "scripts": {
-    "test:subject-canvas": "node test_subject_canvas.js",
-    "test:subject-api": "node test_subject_details_api.js"
+  "devDependencies": {},
+  "engines": {
+    "node": ">=18.0.0"
   }
 }
