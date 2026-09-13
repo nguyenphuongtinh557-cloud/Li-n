@@ -574,7 +574,7 @@ export const NavController = {
       }
 
       const safeName = (this.currentUser.name || 'User').replace(/'/g, "\\'");
-      const defaultAvatar = `data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="128" height="128" viewBox="0 0 128 128"><defs><linearGradient id="g" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="%2300b96b"/><stop offset="100%" stop-color="%23008f4f"/></linearGradient></defs><rect width="128" height="128" rx="64" fill="url(%23g)"/><text x="50%" y="54%" font-family="system-ui,-apple-system,sans-serif" font-size="56" font-weight="800" fill="%23ffffff" dominant-baseline="middle" text-anchor="middle">${(safeName.charAt(0) || 'U').toUpperCase()}</text></svg>`;
+      const defaultAvatar = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 128 128'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%2300b96b'/><stop offset='100%' stop-color='%23008f4f'/></linearGradient></defs><rect width='128' height='128' rx='64' fill='url(%23g)'/><text x='50%' y='54%' font-family='system-ui,-apple-system,sans-serif' font-size='56' font-weight='800' fill='%23ffffff' dominant-baseline='middle' text-anchor='middle'>${(safeName.charAt(0) || 'U').toUpperCase()}</text></svg>`;
 
       container.innerHTML = `
         <button class="user-avatar-btn" onclick="NavController.toggleUserPopover()" title="${this.currentUser.name}">
