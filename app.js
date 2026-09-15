@@ -1549,6 +1549,10 @@ function toggleCeraChat() {
   const badge = document.getElementById('cera-badge');
   if (!panel || !fab) return;
 
+  if (!window.requireLoggedInForFeature || !window.requireLoggedInForFeature('trợ lý AI')) {
+    return;
+  }
+
   // Nếu người dùng vừa thực hiện hành động Kéo-Thả (Drag) FAB thì không toggle mở panel
   if (fab.dataset.dragged === 'true') return;
 
@@ -1770,6 +1774,10 @@ async function ceraSend() {
   const statusText = document.getElementById('cera-status-text');
   const modelSelect = document.getElementById('cera-model-select');
   if (!input || !sendBtn || !messages) return;
+
+  if (!window.requireLoggedInForFeature || !window.requireLoggedInForFeature('trợ lý AI')) {
+    return;
+  }
 
   const text = input.value.trim();
   const attachedImage = _ceraAttachedBase64;
@@ -3607,6 +3615,24 @@ function studySpaceSubjectIcon(subject) {
   return 'fa-book-open';
 }
 
+// ── Yêu cầu đăng nhập trước khi sử dụng các tính năng AI ───────────────────
+window.requireLoggedInForFeature = function(featureName = 'tính năng này') {
+  const user = NavController?.currentUser || AuthModule?.user;
+  if (user && user.email) return true;
+
+  showToast(`🔒 Vui lòng đăng nhập bằng Google để sử dụng ${featureName}.`, 'error');
+
+  const loginBtn = document.querySelector('.btn-google-signin');
+  if (loginBtn) {
+    loginBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    loginBtn.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.25)';
+    setTimeout(() => {
+      if (loginBtn) loginBtn.style.boxShadow = '';
+    }, 1600);
+  }
+  return false;
+};
+
 // ── Khoá tính năng đang phát triển với user thường ───────────────────────────
 window._guardDevFeature = function(featureName = 'Tính năng này') {
   const user = NavController?.currentUser;
@@ -3673,9 +3699,16 @@ window.updateHomeStats = updateHomeStats;
 setInterval(updateHomeStats, 30000);
 
 function studySpaceAIAction(action) {
-  if (action === 'quiz') return NavController.navigateToPage('aigen');
-  if (action === 'summary') return NavController.navigateToPage('curriculum-summary');
+  if (action === 'quiz') {
+    if (!window.requireLoggedInForFeature('Tạo đề thi AI')) return;
+    return NavController.navigateToPage('aigen');
+  }
+  if (action === 'summary') {
+    if (!window.requireLoggedInForFeature('Tóm tắt giáo trình')) return;
+    return NavController.navigateToPage('curriculum-summary');
+  }
   if (action === 'chat') {
+    if (!window.requireLoggedInForFeature('trợ lý AI')) return;
     const panel = document.getElementById('cera-panel');
     if (!panel || !panel.classList.contains('is-open')) toggleCeraChat();
     return;

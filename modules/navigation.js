@@ -71,6 +71,24 @@ export const NavController = {
     if (pageId === 'ontap' && !subTabId) {
       subTabId = 'exam-tab';
     }
+    const hasUser = this.currentUser || AuthModule?.user;
+    if ((pageId === 'aigen' || pageId === 'curriculum-summary') && (!hasUser || !hasUser.email)) {
+      const featureName = pageId === 'aigen' ? 'Tạo câu hỏi bằng AI' : 'Tóm tắt giáo trình';
+      if (window.requireLoggedInForFeature) {
+        window.requireLoggedInForFeature(featureName);
+      } else if (window.showToast) {
+        window.showToast(`🔒 Vui lòng đăng nhập bằng Google để sử dụng ${featureName}.`, 'error');
+        const loginBtn = document.querySelector('.btn-google-signin');
+        if (loginBtn) {
+          loginBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          loginBtn.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.25)';
+          setTimeout(() => {
+            if (loginBtn) loginBtn.style.boxShadow = '';
+          }, 1600);
+        }
+      }
+      return;
+    }
 
     if (pageId === 'about') {
       setTimeout(() => {
