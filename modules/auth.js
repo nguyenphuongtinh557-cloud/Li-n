@@ -5,7 +5,19 @@
  */
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut as firebaseSignOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
+import {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
+  setPersistence,
+  browserLocalPersistence,
+  browserSessionPersistence,
+  inMemoryPersistence,
+  signOut as firebaseSignOut,
+  onAuthStateChanged
+} from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js';
 
 // Firebase Web Config
 const firebaseConfig = {
@@ -54,6 +66,28 @@ export function getUserRole(email) {
 
 let authListeners = [];
 
+function shouldUseRedirectFlow() {
+  const userAgent = navigator.userAgent || '';
+  const mobileOrEmbedded = /Android|iPhone|iPad|iPod|FBAN|FBAV|Instagram|Line\/|Zalo|Messenger|; wv\)/i.test(userAgent);
+  const standalone = window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true;
+  return mobileOrEmbedded || standalone;
+}
+
+function isMissingAuthStateError(error) {
+  const errorText = `${error?.code || ''} ${error?.message || ''}`.toLowerCase();
+  return errorText.includes('missing initial state')
+    || errorText.includes('sessionstorage')
+    || errorText.includes('storage-partitioned')
+    || error?.code === 'auth/web-storage-unsupported';
+}
+
+function isRedirectFallbackError(error) {
+  if (error?.code === 'auth/popup-closed-by-user') return false;
+  return error?.code === 'auth/popup-blocked'
+    || error?.code === 'auth/operation-not-supported-in-this-environment'
+    || isMissingAuthStateError(error);
+}
+
 export const AuthModule = {
   user: null,
 
@@ -73,6 +107,18 @@ export const AuthModule = {
 
     // Listen for Firebase Auth state changes
     if (auth) {
+      try {
+        await setPersistence(auth, browserLocalPersistence);
+      } catch (persistenceError) {
+        console.warn('[Auth] Không thể dùng bộ nhớ đăng nhập lâu dài:', persistenceError);
+        try {
+          await setPersistence(auth, browserSessionPersistence);
+        } catch (sessionPersistenceError) {
+          console.warn('[Auth] Không thể dùng sessionStorage, chuyển sang bộ nhớ tạm:', sessionPersistenceError);
+          await setPersistence(auth, inMemoryPersistence);
+        }
+      }
+
       onAuthStateChanged(auth, async (firebaseUser) => {
         if (firebaseUser) {
           const customAvatar = localStorage.getItem(`lien_custom_avatar_${firebaseUser.uid}`);
@@ -90,6 +136,15 @@ export const AuthModule = {
           await this.setUserSession(realUser, false);
         }
       });
+
+      try {
+        await getRedirectResult(auth);
+      } catch (error) {
+        console.warn('[Auth] Không thể khôi phục kết quả đăng nhập chuyển hướng:', error);
+        if (isMissingAuthStateError(error) && window.showToast) {
+          window.showToast('Trình duyệt không giữ được phiên đăng nhập Google. Vui lòng thử lại bằng Chrome hoặc Safari chính thức.', 'error');
+        }
+      }
     }
   },
 
@@ -125,6 +180,12 @@ export const AuthModule = {
     try {
       if (window.showToast) window.showToast('Đang kết nối đến Google Account...', 'info');
 
+      if (shouldUseRedirectFlow()) {
+        if (window.showToast) window.showToast('Đang chuyển sang đăng nhập Google an toàn cho thiết bị này...', 'info');
+        await signInWithRedirect(auth, googleProvider);
+        return;
+      }
+
       // Trigger standard Google OAuth 2.0 Popup
       const result = await signInWithPopup(auth, googleProvider);
       const user = result.user;
@@ -145,6 +206,17 @@ export const AuthModule = {
       await this.setUserSession(realUser, true);
     } catch (error) {
       console.error('Google Sign-In Error:', error);
+      if (isRedirectFallbackError(error)) {
+        try {
+          if (window.showToast) window.showToast('Popup Google bị giới hạn trên trình duyệt này, đang chuyển sang đăng nhập an toàn...', 'info');
+          await signInWithRedirect(auth, googleProvider);
+          return;
+        } catch (redirectError) {
+          console.error('Google Sign-In Redirect Error:', redirectError);
+          this.handleAuthError(redirectError);
+          return;
+        }
+      }
       this.handleAuthError(error);
     }
   },
