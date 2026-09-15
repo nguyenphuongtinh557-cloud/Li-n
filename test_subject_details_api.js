@@ -14,6 +14,8 @@ assert.match(api, /details\.status !== 'published'/);
 assert.match(api, /write-conflict/);
 assert.match(api, /GITHUB_TOKEN/);
 assert.match(api, /FIREBASE_SERVICE_ACCOUNT_JSON/);
+assert.match(api, /import admin from 'firebase-admin'/);
+assert.match(api, /export default async function handler/);
 assert.match(sync, /fetch\('\/api\/subject-details/);
 assert.match(sync, /method: 'PUT'/);
 assert.match(sync, /Authorization: `Bearer \$\{idToken \|\| ''\}`/);

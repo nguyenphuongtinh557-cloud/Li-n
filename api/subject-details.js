@@ -1,4 +1,4 @@
-const admin = require('firebase-admin');
+import admin from 'firebase-admin';
 
 const SUBJECT_DETAILS_FILE = 'data/subject_details.json';
 const DEFAULT_ADMINS = ['nguyenphuongtinh557@gmail.com', 'macnghich@gmail.com'];
@@ -74,7 +74,7 @@ async function requireAdmin(req, config) {
   return email;
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, max-age=0');
   if (!['GET', 'PUT'].includes(req.method)) return json(res, 405, { ok: false, reason: 'method-not-allowed' });
 

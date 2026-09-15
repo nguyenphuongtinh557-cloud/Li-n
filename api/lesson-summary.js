@@ -91,7 +91,7 @@ async function generateSummary(config, request) {
   };
 }
 
-module.exports = async function handler(req, res) {
+export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, max-age=0');
   if (req.method !== 'POST') return json(res, 405, { ok: false, reason: 'method-not-allowed' });
   if (!allowedRequest(req)) return json(res, 429, { ok: false, reason: 'rate-limited' });
