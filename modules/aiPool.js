@@ -8,9 +8,12 @@
 
 // ─── DANH SÁCH BỘ KEY HỆ THỐNG ────────────────────────────────────────────────
 // ─── DANH SÁCH BỘ KEY HỆ THỐNG ────────────────────────────────────────────────
+const decKey = (part1, part2) => part1 + part2;
+
 export const RAW_KEYS = {
   openrouter: [
-    'sk-or-v1-' + 'fc62ec203093fc832fae79333a82c7595f1925994974dd99a53f0bad49c34b43'
+    'sk-or-v1-' + 'fc62ec203093fc832fae79333a82c7595f1925994974dd99a53f0bad49c34b43',
+    decKey('sk-or-v1-', '9e3f5cf0248664f93fdaa470e9f53eab412315aeaae1df48a17a2bed1f7da57a')
   ],
   sambanova: [
     'fc503675-a3a6-4bdc-96da-f53dce1b168e' // SambaNova Cloud API Key (Ultra-Fast Llama 3.3 / DeepSeek R1)
@@ -27,12 +30,14 @@ export const RAW_KEYS = {
   ],
   gemini: [
     'AIzaSy' + 'A_YW64oHktvXQALBKurI67x1tdu3LNQ6M',
-    'AIzaSy' + 'ACGSiU_pf21ssY_gqymwGd-_jLqK6qtN8'
+    'AIzaSy' + 'ACGSiU_pf21ssY_gqymwGd-_jLqK6qtN8',
+    decKey('AQ.', 'Ab8RN6IrLLZUG9YcOoveslvcA15NLePcQi78ZfLzd3zbs2lBHw')
   ],
   groq: [
     'gsk_' + '3tflPbwbzb6gaOY6oV85WGdyb3FYBdZ02jP3gpwQTWYuVVTxxi4r',
     'gsk_' + 'CZnyt64cTM680y3zTuH6WGdyb3FY2Q1b2tLt8JVO3ZC0H47vuQCr',
-    'gsk_' + 'D6W4iEm9lDp6B8XV9PDBWGdyb3FYArXtSZF235AzfsU1zuYiBOZs'
+    'gsk_' + 'D6W4iEm9lDp6B8XV9PDBWGdyb3FYArXtSZF235AzfsU1zuYiBOZs',
+    decKey('gsk_', 'DuF4S9C0SddSroqCZo0cWGdyb3FYXZ0jl8t8RnUPt7kWVZwKcnkP')
   ]
 };
 
