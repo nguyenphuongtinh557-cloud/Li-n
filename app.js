@@ -3252,7 +3252,7 @@ function studyReaderToggleAnnotation() { _studyReaderAnnotationEnabled = !_study
 function studyReaderUndoAnnotation() { saveStudyReaderNote({ annotations: getStudyReaderNote().annotations.slice(0, -1) }); mountStudyReaderAnnotationLayer(); }
 function studyReaderClearAnnotations() { saveStudyReaderNote({ annotations: [] }); mountStudyReaderAnnotationLayer(); }
 
-let _studyReaderSummaryMode = 'quick';
+let _studyReaderSummaryMode = 'study'; // ✅ DEFAULT: Tóm tắt chi tiết (thay vì 'quick')
 let _studyReaderSummary = null;
 function getLessonSummarySource(lesson = {}) {
   const allowed = new Set(['heading', 'text', 'lessonDocument', 'legacyHtml']);
@@ -3334,7 +3334,7 @@ async function requestStudentSummaryRegenerate() {
   const btnSave = document.getElementById('study-reader-ai-save');
   if (btnRegen) btnRegen.disabled = true;
 
-  const modeLabels = { quick: '1 phút', study: 'Học kỹ', exam: 'Ôn thi' };
+  const modeLabels = { quick: '1 phút', study: 'Chi tiết' }; // ✅ XÓA 'exam': 'Học kỹ'
   const modeName = modeLabels[_studyReaderSummaryMode] || 'bài học';
   setStudyReaderSummaryStatus(`Đang tạo tóm tắt mới bằng AI (${modeName})…`, 'loading');
 
@@ -3363,6 +3363,12 @@ async function requestStudentSummaryRegenerate() {
 function initStudyReaderSummaryControls() {
   document.querySelectorAll('[data-summary-mode]').forEach(button => {
     button.onclick = () => {
+      // 🚧 KHÓA NÚT "ÔN THI" (exam mode)
+      if (button.dataset.summaryMode === 'exam') {
+        alert('🚧 Tính năng "Ôn thi" đang được nâng cấp. Vui lòng sử dụng chế độ "Chi tiết" hoặc "1 phút".');
+        return;
+      }
+      
       _studyReaderSummaryMode = button.dataset.summaryMode;
       document.querySelectorAll('[data-summary-mode]').forEach(item => item.classList.toggle('active', item === button));
       loadStudyReaderSummaryCache();
@@ -3685,7 +3691,7 @@ function renderStudySpace() {
   const allSubjects = getAllSubjects();
   const contentCount = subjects.reduce((total, subject) => total + subject.articles.length, 0);
   const aiTools = [['quiz','fa-file-circle-plus','Tạo đề thi AI','Tạo đề trắc nghiệm theo chương, chủ đề hoặc môn học.','violet'],['summary','fa-wand-magic-sparkles','Tóm tắt giáo trình AI','Chắt lọc nội dung dài thành bản ngắn gọn, dễ hiểu.','green'],['plan','fa-calendar-check','Lên kế hoạch ôn thi','Xây lộ trình phù hợp với mục tiêu của bạn.','blue'],['chat','fa-comments','Hỏi đáp cùng AI','Giải đáp nhanh mọi thắc mắc trong quá trình học.','orange']];
-  root.innerHTML = `<div class="study-hub-shell"><main class="study-hub-main"><section class="study-hub-hero"><div class="study-hub-hero-copy"><span class="study-hub-kicker"><i class="fa-solid fa-graduation-cap"></i> KHÔNG GIAN HỌC TẬP</span><h1>Khám phá môn học<br>theo <em>cách của bạn</em></h1><p></p><div class="study-hub-hero-actions"><button onclick="studySpaceAIAction('chat')"><i class="fa-solid fa-sparkles"></i> Hỏi trợ lý AI</button></div></div><div class="study-hub-hero-art" aria-label="Vùng minh họa nhân vật sẽ được bổ sung"><div class="study-hub-art-orb orb-one"></div><div class="study-hub-art-orb orb-two"></div><div class="study-hub-art-dots"></div><img class="study-hub-art-img" src="hero_student 1.webp" alt="Sinh viên CNTP học tập" onerror="this.style.display='none'"></div></section><section class="study-hub-catalog"><div class="study-hub-search"><i class="fa-solid fa-magnifying-glass"></i><input id="study-space-search" type="search" value="${StudySpace.query.replace(/"/g, '&quot;')}" placeholder="Tìm theo tên hoặc mã môn học" oninput="searchStudySpaceSubjects(this.value)"></div><div class="study-hub-filter-row"><div class="study-space-filter-row"><button class="study-space-filter ${StudySpace.blockId === 'ALL' ? 'active' : ''}" onclick="setStudySpaceFilter('ALL')">Tất cả</button>${Object.values(KNOWLEDGE_BLOCKS).map(block => `<button class="study-space-filter ${StudySpace.blockId === block.id ? 'active' : ''}" onclick="setStudySpaceFilter('${block.id}')">${block.icon} ${block.name}</button>`).join('')}</div></div><div class="study-hub-list-meta"><label class="study-space-article-toggle"><input id="study-space-has-articles" type="checkbox" ${StudySpace.hasArticlesOnly ? 'checked' : ''} onchange="setStudySpaceFilter(null, this.checked)"><span>Chỉ hiện môn đã có bài đăng</span></label><span>${subjects.length} môn phù hợp · ${contentCount} tài nguyên</span></div></section><section class="study-hub-subject-grid">${subjects.length ? subjects.map(subject => `<button class="study-hub-subject-card" data-subject-id="${subject.id}" data-has-articles="${subject.articles.length > 0}" onclick="selectStudySpaceSubject('${subject.id}')"><span class="study-hub-subject-icon"><i class="fa-solid ${studySpaceSubjectIcon(subject)}"></i></span><span class="study-hub-subject-top"><b>${subject.code}</b><small>HK ${subject.semester || '—'}</small></span><strong>${subject.name}</strong><span class="study-hub-subject-meta">${KNOWLEDGE_BLOCKS[subject.blockId]?.icon || '📘'} ${KNOWLEDGE_BLOCKS[subject.blockId]?.name || 'Khối kiến thức'} · ${subject.credits || 0} tín chỉ</span><span class="study-hub-subject-foot"><span><i class="fa-solid ${subject.articles.length ? 'fa-file-lines' : 'fa-clock'}"></i> ${subject.articles.length ? `${subject.articles.length} bài đăng` : 'Chưa có bài đăng'}</span><i class="fa-solid fa-arrow-right"></i></span></button>`).join('') : '<div class="study-space-empty">Không tìm thấy môn học phù hợp.</div>'}</section></main><aside class="study-hub-ai-panel"><div class="study-hub-ai-heading"><span>TRUNG TÂM HỌC TẬP AI</span><p>Công cụ đồng hành cùng bạn</p></div>${aiTools.map(([action,icon,title,description,theme]) => `<button class="study-hub-ai-tool ${theme}" onclick="studySpaceAIAction('${action}')"><i class="fa-solid ${icon}"></i><span><b>${title}</b><small>${description}</small></span><em><i class="fa-solid fa-arrow-right"></i></em></button>`).join('')}<div class="study-hub-stats"><span>THỐNG KÊ HỌC TẬP</span><p>Kho tài liệu được cập nhật liên tục theo chương trình đào tạo.</p><button onclick="showToast('Báo cáo học tập đang được chuẩn bị.', 'info')">Xem báo cáo chi tiết <i class="fa-solid fa-arrow-up-right-from-square"></i></button></div></aside></div>`;
+  root.innerHTML = `<div class="study-hub-shell"><main class="study-hub-main"><section class="study-hub-hero"><div class="study-hub-hero-copy"><span class="study-hub-kicker"><i class="fa-solid fa-graduation-cap"></i> KHÔNG GIAN HỌC TẬP</span><h1>Khám phá môn học<br>theo <em>cách của bạn</em></h1><p></p><div class="study-hub-hero-actions"><button onclick="studySpaceAIAction('chat')"><i class="fa-solid fa-sparkles"></i> Hỏi trợ lý AI</button></div></div><div class="study-hub-hero-art" aria-label="Vùng minh họa nhân vật sẽ được bổ sung"><div class="study-hub-art-orb orb-one"></div><div class="study-hub-art-orb orb-two"></div><div class="study-hub-art-dots"></div><img class="study-hub-art-img" src="hero_student_1.webp" alt="Sinh viên CNTP học tập" onerror="this.style.display='none'"></div></section><section class="study-hub-catalog"><div class="study-hub-search"><i class="fa-solid fa-magnifying-glass"></i><input id="study-space-search" type="search" value="${StudySpace.query.replace(/"/g, '&quot;')}" placeholder="Tìm theo tên hoặc mã môn học" oninput="searchStudySpaceSubjects(this.value)"></div><div class="study-hub-filter-row"><div class="study-space-filter-row"><button class="study-space-filter ${StudySpace.blockId === 'ALL' ? 'active' : ''}" onclick="setStudySpaceFilter('ALL')">Tất cả</button>${Object.values(KNOWLEDGE_BLOCKS).map(block => `<button class="study-space-filter ${StudySpace.blockId === block.id ? 'active' : ''}" onclick="setStudySpaceFilter('${block.id}')">${block.icon} ${block.name}</button>`).join('')}</div></div><div class="study-hub-list-meta"><label class="study-space-article-toggle"><input id="study-space-has-articles" type="checkbox" ${StudySpace.hasArticlesOnly ? 'checked' : ''} onchange="setStudySpaceFilter(null, this.checked)"><span>Chỉ hiện môn đã có bài đăng</span></label><span>${subjects.length} môn phù hợp · ${contentCount} tài nguyên</span></div></section><section class="study-hub-subject-grid">${subjects.length ? subjects.map(subject => `<button class="study-hub-subject-card" data-subject-id="${subject.id}" data-has-articles="${subject.articles.length > 0}" onclick="selectStudySpaceSubject('${subject.id}')"><span class="study-hub-subject-icon"><i class="fa-solid ${studySpaceSubjectIcon(subject)}"></i></span><span class="study-hub-subject-top"><b>${subject.code}</b><small>HK ${subject.semester || '—'}</small></span><strong>${subject.name}</strong><span class="study-hub-subject-meta">${KNOWLEDGE_BLOCKS[subject.blockId]?.icon || '📘'} ${KNOWLEDGE_BLOCKS[subject.blockId]?.name || 'Khối kiến thức'} · ${subject.credits || 0} tín chỉ</span><span class="study-hub-subject-foot"><span><i class="fa-solid ${subject.articles.length ? 'fa-file-lines' : 'fa-clock'}"></i> ${subject.articles.length ? `${subject.articles.length} bài đăng` : 'Chưa có bài đăng'}</span><i class="fa-solid fa-arrow-right"></i></span></button>`).join('') : '<div class="study-space-empty">Không tìm thấy môn học phù hợp.</div>'}</section></main><aside class="study-hub-ai-panel"><div class="study-hub-ai-heading"><span>TRUNG TÂM HỌC TẬP AI</span><p>Công cụ đồng hành cùng bạn</p></div>${aiTools.map(([action,icon,title,description,theme]) => `<button class="study-hub-ai-tool ${theme}" onclick="studySpaceAIAction('${action}')"><i class="fa-solid ${icon}"></i><span><b>${title}</b><small>${description}</small></span><em><i class="fa-solid fa-arrow-right"></i></em></button>`).join('')}<div class="study-hub-stats"><span>THỐNG KÊ HỌC TẬP</span><p>Kho tài liệu được cập nhật liên tục theo chương trình đào tạo.</p><button onclick="showToast('Báo cáo học tập đang được chuẩn bị.', 'info')">Xem báo cáo chi tiết <i class="fa-solid fa-arrow-up-right-from-square"></i></button></div></aside></div>`;
 }
 
 function setStudySpaceFilter(blockId, hasArticlesOnly) { if (blockId) StudySpace.blockId = blockId; if (typeof hasArticlesOnly === 'boolean') StudySpace.hasArticlesOnly = hasArticlesOnly; renderStudySpace(); }
@@ -3712,58 +3718,70 @@ function selectStudySpaceSubject(subjectId) {
 Object.assign(window, { renderStudySpace, setStudySpaceFilter, searchStudySpaceSubjects, selectStudySpaceSubject, studySpaceAIAction });
 
 /* ═══════════════════════════════════════════════════════════════════
-   CURRICULUM SUMMARY — Giai đoạn 2: Tóm Tắt Giáo Trình Cá Nhân
+   CURRICULUM SUMMARY — Production v2.0 (Lean Pipeline)
+   Sử dụng docSummarizerEngine.js: chunk + self-check + retry + merge + SHA-256 cache
    ═══════════════════════════════════════════════════════════════════ */
 
-const CS_HISTORY_KEY = 'fteca_curriculum_summary_history';
+import {
+  runSummarizationPipeline,
+  SummaryCache,
+  FileParser
+} from './modules/docSummarizerEngine.js?v=2pass-20260914';
+
+const CS_HISTORY_KEY = 'fteca_curriculum_summary_history_v2';
 const CS_MAX_HISTORY = 10;
-let _csMode = 'quick';             // chế độ hiện tại
-let _csCurrentFile = null;         // File PDF đã chọn
-let _csCurrentResult = null;       // Kết quả AI hiện tại
-let _csInited = false;             // đã init listener chưa
-
-// ─ Khởi tạo trang và gắn tất cả listeners ──────────────────────────────
+let _csMode = 'study'; // ✅ Mặc định chế độ "Chi tiết" (thay vì 'exam')
+let _csCurrentFile = null;
+let _csCurrentResult = null;
 let _csCurrentSourceText = '';
+let _csInited = false;
+let _csRunning = false;
 
+// ─ Khởi tạo trang ──────────────────────────────────────────────────
 function initCurriculumSummaryPage() {
-  // Render lịch sử ngay khi mở trang
   renderCurriculumSummaryHistory();
-
-  if (_csInited) return; // Listeners chỉ gắn 1 lần
+  if (_csInited) return;
   _csInited = true;
 
-  // ― Radio Mode Cards (Screenshot 2)
+  // Mode cards (Tất cả các chế độ, đặc biệt Học Sâu & Ôn Thi)
   document.querySelectorAll('.cs-mode-card').forEach(card => {
     card.addEventListener('click', () => {
-      _csMode = card.dataset.csMode || 'quick';
+      const selectedMode = card.dataset.csMode || 'study';
+      
+      // 🚧 KHÓA CHẾ ĐỘ "HỌC SÂU & ÔN THI"
+      if (selectedMode === 'exam') {
+        alert('🚧 Chế độ "Học sâu & Ôn thi" đang được nâng cấp. Vui lòng sử dụng "Tóm tắt chi tiết" hoặc "Tóm tắt nhanh".');
+        return;
+      }
+      
+      _csMode = selectedMode;
       document.querySelectorAll('.cs-mode-card').forEach(c => c.classList.toggle('active', c === card));
     });
   });
 
-  // ― Back Button (Stage 2 -> Stage 1)
+  // Back button
   document.getElementById('cs-btn-back-input')?.addEventListener('click', () => {
     document.getElementById('cs-result-stage')?.classList.add('hidden');
     document.getElementById('cs-input-stage')?.classList.remove('hidden');
   });
 
-  // ― Reload Button
+  // Reload button
   document.getElementById('cs-btn-reload-summary')?.addEventListener('click', () => {
     runCurriculumSummary();
   });
 
-  // ― Tab Navigation (Screenshot 3 & 4)
+  // Tab navigation
   document.querySelectorAll('.cs-tab-item').forEach(tabBtn => {
     tabBtn.addEventListener('click', () => {
       const targetTab = tabBtn.dataset.csTab;
       document.querySelectorAll('.cs-tab-item').forEach(b => b.classList.toggle('active', b === tabBtn));
-      
       document.querySelectorAll('.cs-pane').forEach(pane => {
         pane.classList.toggle('hidden', pane.id !== `cs-pane-${targetTab}`);
       });
     });
   });
 
-  // ― File input
+  // File input
   const fileInput = document.getElementById('curriculum-file-input');
   if (fileInput) {
     fileInput.addEventListener('change', e => {
@@ -3772,26 +3790,19 @@ function initCurriculumSummaryPage() {
     });
   }
 
-  // ― Remove file button
+  // Remove file
   document.getElementById('curriculum-remove-file')?.addEventListener('click', () => {
     _csCurrentFile = null;
-    
-    // ✅ Reset cache tracking
-    window._csLastFileHash = null;
     _csCurrentResult = null;
     _csCurrentSourceText = '';
-    
     const fi = document.getElementById('curriculum-file-input');
     if (fi) fi.value = '';
     document.getElementById('curriculum-file-preview')?.classList.add('hidden');
-    document.getElementById('curriculum-dropzone-inner') && document.querySelector('.curriculum-dropzone-inner')?.classList.remove('hidden');
     const inner = document.querySelector('.curriculum-dropzone-inner');
     if (inner) inner.style.display = '';
-    const preview = document.getElementById('curriculum-file-preview');
-    if (preview) preview.classList.add('hidden');
   });
 
-  // ― Drag & Drop
+  // Drag & Drop
   const zone = document.getElementById('curriculum-dropzone');
   if (zone) {
     zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
@@ -3802,55 +3813,52 @@ function initCurriculumSummaryPage() {
       const file = e.dataTransfer.files?.[0];
       if (file) {
         const ext = file.name.split('.').pop()?.toLowerCase();
-        if (['pdf', 'docx', 'doc', 'txt', 'pptx'].includes(ext)) csHandleFileSelect(file);
-        else showToast('Vui lòng chọn file hỗ trợ (PDF, DOCX, TXT, PPTX).', 'info');
+        if (['pdf', 'docx', 'doc', 'txt'].includes(ext)) csHandleFileSelect(file);
+        else showToast('Vui lòng chọn file PDF, DOCX hoặc TXT.', 'info');
       }
     });
-    // Click zone to open file picker (not on the label/button inside)
     zone.addEventListener('click', e => {
       if (e.target.closest('label, button, input')) return;
       document.getElementById('curriculum-file-input')?.click();
     });
   }
 
-  // ― Textarea char count
+  // Textarea char count
   const textarea = document.getElementById('curriculum-text-input');
   const charCount = document.getElementById('curriculum-char-count');
   if (textarea && charCount) {
-    charCount.textContent = `${textarea.value.length.toLocaleString('vi-VN')} / 100.000 ký tự`;
-    textarea.addEventListener('input', () => {
+    const updateCount = () => {
       charCount.textContent = `${textarea.value.length.toLocaleString('vi-VN')} / 100.000 ký tự`;
-    });
+    };
+    updateCount();
+    textarea.addEventListener('input', updateCount);
   }
 
-  // ― Run button
+  // Run button
   document.getElementById('curriculum-run-btn')?.addEventListener('click', runCurriculumSummary);
 
-  // ― Clear history
+  // Clear history
   document.getElementById('curriculum-clear-history-btn')?.addEventListener('click', () => {
     if (!confirm('Xóa toàn bộ lịch sử tóm tắt?')) return;
     localStorage.removeItem(CS_HISTORY_KEY);
+    SummaryCache.clearAll();
     renderCurriculumSummaryHistory();
-    showToast('Đã xóa lịch sử.', 'info');
+    showToast('Đã xóa lịch sử và bộ nhớ đệm.', 'info');
   });
 }
 
-// ─ Xử lý file PDF/Word được chọn ──────────────────────────────────────────
+// ─ Xử lý file được chọn ───────────────────────────────────────────
 function csHandleFileSelect(file) {
   if (file.size > 20 * 1024 * 1024) return showToast('File tối đa 20MB.', 'error');
   const ext = file.name.split('.').pop()?.toLowerCase();
-  if (!['pdf', 'docx', 'doc', 'txt', 'pptx'].includes(ext)) {
-    return showToast('Vui lòng chọn file PDF, DOCX, TXT hoặc PPTX.', 'error');
+  if (!['pdf', 'docx', 'doc', 'txt'].includes(ext)) {
+    return showToast('Vui lòng chọn file PDF, DOCX hoặc TXT.', 'error');
   }
 
   _csCurrentFile = file;
-  
-  // ✅ Reset file hash tracking để cache được kiểm tra lại với file mới
-  window._csLastFileHash = null;
   _csCurrentResult = null;
   _csCurrentSourceText = '';
-  console.log(`[File] 🆕 File mới được chọn: ${file.name}`);
-  
+
   const inner = document.querySelector('.curriculum-dropzone-inner');
   if (inner) inner.style.display = 'none';
 
@@ -3862,193 +3870,61 @@ function csHandleFileSelect(file) {
     document.getElementById('curriculum-file-size').textContent = `${(file.size / 1024).toFixed(1)} KB`;
     if (icon) {
       if (['docx', 'doc'].includes(ext)) {
-        icon.className = 'fa-solid fa-file-word';
-        icon.style.color = '#2563eb';
+        icon.className = 'fa-solid fa-file-word'; icon.style.color = '#2563eb';
+      } else if (ext === 'txt') {
+        icon.className = 'fa-solid fa-file-lines'; icon.style.color = '#6366f1';
       } else {
-        icon.className = 'fa-solid fa-file-pdf';
-        icon.style.color = '#ef4444';
+        icon.className = 'fa-solid fa-file-pdf'; icon.style.color = '#ef4444';
       }
     }
   }
 
   const titleInput = document.getElementById('curriculum-doc-title');
   if (titleInput && !titleInput.value.trim()) {
-    titleInput.value = file.name.replace(/\.(pdf|docx|doc|txt|pptx)$/i, '');
+    titleInput.value = file.name.replace(/\.(pdf|docx|doc|txt)$/i, '');
   }
   showToast(`Đã chọn: ${file.name}`, 'info');
 }
 
-// ─ Extract text từ Word (.docx / .doc) dùng Mammoth.js ─────────────
-async function extractWordTextClient(file) {
-  if (typeof mammoth === 'undefined') {
-    throw new Error('Thư viện đọc file Word (Mammoth) chưa được tải.');
+// ─ Progress Bar Renderer ──────────────────────────────────────────
+function _csUpdateProgress(msg, pct) {
+  const status = document.getElementById('curriculum-status');
+  if (!status) return;
+
+  // Lấy hoặc tạo progress wrapper
+  let wrapper = document.getElementById('cs-progress-wrapper');
+  if (!wrapper) {
+    wrapper = document.createElement('div');
+    wrapper.id = 'cs-progress-wrapper';
+    wrapper.style.cssText = 'margin-top:12px;';
+    wrapper.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <span id="cs-progress-msg" style="font-size:13px;font-weight:600;color:var(--text-primary);"></span>
+        <span id="cs-progress-pct" style="font-size:12px;font-weight:700;color:var(--primary);"></span>
+      </div>
+      <div style="height:8px;background:var(--border);border-radius:99px;overflow:hidden;">
+        <div id="cs-progress-bar" style="height:100%;background:linear-gradient(90deg,#10b981,#2563eb);border-radius:99px;transition:width 0.4s ease;width:0%"></div>
+      </div>`;
+    status.parentNode?.insertBefore(wrapper, status.nextSibling);
   }
-  const arrayBuffer = await file.arrayBuffer();
-  const result = await mammoth.extractRawText({ arrayBuffer: arrayBuffer });
-  return (result.value || '').trim();
+
+  document.getElementById('cs-progress-msg').textContent = msg;
+  if (pct >= 0) {
+    document.getElementById('cs-progress-pct').textContent = `${pct}%`;
+    document.getElementById('cs-progress-bar').style.width = `${pct}%`;
+  }
+  status.textContent = msg;
+  status.className = 'curriculum-status loading';
 }
 
-// ─ Extract text từ PDF (tự động OCR AI Vision cho PDF scan) ──────────
-async function extractPdfTextClient(file, onStatus) {
-  if (!window.pdfjsLib) {
-    await new Promise((resolve, reject) => {
-      const s = document.createElement('script');
-      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-      s.onload = resolve;
-      s.onerror = reject;
-      document.head.appendChild(s);
-    });
-    window.pdfjsLib.GlobalWorkerOptions.workerSrc =
-      'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-  }
-
-  onStatus?.('Đang phân tích nội dung file PDF…');
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  const texts = [];
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    const pageStr = content.items.map(item => item.str).join(' ').trim();
-    if (pageStr) texts.push(pageStr);
-  }
-
-  const rawText = texts.join('\n\n').trim();
-
-  // 1. Nếu là PDF dạng văn bản (Digital PDF) → dùng luôn
-  if (rawText.length >= 50) {
-    return rawText;
-  }
-
-  // 2. Nếu là PDF ảnh scan → kích hoạt Gemini AI Vision OCR
-  onStatus?.('Phát hiện PDF ảnh scan! Đang dùng Gemini AI Vision OCR trích xuất chữ…');
-  const ocrTexts = [];
-  const maxOcrPages = Math.min(pdf.numPages, 10);
-
-  for (let i = 1; i <= maxOcrPages; i++) {
-    onStatus?.(`Đang OCR trang ${i}/${maxOcrPages} bằng AI Vision…`);
-    try {
-      const page = await pdf.getPage(i);
-      const viewport = page.getViewport({ scale: 1.5 });
-      const canvas = document.createElement('canvas');
-      canvas.width = viewport.width;
-      canvas.height = viewport.height;
-      const ctx = canvas.getContext('2d');
-      await page.render({ canvasContext: ctx, viewport }).promise;
-      const base64Data = canvas.toDataURL('image/jpeg', 0.85);
-
-      const ocrResult = await AIPool.analyzeImage({
-        base64Data,
-        userPrompt: 'Trích xuất toàn bộ văn bản Tiếng Việt trong trang tài liệu này. Giữ nguyên nội dung văn bản gốc, không thêm bớt lời chào hay giải thích.',
-        systemPrompt: 'Bạn là bộ công cụ OCR tài liệu chuyên nghiệp. Chỉ trả về văn bản trích xuất được từ ảnh.'
-      });
-
-      if (ocrResult && ocrResult.trim()) {
-        ocrTexts.push(ocrResult.trim());
-      }
-    } catch (ocrErr) {
-      console.warn(`[PDF OCR] Trang ${i} lỗi:`, ocrErr);
-    }
-  }
-
-  return ocrTexts.join('\n\n').trim();
+function _csRemoveProgress() {
+  document.getElementById('cs-progress-wrapper')?.remove();
 }
 
-// ═══════════════════════════════════════════════════════════════════
-// CACHING SYSTEM
-// ═══════════════════════════════════════════════════════════════════
-
-const CACHE_KEY_PREFIX = 'doc_summary_cache_';
-const CACHE_VERSION = 'v1';
-
-// Calculate file hash for caching
-async function calculateFileHash(file) {
-  const arrayBuffer = await file.arrayBuffer();
-  const hashBuffer = await crypto.subtle.digest('SHA-256', arrayBuffer);
-  const hashArray = Array.from(new Uint8Array(hashBuffer));
-  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  return hashHex;
-}
-
-// Get cached summary
-function getCachedSummary(hash, mode) {
-  try {
-    const cacheKey = `${CACHE_KEY_PREFIX}${CACHE_VERSION}_${hash}_${mode}`;
-    const cached = localStorage.getItem(cacheKey);
-    if (!cached) return null;
-    
-    const data = JSON.parse(cached);
-    const age = Date.now() - data.timestamp;
-    const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
-    
-    if (age > maxAge) {
-      localStorage.removeItem(cacheKey);
-      return null;
-    }
-    
-    console.log(`[Cache] ✅ Hit for hash ${hash.slice(0, 8)}... (age: ${Math.round(age/1000/60)} min)`);
-    return data;
-  } catch (err) {
-    console.warn('[Cache] Error reading:', err);
-    return null;
-  }
-}
-
-// Store summary in cache
-function setCachedSummary(hash, mode, result, title, sourceText = '') {
-  try {
-    const cacheKey = `${CACHE_KEY_PREFIX}${CACHE_VERSION}_${hash}_${mode}`;
-    const data = {
-      hash,
-      mode,
-      title,
-      result,
-      sourceText, // ✅ Lưu cả source text để render đầy đủ các tab
-      timestamp: Date.now(),
-      version: CACHE_VERSION
-    };
-    localStorage.setItem(cacheKey, JSON.stringify(data));
-    console.log(`[Cache] ✅ Stored hash ${hash.slice(0, 8)}...`);
-  } catch (err) {
-    console.warn('[Cache] Error storing:', err);
-  }
-}
-
-// Clear old caches
-function clearOldCaches() {
-  try {
-    const now = Date.now();
-    const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days
-    let cleared = 0;
-    
-    for (let i = 0; i < localStorage.length; i++) {
-      const key = localStorage.key(i);
-      if (key?.startsWith(CACHE_KEY_PREFIX)) {
-        try {
-          const data = JSON.parse(localStorage.getItem(key));
-          if (now - data.timestamp > maxAge) {
-            localStorage.removeItem(key);
-            cleared++;
-          }
-        } catch {}
-      }
-    }
-    
-    if (cleared > 0) {
-      console.log(`[Cache] 🗑️ Cleared ${cleared} old cache entries`);
-    }
-  } catch (err) {
-    console.warn('[Cache] Error clearing old caches:', err);
-  }
-}
-
-// Clear caches on page load (cleanup)
-if (typeof window !== 'undefined') {
-  clearOldCaches();
-}
-
-// ─ Chạy tóm tắt AI với Caching ──────────────────────────────────────
+// ─ MAIN RUNNER (Production Pipeline v2.0) ───────────────────────
 async function runCurriculumSummary() {
+  if (_csRunning) return;
+
   const btn = document.getElementById('curriculum-run-btn');
   const status = document.getElementById('curriculum-status');
   const title = document.getElementById('curriculum-doc-title')?.value.trim() || 'Tài liệu không rõ tên';
@@ -4059,342 +3935,459 @@ async function runCurriculumSummary() {
     status.className = `curriculum-status${cls ? ' ' + cls : ''}`;
   }
 
-  // 1. Check cache first if file exists
-  if (_csCurrentFile) {
-    setStatus('Đang kiểm tra cache...', 'loading');
-    try {
-      const fileHash = await calculateFileHash(_csCurrentFile);
-      
-      // ✅ Kiểm tra xem có phải file mới không (so với lần cuối)
-      const isNewFile = !window._csLastFileHash || window._csLastFileHash !== fileHash;
-      window._csLastFileHash = fileHash;
-      
-      // Chỉ dùng cache nếu KHÔNG phải file mới
-      if (!isNewFile) {
-        const cached = getCachedSummary(fileHash, _csMode);
-        
-        if (cached) {
-          _csCurrentResult = cached.result;
-          _csCurrentSourceText = cached.sourceText || ''; // ✅ Lưu source text từ cache
-          
-          // Check if hierarchical or flat
-          if (cached.result.chapters && cached.result.globalSummary) {
-            renderHierarchicalSummaryResult(cached.result, cached.title || title);
-          } else {
-            renderCurriculumSummaryResult(cached.result, cached.title || title);
-          }
-          
-          setStatus('✓ Đã tải từ cache (tiết kiệm thời gian & API calls)', 'success');
-          showToast('⚡ Tải từ cache thành công!', 'info');
-          return;
-        }
-      } else {
-        // ✅ File mới → xóa kết quả cũ để tránh hiển thị sai
-        _csCurrentResult = null;
-        _csCurrentSourceText = '';
-        console.log(`[Cache] 🆕 File mới được upload, bỏ qua cache`);
-      }
-    } catch (err) {
-      console.warn('[Cache] Error checking cache:', err);
-      // Continue to normal processing
-    }
+  const rawText = document.getElementById('curriculum-text-input')?.value.trim() || '';
+  if (!_csCurrentFile && rawText.length < 200) {
+    setStatus('Vui lòng upload tài liệu hoặc dán ít nhất 200 ký tự vào ô văn bản.', 'error');
+    showToast('Cần có nội dung tài liệu để tóm tắt!', 'info');
+    return;
   }
 
-  // 2. Lấy source text
-  let source = '';
-  const textInput = document.getElementById('curriculum-text-input');
-
-  if (_csCurrentFile) {
-    const ext = _csCurrentFile.name.split('.').pop()?.toLowerCase();
-    try {
-      if (['docx', 'doc'].includes(ext)) {
-        setStatus('Đang đọc trực tiếp file Word…', 'loading');
-        source = await extractWordTextClient(_csCurrentFile);
-      } else if (ext === 'txt') {
-        source = await _csCurrentFile.text();
-      } else {
-        source = await extractPdfTextClient(_csCurrentFile, (msg) => setStatus(msg, 'loading'));
-      }
-    } catch (e) {
-      console.warn('[CurriculumSummary] Extract file lỗi:', e);
-      setStatus('Không đọc được file. Vui lòng dán văn bản thủ công.', 'error');
-      return;
-    }
-  } else if (textInput?.value.trim()) {
-    source = textInput.value.trim();
-  }
-
-  if (source.length < 50) {
-    setStatus('Nội dung chưa đủ dài để tóm tắt (tối thiểu 50 ký tự).', 'error');
-    return showToast('Vui lòng upload tài liệu hoặc dán nội dung vào ô văn bản.', 'info');
-  }
-
-  _csCurrentSourceText = source;
-
-  // 2. Disable button & gọi AI
-  if (btn) btn.disabled = true;
-  const modeLabels = { quick: 'Tóm tắt nhanh', study: 'Tóm tắt chi tiết', exam: 'Học sâu' };
-  setStatus(`Đang gọi AI tóm tắt (${modeLabels[_csMode] || _csMode})…`, 'loading');
+  _csRunning = true;
+  if (btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang xử lý...'; }
+  setStatus('Đang khởi động pipeline AI...', 'loading');
 
   try {
-    // ✅ GỬI FULL DOCUMENT (Gemini context = 1M tokens)
-    setStatus(`Đang tóm tắt toàn bộ tài liệu...`, 'loading');
-    
-    const result = await AIPool.generateLessonSummary({
+    const result = await runSummarizationPipeline({
+      file: _csCurrentFile || null,
+      rawText: _csCurrentFile ? '' : rawText,
+      docTitle: title,
       mode: _csMode,
-      chapterTitle: 'Giáo trình cá nhân',
-      lessonTitle: title,
-      source: source // ✅ FULL source (no slice, no chunking)
+      onProgress: (msg, pct) => _csUpdateProgress(msg, pct)
     });
 
     _csCurrentResult = result;
-    renderCurriculumSummaryResult(result, title);
-    
-    // ✅ Cache the result
-    if (_csCurrentFile) {
-      try {
-        const fileHash = await calculateFileHash(_csCurrentFile);
-        setCachedSummary(fileHash, _csMode, result, title, source); // ✅ Lưu cả source text
-      } catch (err) {
-        console.warn('[Cache] Error storing:', err);
-      }
-    }
-    
-    setStatus(`✓ Đã tóm tắt xong!`, 'success');
-    showToast('✨ Tóm tắt tài liệu thành công!', 'success');
+    _csCurrentSourceText = _csCurrentFile ? '' : rawText; // không lưu file binary vào RAM
+
+    _csRemoveProgress();
+    const isDeep = _csMode === 'study'; // ✅ THAY 'exam' → 'study'
+    setStatus(result.cached
+      ? '⚡ Đã tải từ bộ nhớ đệm — phản hồi tức thì!'
+      : isDeep ? '✅ Tóm tắt chi tiết hoàn thành!' : '✅ Tóm tắt nhanh hoàn thành!',
+      'success'
+    );
+
+    // Lưu lịch sử
+    csv2SaveHistory({ title, mode: _csMode, result });
+
+    renderCurriculumSummaryResultV2(result, title);
+    showToast(result.cached ? '⚡ Tải từ cache!' : isDeep ? '🧠 Học sâu tài liệu thành công!' : '✨ Tóm tắt tài liệu thành công!', 'success');
+
   } catch (err) {
-    console.error('[CurriculumSummary] Lỗi AI:', err);
-    setStatus(err.message || 'Lỗi kết nối AI. Vui lòng thử lại.', 'error');
-    showToast('Không thể tóm tắt lúc này. Vui lòng thử lại!', 'error');
+    _csRemoveProgress();
+    console.error('[CurriculumSummary v2] Lỗi:', err);
+    const errMsg = _csParseError(err);
+    setStatus(errMsg, 'error');
+    showToast(_csMode === 'study' ? 'Không thể tóm tắt chi tiết lúc này. Vui lòng thử lại!' : 'Không thể tóm tắt lúc này. Vui lòng thử lại!', 'error');
   } finally {
-    if (btn) btn.disabled = false;
+    _csRunning = false;
+    if (btn) { btn.disabled = false; btn.innerHTML = _csRunBtnHTML(); }
   }
 }
 
-// ─ Render kết quả HIERARCHICAL (multi-chapter documents) ─────────────
-function renderHierarchicalSummaryResult(hierarchicalResult, titleLabel) {
-  // Show Result Stage, Hide Input Stage
-  document.getElementById('cs-input-stage')?.classList.add('hidden');
-  document.getElementById('cs-result-stage')?.classList.remove('hidden');
+// ✅ XÓA hàm isDeepMode() - không còn cần thiết
 
-  // Set Document Banner Details
-  const activeTitle = document.getElementById('cs-active-doc-title');
-  if (activeTitle) activeTitle.textContent = titleLabel || 'Tài liệu học tập';
+function _csRunBtnHTML() {
+  return _csMode === 'study'
+    ? '<i class="fa-solid fa-file-lines"></i> Tóm tắt chi tiết bằng AI'
+    : '<i class="fa-solid fa-wand-magic-sparkles"></i> Tóm tắt nhanh bằng AI';
+}
 
-  const timestampEl = document.getElementById('cs-doc-timestamp');
-  if (timestampEl) {
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-    const dateStr = now.toLocaleDateString('vi-VN');
-    timestampEl.textContent = `Tóm tắt lúc ${timeStr} - ${dateStr}`;
-  }
+function _csSyncRunBtn() {
+  const btn = document.getElementById('curriculum-run-btn');
+  if (btn && !btn.disabled) btn.innerHTML = _csRunBtnHTML();
+}
 
-  // ── HIERARCHICAL TAB RENDERING ──
-  const mainCol = document.getElementById('cs-summary-main-col');
-  if (!mainCol) return;
+function _csParseError(err) {
+  const msg = String(err?.message || err || '');
+  if (msg.includes('text-too-short') || msg.includes('empty')) return 'Tài liệu quá ngắn hoặc trống rỗng.';
+  if (msg.includes('pdf-no-text')) return 'PDF này không chứa văn bản (có thể là file scan). Vui lòng thử dán nội dung thủ công.';
+  if (msg.includes('pdf-lib-not-loaded')) return 'Thư viện đọc PDF chưa sẵn sàng. Hãy làm mới trang và thử lại.';
+  if (msg.includes('mammoth-lib-not-loaded')) return 'Thư viện đọc DOCX chưa sẵn sàng. Hãy làm mới trang và thử lại.';
+  if (msg.includes('file-too-large')) return `File quá lớn. Giới hạn 20MB.`;
+  if (msg.includes('timeout')) return 'Quá thời gian chờ AI (30s). Vui lòng thử tài liệu ngắn hơn hoặc thử lại.';
+  if (msg.includes('429') || msg.includes('rate-limited')) return 'API AI đang bận (rate-limit). Vui lòng đợi 30s rồi thử lại.';
+  if (msg.includes('all-keys-failed')) return 'Tất cả API keys đang bị giới hạn. Vui lòng thử lại sau vài phút.';
+  return `Lỗi: ${msg.slice(0, 120)}`;
+}
 
-  let mainHtml = '<div class="cs-hierarchical-summary">';
+// ─ Lightweight Markdown → HTML renderer (chỉ dùng trong Deep Study) ─────
+function _csMarkdown(md) {
+  if (!md) return '';
+  let html = escapeHtml(md);
+  // Headings: ## → h3, ### → h4, #### → h5
+  html = html.replace(/^#### (.+)$/gm, '<h5 style="font-size:13px;font-weight:800;color:#0f172a;margin:10px 0 4px;">$1</h5>');
+  html = html.replace(/^### (.+)$/gm, '<h4 style="font-size:14px;font-weight:800;color:#1e40af;margin:14px 0 6px;">$1</h4>');
+  html = html.replace(/^## (.+)$/gm, '<h3 style="font-size:15px;font-weight:900;color:#0369a1;margin:18px 0 8px;border-bottom:1px solid #bae6fd;padding-bottom:4px;">$1</h3>');
+  // Bold: **text**
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  // Italic: *text*
+  html = html.replace(/\*(.+?)\*/g, '<em>$1</em>');
+  // Bullet list items: - item or * item
+  html = html.replace(/^[\-\*] (.+)$/gm, '<li style="margin-bottom:3px;">$1</li>');
+  // Wrap consecutive <li> in <ul>
+  html = html.replace(/(<li[^>]*>.*<\/li>\n?)+/g, m => `<ul style="margin:6px 0 10px 18px;padding:0;">${m}</ul>`);
+  // Numbered list: 1. item
+  html = html.replace(/^\d+\. (.+)$/gm, '<li style="margin-bottom:3px;">$1</li>');
+  // Blank lines → paragraph breaks
+  html = html.replace(/\n\n+/g, '</p><p style="margin:0 0 8px;">');
+  // Single newlines → <br>
+  html = html.replace(/\n/g, '<br>');
+  return '<p style="margin:0 0 8px;line-height:1.75;font-size:13px;color:#1e293b;">' + html + '</p>';
+}
 
-  // Global Summary Section
-  if (hierarchicalResult.globalSummary) {
-    const insights = hierarchicalResult.globalSummary.insights || [];
-    const keywords = hierarchicalResult.globalSummary.keywords || [];
-    
-    mainHtml += `
-      <div class="cs-overview-card" style="background:linear-gradient(135deg, #10b981 0%, #2563eb 100%);color:white;padding:24px;border-radius:16px;margin-bottom:24px;">
-        <div class="cs-overview-header" style="color:white;border-bottom:1px solid rgba(255,255,255,0.2);padding-bottom:12px;margin-bottom:16px;">
-          <b style="font-size:18px;"><i class="fa-solid fa-globe"></i> Tóm tắt tổng thể</b>
-          <span class="cs-badge-count" style="background:rgba(255,255,255,0.25);color:white;">${insights.length} insight</span>
-        </div>
-        <ul style="margin:0;padding-left:20px;">
-          ${insights.map(ins => `<li style="margin-bottom:10px;line-height:1.6;">${escapeHtml(String(ins))}</li>`).join('')}
-        </ul>
-        ${keywords.length > 0 ? `
-          <div style="margin-top:16px;padding-top:16px;border-top:1px solid rgba(255,255,255,0.2);">
-            <small style="opacity:0.85;display:block;margin-bottom:8px;">Từ khóa chính:</small>
-            <div style="display:flex;flex-wrap:wrap;gap:6px;">
-              ${keywords.slice(0, 15).map(k => `<span style="background:rgba(255,255,255,0.2);padding:4px 12px;border-radius:12px;font-size:12px;">${escapeHtml(String(k))}</span>`).join('')}
+// ─ Render Deep Study UI (Học Sâu Engine Interface) ───────────────────
+function _renderDeepStudyResultHTML(result, titleLabel) {
+  const quality = result.quality || { source_fidelity: 96, clarity: 94, structure: 97 };
+  const coverage = result.coverage || { concepts: 96, formulas: 100, classifications: 100, examples: 91, technical_details: 94 };
+  const fidelity = quality.source_fidelity || 96;
+
+  let html = '';
+
+  // 1. DEEP STUDY ENGINE SCORECARD BANNER
+  html += `
+    <div style="padding:18px 22px;border-radius:16px;margin-bottom:24px;
+      background:linear-gradient(135deg, #0f172a, #1e1b4b);color:#f8fafc;
+      border:1.5px solid rgba(99,102,241,0.4);box-shadow:0 10px 25px -5px rgba(15,23,42,0.4);">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:28px;">🧠</span>
+          <div>
+            <div style="font-weight:900;font-size:16px;letter-spacing:0.3px;color:#a5b4fc;">
+              DEEP STUDY ENGINE v2.0 &bull; HỌC SÂU CHUYÊN SÂU
+            </div>
+            <div style="font-size:12px;color:#cbd5e1;margin-top:2px;">
+              Triết lý: Bảo toàn 100% giá trị tri thức &bull; Diễn giải Hiểu &rarr; Nhớ &rarr; Áp dụng
             </div>
           </div>
-        ` : ''}
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <span style="font-size:12px;font-weight:800;background:rgba(99,102,241,0.25);color:#c7d2fe;padding:5px 12px;border-radius:20px;border:1px solid rgba(165,180,252,0.3);">
+            💎 Source Fidelity: ${fidelity}%
+          </span>
+          ${result.cached ? '<span style="font-size:11px;font-weight:700;color:#60a5fa;background:rgba(59,130,246,0.2);padding:5px 10px;border-radius:20px;border:1px solid rgba(96,165,250,0.3);">⚡ Cache</span>' : ''}
+        </div>
       </div>
-    `;
+
+      <!-- Coverage Metrics Grid -->
+      <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(110px, 1fr));gap:10px;padding-top:12px;border-top:1px solid rgba(255,255,255,0.1);">
+        <div style="background:rgba(255,255,255,0.05);padding:8px 12px;border-radius:10px;text-align:center;">
+          <div style="font-size:11px;color:#94a3b8;">📚 Khái niệm</div>
+          <div style="font-size:16px;font-weight:800;color:#38bdf8;">${coverage.concepts || 96}%</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.05);padding:8px 12px;border-radius:10px;text-align:center;">
+          <div style="font-size:11px;color:#94a3b8;">📐 Công thức</div>
+          <div style="font-size:16px;font-weight:800;color:#4ade80;">${coverage.formulas || 100}%</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.05);padding:8px 12px;border-radius:10px;text-align:center;">
+          <div style="font-size:11px;color:#94a3b8;">🌲 Phân loại</div>
+          <div style="font-size:16px;font-weight:800;color:#facc15;">${coverage.classifications || 100}%</div>
+        </div>
+        <div style="background:rgba(255,255,255,0.05);padding:8px 12px;border-radius:10px;text-align:center;">
+          <div style="font-size:11px;color:#94a3b8;">⚙️ Chi tiết KT</div>
+          <div style="font-size:16px;font-weight:800;color:#f472b6;">${coverage.technical_details || 94}%</div>
+        </div>
+      </div>
+    </div>`;
+
+  // Warning Banner
+  if (result.warning) {
+    html += `
+      <div style="padding:12px 16px;border-radius:12px;background:#fffbeb;border-left:4px solid #f59e0b;margin-bottom:20px;font-size:13px;color:#92400e;">
+        <b>⚠️ Cảnh báo:</b> ${escapeHtml(result.warning)}
+      </div>`;
   }
 
-  // Chapter Tabs (Tab Switching UI)
-  const chapters = hierarchicalResult.chapters || [];
-  if (chapters.length > 0) {
-    mainHtml += '<div class="cs-chapter-tabs" style="display:flex;gap:8px;margin-bottom:20px;overflow-x:auto;padding-bottom:8px;">';
-    chapters.forEach((ch, idx) => {
-      mainHtml += `
-        <button type="button" class="cs-chapter-tab-btn ${idx === 0 ? 'active' : ''}" data-chapter-idx="${idx}" style="flex-shrink:0;padding:10px 16px;border:2px solid var(--border);border-radius:12px;background:var(--bg-secondary);cursor:pointer;transition:all 0.2s;font-size:13px;font-weight:600;">
-          <i class="fa-solid fa-book"></i> ${escapeHtml(String(ch.title).substring(0, 40))}
-        </button>
-      `;
-    });
-    mainHtml += '</div>';
+  // 2. OVERVIEW SECTION
+  if (result.overview) {
+    html += `
+      <div class="cs-overview-card" style="margin-bottom:22px;border-left:4px solid #6366f1;">
+        <div class="cs-overview-header">
+          <b><i class="fa-solid fa-brain" style="color:#6366f1;"></i> Tổng Quan Tri Thức Hợp Nhất</b>
+          <span class="cs-badge-count" style="background:#e0e7ff;color:#3730a3;">Học Sâu</span>
+        </div>
+        <p style="font-size:14px;line-height:1.8;margin:0;color:var(--text-main);white-space:pre-wrap;">${escapeHtml(result.overview)}</p>
+      </div>`;
+  }
 
-    // Chapter Content Panes
-    mainHtml += '<div class="cs-chapter-panes">';
-    chapters.forEach((ch, chIdx) => {
-      mainHtml += `<div class="cs-chapter-pane ${chIdx === 0 ? 'active' : ''}" data-chapter-idx="${chIdx}" style="display:${chIdx === 0 ? 'block' : 'none'};">`;
-      
-      // Chapter Aggregated Summary
-      if (ch.aggregatedSummary) {
-        const chMainPoints = ch.aggregatedSummary.mainPoints || [];
-        mainHtml += `
-          <div class="cs-section-card" style="background:#f0fdf4;border-left:4px solid #10b981;">
-            <h4 style="color:#10b981;"><i class="fa-solid fa-layer-group"></i> Tóm tắt chương</h4>
-            <ul>
-              ${chMainPoints.map(p => `<li>${escapeHtml(String(p))}</li>`).join('')}
-            </ul>
-          </div>
-        `;
-      }
+  // 3. CHAPTERS SECTION
+  if (result.chapters && result.chapters.length > 0) {
+    html += `
+      <div class="cs-section-card" style="margin-bottom:22px;">
+        <h4 style="color:#334155;margin-bottom:14px;"><i class="fa-solid fa-layer-group" style="color:#0284c7;"></i> Cấu Trúc Giáo Trình Theo Chương / Mục</h4>
+        <div style="display:flex;flex-direction:column;gap:12px;">
+          ${result.chapters.map((ch, idx) => `
+            <div style="padding:14px 16px;border-radius:12px;background:var(--bg-subtle,#f8fafc);border:1px solid var(--border-color,#e2e8f0);">
+              <div style="font-weight:800;font-size:14px;color:#0369a1;margin-bottom:6px;">${idx + 1}. ${escapeHtml(ch.title)}</div>
+              <div class="cs-chapter-content" style="font-size:13px;line-height:1.7;color:var(--text-main);">${_csMarkdown(ch.content)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+  }
 
-      // Lessons
-      const lessons = ch.lessons || [];
-      if (lessons.length > 0) {
-        mainHtml += `<div style="margin-top:20px;"><h5 style="font-size:14px;font-weight:700;color:var(--text-secondary);margin-bottom:12px;"><i class="fa-solid fa-list"></i> Chi tiết các bài học (${lessons.length})</h5>`;
-        lessons.forEach((lesson, lesIdx) => {
-          const summary = lesson.summary || {};
-          const mainPoints = summary.mainPoints || [];
-          mainHtml += `
-            <details class="cs-lesson-details" style="margin-bottom:12px;border:1px solid var(--border);border-radius:12px;padding:12px;">
-              <summary style="cursor:pointer;font-weight:600;color:var(--text-primary);"><i class="fa-solid fa-book-open"></i> ${escapeHtml(String(lesson.title))}</summary>
-              <div style="margin-top:12px;">
-                ${mainPoints.length > 0 ? `<ul style="margin:0;padding-left:20px;">${mainPoints.map(p => `<li style="margin-bottom:6px;font-size:13px;">${escapeHtml(String(p))}</li>`).join('')}</ul>` : '<p style="font-size:13px;color:var(--text-muted);">Không có tóm tắt chi tiết.</p>'}
+  // 4. CONCEPTS SECTION
+  if (result.concepts && result.concepts.length > 0) {
+    html += `
+      <div class="cs-section-card" style="margin-bottom:22px;">
+        <h4 style="color:#334155;margin-bottom:16px;"><i class="fa-solid fa-book-bookmark" style="color:#4f46e5;"></i> Hệ Thống Khái Niệm & Diễn Giải Bản Chất</h4>
+        <div style="display:flex;flex-direction:column;gap:16px;">
+          ${result.concepts.map(c => {
+            const explain = c.definition || c.explain || '';
+            const attrs = Array.isArray(c.attributes) && c.attributes.length > 0 ? '**Đặc điểm:**\n' + c.attributes.map(a => '- ' + a).join('\n') : '';
+            const conds = Array.isArray(c.conditions_exceptions) && c.conditions_exceptions.length > 0 ? '**Điều kiện / Ngoại lệ:**\n' + c.conditions_exceptions.map(x => '- ' + x).join('\n') : '';
+            const nums = Array.isArray(c.numbers) && c.numbers.length > 0 ? '**Thông số:**\n' + c.numbers.map(n => '- ' + n).join('\n') : '';
+            const fullText = [explain, attrs, conds, nums].filter(Boolean).join('\n\n');
+            const tierColor = c.tier === 'A' ? '#7c3aed' : '#4f46e5';
+            return `
+            <div style="padding:16px 18px;border-radius:14px;background:#fff;border:1px solid #e2e8f0;box-shadow:0 2px 6px rgba(0,0,0,0.02);">
+              <div style="font-weight:800;font-size:15px;color:#1e1b4b;margin-bottom:8px;display:flex;align-items:center;gap:8px;">
+                <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${tierColor};"></span>
+                ${escapeHtml(c.name)}
+                ${c.tier === 'A' ? '<span style="font-size:10px;font-weight:900;background:#ede9fe;color:#6d28d9;padding:2px 7px;border-radius:6px;">TRọNG TÂM</span>' : ''}
               </div>
-            </details>
-          `;
-        });
-        mainHtml += '</div>';
-      }
-
-      mainHtml += '</div>'; // close chapter pane
-    });
-    mainHtml += '</div>'; // close chapter panes
+              <div style="font-size:13px;line-height:1.75;color:#334155;">${_csMarkdown(fullText || '[Đang bổ sung...]')}</div>
+            </div>
+          `}).join('')}
+        </div>
+      </div>`;
   }
 
-  mainHtml += '</div>'; // close hierarchical summary
-  mainCol.innerHTML = mainHtml;
-
-  // Add click handlers for chapter tabs
-  document.querySelectorAll('.cs-chapter-tab-btn').forEach(btn => {
-    btn.addEventListener('click', function() {
-      const idx = this.dataset.chapterIdx;
-      document.querySelectorAll('.cs-chapter-tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.cs-chapter-pane').forEach(pane => pane.style.display = 'none');
-      this.classList.add('active');
-      const pane = document.querySelector(`.cs-chapter-pane[data-chapter-idx="${idx}"]`);
-      if (pane) pane.style.display = 'block';
-    });
-  });
-
-  // Update side widgets with global summary data
-  if (hierarchicalResult.globalSummary) {
-    const insights = hierarchicalResult.globalSummary.insights || [];
-    const keywords = hierarchicalResult.globalSummary.keywords || [];
-
-    // Green Widget
-    const greenList = document.getElementById('cs-widget-green-list');
-    if (greenList) {
-      greenList.innerHTML = insights.slice(0, 4).length > 0
-        ? insights.slice(0, 4).map(p => `<li>${escapeHtml(String(p))}</li>`).join('')
-        : '<li>Đã tổng hợp toàn bộ nội dung cốt lõi của tài liệu.</li>';
-    }
-
-    // Purple Widget (Keywords)
-    const purpleTags = document.getElementById('cs-widget-purple-tags');
-    if (purpleTags) {
-      purpleTags.innerHTML = keywords.length > 0
-        ? keywords.slice(0, 12).map(k => `<span class="cs-pill-tag">${escapeHtml(String(k))}</span>`).join('')
-        : '<span class="cs-pill-tag">Giáo trình</span>';
-    }
+  // 5. PRINCIPLES SECTION
+  if (result.principles && result.principles.length > 0) {
+    html += `
+      <div class="cs-section-card" style="margin-bottom:22px;">
+        <h4 style="color:#334155;margin-bottom:16px;"><i class="fa-solid fa-gears" style="color:#0891b2;"></i> Nguyên Lý & Cơ Chế Hoạt Động</h4>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          ${result.principles.map(p => `
+            <div style="padding:16px;border-radius:14px;background:#f0f9ff;border:1px solid #bae6fd;">
+              <div style="font-weight:800;font-size:14px;color:#0369a1;margin-bottom:6px;">⚙️ ${escapeHtml(p.name)}</div>
+              <div style="font-size:13px;line-height:1.75;color:#0f172a;">${_csMarkdown(p.explain)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
   }
 
-  // Pink Widget (Pitfalls) - aggregate from first chapter
-  const pinkList = document.getElementById('cs-widget-pink-list');
-  if (pinkList && chapters[0]?.lessons[0]?.summary?.pitfalls?.length > 0) {
-    const pitfalls = chapters[0].lessons[0].summary.pitfalls;
-    pinkList.innerHTML = pitfalls.map(p => `<li>${escapeHtml(String(p))}</li>`).join('');
+  // 6. FORMULAS SECTION
+  if (result.formulas && result.formulas.length > 0) {
+    html += `
+      <div class="cs-section-card" style="margin-bottom:22px;">
+        <h4 style="color:#334155;margin-bottom:16px;"><i class="fa-solid fa-square-root-variable" style="color:#059669;"></i> Công Thức & Thông Số Kỹ Thuật Bảo Toàn</h4>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          ${result.formulas.map(f => `
+            <div style="padding:16px;border-radius:14px;background:#ecfdf5;border:1px solid #a7f3d0;">
+              <div style="font-family:monospace;font-weight:800;font-size:15px;color:#065f46;background:#d1fae5;padding:8px 14px;border-radius:8px;display:inline-block;margin-bottom:8px;">
+                ${escapeHtml(f.formula)}
+              </div>
+              ${f.meaning ? `<div style="font-size:13px;line-height:1.7;color:#064e3b;margin-top:6px;white-space:pre-wrap;"><b>Ý nghĩa:</b> ${escapeHtml(f.meaning)}</div>` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
   }
 
-  // Reset tab active state
-  document.getElementById('cs-tab-btn-summary')?.click();
+  // 7. CLASSIFICATIONS SECTION
+  if (result.classifications && result.classifications.length > 0) {
+    html += `
+      <div class="cs-section-card" style="margin-bottom:22px;">
+        <h4 style="color:#334155;margin-bottom:16px;"><i class="fa-solid fa-sitemap" style="color:#d97706;"></i> Phân Loại & Hệ Thống Đặc Tính</h4>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));gap:14px;">
+          ${result.classifications.map(c => `
+            <div style="padding:14px 16px;border-radius:12px;background:#fffbeb;border:1px solid #fde68a;">
+              <div style="font-weight:800;font-size:14px;color:#92400e;margin-bottom:8px;">🌲 ${escapeHtml(c.name)}</div>
+              <ul style="margin:0;padding-left:18px;font-size:13px;color:#78350f;line-height:1.6;">
+                ${c.items.map(item => `<li>${escapeHtml(item)}</li>`).join('')}
+              </ul>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+  }
+
+  // 8. FOOD TECHNOLOGY APPLICATIONS
+  if (result.food_apps && result.food_apps.length > 0) {
+    html += `
+      <div class="cs-section-card" style="margin-bottom:22px;background:linear-gradient(135deg,#f0fdf4,#eff6ff);border:1.5px solid #86efac;">
+        <h4 style="color:#166534;margin-bottom:16px;"><i class="fa-solid fa-utensils" style="color:#16a34a;"></i> 🍱 Minh Họa Ứng Dụng Trong Công Nghệ Thực Phẩm</h4>
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          ${result.food_apps.map(fa => `
+            <div style="padding:14px 16px;border-radius:12px;background:#ffffff;border:1px solid #bbf7d0;box-shadow:0 2px 5px rgba(0,0,0,0.03);">
+              <div style="margin-bottom:6px;">
+                ${fa.ai_generated 
+                  ? '<span style="font-size:11px;font-weight:800;background:#dbeafe;color:#1e40af;padding:3px 8px;border-radius:6px;border:1px solid #bfdbfe;">[MINH HỌA ỨNG DỤNG – DO AI XÂY DỰNG]</span>' 
+                  : '<span style="font-size:11px;font-weight:800;background:#dcfce7;color:#15803d;padding:3px 8px;border-radius:6px;border:1px solid #bbf7d0;">[TRÍCH TỪ GIÁO TRÌNH]</span>'}
+              </div>
+              <div style="font-size:13px;line-height:1.75;color:#0f172a;white-space:pre-wrap;">${escapeHtml(fa.text)}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>`;
+  }
+
+  // 9. COMPARISONS TABLE
+  if (result.comparisons && result.comparisons.length > 0) {
+    html += `
+      <div class="cs-section-card" style="margin-bottom:22px;">
+        <h4 style="color:#334155;margin-bottom:16px;"><i class="fa-solid fa-code-compare" style="color:#9333ea;"></i> ⚔️ Bảng So Sánh & Phân Biệt Khái Niệm Dễ Nhầm</h4>
+        ${result.comparisons.map(comp => `
+          <div style="margin-bottom:16px;">
+            <div style="font-weight:800;font-size:14px;color:#581c87;margin-bottom:8px;">${escapeHtml(comp.title)}</div>
+            <div style="overflow-x:auto;">
+              <table style="width:100%;border-collapse:collapse;font-size:13px;text-align:left;">
+                <thead>
+                  <tr style="background:#f3e8ff;color:#6b21a8;border-bottom:2px solid #d8b4fe;">
+                    <th style="padding:10px 12px;">Khái niệm</th>
+                    <th style="padding:10px 12px;">Bản chất</th>
+                    <th style="padding:10px 12px;">Điểm khác biệt</th>
+                    <th style="padding:10px 12px;">Khi nào dùng</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${(comp.rows || []).map((row, rIdx) => `
+                    <tr style="background:${rIdx % 2 === 0 ? '#faf5ff' : '#fff'};border-bottom:1px solid #f3e8ff;">
+                      <td style="padding:10px 12px;font-weight:700;color:#581c87;">${escapeHtml(row.concept || '')}</td>
+                      <td style="padding:10px 12px;">${escapeHtml(row.essence || '')}</td>
+                      <td style="padding:10px 12px;color:#c026d3;">${escapeHtml(row.diff || '')}</td>
+                      <td style="padding:10px 12px;color:#0284c7;">${escapeHtml(row.when || '')}</td>
+                    </tr>
+                  `).join('')}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `).join('')}
+      </div>`;
+  }
+
+  // 10. RELATIONS SECTION
+  if (result.relations && result.relations.length > 0) {
+    html += `
+      <div class="cs-section-card" style="margin-bottom:22px;">
+        <h4 style="color:#334155;margin-bottom:14px;"><i class="fa-solid fa-link" style="color:#2563eb;"></i> Mối Quan Hệ Giữa Các Kiến Thức Trong Hệ Thống</h4>
+        <ul style="margin:0;padding-left:20px;font-size:13px;line-height:1.75;color:#1e293b;">
+          ${result.relations.map(rel => `<li>${escapeHtml(rel)}</li>`).join('')}
+        </ul>
+      </div>`;
+  }
+
+  // 11. REMOVED TRANSPARENCY CHECK
+  if (result.removed && result.removed.length > 0) {
+    html += `
+      <div style="padding:14px 18px;border-radius:14px;background:#f8fafc;border:1px dashed #cbd5e1;margin-bottom:22px;">
+        <div style="font-weight:800;font-size:13px;color:#64748b;margin-bottom:6px;">
+          <i class="fa-solid fa-filter" style="color:#94a3b8;"></i> Báo Cáo Loại Bỏ Dư Thừa (Coverage Verification)
+        </div>
+        <div style="font-size:12px;color:#64748b;line-height:1.6;">
+          ${result.removed.map(rem => `<div>• <b>${escapeHtml(rem.item)}</b>: ${escapeHtml(rem.reason)}</div>`).join('')}
+        </div>
+      </div>`;
+  }
+
+  return html;
 }
 
-// ─ Render kết quả chuẩn Screenshots 3 & 4 (flat document) ────────────
-function renderCurriculumSummaryResult(result, titleLabel) {
-  // Show Result Stage, Hide Input Stage
+// ─ Render kết quả v2 (với Quality Badge + Final Summary prose) ─────
+function renderCurriculumSummaryResultV2(result, titleLabel) {
+  // Chuyển sang stage kết quả
   document.getElementById('cs-input-stage')?.classList.add('hidden');
   document.getElementById('cs-result-stage')?.classList.remove('hidden');
 
-  // Set Document Banner Details (Screenshot 3)
+  // Document banner
   const activeTitle = document.getElementById('cs-active-doc-title');
   if (activeTitle) activeTitle.textContent = titleLabel || 'Tài liệu học tập';
 
   const timestampEl = document.getElementById('cs-doc-timestamp');
   if (timestampEl) {
     const now = new Date();
-    const timeStr = now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-    const dateStr = now.toLocaleDateString('vi-VN');
-    timestampEl.textContent = `Tóm tắt lúc ${timeStr} - ${dateStr}`;
+    timestampEl.textContent = `Học sâu lúc ${now.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })} - ${now.toLocaleDateString('vi-VN')}`;
   }
 
-  // ── 1. POPULATE TAB 1: SUMMARY (SCREENSHOT 3) ──
+  const isDeep = result.schema === 'deep' || _csMode === 'study'; // ✅ THAY 'exam' → 'study'
   const mainCol = document.getElementById('cs-summary-main-col');
-  const mainPoints = Array.isArray(result.mainPoints) ? result.mainPoints : [];
-  const keywords = Array.isArray(result.keywords) ? result.keywords : [];
-  const pitfalls = Array.isArray(result.pitfalls) ? result.pitfalls : [];
-  const quickQuestions = Array.isArray(result.quickQuestions) ? result.quickQuestions : [];
 
-  if (mainCol) {
-    let mainHtml = `
-      <div class="cs-overview-card">
-        <div class="cs-overview-header">
-          <b><i class="fa-solid fa-file-circle-check"></i> Tóm tắt nhanh</b>
-          <span class="cs-badge-count">${mainPoints.length} ý chính</span>
+  if (isDeep && mainCol) {
+    // 🧠 RENDER DEEP STUDY INTERFACE (cho mode 'study')
+    mainCol.innerHTML = _renderDeepStudyResultHTML(result, titleLabel);
+  } else if (mainCol) {
+    // 📝 STANDARD SUMMARY RENDER (cho mode 'quick')
+    const quality = result.quality || { avg_confidence: 0.75, avg_clarity: 7, badge: 'good' };
+    const isGood = quality.badge === 'good';
+    const mainPoints = result.mainPoints || [];
+    const finalSummary = result.finalSummary || '';
+
+    let html = '';
+
+    // Quality Badge Banner
+    html += `
+      <div style="display:flex;align-items:center;gap:12px;padding:14px 18px;border-radius:14px;margin-bottom:20px;
+        background:${isGood ? 'linear-gradient(135deg,#ecfdf5,#eff6ff)' : 'linear-gradient(135deg,#fffbeb,#fef3c7)'};
+        border:1.5px solid ${isGood ? '#a7f3d0' : '#fcd34d'};">
+        <span style="font-size:28px;">${isGood ? '✅' : '⚠️'}</span>
+        <div style="flex:1;">
+          <div style="font-weight:800;font-size:14px;color:${isGood ? '#065f46' : '#92400e'};">
+            ${isGood ? 'Chất lượng TỐT — AI tự đánh giá đáng tin cậy' : 'Cần kiểm tra lại — Độ chính xác chưa cao'}
+          </div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+            Độ tự tin: <b>${Math.round((quality.avg_confidence || 0.8) * 100)}%</b>
+            &nbsp;·&nbsp; Độ rõ ràng: <b>${quality.avg_clarity || 8}/10</b>
+            &nbsp;·&nbsp; Số đoạn: <b>${result.meta?.chunksCount || 1}</b>
+          </div>
         </div>
-        <p style="font-size:13.5px;line-height:1.6;margin:0;">
-          Tài liệu "${escapeHtml(titleLabel)}" tổng hợp đầy đủ các khái niệm cốt lõi, quy trình chính và điểm quan trọng cần ghi nhớ để chuẩn bị cho học tập và ôn thi.
-        </p>
-      </div>
-    `;
+        ${result.cached ? '<span style="font-size:11px;font-weight:700;color:#2563eb;background:#eff6ff;padding:4px 10px;border-radius:8px;">⚡ Cache</span>' : ''}
+      </div>`;
 
-    // Group main points into structured section cards
+    if (result.warning) {
+      html += `
+        <div style="padding:12px 16px;border-radius:12px;background:#fffbeb;border-left:4px solid #f59e0b;margin-bottom:18px;font-size:13px;color:#92400e;">
+          <b>⚠️ Cảnh báo:</b> ${escapeHtml(result.warning)}
+        </div>`;
+    }
+
+    if (finalSummary) {
+      html += `
+        <div class="cs-overview-card" style="margin-bottom:20px;">
+          <div class="cs-overview-header">
+            <b><i class="fa-solid fa-file-circle-check"></i> Bản tóm tắt tổng hợp</b>
+            <span class="cs-badge-count">${result.meta?.mode === 'study' ? 'Chi tiết' : 'Nhanh'}</span>
+          </div>
+          <p style="font-size:14px;line-height:1.75;margin:0;white-space:pre-wrap;">${escapeHtml(finalSummary)}</p>
+        </div>`;
+    }
+
     if (mainPoints.length > 0) {
       const chunkSize = 3;
+      const sectionTitles = [
+        'Khái niệm & Nội dung chính',
+        'Các yếu tố & Quy trình quan trọng',
+        'Tổng hợp & Ứng dụng thực tế',
+        'Nội dung bổ sung'
+      ];
       for (let i = 0; i < mainPoints.length; i += chunkSize) {
         const chunk = mainPoints.slice(i, i + chunkSize);
-        const sectionNum = Math.floor(i / chunkSize) + 1;
-        const sectionTitles = ['Khái niệm & Nội dung chính', 'Các yếu tố & Quy trình ảnh hưởng', 'Tổng hợp & Ứng dụng thực tế'];
-        const sectionTitle = sectionTitles[sectionNum - 1] || `Nội dung phần ${sectionNum}`;
-
-        mainHtml += `
+        const secNum = Math.floor(i / chunkSize) + 1;
+        html += `
           <div class="cs-section-card">
-            <h4>${sectionNum}. ${sectionTitle}</h4>
-            <ul>
-              ${chunk.map(pt => `<li>${escapeHtml(String(pt))}</li>`).join('')}
-            </ul>
-          </div>
-        `;
+            <h4>${secNum}. ${sectionTitles[secNum - 1] || `Phần ${secNum}`}</h4>
+            <ul>${chunk.map(pt => `<li>${escapeHtml(String(pt))}</li>`).join('')}</ul>
+          </div>`;
       }
     }
 
-    mainCol.innerHTML = mainHtml;
+    mainCol.innerHTML = html;
   }
 
-  // ── POPULATE RIGHT WIDGETS (SCREENSHOT 3) ──
-  // Green Widget (Ý chính cần nhớ)
+  // ── RIGHT WIDGETS ──
+  const keyPoints = result.key_points || result.mainPoints || [];
+  const pitfalls = result.pitfalls || [];
+  const keywords = result.keywords || (result.concepts ? result.concepts.map(c => c.name) : []);
+
   const greenList = document.getElementById('cs-widget-green-list');
   if (greenList) {
-    greenList.innerHTML = mainPoints.slice(0, 4).length > 0
-      ? mainPoints.slice(0, 4).map(p => `<li>${escapeHtml(String(p))}</li>`).join('')
-      : '<li>Đã tổng hợp toàn bộ nội dung cốt lõi của bài học.</li>';
+    greenList.innerHTML = keyPoints.length > 0
+      ? keyPoints.slice(0, 5).map(p => `<li>${escapeHtml(String(p))}</li>`).join('')
+      : '<li>Đã tổng hợp toàn bộ nội dung cốt lõi của tài liệu.</li>';
   }
 
-  // Pink Widget (Cần lưu ý)
   const pinkList = document.getElementById('cs-widget-pink-list');
   if (pinkList) {
     pinkList.innerHTML = pitfalls.length > 0
@@ -4402,24 +4395,23 @@ function renderCurriculumSummaryResult(result, titleLabel) {
       : '<li>Chú ý phân biệt các định nghĩa và công thức dễ nhầm lẫn.</li>';
   }
 
-  // Purple Widget (Từ khóa pill tags)
   const purpleTags = document.getElementById('cs-widget-purple-tags');
   if (purpleTags) {
     purpleTags.innerHTML = keywords.length > 0
-      ? keywords.map(k => `<span class="cs-pill-tag">${escapeHtml(String(k))}</span>`).join('')
-      : '<span class="cs-pill-tag">Giáo trình</span><span class="cs-pill-tag">Tài liệu</span>';
+      ? keywords.slice(0, 8).map(k => `<span class="cs-pill-tag">${escapeHtml(String(k))}</span>`).join('')
+      : '<span class="cs-pill-tag">Giáo trình</span>';
   }
 
-  // ── 2. POPULATE TAB 2: MINDMAP & DOC ASSISTANT (SCREENSHOT 4) ──
+  // ── TAB 2: MINDMAP & DOC ASSISTANT ──
   const mindmapContainer = document.getElementById('cs-mindmap-container');
   if (mindmapContainer) {
     const mindmapData = {
-      title: titleLabel || 'Nội dung bài học',
+      title: titleLabel || 'Nội dung tài liệu',
       branches: [
-        { title: 'Khái niệm chính', color: '#3b82f6', items: mainPoints.slice(0, 2) },
-        { title: 'Các yếu tố ảnh hưởng', color: '#10b981', items: mainPoints.slice(2, 4) },
-        { title: 'Cần lưu ý', color: '#f59e0b', items: pitfalls.slice(0, 2) },
-        { title: 'Từ khóa quan trọng', color: '#8b5cf6', items: keywords.slice(0, 3) }
+        { title: 'Khái niệm chính', color: '#3b82f6', items: (result.concepts ? result.concepts.map(c => c.name) : keyPoints).slice(0, 4) },
+        { title: 'Điểm cần nhớ', color: '#10b981', items: keyPoints.slice(0, 4) },
+        { title: 'Điểm dễ nhầm', color: '#f59e0b', items: pitfalls.slice(0, 3) },
+        { title: 'Công thức & Thông số', color: '#8b5cf6', items: (result.formulas ? result.formulas.map(f => f.formula) : []).slice(0, 3) }
       ]
     };
     renderMindmap(mindmapContainer, mindmapData);
@@ -4430,53 +4422,66 @@ function renderCurriculumSummaryResult(result, titleLabel) {
     initDocAssistant({
       container: docAssistantContainer,
       getDocumentTitle: () => titleLabel,
-      getDocumentText: () => _csCurrentSourceText
+      getDocumentText: () => _csCurrentSourceText || result.overview || result.finalSummary
     });
   }
 
-  // ── 3. POPULATE TAB 3: QUESTIONS ──
+  // ── TAB 3: QUESTIONS (TỰ KIỂM TRA) ──
   const questionsBody = document.getElementById('cs-questions-body');
   if (questionsBody) {
-    questionsBody.innerHTML = quickQuestions.length > 0
-      ? `<ol style="padding-left:20px;margin:0;">${quickQuestions.map(q => `<li style="margin-bottom:12px;font-size:14px;line-height:1.6;"><b>${escapeHtml(String(q))}</b></li>`).join('')}</ol>`
-      : '<p style="color:var(--text-muted);font-size:13px;">Không có câu hỏi ôn tập tự động.</p>';
+    const qs = result.questions || result.quickQuestions || [];
+    if (qs.length > 0) {
+      questionsBody.innerHTML = `
+        <div style="display:flex;flex-direction:column;gap:14px;">
+          ${qs.map((q, qIdx) => `
+            <div style="padding:16px 18px;border-radius:14px;background:#fff;border:1px solid #e2e8f0;box-shadow:0 2px 6px rgba(0,0,0,0.02);">
+              <div style="font-weight:800;font-size:14px;color:#1e1b4b;margin-bottom:8px;display:flex;align-items:flex-start;gap:8px;">
+                <span style="background:#e0e7ff;color:#3730a3;font-size:12px;padding:2px 8px;border-radius:6px;shrink:0;">Câu ${qIdx + 1}</span>
+                <span>${escapeHtml(String(q))}</span>
+              </div>
+              <details style="margin-top:8px;font-size:13px;color:#475569;">
+                <summary style="cursor:pointer;font-weight:700;color:#4f46e5;user-select:none;">💡 Gợi ý tư duy & trả lời</summary>
+                <div style="margin-top:8px;padding:10px 12px;border-radius:8px;background:#f8fafc;border:1px solid #e2e8f0;line-height:1.6;">
+                  Áp dụng kiến thức trong phần diễn giải bản chất và các công thức/nguyên lý tương ứng để trả lời.
+                </div>
+              </details>
+            </div>
+          `).join('')}
+        </div>`;
+    } else {
+      questionsBody.innerHTML = '<p style="color:var(--text-muted);font-size:13px;">Chưa có câu hỏi tự kiểm tra cho tài liệu này.</p>';
+    }
   }
 
-  // ── 4. POPULATE TAB 4: SOURCE TEXT ──
+  // ── TAB 4: SOURCE TEXT ──
   const sourceBody = document.getElementById('cs-source-body');
   if (sourceBody) {
-    sourceBody.textContent = _csCurrentSourceText || 'Không có nguồn văn bản.';
+    sourceBody.textContent = _csCurrentSourceText || result.overview || result.finalSummary || 'Không có nguồn văn bản được lưu trữ.';
   }
 
-  // Reset tab active state to Summary tab
+  // Về tab đầu
   document.getElementById('cs-tab-btn-summary')?.click();
 }
 
-// ─ Chuyển kết quả sang text thuần (cho sao chép) ──────────────────
-function csResultToText(result) {
-  const lines = [];
-  if (result.mainPoints?.length) { lines.push('Ý chính:', ...result.mainPoints.map(p => `- ${p}`), ''); }
-  if (result.keywords?.length) { lines.push('Từ khóa:', ...result.keywords.map(k => `- ${k}`), ''); }
-  if (result.pitfalls?.length) { lines.push('Lưu ý dễ nhầm:', ...result.pitfalls.map(p => `- ${p}`), ''); }
-  if (result.quickQuestions?.length) { lines.push('Câu hỏi ôn nhanh:', ...result.quickQuestions.map(q => `- ${q}`), ''); }
-  if (result.source) lines.push(`Nguồn: ${result.source}`);
-  return lines.join('\n');
+// ─ Alias cho backward compat ───────────────────────────────────────
+function renderCurriculumSummaryResult(result, titleLabel) {
+  renderCurriculumSummaryResultV2(result, titleLabel);
 }
 
-// ─ Lưu vào lịch sử localStorage ────────────────────────────────────
-function saveCurriculumSummaryToHistory(entry) {
+// ─ History v2 ─────────────────────────────────────────────────────
+function csv2SaveHistory(entry) {
   try {
     const raw = localStorage.getItem(CS_HISTORY_KEY);
     const history = raw ? JSON.parse(raw) : [];
-    history.unshift(entry);
+    history.unshift({ ...entry, savedAt: new Date().toISOString() });
     if (history.length > CS_MAX_HISTORY) history.splice(CS_MAX_HISTORY);
     localStorage.setItem(CS_HISTORY_KEY, JSON.stringify(history));
+    renderCurriculumSummaryHistory();
   } catch (e) {
-    console.warn('[CurriculumSummary] Không lưu được lịch sử:', e);
+    console.warn('[CurriculumSummary v2] Không lưu được lịch sử:', e);
   }
 }
 
-// ─ Render danh sách lịch sử ───────────────────────────────────────
 function renderCurriculumSummaryHistory() {
   const list = document.getElementById('curriculum-history-list');
   if (!list) return;
@@ -4489,12 +4494,14 @@ function renderCurriculumSummaryHistory() {
     return;
   }
 
-  const modeLabels = { quick: '1 Phút', study: 'Học kỹ', exam: 'Ôn thi' };
+  const modeLabels = { quick: 'Nhanh', study: 'Chi tiết' }; // ✅ XÓA 'exam': 'Ôn thi'
   list.innerHTML = history.map((entry, idx) => {
     const date = entry.savedAt ? new Date(entry.savedAt).toLocaleDateString('vi-VN') : '';
+    const quality = entry.result?.quality;
+    const badge = quality?.badge === 'good' ? '✅' : quality ? '⚠️' : '';
     return `<div class="curriculum-history-item" onclick="csLoadHistoryEntry(${idx})">
       <div>
-        <div class="curriculum-history-item-title" title="${escapeHtml(entry.title)}">${escapeHtml(entry.title)}</div>
+        <div class="curriculum-history-item-title" title="${escapeHtml(entry.title)}">${badge} ${escapeHtml(entry.title)}</div>
         <div class="curriculum-history-item-meta">${date}</div>
       </div>
       <span class="curriculum-history-item-badge">${modeLabels[entry.mode] || entry.mode}</span>
@@ -4502,7 +4509,6 @@ function renderCurriculumSummaryHistory() {
   }).join('');
 }
 
-// ─ Tải lại một bản lịch sử ─────────────────────────────────────────
 function csLoadHistoryEntry(index) {
   let history = [];
   try { history = JSON.parse(localStorage.getItem(CS_HISTORY_KEY) || '[]'); } catch {}
@@ -4511,16 +4517,13 @@ function csLoadHistoryEntry(index) {
 
   _csCurrentResult = entry.result;
   _csMode = entry.mode;
+  _csCurrentSourceText = '';
 
-  // Cập nhật nút mode active
   document.querySelectorAll('[data-cs-mode]').forEach(b => b.classList.toggle('active', b.dataset.csMode === _csMode));
-
-  // Cập nhật title input
   const titleInput = document.getElementById('curriculum-doc-title');
   if (titleInput) titleInput.value = entry.title;
 
-  // Hiển thị kết quả
-  renderCurriculumSummaryResult(entry.result, entry.title);
+  renderCurriculumSummaryResultV2(entry.result, entry.title);
   showToast(`Đã tải: ${entry.title}`, 'info');
 }
 

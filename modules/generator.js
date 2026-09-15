@@ -106,51 +106,42 @@ export const Generator = {
  * Gọi Groq API (Layer 1 & 4)
  */
 async function _callGroq(systemPrompt, content, count) {
-  const key = AIPool.getKey('groq');
   const url = 'https://api.groq.com/openai/v1/chat/completions';
-  
   const userMsg = `Nội dung tài liệu:\n${content}\n\nHãy sinh ${count} câu hỏi theo cấu trúc JSON object { "questions": [...] }. Trả lời ĐÚNG chuẩn JSON.`;
   
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-      body: JSON.stringify({
-        model: 'openai/gpt-oss-120b',
-        messages: [
-          { role: 'system', content: systemPrompt },
-          { role: 'user', content: userMsg }
-        ],
-        temperature: 0.7,
-        response_format: { type: 'json_object' }
-      })
-    });
+  // ✅ THỬ TẤT CẢ GROQ KEYS (3 keys)
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const key = AIPool.getKey('groq');
+    if (!key) break;
     
-    if (!res.ok) throw new Error(`Groq lỗi ${res.status}`);
-    const data = await res.json();
-    return _parseJSONString(data.choices[0].message.content);
-  } catch (err) {
-    console.warn('[Multi-Layer] Lỗi Groq, thử lại với key khác...', err);
-    // Thử key khác
-    const key2 = AIPool.getKey('groq');
     try {
       const res = await fetch(url, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key2}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
         body: JSON.stringify({
           model: 'openai/gpt-oss-120b',
-          messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userMsg }],
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMsg }
+          ],
           temperature: 0.7,
           response_format: { type: 'json_object' }
         })
       });
-      if (!res.ok) return [];
-      const data = await res.json();
-      return _parseJSONString(data.choices[0].message.content);
-    } catch {
-      return [];
+      
+      if (res.ok) {
+        const data = await res.json();
+        return _parseJSONString(data.choices[0].message.content);
+      } else {
+        console.warn(`[Generator] Groq key ${attempt + 1}/3 lỗi ${res.status}, thử key tiếp...`);
+      }
+    } catch (err) {
+      console.warn(`[Generator] Groq key ${attempt + 1}/3 exception:`, err);
     }
   }
+  
+  console.error('[Generator] Tất cả Groq keys đều thất bại');
+  return [];
 }
 
 /**
@@ -191,29 +182,51 @@ async function _callMistralNemo(systemPrompt, content, count) {
  * Gọi API Gemini (Layer 3)
  */
 async function _callGemini(systemPrompt, content, count) {
-  const key = AIPool.getKey('gemini');
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${key}`; // ✅ Rollback về 3.7 (RPD=1000)
-  
   const userMsg = `Nội dung tài liệu:\n${content}\n\nHãy sinh ${count} câu hỏi theo cấu trúc JSON object { "questions": [...] }. Trả lời ĐÚNG chuẩn JSON.`;
   
+  // ✅ THỬ TẤT CẢ GEMINI KEYS TRƯỚC KHI FALLBACK
+  const geminiKeys = AIPool.getKey('gemini');
+  const allKeys = typeof geminiKeys === 'string' ? [geminiKeys] : [];
+  
+  // Lấy tất cả keys Gemini có sẵn
+  for (let attempt = 0; attempt < 3; attempt++) { // Tối đa thử 3 keys
+    const key = AIPool.getKey('gemini');
+    if (!key || allKeys.includes(key)) break;
+    allKeys.push(key);
+  }
+  
+  // Thử từng key Gemini
+  for (let i = 0; i < allKeys.length; i++) {
+    const key = allKeys[i];
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`;
+    
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: systemPrompt }] },
+          contents: [{ role: 'user', parts: [{ text: userMsg }] }],
+          generationConfig: { responseMimeType: 'application/json' }
+        })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (text) return _parseJSONString(text);
+      } else {
+        console.warn(`[Generator] Gemini key ${i + 1}/${allKeys.length} lỗi ${res.status}, thử key tiếp...`);
+      }
+    } catch (err) {
+      console.warn(`[Generator] Gemini key ${i + 1}/${allKeys.length} exception:`, err);
+    }
+  }
+  
+  // ✅ FALLBACK SANG GROQ NẾU TẤT CẢ GEMINI KEYS FAIL
+  console.warn('[Generator] Tất cả Gemini keys thất bại, fallback sang Groq...');
   try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: systemPrompt }] },
-        contents: [{ role: 'user', parts: [{ text: userMsg }] }],
-        generationConfig: { responseMimeType: 'application/json' }
-      })
-    });
-    
-    if (!res.ok) throw new Error(`Gemini lỗi ${res.status}`);
-    const data = await res.json();
-    return _parseJSONString(data.candidates[0].content.parts[0].text);
-  } catch (err) {
-    console.warn('[Multi-Layer] Lỗi Gemini, Fallback sang Groq...', err);
     const fbKey = AIPool.getKey('groq');
-    
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${fbKey}` },
@@ -227,10 +240,15 @@ async function _callGemini(systemPrompt, content, count) {
         response_format: { type: 'json_object' }
       })
     });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return _parseJSONString(data.choices[0].message.content);
+    if (res.ok) {
+      const data = await res.json();
+      return _parseJSONString(data.choices[0].message.content);
+    }
+  } catch (err) {
+    console.error('[Generator] Groq fallback cũng thất bại:', err);
   }
+  
+  return [];
 }
 
 function _parseJSONString(str) {

@@ -30,7 +30,7 @@ const FIREBASE_CONFIG = {
 
 const COLLECTION = 'lessonSummaries';
 const SESSION_PREFIX = 'fteca_summary_cache_';
-const MODES = ['quick', 'study', 'exam'];
+const MODES = ['quick', 'study']; // ✅ XÓA mode 'exam'
 
 let _db = null;
 

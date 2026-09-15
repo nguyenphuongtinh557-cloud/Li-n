@@ -26,7 +26,6 @@ export const RAW_KEYS = {
     'csk-' + 'hcvp52we6htpcyjefe26yj5wmtfk2et2ehv4tw6ptk8cmhep'
   ],
   gemini: [
-    'AIzaSy' + 'B4rSYnaBvBl4QWPyefSc_rODRZQ6eTrk8',
     'AIzaSy' + 'A_YW64oHktvXQALBKurI67x1tdu3LNQ6M',
     'AIzaSy' + 'ACGSiU_pf21ssY_gqymwGd-_jLqK6qtN8'
   ],
@@ -41,7 +40,7 @@ export const RAW_KEYS = {
 export const POOL_MODELS = {
   // 1. Phân tích hình ảnh (Giải bài tập toán / OCR / Phân tích ảnh)
   IMAGE_ANALYSIS: [
-    { provider: 'gemini', model: 'gemini-3.7-flash', type: 'native' }, // ✅ Rollback từ 3.8 (RPD=20) về 3.7 (RPD=1000)
+    { provider: 'gemini', model: 'gemini-3.5-flash-lite', type: 'native' }, // ✅ 500 RPD (25x quota)
     { provider: 'openrouter', model: 'openai/gpt-4o-mini', type: 'openrouter' },
     { provider: 'openrouter', model: 'qwen/qwen-2.5-vl-72b-instruct', type: 'openrouter' },
     { provider: 'mistral', model: 'pixtral-12b-2409', type: 'mistral-vision' }
@@ -50,7 +49,7 @@ export const POOL_MODELS = {
   // 2. Ra đề & Tạo câu hỏi trắc nghiệm (Tiếng Việt tốt, Quota hồi liên tục, Tốc độ cao)
   QUESTION_GENERATION: [
     { provider: 'groq', model: 'openai/gpt-oss-120b', type: 'openai-compat', endpoint: 'https://api.groq.com/openai/v1/chat/completions' },
-    { provider: 'gemini', model: 'gemini-3.7-flash', type: 'gemini-native' }, // ✅ Rollback từ 3.8 (RPD=20) về 3.7 (RPD=1000)
+    { provider: 'gemini', model: 'gemini-3.5-flash-lite', type: 'gemini-native' }, // ✅ 500 RPD (25x quota)
     { provider: 'mistral', model: 'open-mistral-nemo-2407', type: 'openai-compat', endpoint: 'https://api.mistral.ai/v1/chat/completions' },
     { provider: 'openrouter', model: 'meta-llama/llama-3.3-70b-instruct', type: 'openrouter' },
     { provider: 'openrouter', model: 'openai/gpt-4o-mini', type: 'openrouter' }
@@ -141,7 +140,7 @@ export const AIPool = {
     // Thử Gemini Native trước (hỗ trợ multimodal cực nhanh & chính xác)
     for (let i = 0; i < RAW_KEYS.gemini.length; i++) {
       const key = rotator.getKey('gemini');
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${key}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`;
       
       const payload = {
         contents: [
@@ -324,7 +323,7 @@ Trả về JSON hợp lệ duy nhất:
     for (let i = 0; i < RAW_KEYS.gemini.length; i++) {
       const key = rotator.getKey('gemini');
       if (!key) continue;
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${key}`;
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`;
 
       const payload = {
         contents: [{ parts: [{ text: prompt }] }],

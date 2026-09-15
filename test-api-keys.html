@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Test API Keys Status</title>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #fff; }
+    .test { margin: 10px 0; padding: 10px; border: 1px solid #444; }
+    .pass { background: #1a3d1a; border-color: #0f0; }
+    .fail { background: #3d1a1a; border-color: #f00; }
+    .testing { background: #3d3d1a; border-color: #ff0; }
+    button { padding: 10px 20px; margin: 10px 0; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Test API Keys Status</h1>
+  <button onclick="testAllKeys()">Test All Keys</button>
+  <div id="results"></div>
+
+  <script type="module">
+    import { RAW_KEYS } from './modules/aiPool.js';
+
+    window.RAW_KEYS = RAW_KEYS;
+
+    async function testGeminiKey(key, index) {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`;
+      
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: 'Test' }] }]
+          })
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) {
+          return { ok: true, status: res.status, msg: 'Working ✅' };
+        } else if (res.status === 429) {
+          return { ok: false, status: 429, msg: 'Rate Limited 🚫', detail: data.error?.message };
+        } else if (res.status === 503) {
+          return { ok: false, status: 503, msg: 'Service Unavailable ⚠️', detail: data.error?.message };
+        } else {
+          return { ok: false, status: res.status, msg: 'Error ❌', detail: data.error?.message };
+        }
+      } catch (err) {
+        return { ok: false, status: 0, msg: 'Network Error 🔌', detail: err.message };
+      }
+    }
+
+    async function testGroqKey(key, index) {
+      try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${key}`
+          },
+          body: JSON.stringify({
+            model: 'openai/gpt-oss-120b',
+            messages: [{ role: 'user', content: 'test' }],
+            max_tokens: 5
+          })
+        });
+        
+        if (res.ok) {
+          return { ok: true, status: res.status, msg: 'Working ✅' };
+        } else if (res.status === 429) {
+          return { ok: false, status: 429, msg: 'Rate Limited 🚫' };
+        } else {
+          const data = await res.json().catch(() => ({}));
+          return { ok: false, status: res.status, msg: 'Error ❌', detail: data.error?.message };
+        }
+      } catch (err) {
+        return { ok: false, status: 0, msg: 'Network Error 🔌', detail: err.message };
+      }
+    }
+
+    window.testAllKeys = async function() {
+      const results = document.getElementById('results');
+      results.innerHTML = '<h2>Testing...</h2>';
+      
+      let html = '<h2>Gemini Keys (3.5-flash-lite: 500 RPD/key)</h2>';
+      
+      for (let i = 0; i < RAW_KEYS.gemini.length; i++) {
+        const key = RAW_KEYS.gemini[i];
+        const masked = key.slice(0, 10) + '...' + key.slice(-4);
+        
+        html += `<div class="test testing" id="gemini-${i}">Testing Gemini Key ${i+1}: ${masked}...</div>`;
+        results.innerHTML = html;
+        
+        const result = await testGeminiKey(key, i);
+        const className = result.ok ? 'pass' : 'fail';
+        document.getElementById(`gemini-${i}`).className = `test ${className}`;
+        document.getElementById(`gemini-${i}`).innerHTML = 
+          `Gemini Key ${i+1}: ${masked} → ${result.msg} (${result.status})${result.detail ? '<br>Detail: ' + result.detail : ''}`;
+      }
+      
+      html = results.innerHTML + '<h2>Groq Keys</h2>';
+      
+      for (let i = 0; i < RAW_KEYS.groq.length; i++) {
+        const key = RAW_KEYS.groq[i];
+        const masked = key.slice(0, 8) + '...' + key.slice(-4);
+        
+        html += `<div class="test testing" id="groq-${i}">Testing Groq Key ${i+1}: ${masked}...</div>`;
+        results.innerHTML = html;
+        
+        const result = await testGroqKey(key, i);
+        const className = result.ok ? 'pass' : 'fail';
+        document.getElementById(`groq-${i}`).className = `test ${className}`;
+        document.getElementById(`groq-${i}`).innerHTML = 
+          `Groq Key ${i+1}: ${masked} → ${result.msg} (${result.status})${result.detail ? '<br>Detail: ' + result.detail : ''}`;
+      }
+      
+      results.innerHTML = html;
+    };
+  </script>
+</body>
+</html>

@@ -11,6 +11,7 @@ import http from 'http';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { networkInterfaces } from 'os';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -46,14 +47,26 @@ const mimeTypes = {
 const server = http.createServer((req, res) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
 
-  // Parse URL
-  let filePath = '.' + req.url;
+  // Parse URL and remove query string
+  let cleanUrl = req.url.split('?')[0];
+  let filePath = '.' + cleanUrl; // ✅ FIX: Dùng cleanUrl thay vì req.url
+  
   if (filePath === './') {
     filePath = './index.html';
   }
 
-  // Remove query string
-  filePath = filePath.split('?')[0];
+  // API endpoint routing
+  if (cleanUrl === '/api/subject-details') {
+    filePath = './data/subject_details.json';
+  } else if (cleanUrl === '/api/user_roles') {
+    filePath = './data/user_roles.json';
+  } else if (cleanUrl === '/api/system_announcements') {
+    filePath = './data/system_announcements.json';
+  } else if (cleanUrl === '/api/cms_articles') {
+    filePath = './data/cms_articles.json';
+  } else if (cleanUrl === '/api/community') {
+    filePath = './data/community.json';
+  }
 
   // Security: Prevent directory traversal
   const normalizedPath = path.normalize(filePath);
@@ -111,7 +124,6 @@ server.listen(PORT, () => {
 
 // Get local IP address
 function getLocalIP() {
-  const { networkInterfaces } = await import('os');
   const nets = networkInterfaces();
   
   for (const name of Object.keys(nets)) {

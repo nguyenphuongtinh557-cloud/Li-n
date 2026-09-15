@@ -5,7 +5,7 @@
  * Body: {
  *   text: string (nội dung tài liệu),
  *   documentTitle?: string,
- *   mode?: 'quick' | 'study' | 'exam'
+ *   mode?: 'quick' | 'study' (✅ XÓA 'exam')
  * }
  * 
  * Response: Full hierarchical summary structure
@@ -76,7 +76,7 @@ Trả về JSON hợp lệ duy nhất:
 
   for (let i = 0; i < GEMINI_KEYS.length; i++) {
     const key = GEMINI_KEYS[(keyIndex++) % GEMINI_KEYS.length];
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${key}`;
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`;
 
     try {
       const response = await fetch(url, {
@@ -183,7 +183,7 @@ ${text.slice(0, 6000)}`;
     const key = GEMINI_KEYS[(keyIndex++) % GEMINI_KEYS.length];
     try {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${key}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -634,7 +634,7 @@ async function callGeminiBatch(prompt) {
     const key = GEMINI_KEYS[(keyIndex++) % GEMINI_KEYS.length];
     try {
       const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.7-flash:generateContent?key=${key}`,
+        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -738,7 +738,7 @@ module.exports = async function handler(req, res) {
     return json(res, 400, { ok: false, reason: 'text-too-long', message: 'Tài liệu quá dài (max 200,000 ký tự)' });
   }
 
-  if (!['quick', 'study', 'exam'].includes(mode)) {
+  if (!['quick', 'study'].includes(mode)) { // ✅ XÓA 'exam'
     return json(res, 400, { ok: false, reason: 'invalid-mode' });
   }
 
