@@ -513,7 +513,65 @@
       {
         "id": "chap_1789619125973",
         "title": "Chương III. Vi sinh nhân thật",
-        "lessons": [],
+        "lessons": [
+          {
+            "id": "les_1789657655804",
+            "title": "3.1 Nấm men — Hình thái, Cấu tạo, Sinh sản, Phân loại",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 0,
+            "updatedAt": "2026-09-17T15:07:35.805Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          },
+          {
+            "id": "les_1789657674123",
+            "title": "3.2 Nấm mốc (Nấm sợi) — Hình thái, Cấu tạo, Bào tử",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 1,
+            "updatedAt": "2026-09-17T15:07:54.123Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          },
+          {
+            "id": "les_1789657699713",
+            "title": "3.3 Tảo — Các ngành chính",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 2,
+            "updatedAt": "2026-09-17T15:08:19.714Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
         "order": 2
       },
       {
@@ -543,6 +601,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-09-17T15:05:38.991Z"
+    "updatedAt": "2026-09-17T15:09:04.275Z"
   }
 }
