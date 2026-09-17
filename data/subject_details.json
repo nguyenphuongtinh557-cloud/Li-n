@@ -374,12 +374,20 @@
         "lessons": [
           {
             "id": "les_1789619387833",
-            "title": "Định nghĩa & Đặc điểm chung của vi khuẩn",
+            "title": "2.1 Định nghĩa & Đặc điểm chung của vi khuẩn",
             "duration": "10:00",
             "status": "published",
             "type": "editor",
-            "blocks": [],
-            "content": "",
+            "blocks": [
+              {
+                "id": "block_1789620788600_0",
+                "type": "lessonDocument",
+                "content": "<h2><span style=\"color: rgb(22, 145, 121);\">2.1 Định nghĩa &amp; Đặc điểm chung của vi khuẩn</span></h2>\n<h3>a. Định nghĩa</h3>\n<p>Vi khuẩn l&agrave;&nbsp;<strong>sinh vật đơn b&agrave;o,</strong>&nbsp;to&agrave;n bộ cơ thể chỉ l&agrave; <em>một</em> tế b&agrave;o duy nhất, nhưng đ&atilde; c&oacute; đầy đủ chức năng sống.</p>\n<h3>b. Đặc điểm nhận biết nhanh</h3>\n<p><img src=\"https://cdn.phototourl.com/free/2026-09-17-04f13088-b035-4b6a-8ec1-f866b224de7d.png\" alt=\"\" width=\"446\" height=\"297\"></p>\n<ul>\n<li>H&igrave;nh dạng v&agrave; k&iacute;ch thước <strong>thay đổi t&ugrave;y loại</strong></li>\n<li>Chiều d&agrave;i: <strong>1 &ndash; 10 &micro;m</strong> | Chiều ngang: <strong>0,2 &ndash; 1,0 &micro;m</strong></li>\n<li>Cấu tạo <strong>chưa ho&agrave;n chỉnh</strong> (nh&acirc;n nguy&ecirc;n thủy &mdash; chưa c&oacute; m&agrave;ng nh&acirc;n)</li>\n<li>C&oacute; h&igrave;nh th&aacute;i v&agrave; đặc t&iacute;nh sinh học <strong>ri&ecirc;ng từng lo&agrave;i</strong></li>\n<li>Một số c&oacute; khả năng <strong>g&acirc;y bệnh</strong></li>\n<li>Một số c&oacute; khả năng <strong>kh&aacute;ng kh&aacute;ng sinh</strong></li>\n<li>Đa số sống <strong>hoại sinh</strong> (ph&acirc;n giải chất hữu cơ)</li>\n</ul>",
+                "settings": {},
+                "order": 0
+              }
+            ],
+            "content": "<h2><span style=\"color: rgb(22, 145, 121);\">2.1 Định nghĩa &amp; Đặc điểm chung của vi khuẩn</span></h2>\n<h3>a. Định nghĩa</h3>\n<p>Vi khuẩn l&agrave;&nbsp;<strong>sinh vật đơn b&agrave;o,</strong>&nbsp;to&agrave;n bộ cơ thể chỉ l&agrave; <em>một</em> tế b&agrave;o duy nhất, nhưng đ&atilde; c&oacute; đầy đủ chức năng sống.</p>\n<h3>b. Đặc điểm nhận biết nhanh</h3>\n<p><img src=\"https://cdn.phototourl.com/free/2026-09-17-04f13088-b035-4b6a-8ec1-f866b224de7d.png\" alt=\"\" width=\"446\" height=\"297\"></p>\n<ul>\n<li>H&igrave;nh dạng v&agrave; k&iacute;ch thước <strong>thay đổi t&ugrave;y loại</strong></li>\n<li>Chiều d&agrave;i: <strong>1 &ndash; 10 &micro;m</strong> | Chiều ngang: <strong>0,2 &ndash; 1,0 &micro;m</strong></li>\n<li>Cấu tạo <strong>chưa ho&agrave;n chỉnh</strong> (nh&acirc;n nguy&ecirc;n thủy &mdash; chưa c&oacute; m&agrave;ng nh&acirc;n)</li>\n<li>C&oacute; h&igrave;nh th&aacute;i v&agrave; đặc t&iacute;nh sinh học <strong>ri&ecirc;ng từng lo&agrave;i</strong></li>\n<li>Một số c&oacute; khả năng <strong>g&acirc;y bệnh</strong></li>\n<li>Một số c&oacute; khả năng <strong>kh&aacute;ng kh&aacute;ng sinh</strong></li>\n<li>Đa số sống <strong>hoại sinh</strong> (ph&acirc;n giải chất hữu cơ)</li>\n</ul>",
             "description": "",
             "order": 0,
             "updatedAt": "2026-09-17T04:29:47.833Z",
@@ -393,7 +401,7 @@
           },
           {
             "id": "les_1789619406993",
-            "title": "Hình dạng và kích thước vi khuẩn",
+            "title": "2.2 Hình dạng và kích thước vi khuẩn",
             "duration": "10:00",
             "status": "published",
             "type": "editor",
@@ -412,7 +420,7 @@
           },
           {
             "id": "les_1789619424516",
-            "title": "Cấu tạo tế bào vi khuẩn",
+            "title": "2.3 Cấu tạo tế bào vi khuẩn",
             "duration": "10:00",
             "status": "published",
             "type": "editor",
@@ -431,7 +439,7 @@
           },
           {
             "id": "les_1789619433448",
-            "title": "Một số nhóm vi khuẩn đặc biệt",
+            "title": "2.4 Một số nhóm vi khuẩn đặc biệt",
             "duration": "10:00",
             "status": "published",
             "type": "editor",
@@ -450,7 +458,7 @@
           },
           {
             "id": "les_1789619454345",
-            "title": "Sự sinh sản ở vi khuẩn",
+            "title": "2.5 Sự sinh sản ở vi khuẩn",
             "duration": "10:00",
             "status": "published",
             "type": "editor",
@@ -503,6 +511,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-09-17T04:35:45.725Z"
+    "updatedAt": "2026-09-17T04:53:10.441Z"
   }
 }
