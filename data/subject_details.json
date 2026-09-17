@@ -486,8 +486,16 @@
             "duration": "10:00",
             "status": "published",
             "type": "editor",
-            "blocks": [],
-            "content": "",
+            "blocks": [
+              {
+                "id": "block_1789657536798_0",
+                "type": "lessonDocument",
+                "content": "<div class=\"section-header\">\n<div>\n<h2>5. Sự Sinh sản ở Vi khuẩn</h2>\n<div class=\"section-sub\">V&ocirc; t&iacute;nh &middot; Hữu t&iacute;nh</div>\n</div>\n</div>\n<div class=\"section-body\">\n<h3>5.1 Sinh sản v&ocirc; t&iacute;nh</h3>\n<div class=\"callout callout-blue\">\n<div class=\"callout-title\">💡 H&igrave;nh thức chủ yếu</div>\nVi khuẩn chủ yếu sinh sản bằng phương thức <strong>nh&acirc;n đ&ocirc;i (ph&acirc;n đ&ocirc;i nhị ph&acirc;n)</strong>. Qu&aacute; tr&igrave;nh xảy ra rất nhanh: <strong>10 &ndash; 30 ph&uacute;t</strong> cho ra một thế hệ mới.</div>\n<h4>Tr&igrave;nh tự qu&aacute; tr&igrave;nh nh&acirc;n đ&ocirc;i:</h4>\n<ul class=\"step-list\">\n<li><span class=\"step-num\">1</span>ADN được nh&acirc;n l&ecirc;n (nh&acirc;n đ&ocirc;i)</li>\n<li><span class=\"step-num\">2</span>Ở khoảng giữa tế b&agrave;o h&igrave;nh th&agrave;nh<strong>mesosom</strong></li>\n<li><span class=\"step-num\">3</span>H&igrave;nh th&agrave;nh<strong>v&aacute;ch ngăn tế b&agrave;o</strong></li>\n<li><span class=\"step-num\">4</span>ADN được<strong>ph&acirc;n đ&ocirc;i</strong>, t&aacute;ch khỏi mesosom v&agrave; đi về hai tế b&agrave;o con</li>\n</ul>\n<p>Khi ph&acirc;n cắt, tế b&agrave;o thường chia l&agrave;m <strong>hai phần bằng nhau</strong> (&iacute;t khi kh&ocirc;ng bằng nhau).</p>\n<div class=\"callout callout-green\">\n<div class=\"callout-title\">📐 C&aacute;ch ph&acirc;n cắt kh&aacute;c nhau theo lo&agrave;i</div>\n<ul>\n<li><strong>Trực khuẩn v&agrave; xoắn khuẩn:</strong> v&aacute;ch ngăn h&igrave;nh th&agrave;nh theo bề <em>ngang</em> của tế b&agrave;o (rất &iacute;t theo chiều dọc)</li>\n<li><strong>Cầu khuẩn:</strong> v&aacute;ch ngăn c&oacute; thể h&igrave;nh th&agrave;nh theo một, hai hoặc ba mặt phẳng &rarr; tạo ra c&aacute;c dạng cầu khuẩn kh&aacute;c nhau (đơn cầu, li&ecirc;n cầu, tứ cầu, b&aacute;t cầu...)</li>\n</ul>\n</div>\n<h3>5.2 Sinh sản hữu t&iacute;nh</h3>\n<p>Hai tế b&agrave;o tiếp x&uacute;c với nhau, sau đ&oacute; c&oacute; sự <strong>trao đổi vật chất nh&acirc;n di truyền</strong> để hợp th&agrave;nh <em>một phần hợp tử</em>, rồi tiếp tục sinh trưởng theo dạng ph&acirc;n b&agrave;o.</p>\n</div>",
+                "settings": {},
+                "order": 0
+              }
+            ],
+            "content": "<div class=\"section-header\">\n<div>\n<h2>5. Sự Sinh sản ở Vi khuẩn</h2>\n<div class=\"section-sub\">V&ocirc; t&iacute;nh &middot; Hữu t&iacute;nh</div>\n</div>\n</div>\n<div class=\"section-body\">\n<h3>5.1 Sinh sản v&ocirc; t&iacute;nh</h3>\n<div class=\"callout callout-blue\">\n<div class=\"callout-title\">💡 H&igrave;nh thức chủ yếu</div>\nVi khuẩn chủ yếu sinh sản bằng phương thức <strong>nh&acirc;n đ&ocirc;i (ph&acirc;n đ&ocirc;i nhị ph&acirc;n)</strong>. Qu&aacute; tr&igrave;nh xảy ra rất nhanh: <strong>10 &ndash; 30 ph&uacute;t</strong> cho ra một thế hệ mới.</div>\n<h4>Tr&igrave;nh tự qu&aacute; tr&igrave;nh nh&acirc;n đ&ocirc;i:</h4>\n<ul class=\"step-list\">\n<li><span class=\"step-num\">1</span>ADN được nh&acirc;n l&ecirc;n (nh&acirc;n đ&ocirc;i)</li>\n<li><span class=\"step-num\">2</span>Ở khoảng giữa tế b&agrave;o h&igrave;nh th&agrave;nh<strong>mesosom</strong></li>\n<li><span class=\"step-num\">3</span>H&igrave;nh th&agrave;nh<strong>v&aacute;ch ngăn tế b&agrave;o</strong></li>\n<li><span class=\"step-num\">4</span>ADN được<strong>ph&acirc;n đ&ocirc;i</strong>, t&aacute;ch khỏi mesosom v&agrave; đi về hai tế b&agrave;o con</li>\n</ul>\n<p>Khi ph&acirc;n cắt, tế b&agrave;o thường chia l&agrave;m <strong>hai phần bằng nhau</strong> (&iacute;t khi kh&ocirc;ng bằng nhau).</p>\n<div class=\"callout callout-green\">\n<div class=\"callout-title\">📐 C&aacute;ch ph&acirc;n cắt kh&aacute;c nhau theo lo&agrave;i</div>\n<ul>\n<li><strong>Trực khuẩn v&agrave; xoắn khuẩn:</strong> v&aacute;ch ngăn h&igrave;nh th&agrave;nh theo bề <em>ngang</em> của tế b&agrave;o (rất &iacute;t theo chiều dọc)</li>\n<li><strong>Cầu khuẩn:</strong> v&aacute;ch ngăn c&oacute; thể h&igrave;nh th&agrave;nh theo một, hai hoặc ba mặt phẳng &rarr; tạo ra c&aacute;c dạng cầu khuẩn kh&aacute;c nhau (đơn cầu, li&ecirc;n cầu, tứ cầu, b&aacute;t cầu...)</li>\n</ul>\n</div>\n<h3>5.2 Sinh sản hữu t&iacute;nh</h3>\n<p>Hai tế b&agrave;o tiếp x&uacute;c với nhau, sau đ&oacute; c&oacute; sự <strong>trao đổi vật chất nh&acirc;n di truyền</strong> để hợp th&agrave;nh <em>một phần hợp tử</em>, rồi tiếp tục sinh trưởng theo dạng ph&acirc;n b&agrave;o.</p>\n</div>",
             "description": "",
             "order": 4,
             "updatedAt": "2026-09-17T04:30:54.345Z",
@@ -535,6 +543,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-09-17T15:05:06.040Z"
+    "updatedAt": "2026-09-17T15:05:38.991Z"
   }
 }
