@@ -334,7 +334,7 @@
     "banner": "",
     "shortDesc": "Môn học trang bị kiến thức nền tảng và kỹ năng phòng lab về vi sinh vật để ứng dụng vào công nghệ lên men thực phẩm.\nĐồng thời, giúp sinh viên CNTP nhận diện và kiểm soát các nhóm vi sinh vật gây hại để bảo quản và đảm bảo an toàn thực phẩm.",
     "credits": 3,
-    "semester": 0,
+    "semester": 4,
     "program": "Chương trình Đào tạo Đại học - Dthu",
     "intro": "",
     "cards": {
@@ -347,8 +347,8 @@
         "content": "Môn học tập trung nghiên cứu cấu trúc, hình thái và sinh sản của các nhóm vi sinh vật nhân nguyên thủy và nhân thật."
       },
       "targetAudience": {
-        "title": "Đối tượng học",
-        "content": "Sinh viên CNTP"
+        "title": "Khóa học",
+        "content": "Khóa 24"
       },
       "learningFormat": {
         "title": "Hình thức kiểm tra",
@@ -357,13 +357,152 @@
     },
     "instructor": {
       "name": "Nguyễn Anh Thoại",
-      "role": "Giảng viên phụ trách - Lý thuyết",
+      "role": "Giảng viên phụ trách - Lý thuyết - Khóa 24",
       "avatar": "",
-      "email": "SĐT: 0975185347"
+      "email": "nathoai@dthu.edu.vn"
     },
-    "chapters": [],
+    "chapters": [
+      {
+        "id": "chap_1789619074031",
+        "title": "Chương I. Mở đầu về vi sinh vật học",
+        "lessons": [],
+        "order": 0
+      },
+      {
+        "id": "chap_1789619104343",
+        "title": "Chương II. Vi sinh vật nhân nguyên thủy",
+        "lessons": [
+          {
+            "id": "les_1789619387833",
+            "title": "Định nghĩa & Đặc điểm chung của vi khuẩn",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 0,
+            "updatedAt": "2026-09-17T04:29:47.833Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          },
+          {
+            "id": "les_1789619406993",
+            "title": "Hình dạng và kích thước vi khuẩn",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 1,
+            "updatedAt": "2026-09-17T04:30:06.993Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          },
+          {
+            "id": "les_1789619424516",
+            "title": "Cấu tạo tế bào vi khuẩn",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 2,
+            "updatedAt": "2026-09-17T04:30:24.516Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          },
+          {
+            "id": "les_1789619433448",
+            "title": "Một số nhóm vi khuẩn đặc biệt",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 3,
+            "updatedAt": "2026-09-17T04:30:33.448Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          },
+          {
+            "id": "les_1789619454345",
+            "title": "Sự sinh sản ở vi khuẩn",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 4,
+            "updatedAt": "2026-09-17T04:30:54.345Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
+        "order": 1
+      },
+      {
+        "id": "chap_1789619125973",
+        "title": "Chương III. Vi sinh nhân thật",
+        "lessons": [],
+        "order": 2
+      },
+      {
+        "id": "chap_1789619175319",
+        "title": "Chương IV. Sinh lý học vi sinh vật",
+        "lessons": [],
+        "order": 3
+      },
+      {
+        "id": "chap_1789619225523",
+        "title": "Chương V. Ảnh hưởng của các yếu tố môi trường đến sự sinh trưởng của vi sinh vật",
+        "lessons": [],
+        "order": 4
+      },
+      {
+        "id": "chap_1789619252775",
+        "title": "Chương VI. Di truyền học vi sinh vật",
+        "lessons": [],
+        "order": 5
+      },
+      {
+        "id": "chap_1789619295899",
+        "title": "Chương VII. Kỹ thuật bảo quản giống vi sinh vật",
+        "lessons": [],
+        "order": 6
+      }
+    ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-09-09T07:52:10.288Z"
+    "updatedAt": "2026-09-17T04:35:45.725Z"
   }
 }
