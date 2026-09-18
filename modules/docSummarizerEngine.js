@@ -51,6 +51,7 @@ export const SummaryCache = {
   },
 
   get(hash) {
+    if (typeof localStorage === 'undefined') return null;
     try {
       const raw = localStorage.getItem(CACHE_KEY_PREFIX + hash);
       if (!raw) return null;
@@ -66,6 +67,7 @@ export const SummaryCache = {
   },
 
   set(hash, data) {
+    if (typeof localStorage === 'undefined') return;
     try {
       const entry = { ts: Date.now(), data };
       localStorage.setItem(CACHE_KEY_PREFIX + hash, JSON.stringify(entry));
@@ -77,6 +79,7 @@ export const SummaryCache = {
   },
 
   _evictOldest() {
+    if (typeof localStorage === 'undefined') return;
     const entries = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
@@ -92,6 +95,7 @@ export const SummaryCache = {
   },
 
   getHistory() {
+    if (typeof localStorage === 'undefined') return [];
     const items = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
@@ -108,6 +112,7 @@ export const SummaryCache = {
   },
 
   clearAll() {
+    if (typeof localStorage === 'undefined') return;
     const toRemove = [];
     for (let i = 0; i < localStorage.length; i++) {
       const k = localStorage.key(i);
@@ -1871,9 +1876,9 @@ function _buildSynthesisPayload(bank) {
 
   console.warn('[SynthesisPayload] ' + fullStr.length + ' chars > ' + MAX_PAYLOAD_CHARS + '. Compressing text_facts...');
   const compressedFacts = bank.facts.map(f => {
-    if (['number_fact', 'definition', 'comparison', 'mechanism_step'].includes(f.type)) return f;
-    return { ...f, content: f.content ? f.content.slice(0, 150) : f.content,
-      source_quote: f.source_quote ? f.source_quote.slice(0, 80) : f.source_quote };
+    if (['number_fact', 'definition', 'classification_fact', 'comparison', 'mechanism_step', 'food_application', 'pitfall'].includes(f.type)) return f;
+    return { ...f, content: f.content ? f.content.slice(0, 500) : f.content,
+      source_quote: f.source_quote ? f.source_quote.slice(0, 200) : f.source_quote };
   });
 
   const cp = { ...payload, facts_by_section: undefined, general_facts: undefined, facts: compressedFacts };
@@ -1883,28 +1888,29 @@ function _buildSynthesisPayload(bank) {
 
 // ── EXTRACTION PROMPT ─────────────────────────────────────────────────────────
 const KB_EXTRACTION_PROMPT = (chunkText, docTitle, chunkLabel) =>
-'Bạn là AI trích xuất dữ liệu học thuật. Nhiệm vụ: LẬP CHỈ MỤC tài liệu, KHÔNG tóm tắt, KHÔNG diễn giải.\n' +
+'Bạn là AI trích xuất dữ liệu học thuật ngành Công nghệ Thực phẩm. Nhiệm vụ: LẬP CHỈ MỤC tài liệu, KHÔNG tóm tắt, KHÔNG diễn giải.\n' +
 'TÀI LIỆU: "' + docTitle + '"\nĐOẠN: ' + chunkLabel + '\n\n' +
-'NGUYÊN TẮC BẤT BIẾN:\n' +
-'1. SAO CHÉP NGUYÊN VẸN — tuyệt đối KHÔNG thay đổi số liệu hoặc đơn vị:\n' +
-'   - Nếu nguồn viết "1-10 µm" → value: "1-10", unit: "µm" (KHÔNG ĐỔI THÀNH "mm")\n' +
-'   - Nếu nguồn viết "95%" → value: "95", unit: "%"\n' +
-'2. PHÂN TÁCH THUỘC TÍNH — mỗi số liệu là một fact riêng.\n' +
-'3. source_status: "SOURCE" = tài liệu nói trực tiếp, "INFERENCE" = ngụ ý rõ, "EXAMPLE" = ví dụ.\n\n' +
+'NGUYÊN TẮC BẤT BIẾN (BẢO TỒN SỐ LIỆU & ĐƠN VỊ 100%):\n' +
+'1. SAO CHÉP NGUYÊN VẸN ĐƠN VỊ & SỐ LIỆU — tuyệt đối KHÔNG thay đổi số liệu hoặc đơn vị:\n' +
+'   - "1-10 µm" → value: "1-10", unit: "µm" (TUYỆT ĐỐI KHÔNG ĐỔI THÀNH "mm")\n' +
+'   - "15-20 nm" → value: "15-20", unit: "nm" (TUYỆT ĐỐI KHÔNG ĐỔI THÀNH "µm")\n' +
+'   - Giữ nguyên các đơn vị: µm, nm, mm, °C, %, g/L, bar, Pa, CFU/g, mg/100g.\n' +
+'2. PHÂN TÁCH THUỘC TÍNH — mỗi số liệu hoặc đặc điểm là một fact riêng.\n' +
+'3. CÁC TYPE HỢP LỆ: number_fact | text_fact | definition | classification_fact | mechanism_step | comparison | food_application | pitfall.\n\n' +
 'SCHEMA JSON:\n' +
 '{\n' +
 '  "facts": [{\n' +
 '    "fact_id": "F001",\n' +
-'    "entity": "Tên thực thể",\n' +
-'    "attribute": "Thuộc tính cụ thể",\n' +
+'    "entity": "Tên thực thể (Ví dụ: Thành tế bào nấm men, Ribosom)",\n' +
+'    "attribute": "Thuộc tính (kích thước, độ dày, thành phần)",\n' +
 '    "value": "Giá trị số hoặc null",\n' +
-'    "unit": "Đơn vị hoặc null",\n' +
+'    "unit": "Đơn vị nguyên văn hoặc null",\n' +
 '    "qualifier": "khoảng/ít nhất/tối đa hoặc null",\n' +
 '    "source_status": "SOURCE|INFERENCE|EXAMPLE",\n' +
 '    "source_quote": "câu trích dẫn nguyên văn",\n' +
 '    "source_location": "Mục trong tài liệu",\n' +
-'    "type": "number_fact|text_fact|definition|comparison|example",\n' +
-'    "content": "Mô tả đầy đủ nếu không phải number_fact"\n' +
+'    "type": "number_fact|text_fact|definition|classification_fact|comparison|example|food_application|pitfall",\n' +
+'    "content": "Mô tả đầy đủ nội dung kiến thức"\n' +
 '  }],\n' +
 '  "mechanisms": [{\n' +
 '    "name": "Tên cơ chế",\n' +
@@ -1920,7 +1926,7 @@ const KB_EXTRACTION_PROMPT = (chunkText, docTitle, chunkLabel) =>
 '    "source_fact_id": "F001",\n' +
 '    "expansion_type": "DOMAIN_APPLICATION",\n' +
 '    "domain": "Công nghệ thực phẩm",\n' +
-'    "content": "Ý nghĩa thực tiễn ngắn gọn",\n' +
+'    "content": "Ý nghĩa thực tiễn trong nhà máy / chế biến (Bia, Bánh mì, Đồ hộp, Sữa...)",\n' +
 '    "confidence": "high|medium|low"\n' +
 '  }]\n' +
 '}\n\n' +
@@ -1941,37 +1947,70 @@ const KB_ORGANIZER_PROMPT = (bankPayloadStr, docTitle) =>
 '  ]\n' +
 '}';
 
-// ── CHAPTER SYNTHESIS PROMPT ──────────────────────────────────────────────────
-const KB_CHAPTER_PROMPT = (chapterTitle, chapterFactsStr, docTitle) =>
-'Bạn là AI biên soạn giáo trình chuyên sâu. Viết nội dung cho Chương: "' + chapterTitle + '" (thuộc tài liệu: ' + docTitle + ').\n\n' +
-'KIẾN THỨC CUNG CẤP (CHỈ DÙNG KIẾN THỨC NÀY):\n' + chapterFactsStr + '\n\n' +
-'YÊU CẦU "HỌC SÂU":\n' +
-'1. TRÌNH BÀY NHƯ MỘT BÀI GIẢNG ĐẦY ĐỦ: Giải thích bản chất → Thuộc tính → Số liệu → Cấu tạo → Chức năng → Điều kiện → Ví dụ.\n' +
-'2. Dùng Markdown (##, ###, in đậm, danh sách). KHÔNG TẠO DÀN Ý CỤT LỦN. Phải có văn bản giải thích mạch lạc giữa các ý.\n' +
-'3. SỐ LIỆU: Phải giữ nguyên 100% giá trị và đơn vị (ví dụ 1-10 µm KHÔNG đổi thành 1-10 mm).\n' +
-'4. KHÔNG thêm kiến thức ngoài.\n\n' +
+// ── CHAPTER SYNTHESIS PROMPT (7-Step Framework) ─────────────────────────────
+const KB_CHAPTER_PROMPT = (chapterTitle, chapterFactsStr, docTitle, numberChecklistStr = '', feedbackError = '') =>
+'Bạn là Trợ Giảng AI Chuyên Ngành Công Nghệ Thực Phẩm. Nhiệm vụ: Biên soạn Chương: "' + chapterTitle + '" (tài liệu: ' + docTitle + ') thành bài giảng GIÁO TRÌNH HỌC SÂU hoàn chỉnh cho sinh viên đại học.\n\n' +
+'KIẾN THỨC CUNG CẤP:\n' + chapterFactsStr + '\n\n' +
+(numberChecklistStr ? 'DANH SÁCH SỐ LIỆU BẮT BUỘC KHÔNG ĐƯỢC THAY ĐỔI ĐƠN VỊ:\n' + numberChecklistStr + '\n\n' : '') +
+(feedbackError ? '═══════════════════════════════\nLỖI SAI LẦN THỬ TRƯỚC (BẮT BUỘC SỬA NGAY):\n' + feedbackError + '\n═══════════════════════════════\n\n' : '') +
+'CẤU TRÚC BẮT BUỘC 7 BƯỚC CHO MỖI MỤC BÀI GIẢNG:\n' +
+'Với mỗi khái niệm/mục kiến thức chính trong chương, bạn PHẢI diễn giải mượt mà theo đủ 7 phần:\n' +
+'1. **Khái niệm**: Định nghĩa chính xác bản chất.\n' +
+'2. **Bản chất khoa học**: Cơ chế sinh học / hóa học cốt lõi.\n' +
+'3. **Thành phần / Cấu tạo / Cơ chế**: Chi tiết cấu trúc, số liệu & đơn vị chính xác.\n' +
+'4. **Ý nghĩa sinh học**: Vai trò sinh học duy trì và bảo vệ tế bào/hệ thống.\n' +
+'5. **Ứng dụng trong Công nghệ Thực phẩm**: Liên hệ trực tiếp tới các quy trình công nghiệp (Lên men Bia, Sản xuất Bánh mì, Tiệt trùng đồ hộp, Chế biến sữa, QC/QA nhà máy).\n' +
+'6. **Ví dụ thực tế sản xuất**: Tình huống kỹ thuật thực tế tại nhà máy chế biến thực phẩm.\n' +
+'7. **Sai lầm thường gặp & Điểm dễ nhầm**: Cảnh báo nhầm lẫn đơn vị (nm vs µm) hoặc sai sót kỹ thuật trong vận hành.\n\n' +
+'QUY TẮC ĐƠN VỊ:\n' +
+'- Giữ nguyên 100% số liệu & đơn vị (ví dụ 15-20 nm KHÔNG đổi thành 15-20 µm, 3-5 µm KHÔNG đổi thành mm).\n' +
+'- Viết mạch lạc, văn phong giáo trình chuẩn mực, KHÔNG tạo dàn ý cụt lủn chỉ có tiêu đề.\n\n' +
 'TRẢ VỀ JSON:\n' +
 '{\n' +
-'  "content": "Nội dung markdown hoàn chỉnh của chương này"\n' +
+'  "content": "Nội dung markdown hoàn chỉnh của chương này theo chuẩn 7 bước",\n' +
+'  "applications": [\n' +
+'    { "industry": "Tên ngành/lĩnh vực (Bia/Bánh mì/Đồ hộp...)", "real_problem": "Vấn đề thực tế nhà máy", "application": "Giải pháp công nghệ" }\n' +
+'  ]\n' +
 '}';
 
-// ── DICTIONARY SYNTHESIS PROMPT (Concepts, Comparisons, etc.) ──────────────
+// ── DICTIONARY SYNTHESIS PROMPT (Concepts, Comparisons, Memory Layer) ──────
 const KB_DICTIONARY_PROMPT = (bankPayloadStr, docTitle) =>
-'Bạn là AI xây dựng từ điển tra cứu cho tài liệu "' + docTitle + '".\n\n' +
+'Bạn là Trợ Giảng AI Chuyên Ngành Công Nghệ Thực Phẩm. Xây dựng Từ Điển Khái Niệm, Ứng Dụng Thực Tế & Hồ Sơ Ghi Nhớ Cho Tài Liệu: "' + docTitle + '".\n\n' +
 'KNOWLEDGE BANK:\n' + bankPayloadStr + '\n\n' +
 'YÊU CẦU:\n' +
-'1. Trích xuất Concepts (các định nghĩa, khái niệm) với đầy đủ attributes, conditions, numbers.\n' +
-'2. Xây dựng Bảng So Sánh (Comparisons) chi tiết dựa trên attributes có thật.\n' +
-'3. KHÔNG tự bịa fact.\n\n' +
+'1. Concepts: Trích xuất các khái niệm chính với đầy đủ definition, attributes, conditions_exceptions, numbers, applications (ứng dụng CNTP), real_world_example (ví dụ nhà máy/chế biến) và common_mistakes (lỗi hay nhầm).\n' +
+'2. Comparisons: Xây dựng các Bảng So Sánh chi tiết giữa các nhóm thực thể dễ nhầm.\n' +
+'3. Memory Layer: Xây dựng Hồ Sơ Ghi Nhớ & Ôn Thi đại học CNTP bao gồm:\n' +
+'   - remember: 4-8 kiến thức cốt lõi nhất cần nhớ nguyên bản.\n' +
+'   - common_mistakes: 3-6 lỗi sai đơn vị hoặc nhầm lẫn kiến thức kinh điển (ví dụ: nm vs µm).\n' +
+'   - exam_questions: 4-6 câu hỏi thi tự luận/trắc nghiệm hay gặp.\n' +
+'   - industry_connection: 4-6 liên hệ thực tế nhà máy / sản xuất thực phẩm.\n\n' +
 'SCHEMA JSON:\n' +
 '{\n' +
-'  "overview": "Tổng quan 3-6 câu",\n' +
-'  "concepts": [{"name": "...", "tier": "A|B", "definition": "...", "attributes": ["..."], "conditions_exceptions": ["..."], "numbers": ["..."]}],\n' +
-'  "comparisons": [{"title": "...", "rows": [{"concept": "...", "essence": "...", "diff": "..."}]}],\n' +
-'  "domain_apps": [{"source_fact_id": "...", "expansion_type": "...", "content": "..."}],\n' +
-'  "key_points": ["..."],\n' +
-'  "pitfalls": ["..."],\n' +
-'  "questions": ["..."]\n' +
+'  "overview": "Tổng quan bài học 3-6 câu",\n' +
+'  "concepts": [\n' +
+'    {\n' +
+'      "name": "Tên khái niệm",\n' +
+'      "tier": "A|B",\n' +
+'      "definition": "Định nghĩa + bản chất",\n' +
+'      "attributes": ["Các đặc điểm/thuộc tính chính"],\n' +
+'      "conditions_exceptions": ["Điều kiện hoặc ngoại lệ"],\n' +
+'      "numbers": ["Số liệu kèm đơn vị nguyên văn"],\n' +
+'      "applications": "Ứng dụng trong Công nghệ Thực phẩm",\n' +
+'      "real_world_example": "Ví dụ thực tế sản xuất / nhà máy",\n' +
+'      "common_mistakes": "Cảnh báo lỗi dễ nhầm"\n' +
+'    }\n' +
+'  ],\n' +
+'  "comparisons": [{"title": "Tên bảng so sánh", "rows": [{"concept": "Tên", "essence": "Bản chất", "diff": "Điểm khác biệt"}]}],\n' +
+'  "memory_layer": {\n' +
+'    "remember": ["Ý cốt lõi 1", "..."],\n' +
+'    "common_mistakes": ["Lỗi nhầm 1", "..."],\n' +
+'    "exam_questions": ["Câu hỏi thi 1", "..."],\n' +
+'    "industry_connection": ["Liên hệ nhà máy 1", "..."]\n' +
+'  },\n' +
+'  "key_points": ["Điểm chính 1"],\n' +
+'  "pitfalls": ["Lưu ý 1"],\n' +
+'  "questions": ["Câu hỏi tự kiểm tra 1"]\n' +
 '}';
 
 // ── Extraction Execution ───────────────────────────────────────────────────────
@@ -2026,22 +2065,31 @@ async function organizeKnowledgeBank(bank, docTitle) {
   }));
 }
 
-async function synthesizeChapter(chapterPlan, bank, docTitle, attempt = 1) {
+async function synthesizeChapter(chapterPlan, bank, docTitle, attempt = 1, lastErrorMsg = '') {
   const chapterFacts = bank.facts.filter(f => chapterPlan.fact_ids.includes(f.fact_id));
   const chapterNumbers = bank.numbers.filter(n => chapterPlan.fact_ids.includes(n.fact_id));
   
-  if (chapterFacts.length === 0) return { title: chapterPlan.title, content: 'Không có dữ liệu chi tiết.' };
+  if (chapterFacts.length === 0) return { title: chapterPlan.title, content: 'Không có dữ liệu chi tiết.', applications: [] };
 
   const chapterFactsStr = JSON.stringify({ facts: chapterFacts, numbers: chapterNumbers }, null, 2);
   
+  // Tạo danh sách số liệu bắt buộc để truyền vào prompt
+  const numberChecklistStr = chapterNumbers
+    .filter(n => n.value && n.unit)
+    .map(n => `- ${n.entity || 'Thực thể'} (${n.attribute || 'Đặc điểm'}): "${n.value} ${n.unit}"`)
+    .join('\n');
+
   try {
-    const result = await callGeminiJSON(KB_CHAPTER_PROMPT(chapterPlan.title, chapterFactsStr, docTitle), DEEP_CALL_OPTS);
+    const prompt = KB_CHAPTER_PROMPT(chapterPlan.title, chapterFactsStr, docTitle, numberChecklistStr, lastErrorMsg);
+    const result = await callGeminiJSON(prompt, DEEP_CALL_OPTS);
     if (result && result.content) {
       let content = result.content;
+      let applications = Array.isArray(result.applications) ? result.applications : [];
       
-      // Strict Number Validation per Chapter
+      // Strict Number & Unit Validation per Chapter
       let corrupted = false;
       let missingCount = 0;
+      let corruptionErrors = [];
       const unitConversions = {
         'µm': ['mm', 'cm', 'm'], 'nm': ['µm', 'mm', 'cm'],
         'mm': ['µm', 'nm', 'cm', 'm'], '°c': ['°f', 'k'], 'mg': ['g', 'kg']
@@ -2059,31 +2107,49 @@ async function synthesizeChapter(chapterPlan, bank, docTitle, attempt = 1) {
            for (const wu of (unitConversions[num.unit] || [])) {
              if (new RegExp(val + '\\s*' + wu, 'i').test(lowerContent)) {
                corrupted = true;
-               console.error(`[Chapter Synth] Hallucination detected: ${num.value}${num.unit} -> ${wu} in chapter ${chapterPlan.title}`);
+               const errMsg = `LỖI SAI ĐƠN VỊ: Nguồn ghi "${num.value} ${num.unit}" (${num.entity}) nhưng AI viết thành "${num.value} ${wu}". BẮT BUỘC giữ nguyên đơn vị "${num.unit}".`;
+               corruptionErrors.push(errMsg);
+               console.error(`[Chapter Synth] Hallucination: ${num.value}${num.unit} -> ${wu} in ${chapterPlan.title}`);
                break;
              }
            }
         }
       }
       
-      if ((corrupted || missingCount > Math.max(2, chapterNumbers.length * 0.3)) && attempt < 2) {
-         console.warn(`[Chapter Synth] Missing ${missingCount} numbers or corrupted. Retrying chapter ${chapterPlan.title}...`);
-         return synthesizeChapter(chapterPlan, bank, docTitle, attempt + 1);
+      if ((corrupted || missingCount > Math.max(1, chapterNumbers.length * 0.15)) && attempt < 2) {
+         const errorFeedback = corruptionErrors.join('\n') || `Thiếu ${missingCount} số liệu so với checklist. Bắt buộc chèn đủ số liệu nguyên văn kèm đơn vị.`;
+         console.warn(`[Chapter Synth] Retry chapter ${chapterPlan.title} (Lần ${attempt + 1}) do sai/thiếu số liệu...`);
+         return synthesizeChapter(chapterPlan, bank, docTitle, attempt + 1, errorFeedback);
       }
       
-      return { title: chapterPlan.title, content };
+      return { title: chapterPlan.title, content, applications };
     }
   } catch (err) {
     console.error(`[Chapter Synth] Lỗi tại ${chapterPlan.title}:`, err.message);
   }
   
-  // Fallback content cho chapter này
+  // Fallback content cho chapter này (7-Step Educational Structure)
   let content = '## ' + chapterPlan.title + '\n\n';
+  content += '### 1. Khái niệm & Bản chất khoa học\n';
   for (const f of chapterFacts) {
-    if (f.value && f.unit) content += '- **' + f.entity + '** (' + f.attribute + '): ' + f.value + ' ' + f.unit + '\n';
-    else if (f.content) content += '- ' + f.content + '\n';
+    if (f.type === 'definition' || f.type === 'text_fact') {
+      content += '- **' + (f.entity || 'Kiến thức') + '**: ' + (f.content || f.source_quote || '') + '\n';
+    }
   }
-  return { title: chapterPlan.title, content };
+  content += '\n### 2. Số liệu & Thông số kỹ thuật\n';
+  for (const f of chapterFacts) {
+    if (f.value && f.unit) {
+      content += '- **' + (f.entity || 'Thực thể') + '** (' + (f.attribute || 'Đặc điểm') + '): `' + f.value + ' ' + f.unit + '`\n';
+    }
+  }
+  content += '\n### 3. Ứng dụng trong Công nghệ Thực phẩm & Ví dụ sản xuất\n';
+  const apps = bank.domain_expansions.filter(d => chapterPlan.fact_ids.includes(d.source_fact_id));
+  if (apps.length > 0) {
+    apps.forEach(a => { content += '- **Ứng dụng CNTP**: ' + a.content + '\n'; });
+  } else {
+    content += '- Liên hệ thực tế: Kiểm soát quá trình vi sinh và thông số kỹ thuật trong nhà máy chế biến thực phẩm.\n';
+  }
+  return { title: chapterPlan.title, content, applications: [] };
 }
 
 async function synthesizeDictionaries(bank, docTitle) {
@@ -2249,6 +2315,9 @@ function _buildKbFinalOutput(synthesized, bank, validation) {
     conditions_exceptions: _strArr(c && c.conditions_exceptions),
     key_facts: _strArr(c && c.key_facts),
     numbers: _strArr(c && c.numbers),
+    applications: String(c && c.applications || ''),
+    real_world_example: String(c && c.real_world_example || ''),
+    common_mistakes: String(c && c.common_mistakes || ''),
     comparisons: Array.isArray(c && c.comparisons) ? c.comparisons.map(cp => ({ vs: String(cp && cp.vs || ''), diff: String(cp && cp.diff || '') })) : [],
     citations: Array.isArray(c && c.citations) ? c.citations.map(ct => ({ text_span: String(ct && ct.text_span || ''), fact_ids: _strArr(ct && ct.fact_ids) })) : []
   }));
@@ -2270,6 +2339,15 @@ function _buildKbFinalOutput(synthesized, bank, validation) {
       content: String(d.content || '')
     }));
 
+  // Xây dựng Memory Layer cho ôn thi & học sâu
+  const rawMem = synthesized && synthesized.memory_layer || {};
+  const memory_layer = {
+    remember: _strArr(rawMem.remember).length > 0 ? _strArr(rawMem.remember) : _strArr(synthesized && synthesized.key_points),
+    common_mistakes: _strArr(rawMem.common_mistakes).length > 0 ? _strArr(rawMem.common_mistakes) : _strArr(synthesized && synthesized.pitfalls),
+    exam_questions: _strArr(rawMem.exam_questions).length > 0 ? _strArr(rawMem.exam_questions) : _strArr(synthesized && synthesized.questions),
+    industry_connection: _strArr(rawMem.industry_connection).length > 0 ? _strArr(rawMem.industry_connection) : domain_apps.map(d => d.content)
+  };
+
   const quality = {
     validation_score: validation.score,
     critical_issues: validation.critical,
@@ -2286,7 +2364,11 @@ function _buildKbFinalOutput(synthesized, bank, validation) {
     schema: 'deep_v4',
     overview: String(synthesized && synthesized.overview || ''),
     chapters: Array.isArray(synthesized && synthesized.chapters)
-      ? synthesized.chapters.map(c => ({ title: String(c && c.title || ''), content: String(c && c.content || '') }))
+      ? synthesized.chapters.map(c => ({
+          title: String(c && c.title || ''),
+          content: String(c && c.content || ''),
+          applications: Array.isArray(c && c.applications) ? c.applications : []
+        }))
       : [],
     concepts,
     mechanisms,
@@ -2299,6 +2381,7 @@ function _buildKbFinalOutput(synthesized, bank, validation) {
         }))
       : [],
     domain_apps,
+    memory_layer,
     key_points: _strArr(synthesized && synthesized.key_points),
     pitfalls: _strArr(synthesized && synthesized.pitfalls),
     questions: _strArr(synthesized && synthesized.questions),

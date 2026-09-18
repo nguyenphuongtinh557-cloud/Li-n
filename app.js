@@ -4135,10 +4135,54 @@ function _renderDeepStudyResultHTML(result, titleLabel) {
     html += `
       <div class="cs-overview-card" style="margin-bottom:22px;border-left:4px solid #6366f1;">
         <div class="cs-overview-header">
-          <b><i class="fa-solid fa-brain" style="color:#6366f1;"></i> Tổng Quan Tri Thức Hợp Nhất</b>
-          <span class="cs-badge-count" style="background:#e0e7ff;color:#3730a3;">Học Sâu</span>
+          <b><i class="fa-solid fa-brain" style="color:#6366f1;"></i> Tổng Quan Tri Thức Hợp Nhất (Giáo Trình CNTP)</b>
+          <span class="cs-badge-count" style="background:#e0e7ff;color:#3730a3;">Học Sâu v2.0</span>
         </div>
         <p style="font-size:14px;line-height:1.8;margin:0;color:var(--text-main);white-space:pre-wrap;">${escapeHtml(result.overview)}</p>
+      </div>`;
+  }
+
+  // 2B. MEMORY LAYER (HỒ SƠ GHI NHỚ & ÔN THI ĐẠI HỌC)
+  const mem = result.memory_layer;
+  if (mem && (mem.remember?.length || mem.common_mistakes?.length || mem.exam_questions?.length || mem.industry_connection?.length)) {
+    html += `
+      <div class="cs-section-card" style="margin-bottom:24px;background:linear-gradient(135deg,#f8fafc,#eef2ff);border:1.5px solid #c7d2fe;border-radius:16px;padding:20px;">
+        <h4 style="color:#1e1b4b;margin-bottom:16px;font-size:16px;display:flex;align-items:center;gap:8px;">
+          <i class="fa-solid fa-graduation-cap" style="color:#4f46e5;"></i> Hồ Sơ Ghi Nhớ & Ôn Thi Chuyên Ngành (Memory Layer)
+        </h4>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit, minmax(260px, 1fr));gap:14px;">
+          ${mem.remember && mem.remember.length > 0 ? `
+            <div style="padding:14px 16px;border-radius:12px;background:#ffffff;border-left:4px solid #3b82f6;box-shadow:0 2px 5px rgba(0,0,0,0.03);">
+              <div style="font-weight:800;font-size:13px;color:#1d4ed8;margin-bottom:8px;">💡 Ý Cốt Lõi Cần Nhớ</div>
+              <ul style="margin:0;padding-left:16px;font-size:12.5px;color:#334155;line-height:1.6;">
+                ${mem.remember.map(r => `<li>${escapeHtml(r)}</li>`).join('')}
+              </ul>
+            </div>` : ''}
+
+          ${mem.common_mistakes && mem.common_mistakes.length > 0 ? `
+            <div style="padding:14px 16px;border-radius:12px;background:#ffffff;border-left:4px solid #ef4444;box-shadow:0 2px 5px rgba(0,0,0,0.03);">
+              <div style="font-weight:800;font-size:13px;color:#b91c1c;margin-bottom:8px;">⚠️ Cảnh Báo Lỗi Nhầm Kinh Điển</div>
+              <ul style="margin:0;padding-left:16px;font-size:12.5px;color:#334155;line-height:1.6;">
+                ${mem.common_mistakes.map(m => `<li>${escapeHtml(m)}</li>`).join('')}
+              </ul>
+            </div>` : ''}
+
+          ${mem.industry_connection && mem.industry_connection.length > 0 ? `
+            <div style="padding:14px 16px;border-radius:12px;background:#ffffff;border-left:4px solid #10b981;box-shadow:0 2px 5px rgba(0,0,0,0.03);">
+              <div style="font-weight:800;font-size:13px;color:#047857;margin-bottom:8px;">🏭 Thực Tế Sản Xuất & Nhà Máy CNTP</div>
+              <ul style="margin:0;padding-left:16px;font-size:12.5px;color:#334155;line-height:1.6;">
+                ${mem.industry_connection.map(ic => `<li>${escapeHtml(ic)}</li>`).join('')}
+              </ul>
+            </div>` : ''}
+
+          ${mem.exam_questions && mem.exam_questions.length > 0 ? `
+            <div style="padding:14px 16px;border-radius:12px;background:#ffffff;border-left:4px solid #8b5cf6;box-shadow:0 2px 5px rgba(0,0,0,0.03);">
+              <div style="font-weight:800;font-size:13px;color:#6d28d9;margin-bottom:8px;">📝 Câu Hỏi Ôn Thi Trọng Tâm</div>
+              <ul style="margin:0;padding-left:16px;font-size:12.5px;color:#334155;line-height:1.6;">
+                ${mem.exam_questions.map(q => `<li>${escapeHtml(q)}</li>`).join('')}
+              </ul>
+            </div>` : ''}
+        </div>
       </div>`;
   }
 
@@ -4146,12 +4190,24 @@ function _renderDeepStudyResultHTML(result, titleLabel) {
   if (result.chapters && result.chapters.length > 0) {
     html += `
       <div class="cs-section-card" style="margin-bottom:22px;">
-        <h4 style="color:#334155;margin-bottom:14px;"><i class="fa-solid fa-layer-group" style="color:#0284c7;"></i> Cấu Trúc Giáo Trình Theo Chương / Mục</h4>
-        <div style="display:flex;flex-direction:column;gap:12px;">
+        <h4 style="color:#334155;margin-bottom:14px;"><i class="fa-solid fa-layer-group" style="color:#0284c7;"></i> Cấu Trúc Giáo Trình Theo Chương / Mục (Khung 7 Bước Sư Phạm)</h4>
+        <div style="display:flex;flex-direction:column;gap:16px;">
           ${result.chapters.map((ch, idx) => `
-            <div style="padding:14px 16px;border-radius:12px;background:var(--bg-subtle,#f8fafc);border:1px solid var(--border-color,#e2e8f0);">
-              <div style="font-weight:800;font-size:14px;color:#0369a1;margin-bottom:6px;">${idx + 1}. ${escapeHtml(ch.title)}</div>
-              <div class="cs-chapter-content" style="font-size:13px;line-height:1.7;color:var(--text-main);">${_csMarkdown(ch.content)}</div>
+            <div style="padding:16px 18px;border-radius:14px;background:var(--bg-subtle,#f8fafc);border:1px solid var(--border-color,#e2e8f0);">
+              <div style="font-weight:800;font-size:15px;color:#0369a1;margin-bottom:8px;border-bottom:1px solid #e0f2fe;padding-bottom:6px;">
+                Chương ${idx + 1}: ${escapeHtml(ch.title)}
+              </div>
+              <div class="cs-chapter-content" style="font-size:13px;line-height:1.75;color:var(--text-main);">${_csMarkdown(ch.content)}</div>
+              ${ch.applications && ch.applications.length > 0 ? `
+                <div style="margin-top:12px;padding:10px 14px;border-radius:10px;background:#f0fdf4;border:1px solid #bbf7d0;">
+                  <div style="font-weight:800;font-size:12px;color:#15803d;margin-bottom:4px;">🏭 Ánh Xạ Ứng Dụng Thực Tế (Application Mapping):</div>
+                  ${ch.applications.map(app => `
+                    <div style="font-size:12px;color:#166534;margin-bottom:3px;">
+                      &bull; <b>${escapeHtml(app.industry || 'CNTP')}</b>: ${escapeHtml(app.real_problem || '')} &rarr; <i>${escapeHtml(app.application || '')}</i>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
             </div>
           `).join('')}
         </div>
@@ -4169,14 +4225,18 @@ function _renderDeepStudyResultHTML(result, titleLabel) {
             const attrs = Array.isArray(c.attributes) && c.attributes.length > 0 ? '**Đặc điểm:**\n' + c.attributes.map(a => '- ' + a).join('\n') : '';
             const conds = Array.isArray(c.conditions_exceptions) && c.conditions_exceptions.length > 0 ? '**Điều kiện / Ngoại lệ:**\n' + c.conditions_exceptions.map(x => '- ' + x).join('\n') : '';
             const nums = Array.isArray(c.numbers) && c.numbers.length > 0 ? '**Thông số:**\n' + c.numbers.map(n => '- ' + n).join('\n') : '';
-            const fullText = [explain, attrs, conds, nums].filter(Boolean).join('\n\n');
+            const appStr = c.applications ? `**Ứng dụng CNTP:** ${c.applications}` : '';
+            const exStr = c.real_world_example ? `**Ví dụ thực tế:** ${c.real_world_example}` : '';
+            const mistStr = c.common_mistakes ? `**Cảnh báo lỗi nhầm:** ${c.common_mistakes}` : '';
+            
+            const fullText = [explain, attrs, conds, nums, appStr, exStr, mistStr].filter(Boolean).join('\n\n');
             const tierColor = c.tier === 'A' ? '#7c3aed' : '#4f46e5';
             return `
             <div style="padding:16px 18px;border-radius:14px;background:#fff;border:1px solid #e2e8f0;box-shadow:0 2px 6px rgba(0,0,0,0.02);">
               <div style="font-weight:800;font-size:15px;color:#1e1b4b;margin-bottom:8px;display:flex;align-items:center;gap:8px;">
                 <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${tierColor};"></span>
                 ${escapeHtml(c.name)}
-                ${c.tier === 'A' ? '<span style="font-size:10px;font-weight:900;background:#ede9fe;color:#6d28d9;padding:2px 7px;border-radius:6px;">TRọNG TÂM</span>' : ''}
+                ${c.tier === 'A' ? '<span style="font-size:10px;font-weight:900;background:#ede9fe;color:#6d28d9;padding:2px 7px;border-radius:6px;">TRỌNG TÂM</span>' : ''}
               </div>
               <div style="font-size:13px;line-height:1.75;color:#334155;">${_csMarkdown(fullText || '[Đang bổ sung...]')}</div>
             </div>

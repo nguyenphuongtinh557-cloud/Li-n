@@ -45,6 +45,7 @@ try {
 
 import { DB } from './db.js';
 import { pullUserRolesFromServer } from './sync.js?v=20260903roles';
+import { upsertUserToFirestore, fetchAllUsersFromFirestore } from './firestoreUsers.js';
 
 export const SUPER_ADMIN_EMAILS = [
   'nguyenphuongtinh557@gmail.com',
@@ -92,7 +93,7 @@ export const AuthModule = {
   user: null,
 
   async init() {
-    // 1. Đồng bộ danh sách User Roles mới nhất từ Server Cloud
+    // 1. Đồng bộ danh sách User Roles mới nhất từ Server Cloud / Firestore
     try {
       const serverRoles = await pullUserRolesFromServer();
       if (serverRoles && typeof serverRoles === 'object') {
@@ -100,6 +101,15 @@ export const AuthModule = {
       }
     } catch (e) {
       console.warn('[Auth] Không thể pull User Roles từ Server:', e);
+    }
+
+    try {
+      const cloudUsers = await fetchAllUsersFromFirestore();
+      if (Array.isArray(cloudUsers) && cloudUsers.length > 0) {
+        DB.mergeUserRolesFromServer({ users: cloudUsers });
+      }
+    } catch (e) {
+      console.warn('[Auth] Không thể pull Users từ Firestore:', e);
     }
 
     this.restoreSession();
@@ -255,6 +265,8 @@ export const AuthModule = {
       user.email = user.email.trim().toLowerCase();
       user.role = getUserRole(user.email);
       registryResult = await DB.saveUserToRegistry(user);
+      // Đồng bộ thông tin học viên lên Firestore Cloud real-time
+      upsertUserToFirestore(user).catch((err) => console.warn('[Auth] Upsert user error:', err));
     }
     this.user = user;
     localStorage.setItem('lien_google_user', JSON.stringify(user));

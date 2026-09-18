@@ -6,6 +6,7 @@
  */
 
 import { DB } from './db.js';
+import { fetchAllUsersFromFirestore } from './firestoreUsers.js';
 
 const analyticsState = { range: 7 };
 
@@ -440,6 +441,19 @@ function renderAdminDashboardExtras() {
   renderActivityFeed();
   renderQuickBadges();
   renderRecentUsers();
+
+  // Async: Đọc danh sách học viên từ Firestore Cloud và làm mới UI
+  fetchAllUsersFromFirestore().then((cloudUsers) => {
+    if (Array.isArray(cloudUsers) && cloudUsers.length > 0) {
+      DB.mergeUserRolesFromServer({ users: cloudUsers });
+      renderKpiExtras();
+      renderQuickBadges();
+      renderRecentUsers();
+      renderActivityFeed();
+    }
+  }).catch((err) => {
+    console.warn('[AdminDashboard] Không thể tải danh sách học viên từ Firestore:', err);
+  });
 }
 
 Object.assign(window, {
