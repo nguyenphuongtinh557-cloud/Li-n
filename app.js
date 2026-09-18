@@ -18,6 +18,7 @@ import { ArticlesModule } from './modules/articles.js';
 import { readSummary, writeSummary, clearSessionCache, summaryIsComplete, summaryIsStale } from './modules/firestoreSummary.js';
 import { renderMindmap } from './modules/mindmap.js';
 import { initDocAssistant } from './modules/docAssistant.js';
+import { updateUserRoleInFirestore } from './modules/firestoreUsers.js';
 
 /* ════════════════════════════════════════════════════
    APP STATE
@@ -2146,9 +2147,10 @@ async function grantAdminUserPremium(email) {
   }
 
   const result = await DB.grantPremium(cleanEmail);
+  const firestoreResult = await updateUserRoleInFirestore(cleanEmail, 'PREMIUM');
   const announcement = await DB.createPremiumRoleAnnouncement(cleanEmail, 'premium_granted');
-  const isSynced = result.synced && announcement.synced;
-  showToast(isSynced ? `🎉 Đã cấp quyền PREMIUM cho [${cleanEmail}] và gửi thông báo riêng.` : `⚠️ Đã cấp PREMIUM cho [${cleanEmail}] và tạo thông báo cục bộ, nhưng cloud chưa đồng bộ đầy đủ.`, isSynced ? 'success' : 'warning');
+  const isSynced = (result.synced || firestoreResult.ok) && announcement.synced;
+  showToast(isSynced ? `🎉 Đã cấp quyền PREMIUM cho [${cleanEmail}] và đồng bộ Cloud!` : `⚠️ Đã cấp PREMIUM cho [${cleanEmail}] cục bộ, nhưng cloud chưa đồng bộ đầy đủ.`, isSynced ? 'success' : 'warning');
   await window.refreshUserRolesFromServer?.();
   renderAdminDashboard();
   if (document.getElementById('notification-center-shell')) renderNotificationCenter();
@@ -2164,9 +2166,10 @@ async function revokeAdminUserPremium(email) {
   }
 
   const result = await DB.revokePremium(cleanEmail);
+  const firestoreResult = await updateUserRoleInFirestore(cleanEmail, 'NEWBIE');
   const announcement = await DB.createPremiumRoleAnnouncement(cleanEmail, 'premium_revoked');
-  const isSynced = result.synced && announcement.synced;
-  showToast(isSynced ? `ℹ️ Đã hạ [${cleanEmail}] xuống NEWBIE và gửi thông báo riêng.` : `⚠️ Đã hạ [${cleanEmail}] xuống NEWBIE và tạo thông báo cục bộ, nhưng cloud chưa đồng bộ đầy đủ.`, isSynced ? 'info' : 'warning');
+  const isSynced = (result.synced || firestoreResult.ok) && announcement.synced;
+  showToast(isSynced ? `ℹ️ Đã hạ [${cleanEmail}] xuống NEWBIE và đồng bộ Cloud!` : `⚠️ Đã hạ [${cleanEmail}] xuống NEWBIE cục bộ, nhưng cloud chưa đồng bộ đầy đủ.`, isSynced ? 'info' : 'warning');
   await window.refreshUserRolesFromServer?.();
   renderAdminDashboard();
   if (document.getElementById('notification-center-shell')) renderNotificationCenter();

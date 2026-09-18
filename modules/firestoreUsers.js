@@ -63,6 +63,7 @@ export async function upsertUserToFirestore(user) {
       email: cleanEmail,
       avatar: user.avatar || existingData.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanEmail)}`,
       provider: user.provider || existingData.provider || 'google.com',
+      role: user.role || existingData.role || 'NEWBIE',
       lastLogin: now,
       firstSeen: existingData.firstSeen || user.firstSeen || user.signedInAt || now,
       updatedAt: now
@@ -74,6 +75,30 @@ export async function upsertUserToFirestore(user) {
   } catch (e) {
     console.warn('[FirestoreUsers] Lỗi ghi Firestore:', e);
     return { ok: false, reason: e.message || 'write-error' };
+  }
+}
+
+/**
+ * Cập nhật vai trò/cấp quyền học viên (ADMIN, PREMIUM, NEWBIE) trên Firestore Cloud
+ * @param {string} email
+ * @param {string} role - 'PREMIUM' | 'NEWBIE' | 'ADMIN'
+ */
+export async function updateUserRoleInFirestore(email, role) {
+  if (!email) return { ok: false, reason: 'no-email' };
+  const db = getDb();
+  if (!db) return { ok: false, reason: 'no-db' };
+
+  const cleanEmail = String(email).trim().toLowerCase();
+  const docId = emailToDocId(cleanEmail);
+  const ref = doc(db, COLLECTION_NAME, docId);
+
+  try {
+    await setDoc(ref, { role, email: cleanEmail, updatedAt: new Date().toISOString() }, { merge: true });
+    console.log(`[FirestoreUsers] ✅ Đã cập nhật quyền [${role}] cho [${cleanEmail}] trên Cloud`);
+    return { ok: true };
+  } catch (e) {
+    console.warn('[FirestoreUsers] Lỗi cập nhật role:', e);
+    return { ok: false, reason: e.message };
   }
 }
 

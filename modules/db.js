@@ -103,7 +103,12 @@ export const DB = {
     this.getAllRegisteredUsers().forEach(addUser);
     (Array.isArray(serverRoles.users) ? serverRoles.users : []).forEach(addUser);
     const users = [...byEmail.values()].sort((a, b) => (Date.parse(b.lastLogin || '') || 0) - (Date.parse(a.lastLogin || '') || 0));
-    const premiumEmails = [...new Set([...this.getPremiumEmails(), ...(Array.isArray(serverRoles.premiumEmails) ? serverRoles.premiumEmails : [])].map(email => String(email || '').trim().toLowerCase()).filter(Boolean))];
+    const premiumFromRoles = users.filter(u => u.role === 'PREMIUM').map(u => u.email);
+    const newbieFromRoles = new Set(users.filter(u => u.role === 'NEWBIE').map(u => u.email));
+    const rawPremium = [...this.getPremiumEmails(), ...(Array.isArray(serverRoles.premiumEmails) ? serverRoles.premiumEmails : []), ...premiumFromRoles]
+      .map(email => String(email || '').trim().toLowerCase())
+      .filter(Boolean);
+    const premiumEmails = [...new Set(rawPremium)].filter(email => !newbieFromRoles.has(email) || premiumFromRoles.includes(email));
     localStorage.setItem(KEYS.USER_REGISTRY, JSON.stringify(users));
     localStorage.setItem(KEYS.PREMIUM_EMAILS, JSON.stringify(premiumEmails));
     return { users, premiumEmails };
