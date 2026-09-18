@@ -113,7 +113,10 @@ export const AuthModule = {
     }
 
     this.restoreSession();
-    if (this.user?.email) this.user.role = getUserRole(this.user.email);
+    if (this.user?.email) {
+      this.user.role = getUserRole(this.user.email);
+      upsertUserToFirestore(this.user).catch((err) => console.warn('[Auth] Upsert restored session error:', err));
+    }
 
     // Listen for Firebase Auth state changes
     if (auth) {
