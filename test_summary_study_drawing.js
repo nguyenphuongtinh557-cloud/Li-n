@@ -23,10 +23,11 @@ test('drawing canvas resolution stays within a bounded pixel budget', () => {
   const context = {};
   vm.createContext(context);
   vm.runInContext(`${source.slice(start, end)}\nthis.pixelRatio = summaryStudyCanvasPixelRatio; this.pixelBudget = SUMMARY_STUDY_MAX_CANVAS_PIXELS;`, context);
-  assert.equal(context.pixelRatio(800, 2000, 2), 2);
-  const ratio = context.pixelRatio(1000, 12000, 2);
-  assert.ok(ratio < 2);
-  assert.ok(Math.floor(1000 * ratio) * Math.floor(12000 * ratio) <= context.pixelBudget);
+  assert.equal(context.pixelRatio(800, 2000, 2), 1);
+  assert.equal(context.pixelRatio(800, 2000, 1), 1);
+  const ratio = context.pixelRatio(2000, 12000, 2);
+  assert.ok(ratio < 1);
+  assert.ok(Math.floor(2000 * ratio) * Math.floor(12000 * ratio) <= context.pixelBudget);
 });
 
 test('pointer movement draws new segments immediately without redrawing saved strokes', () => {

@@ -4719,7 +4719,7 @@ function redrawSummaryStudyDrawing(strokes) {
 }
 const SUMMARY_STUDY_MAX_CANVAS_PIXELS = 16_777_216;
 function summaryStudyCanvasPixelRatio(width, height, devicePixelRatio = 1) {
-  const desiredRatio = Math.min(2, Math.max(0.1, Number(devicePixelRatio) || 1));
+  const desiredRatio = Math.min(1, Math.max(0.1, Number(devicePixelRatio) || 1));
   const pixelBudgetRatio = Math.sqrt(SUMMARY_STUDY_MAX_CANVAS_PIXELS / (Math.max(1, width) * Math.max(1, height)));
   return Math.min(desiredRatio, pixelBudgetRatio);
 }
