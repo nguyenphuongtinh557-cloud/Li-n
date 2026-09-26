@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "outputDirectory": ".",
   "rewrites": [
     { "source": "/api/subject-details", "destination": "/api/subject-details.js" },
     { "source": "/api/summary-share", "destination": "/api/summary-share.js" },

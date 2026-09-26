@@ -220,6 +220,8 @@ npm run test:subject-api
 vercel --prod
 ```
 
+- `vercel.json` pins the static output directory to the repository root (`.`), where `index.html` and the frontend assets are located. Keep the Vercel Root Directory set to the repository root; redeploy after changing these settings.
+
 ### GitHub Pages:
 
 1. Push lên GitHub
