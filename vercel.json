@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "public": true,
   "rewrites": [
     { "source": "/api/subject-details", "destination": "/api/subject-details.js" },
     { "source": "/api/summary-share", "destination": "/api/summary-share.js" },
