@@ -24,3 +24,8 @@ QLCLdataseed_questions.js
 # OS files
 .DS_Store
 Thumbs.db
+
+# Dependencies & cloned repos
+node_modules/
+react-bits-repo/
+
