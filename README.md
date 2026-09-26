@@ -153,6 +153,31 @@ Project sử dụng các AI APIs:
 - 💳 **Cerebras AI** - Backup engine
 - 💳 **SambaNova** - Fast inference
 
+### Headroom context compression (tùy chọn):
+- Headroom chỉ nén lịch sử chat FTECA; tài liệu gốc và Knowledge Bank không bị nén.
+- QLCL tự động dùng lịch sử gốc nếu Headroom Proxy chưa chạy hoặc gặp lỗi.
+- Cài proxy bằng Python: `pip install "headroom-ai[proxy]"`, sau đó chạy `headroom proxy --port 8787`.
+
+### Tra cứu nguồn cục bộ và xuất sơ đồ tư duy
+- `modules/knowledgeBase.js` là bộ tra cứu do QLCL tự viết, tìm trong nội dung môn học đã xuất bản và đưa mã nguồn/trích đoạn phù hợp vào prompt FTECA.
+- Nội dung giáo trình không được gửi sang dịch vụ RAG bên ngoài bởi tính năng này; khi không có nguồn phù hợp, FTECA được yêu cầu nói rõ thay vì bịa.
+- Sơ đồ tư duy SVG hiện có hỗ trợ tải xuống trực tiếp bằng nút tải, không đóng gói mã nguồn hay tài sản của AnythingLLM, Dify, Khoj hoặc Excalidraw.
+
+### Tải tài nguyên theo nhu cầu
+- Trang khởi động không còn tải sẵn PDF.js, Mammoth, TinyMCE hoặc dashboard Admin.
+- Các thư viện này được nạp bằng dynamic loader khi người dùng mở tính năng tương ứng.
+- CSS riêng của trang môn học và Admin cũng được nạp khi mở route tương ứng; CSS dùng chung vẫn được giữ ở shell để tránh nhấp nháy giao diện.
+- Dữ liệu nội dung lớn vẫn nên tiếp tục tách API theo môn/chủ đề ở bước tiếp theo; thay đổi hiện tại loại bỏ các tải thừa mà không phá URL hoặc router hiện có.
+- Ngân hàng câu hỏi seed cũng được import khi vào khu vực Ôn tập/Lịch sử/Tạo đề, thay vì tải trong trang chủ.
+- Đồng bộ tài nguyên, bài viết, subject details và thông báo chạy nền sau khi route đầu tiên được khôi phục; các deep-link không còn bị chặn bởi chuỗi đồng bộ toàn hệ thống.
+- Có thể đổi địa chỉ proxy bằng biến môi trường `HEADROOM_PROXY_URL`.
+
+### Chia sẻ URL bản tóm tắt
+- API `/api/summary-share` lưu nội dung được chia sẻ trong Firestore; cần cấu hình biến môi trường phía máy chủ `FIREBASE_SERVICE_ACCOUNT_JSON` bằng JSON service account Firebase.
+- Trên Vercel, vào **Project → Settings → Environment Variables**, thêm `FIREBASE_SERVICE_ACCOUNT_JSON` với toàn bộ JSON service account làm giá trị, chọn các môi trường cần dùng (Production/Preview), lưu và redeploy. Giữ biến này ở server-side; không đặt trong mã frontend hoặc gửi qua chat.
+- URL công khai chỉ đọc được nội dung đã chia sẻ. Khi chủ sở hữu xóa bản tóm tắt khỏi lịch sử, hệ thống thu hồi URL tương ứng; thao tác thu hồi yêu cầu đăng nhập bằng đúng tài khoản đã tạo link.
+- Nếu chưa cấu hình Firebase Admin, API trả lỗi dịch vụ chưa sẵn sàng và không tạo link giả.
+
 > **Chi tiết:** Xem file `API_KEYS_STATUS.md`
 
 ---

@@ -449,9 +449,14 @@ export const ArticlesModule = {
       <div class="article-reader-container">
         <!-- ── Top Back Button ── -->
         <div class="article-reader-topbar margin-bottom-16">
-          <button class="btn btn-secondary btn-sm article-back-btn" onclick="ArticlesModule.closeDetail()">
-            <i class="fa-solid fa-arrow-left"></i> Quay lại danh sách
-          </button>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+            <button class="btn btn-secondary btn-sm article-back-btn" onclick="ArticlesModule.closeDetail()">
+              <i class="fa-solid fa-arrow-left"></i> Quay lại danh sách
+            </button>
+            <button class="btn btn-secondary btn-sm" onclick="ArticlesModule.shareCurrentArticle()">
+              <i class="fa-solid fa-share-nodes"></i> Chia sẻ
+            </button>
+          </div>
         </div>
 
         <!-- ── Reader Grid (Left Content / Right Sidebar) ── -->
@@ -574,6 +579,12 @@ export const ArticlesModule = {
 
   openDetail(articleId) {
     this.activeArticleId = articleId;
+    if (!window.NavController?.restoringRoute) {
+      const params = new URLSearchParams(window.location.search);
+      params.set('page', 'about');
+      params.set('article', articleId);
+      window.history.pushState({ page: 'about', article: articleId }, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`);
+    }
 
     // Real view counter increment & save to persistent DB
     const allArticles = this.getArticlesData();
@@ -587,8 +598,23 @@ export const ArticlesModule = {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   },
 
+  async shareCurrentArticle() {
+    const url = new URL(window.location.href);
+    url.search = '';
+    url.searchParams.set('page', 'about');
+    url.searchParams.set('article', this.activeArticleId);
+    await window.shareUrl(url.href, 'Chia sẻ bài viết');
+  },
+
   closeDetail() {
     this.activeArticleId = null;
+    if (!window.NavController?.restoringRoute) {
+      const params = new URLSearchParams(window.location.search);
+      params.delete('article');
+      params.set('page', 'about');
+      const query = params.toString();
+      window.history.pushState({ page: 'about' }, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+    }
     this.renderArticlesView();
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }

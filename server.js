@@ -12,6 +12,8 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { networkInterfaces } from 'os';
+import { compress } from 'headroom-ai';
+import summaryShareHandler from './api/summary-share.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,7 +46,103 @@ const mimeTypes = {
   '.txt': 'text/plain'
 };
 
-const server = http.createServer((req, res) => {
+function readJsonBody(req, maxBytes = 1_000_000) {
+  return new Promise((resolve, reject) => {
+    let size = 0;
+    let body = '';
+    req.setEncoding('utf8');
+    req.on('data', chunk => {
+      size += Buffer.byteLength(chunk);
+      if (size > maxBytes) {
+        reject(Object.assign(new Error('request-too-large'), { statusCode: 413 }));
+        req.destroy();
+        return;
+      }
+      body += chunk;
+    });
+    req.on('end', () => {
+      try {
+        resolve(body ? JSON.parse(body) : {});
+      } catch {
+        reject(Object.assign(new Error('invalid-json'), { statusCode: 400 }));
+      }
+    });
+    req.on('error', reject);
+  });
+}
+
+async function handleHeadroomCompression(req, res) {
+  if (req.method !== 'POST') {
+    res.writeHead(405, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ ok: false, reason: 'method-not-allowed' }));
+    return true;
+  }
+
+  try {
+    const payload = await readJsonBody(req);
+    const messages = Array.isArray(payload.messages) ? payload.messages : [];
+    if (!messages.length || messages.length > 24) {
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, reason: 'invalid-message-count' }));
+      return true;
+    }
+
+    const result = await compress(messages, {
+      model: process.env.HEADROOM_MODEL || 'openai/gpt-oss-120b',
+      baseUrl: process.env.HEADROOM_PROXY_URL || 'http://127.0.0.1:8787',
+      timeout: 3000,
+      fallback: false,
+      stack: 'qlcl-cera-history'
+    });
+
+    res.writeHead(200, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store'
+    });
+    res.end(JSON.stringify({
+      ok: true,
+      messages: result.messages,
+      tokensBefore: result.tokensBefore,
+      tokensAfter: result.tokensAfter,
+      tokensSaved: result.tokensSaved,
+      compressionRatio: result.compressionRatio,
+      compressed: result.compressed
+    }));
+  } catch (error) {
+    const status = Number(error?.statusCode) || 503;
+    res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ ok: false, reason: 'headroom-unavailable' }));
+  }
+  return true;
+}
+
+async function handleSummaryShare(req, res) {
+  try {
+    const requestUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+    const body = ['POST', 'DELETE'].includes(req.method) ? await readJsonBody(req, 550_000) : {};
+    const vercelRequest = Object.assign(req, {
+      query: Object.fromEntries(requestUrl.searchParams.entries()),
+      body
+    });
+    let statusCode = 200;
+    const headers = new Map();
+    const vercelResponse = {
+      status(code) { statusCode = code; return this; },
+      setHeader(name, value) { headers.set(name, value); return this; },
+      end(payload = '') {
+        res.writeHead(statusCode, Object.fromEntries(headers));
+        res.end(payload);
+      }
+    };
+    await summaryShareHandler(vercelRequest, vercelResponse);
+  } catch (error) {
+    const status = Number(error?.statusCode) || 400;
+    res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ ok: false, reason: error.message || 'invalid-request' }));
+  }
+}
+
+const server = http.createServer(async (req, res) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
 
   // Parse URL and remove query string
@@ -53,6 +151,15 @@ const server = http.createServer((req, res) => {
   
   if (filePath === './') {
     filePath = './index.html';
+  }
+
+  if (cleanUrl === '/api/headroom-compress') {
+    await handleHeadroomCompression(req, res);
+    return;
+  }
+  if (cleanUrl === '/api/summary-share') {
+    await handleSummaryShare(req, res);
+    return;
   }
 
   // API endpoint routing

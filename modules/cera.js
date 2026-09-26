@@ -10,16 +10,26 @@
 
 import { DB } from './db.js';
 import { AIPool } from './aiPool.js';
+import { formatKnowledgeContext, searchSubjectKnowledge } from './knowledgeBase.js';
 
-// ─── System Prompt ────────────────────────────────────────────────────────────
-// ─── System Prompt & Science AI Academic Knowledge Engine ─────────────────────
-const CERA_SYSTEM = `Bạn là FTECA 24 — Trợ lý AI Chuyên gia Quản lý Chất lượng (QLCL) & Luật An toàn Thực phẩm (ATTP) Việt Nam.
+// ─── System Prompt & High EQ GenZ Companion Knowledge Engine ─────────────────
+const CERA_SYSTEM = `
+# ROLE & PERSONALITY:
+Bạn là "FTECA" — Bạn đồng hành GenZ cực kỳ thông minh, tinh tế, EQ cao và có gu nói chuyện tự nhiên như một người bạn thực thụ ngoài đời.
 
-QUY TẮC PHẢN HỒI (BẮT BUỘC TUÂN THỦ TUYỆT ĐỐI):
-1. TRỌNG TÂM & NGẮN GỌN: Đi thẳng vào đáp án và nội dung phân tích/giải thích chuyên môn. Tuyệt đối KHÔNG chào hỏi dài dòng, KHÔNG chèn lời mở đầu dư thừa, KHÔNG gửi email hay thông tin cá nhân/người sáng lập vào câu trả lời.
-2. XƯNG HÔ: Xưng "Tôi" (hoặc "FTECA 24"), gọi người dùng là "bạn" hoặc "anh/chị". Tuyệt đối không xưng "em".
-3. CHUẨN XÁC HÀN LÂM: Trả lời chuẩn xác, dẫn chiếu chính xác điều khoản pháp luật (Luật ATTP 55/2010, NĐ 15/2018), tiêu chuẩn quốc tế (HACCP Codex 2020, ISO 22000:2018, ISO 9001:2015, GMP/SSOP) hoặc nguyên lý vi sinh/hóa học thực phẩm khi cần thiết.
-4. CHỈ GIỚI THIỆU KHI ĐƯỢC HỎI TRỰC TIẾP: Chỉ đề cập đến thông tin người sáng lập (Nguyễn Hoàng Phúc & Dương Ngọc Trâm) khi người dùng trực tiếp hỏi "Bạn là ai?", "Ai sáng lập hệ thống này?".`;
+# NGUYÊN TẮC GIAO TIẾP (EQ CAO, TINH TẾ & TỰ NHIÊN):
+1. NÓI CHUYỆN TỰ NHIÊN NHƯ NGƯỜI THẬT:
+   - Nhắn tin tự nhiên, gãy gọn như người thật chat Messenger/Zalo.
+   - TUYỆT ĐỐI CẤM dùng ngoặc kép vô lý quanh các từ lóng (KHÔNG bao giờ viết kiểu: "đánh giá", "siêu máy", "đơ", "xịt").
+   - TUYỆT ĐỐI CẤM cười giả tạo, CẤM bịa từ gượng gạo (như "cười rụt rụt", "chấn động kịch trần").
+2. NHẠY CẢM VỚI MỈA MAI & CHÊ NHẠT (SARCASM DETECT):
+   - Phải nhận biết ngay khi bạn học dùng giọng mỉa mai, chê nhạt hoặc xoáy (VD: "hơ hơ mắc cười ghê", "hủm là sao", "vui ghê ha").
+   - Đáp lại tinh tế, dí dỏm và nhận sai tự nhiên (VD: "Ủa mỉa mai tớ đúng hông 🗿", "Thôi tớ xin lỗi, miếng đùa này hơi xu 😭", "Nhạt quá đúng không, để tớ rút kinh nghiệm 😭").
+3. PHẢN HỒI NGẮN GỌN (1-2 CÂU):
+   - Ngắn gọn, súc tích. Không giải thích định nghĩa từ ngữ của bạn học ngoại trừ khi họ hỏi trực tiếp.
+4. XƯNG HÔ THÂN MẬT: Xưng "FTECA" (hoặc "tớ", "mình") - gọi người dùng là "bạn" hoặc "cậu". Không dùng từ "sếp".
+5. KIẾN THỨC CHUYÊN MÔN: Chỉ khi bạn học chủ động hỏi về kiến thức Công nghệ Thực phẩm / QLCL mới trả lời chuẩn xác, dễ hiểu và súc tích.
+`;
 
 // ─── Trạng thái chatbot ───────────────────────────────────────────────────────
 let _currentContext = null; // câu hỏi hiện tại đang hiển thị trên màn hình
@@ -128,8 +138,46 @@ async function askAI(userMessage, systemPrompt = CERA_SYSTEM) {
       }
     }
     
-    throw new Error('⚠️ FTECA 24 AI đang bận. Vui lòng thử lại sau vài giây!');
+    throw new Error('⚠️ FTECA đang hơi bận tí xíu nè! Cậu thử lại sau vài giây nha~ 🪷');
   }
+}
+
+async function compressChatHistory(history) {
+  if (!Array.isArray(history) || history.length < 4) return history;
+  const totalChars = history.reduce((sum, item) => sum + String(item?.content || '').length, 0);
+  if (totalChars < 2400) return history;
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 3500);
+  try {
+    const response = await fetch('/api/headroom-compress', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      signal: controller.signal,
+      body: JSON.stringify({
+        messages: history.map(item => ({
+          role: item?.role === 'assistant' ? 'assistant' : 'user',
+          content: String(item?.content || '')
+        }))
+      })
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (response.ok && payload.ok && Array.isArray(payload.messages)) {
+      console.info('[CERA] Headroom compressed chat history:', {
+        tokensBefore: payload.tokensBefore,
+        tokensAfter: payload.tokensAfter,
+        tokensSaved: payload.tokensSaved
+      });
+      return payload.messages;
+    }
+  } catch (error) {
+    if (error?.name !== 'AbortError') {
+      console.warn('[CERA] Headroom history compression unavailable:', error.message);
+    }
+  } finally {
+    clearTimeout(timeout);
+  }
+  return history;
 }
 
 
@@ -286,15 +334,6 @@ function searchLocalDatabase(userQuery) {
     }
   }
 
-  // Tìm trong Nguồn tài liệu đã upload
-  const sources = DB.getSources();
-  for (const src of sources) {
-    const srcText = (src.content || '').toLowerCase();
-    if (words.length > 0 && words.some(w => srcText.includes(w))) {
-      return `📚 **TRUY XUẤT NGUỒN TÀI LIỆU ĐÃ NẠP ("${src.title}")** *(Phản hồi 0.001s)*\n\n${src.content.slice(0, 600)}...\n\n💡 *Dữ liệu được trích xuất trực tiếp từ tài liệu đã lưu trong hệ thống.*`;
-    }
-  }
-
   return null;
 }
 
@@ -366,6 +405,8 @@ export async function ceraAnalyzeImage(base64Data, userText = '', history = []) 
  */
 export async function ceraChat(userText, history = [], options = {}) {
   const text = userText.trim().toLowerCase();
+  const compactHistory = await compressChatHistory(history);
+  const knowledgeContext = formatKnowledgeContext(searchSubjectKnowledge(userText));
 
   // ── 0. Kiểm tra nếu là Chế độ Premium ─────────────────────────────────────
   if (options.isPremium || options.premiumModelId) {
@@ -373,12 +414,13 @@ export async function ceraChat(userText, history = [], options = {}) {
     if (_currentContext) {
       contextPrompt += `[Bối cảnh: Sinh viên đang làm câu hỏi: "${_currentContext.q}"]\n\n`;
     }
+    if (knowledgeContext) contextPrompt += `${knowledgeContext}\n\n`;
     const modelId = options.premiumModelId || 'deepseek-r1';
     const resp = await AIPool.askPremium({
       modelId,
       userPrompt: userText,
       systemPrompt: contextPrompt,
-      history
+      history: compactHistory
     });
     return `💎 **PREMIUM AI (${modelId.toUpperCase()})**\n\n${resp}`;
   }
@@ -398,13 +440,14 @@ export async function ceraChat(userText, history = [], options = {}) {
       const opts = q.options ? q.options.map((o, i) => `${['A','B','C','D'][i]}. ${o}`).join('\n') : '';
       contextPrompt += `[Bối cảnh: Sinh viên đang xem câu hỏi: "${q.q}"\nCác đáp án:\n${opts}\nĐáp án đúng: ${['A','B','C','D'][q.correct]}]\n\n`;
     }
-    if (history.length > 0) {
+    if (compactHistory.length > 0) {
       contextPrompt += 'Lịch sử trò chuyện:\n';
-      history.slice(-4).forEach(m => {
+      compactHistory.slice(-4).forEach(m => {
         contextPrompt += `${m.role === 'user' ? 'Sinh viên' : 'FTECA 24'}: ${m.content}\n`;
       });
       contextPrompt += '\n';
     }
+    if (knowledgeContext) contextPrompt += `${knowledgeContext}\n\n`;
     contextPrompt += `Sinh viên yêu cầu: ${userText}`;
     
     const resp = await askAI(contextPrompt);
@@ -429,22 +472,17 @@ export async function ceraChat(userText, history = [], options = {}) {
     return buildLocalExplanation(_currentContext);
   }
 
-  // ── 5. Tìm trong Knowledge Cache (câu hỏi đã học trước) ──────────────────
-  const cached = searchKnowledgeCache(userText);
-  if (cached) return `🧠 **TỪ BỘ NHỚ ĐÃ HỌC** *(0.001s)*\n\n${cached}`;
-
-  // ── 6. Tìm trong Kho câu hỏi DB (Chỉ trả DB khi không phải yêu cầu dịch/xử lý) ───
-  const localResult = searchLocalDatabase(userText);
-  if (localResult) return localResult;
+  // ── 5. Gọi FTECA AI trực tiếp cho mọi cuộc trò chuyện ──────────────────
 
   // ── 7. Không có dữ liệu → Gọi CERA AI ────────────────────────────────────
   let contextPrompt = CERA_SYSTEM + '\n\n';
   if (_currentContext) {
     contextPrompt += `[Sinh viên đang xem câu hỏi: "${_currentContext.q}"]\n\n`;
   }
-  if (history.length > 0) {
+  if (knowledgeContext) contextPrompt += `${knowledgeContext}\n\n`;
+  if (compactHistory.length > 0) {
     contextPrompt += 'Lịch sử trò chuyện:\n';
-    history.slice(-6).forEach(m => {
+    compactHistory.slice(-6).forEach(m => {
       contextPrompt += `${m.role === 'user' ? 'Sinh viên' : 'FTECA 24'}: ${m.content}\n`;
     });
     contextPrompt += '\n';
@@ -455,4 +493,3 @@ export async function ceraChat(userText, history = [], options = {}) {
   saveKnowledgeCache(userText, aiReply);
   return aiReply;
 }
-

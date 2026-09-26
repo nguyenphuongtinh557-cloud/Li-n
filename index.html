@@ -12,9 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260907-study-reader">
-  <link rel="stylesheet" href="admin-dashboard.css?v=20260912-admin-redesign">
-  <link rel="stylesheet" href="subject-page.css?v=20260912-subject-redesign">
+  <link rel="stylesheet" href="style.css?v=20260922-pdf-template2">
   <style>
     @media (max-width: 720px) {
       #study-space-root .study-hub-shell { padding: 16px 12px 30px; }
@@ -33,14 +31,59 @@
     }
   </style>
   
-  <!-- Thư viện đọc file (PDF & Word) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <script>pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';</script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
-  <!-- TinyMCE Self-Hosted (No API Key Required) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js" referrerpolicy="origin"></script>
+  <script>
+    window.googleTranslateElementInit = function (attempt = 0) {
+      if (!window.google?.translate?.TranslateElement || !document.getElementById('google_translate_element')) {
+        if (attempt < 40) window.setTimeout(() => window.googleTranslateElementInit(attempt + 1), 150);
+        return;
+      }
+      new window.google.translate.TranslateElement({
+        pageLanguage: 'vi',
+        includedLanguages: 'vi,en,zh-CN,ja,ko,fr,de',
+        autoDisplay: false
+      }, 'google_translate_element');
+      window.hideGoogleTranslateBanner();
+    };
+    window.hideGoogleTranslateBanner = function () {
+      document.querySelectorAll('iframe.goog-te-banner-frame, .goog-te-banner-frame').forEach((banner) => {
+        banner.style.setProperty('display', 'none', 'important');
+        banner.style.setProperty('visibility', 'hidden', 'important');
+      });
+      if (!document.body) return;
+      document.querySelectorAll('body > .skiptranslate, body > iframe[src*="translate.google"], body > div[class*="goog-te-banner"]').forEach((banner) => {
+        if (banner.id !== 'google_translate_element') {
+          banner.style.setProperty('display', 'none', 'important');
+          banner.style.setProperty('visibility', 'hidden', 'important');
+        }
+      });
+      if (document.body.style.top !== '0px') document.body.style.setProperty('top', '0px', 'important');
+      if (document.body.style.marginTop !== '0px') document.body.style.setProperty('margin-top', '0px', 'important');
+    };
+    new MutationObserver(window.hideGoogleTranslateBanner).observe(document.documentElement, {
+      attributes: true,
+      childList: true,
+      subtree: true
+    });
+    window.selectFtecaLanguage = function (language, onReady, attempt = 0) {
+      const select = document.querySelector('.goog-te-combo');
+      if (select) {
+        select.value = language;
+        select.dispatchEvent(new Event('change'));
+        onReady?.();
+        return;
+      }
+      if (attempt < 40) {
+        window.setTimeout(() => window.selectFtecaLanguage(language, onReady, attempt + 1), 150);
+      } else {
+        window.showToast?.('Google Translate chưa sẵn sàng. Vui lòng tải lại trang và thử lại.', 'error');
+        document.querySelectorAll('.language-option').forEach((item) => { item.disabled = false; });
+      }
+    };
+  </script>
+  <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" async></script>
 </head>
 <body>
+  <div id="google_translate_element" class="google-translate-host" aria-hidden="true"></div>
 
   <!-- ═══════════════ APP LAYOUT SHELL (OPENROUTER STYLE) ═══════════════ -->
   <div class="app-layout">
@@ -94,11 +137,6 @@
           </button>
           <button id="snav-exam-ai" class="sidebar-nav-item hidden" onclick="">
             <i class="fa-solid fa-file-circle-plus"></i> <span>Tạo đề thi AI</span>
-          </button>
-          <button id="snav-more-subjects" class="sidebar-nav-item upgrade-item" onclick="window._guardDevFeature('Mở thêm môn học')">
-            <i class="fa-solid fa-book-open"></i> <span>Mở thêm môn học</span>
-            <span class="badge-pro">PRO</span>
-            <span class="badge-soon">Sắp ra</span>
           </button>
           <button id="snav-upgrade" class="sidebar-nav-item upgrade-item" onclick="NavController.navigateToPage('upgrade')">
             <i class="fa-solid fa-crown"></i> <span>Nâng cấp tài khoản</span>
@@ -821,224 +859,247 @@
           </div>
         </section>
 
-        <!-- ══════ PAGE 5B: TÓM TẮT GIÁO TRÌNH CÁ NHÂN (GEN Z UI) ══════ -->
+        <!-- ══════ PAGE 5B: TÓM TẮT GIÁO TRÌNH CÁ NHÂN (MASTER WORKSTATION ACADEMIC UI) ══════ -->
         <section id="page-curriculum-summary" class="page-container hidden">
           <div class="curriculum-summary-shell">
 
-            <!-- STICKER OVERLAYS -->
-            <div class="cs-sticker-layer">
-              <div class="cs-sticker-washi-tape"></div>
-              <div class="cs-sticker-sparkles">
-                <svg class="cs-sparkle-star" width="24" height="24" viewBox="0 0 24 24"><path d="M12 0 C12 6.6 17.4 12 24 12 C17.4 12 12 17.4 12 24 C12 17.4 6.6 12 0 12 C6.6 12 12 6.6 12 0 Z" fill="#FFC107" stroke="#FFFFFF" stroke-width="1.5"/></svg>
-                <svg class="cs-sparkle-star" width="18" height="18" viewBox="0 0 24 24" style="animation-delay: 0.8s;"><path d="M12 0 C12 6.6 17.4 12 24 12 C17.4 12 12 17.4 12 24 C12 17.4 6.6 12 0 12 C6.6 12 12 6.6 12 0 Z" fill="#FFFFFF" stroke="#FFC107" stroke-width="2.5"/></svg>
-              </div>
-              <div class="cs-sticker-dot-grid"></div>
-              <div class="cs-sticker-mint-wave"></div>
-            </div>
-
-            <!-- STAGE 1: INPUT STAGE (SCREENSHOT 2 STYLE) -->
+            <!-- STAGE 1: INPUT STAGE (PERFECT BALANCED 2-COLUMN LAYOUT) -->
             <div id="cs-input-stage" class="cs-input-stage">
-              
-              <!-- HEADER HERO WITH HIGH-TECH TECH DECORATIONS -->
-              <div class="cs-header-hero">
-                <div class="cs-hero-cyber-bg"></div>
-                <div class="cs-hero-left">
-                  <div class="cs-hero-badge-icon">
-                    <svg width="52" height="52" viewBox="0 0 52 52" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <defs>
-                        <linearGradient id="ai-grad" x1="0" y1="0" x2="52" y2="52" gradientUnits="userSpaceOnUse">
-                          <stop offset="0%" stop-color="#10b981"/>
-                          <stop offset="100%" stop-color="#2563eb"/>
-                        </linearGradient>
-                      </defs>
-                      <!-- Brain circuit icon -->
-                      <circle cx="26" cy="26" r="24" fill="url(#ai-grad)" opacity="0.15"/>
-                      <path d="M18 20c0-4.4 3.6-8 8-8s8 3.6 8 8c2.2 0 4 1.8 4 4s-1.8 4-4 4H18c-2.2 0-4-1.8-4-4s1.8-4 4-4z" fill="url(#ai-grad)" stroke="white" stroke-width="1.2"/>
-                      <circle cx="20" cy="22" r="2" fill="white"/>
-                      <circle cx="26" cy="19" r="2" fill="white"/>
-                      <circle cx="32" cy="22" r="2" fill="white"/>
-                      <path d="M20 28v6M26 28v8M32 28v5" stroke="url(#ai-grad)" stroke-width="2" stroke-linecap="round"/>
-                      <circle cx="20" cy="35" r="2" fill="url(#ai-grad)"/>
-                      <circle cx="26" cy="37" r="2" fill="url(#ai-grad)"/>
-                      <circle cx="32" cy="34" r="2" fill="url(#ai-grad)"/>
-                    </svg>
-                    <span class="cs-hero-pulse-ring"></span>
-                  </div>
-                  <div class="cs-hero-copy">
-                    <div class="cs-hero-kicker">
-                      <span class="cs-tech-pill green"><i class="fa-solid fa-microchip"></i> AI Engine v4.5</span>
-                      <span class="cs-tech-pill blue"><i class="fa-solid fa-bolt"></i> Multimodal Vision OCR</span>
-                    </div>
-                    <h1>Tóm tắt tài liệu bằng AI</h1>
-                    <p>Đọc nhanh &mdash; Hiểu sâu &mdash; Phân tích đa tầng tự động bằng Trí Tuệ Nhân Tạo</p>
-                  </div>
-                </div>
-
-                <div class="cs-hero-tech-widgets">
-                  <div class="cs-tech-stat-card">
-                    <div class="cs-stat-icon green"><i class="fa-solid fa-shield-halved"></i></div>
-                    <div>
-                      <div class="cs-stat-val">99.8%</div>
-                      <div class="cs-stat-lbl">Chính xác AI</div>
-                    </div>
-                  </div>
-                  <div class="cs-tech-stat-card">
-                    <div class="cs-stat-icon blue"><i class="fa-solid fa-gauge-high"></i></div>
-                    <div>
-                      <div class="cs-stat-val">&lt; 3s</div>
-                      <div class="cs-stat-lbl">Tốc độ xử lý</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- MAIN GRID 2 COLS (SCREENSHOT 2) -->
-              <div class="curriculum-summary-body">
+              <div class="cs-layout-grid">
                 
-                <!-- LEFT: DROPZONE + TEXTAREA -->
-                <div class="curriculum-input-panel">
-                  <div class="curriculum-dropzone" id="curriculum-dropzone">
-                    <div class="curriculum-dropzone-inner">
-                      <i class="fa-solid fa-cloud-arrow-up curriculum-dropzone-icon"></i>
-                      <p class="curriculum-dropzone-label">Kéo thả file vào đây hoặc</p>
-                      <label class="btn btn-primary btn-sm curriculum-upload-btn" for="curriculum-file-input" style="border-radius:20px;padding:8px 20px;background:linear-gradient(135deg, #10b981 0%, #2563eb 100%);border:none;box-shadow:0 4px 14px rgba(16,185,129,0.3);">
-                        <i class="fa-solid fa-folder-open"></i> Chọn file
-                      </label>
-                      <input type="file" id="curriculum-file-input" accept=".pdf,.docx,.doc,.txt,.pptx" style="display:none">
-                      <small style="color:var(--text-muted);font-size:11px;margin-top:6px;">Hỗ trợ: PDF, DOCX, TXT, PPTX &nbsp;|&nbsp; Dung lượng tối đa: 20MB</small>
-                    </div>
-                    <div class="curriculum-file-preview hidden" id="curriculum-file-preview">
-                      <i class="fa-solid fa-file-pdf" id="curriculum-file-icon" style="color:#ef4444;font-size:32px;"></i>
-                      <div>
-                        <b id="curriculum-file-name">file.pdf</b>
-                        <small id="curriculum-file-size">0 KB</small>
+                <!-- LEFT MAIN COLUMN -->
+                <div class="cs-main-column">
+                  
+                  <!-- HERO HEADER -->
+                  <header class="cs-hero-header">
+                    <div class="cs-hero-left">
+                      <div class="cs-hero-badge">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span>TÓM TẮT VĂN BẢN BẰNG AI</span>
                       </div>
-                      <button type="button" class="curriculum-remove-file" id="curriculum-remove-file" title="Xóa file"><i class="fa-solid fa-xmark"></i></button>
+                      <h1 class="cs-hero-title">Biến tài liệu dài thành những ý chính dễ hiểu</h1>
+                      <p class="cs-hero-subtitle">Tải lên tài liệu, nhập nội dung hoặc dán link, AI sẽ giúp bạn tóm tắt nhanh, chính xác và dễ nắm bắt nhất.</p>
+                    </div>
+                    <div class="cs-hero-right">
+                      <div id="page-mascot-standalone" class="cs-mascot-standalone"></div>
+                    </div>
+                  </header>
+
+                  <!-- MAIN INPUT WORKSPACE CARD -->
+                  <div class="cs-workspace-card">
+                    
+                    <!-- UPLOAD FILE DROPZONE -->
+                    <div class="curriculum-dropzone" id="curriculum-dropzone">
+                      <div class="curriculum-dropzone-inner">
+                        <div class="cs-dz-icon">
+                          <i class="fa-solid fa-cloud-arrow-up"></i>
+                        </div>
+                        <div class="cs-dz-text">
+                          <p class="cs-dz-main-label">
+                            Kéo thả file vào đây hoặc
+                            <label for="curriculum-file-input" class="cs-btn-browse-pill">
+                              <i class="fa-solid fa-folder-open"></i> Chọn file
+                            </label>
+                          </p>
+                          <span class="cs-dz-hint">Hỗ trợ: PDF, DOCX, TXT, PPTX &nbsp;|&nbsp; Dung lượng tối đa: 20MB</span>
+                        </div>
+                        <input type="file" id="curriculum-file-input" accept=".pdf,.docx,.doc,.txt,.pptx" style="display:none">
+                      </div>
+
+                      <div class="curriculum-file-preview hidden" id="curriculum-file-preview">
+                        <i class="fa-solid fa-file-pdf" id="curriculum-file-icon"></i>
+                        <div class="curriculum-file-info">
+                          <b id="curriculum-file-name">file.pdf</b>
+                          <small id="curriculum-file-size">0 KB</small>
+                        </div>
+                        <button type="button" class="curriculum-remove-file" id="curriculum-remove-file" title="Xóa file">
+                          <i class="fa-solid fa-xmark"></i>
+                        </button>
+                      </div>
+                    </div>
+
+                    <!-- INNER DIVIDER -->
+                    <div class="cs-work-divider"><span>HOẶC</span></div>
+
+                    <!-- TEXTAREA & DOC TITLE -->
+                    <div class="cs-textarea-container">
+                      <textarea
+                        id="curriculum-text-input"
+                        class="curriculum-text-area"
+                        placeholder="🔗 Dán nội dung, đường link tài liệu hoặc gõ nội dung tại đây..."
+                        rows="4"
+                        maxlength="100000"
+                      ></textarea>
+                      
+                      <div class="cs-char-counter-line">
+                        <span class="curriculum-char-count" id="curriculum-char-count">0 / 100.000 ký tự</span>
+                      </div>
+
+                      <input
+                        type="text"
+                        id="curriculum-doc-title"
+                        class="curriculum-title-input"
+                        placeholder="Tên tài liệu / môn học (tuỳ chọn)..."
+                        maxlength="120"
+                      >
+
+                      <button type="button" id="curriculum-run-btn" class="curriculum-run-btn btn-full">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i> Tóm tắt tài liệu
+                      </button>
+                    </div>
+
+                    <!-- STATUS DISPLAY -->
+                    <div class="curriculum-status" id="curriculum-status" aria-live="polite"></div>
+
+                  </div><!-- /.cs-workspace-card -->
+
+                </div><!-- /.cs-main-column -->
+
+                <!-- RIGHT SIDEBAR COLUMN -->
+                <div class="cs-sidebar-column">
+                  
+                  <!-- WIDGET 1: TÍNH NĂNG NỔI BẬT (MODE SELECTION CARDS) -->
+                  <div class="cs-widget-card">
+                    <h3 class="cs-widget-title">Tính năng nổi bật</h3>
+                    <div class="cs-mode-list" role="radiogroup" aria-label="Kiểu tóm tắt">
+                      
+                      <!-- MODE 1: QUICK -->
+                      <div class="cs-mode-option-card" data-cs-mode="quick" id="cs-mode-card-quick" role="radio" aria-checked="false">
+                        <div class="cs-mode-icon-box green-icon">
+                          <i class="fa-solid fa-file-lines"></i>
+                        </div>
+                        <div class="cs-mode-info">
+                          <strong class="cs-mode-name">Tóm tắt nhanh</strong>
+                          <span class="cs-mode-sub">Nội dung cốt lõi, 5–10 ý chính</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right cs-mode-arrow"></i>
+                      </div>
+
+                      <!-- MODE 2: STUDY (DEFAULT ACTIVE) -->
+                      <div class="cs-mode-option-card active" data-cs-mode="study" id="cs-mode-card-study" role="radio" aria-checked="true">
+                        <div class="cs-mode-icon-box purple-icon">
+                          <i class="fa-solid fa-graduation-cap"></i>
+                        </div>
+                        <div class="cs-mode-info">
+                          <strong class="cs-mode-name">Tóm tắt chi tiết</strong>
+                          <span class="cs-mode-sub">Phân tích sâu, có ví dụ minh họa</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right cs-mode-arrow"></i>
+                      </div>
+
+                      <!-- MODE 3: EXAM (DISABLED/SOON) -->
+                      <div class="cs-mode-option-card disabled" data-cs-mode="exam" id="cs-mode-card-exam" role="radio" aria-checked="false" title="Tính năng đang bảo trì">
+                        <div class="cs-mode-icon-box yellow-icon">
+                          <i class="fa-solid fa-pen-ruler"></i>
+                        </div>
+                        <div class="cs-mode-info">
+                          <strong class="cs-mode-name">Học sâu & Ôn thi</strong>
+                          <span class="cs-mode-sub">Đang nâng cấp — Sẵn sàng sớm</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-right cs-mode-arrow"></i>
+                      </div>
+
                     </div>
                   </div>
 
-                  <div class="curriculum-or-divider"><span>hoặc dán văn bản trực tiếp</span></div>
-
-                  <textarea
-                    id="curriculum-text-input"
-                    class="curriculum-text-area"
-                    placeholder="Dán nội dung giáo trình, tài liệu hoặc ghi chú vào đây…"
-                    rows="6"
-                    maxlength="100000"
-                  ></textarea>
-                  <small class="curriculum-char-count" id="curriculum-char-count">0 / 100.000 ký tự</small>
-                </div>
-
-                <!-- RIGHT: MODE SELECTION CARDS (SCREENSHOT 2) -->
-                <div class="curriculum-input-panel">
-                  <div style="font-size:15px;font-weight:800;color:var(--text-primary);display:flex;align-items:center;gap:8px;margin-bottom:4px;">
-                    <i class="fa-solid fa-wand-magic-sparkles" style="color:#10b981;"></i> Chọn kiểu tóm tắt
-                  </div>
-
-                  <div class="cs-mode-cards-grid">
-                    <!-- MODE 1 -->
-                    <div class="cs-mode-card" data-cs-mode="quick" id="cs-mode-card-quick">
-                      <div class="cs-mc-icon"><i class="fa-solid fa-file-circle-check"></i></div>
-                      <div class="cs-mc-content">
-                        <div class="cs-mc-title">Tóm tắt nhanh</div>
-                        <div class="cs-mc-desc">Nội dung cốt lõi, 5&ndash;10 ý chính</div>
-                      </div>
-                      <div class="cs-mc-check"><i class="fa-solid fa-check"></i></div>
+                  <!-- WIDGET 2: TÀI LIỆU GẦN ĐÂY -->
+                  <div class="cs-widget-card">
+                    <div class="cs-widget-head">
+                      <h3 class="cs-widget-title">Tài liệu gần đây</h3>
+                      <button type="button" id="curriculum-clear-history-btn" class="cs-link-btn">Xem tất cả</button>
                     </div>
 
-                    <!-- MODE 2 (Chi tiết) - ✅ MẶC ĐỊNH -->
-                    <div class="cs-mode-card active" data-cs-mode="study" id="cs-mode-card-study">
-                      <div class="cs-mc-icon"><i class="fa-solid fa-file-lines"></i></div>
-                      <div class="cs-mc-content">
-                        <div class="cs-mc-title">📚 Tóm tắt chi tiết</div>
-                        <div class="cs-mc-desc">Phân tích sâu, có ví dụ minh họa</div>
-                      </div>
-                      <div class="cs-mc-check"><i class="fa-solid fa-check"></i></div>
-                    </div>
-
-                    <!-- MODE 3 (Học sâu & Ôn thi) - 🚧 ĐANG BẢO TRÌ -->
-                    <div class="cs-mode-card" data-cs-mode="exam" id="cs-mode-card-exam" style="opacity:0.5;cursor:not-allowed;" title="Tính năng đang bảo trì">
-                      <div class="cs-mc-icon"><i class="fa-solid fa-wrench"></i></div>
-                      <div class="cs-mc-content">
-                        <div class="cs-mc-title">🚧 Học sâu & Ôn thi</div>
-                        <div class="cs-mc-desc">Đang nâng cấp — Sẵn sàng sớm</div>
-                      </div>
-                      <div class="cs-mc-check"><i class="fa-solid fa-lock"></i></div>
+                    <div id="curriculum-history-list" class="curriculum-history-list">
+                      <!-- Rendered dynamically by renderCurriculumSummaryHistory() -->
                     </div>
                   </div>
 
-                  <input
-                    type="text"
-                    id="curriculum-doc-title"
-                    class="curriculum-title-input"
-                    placeholder="Tên tài liệu / môn học (tuỳ chọn)"
-                    maxlength="120"
-                    style="margin-top:10px;"
-                  >
+                  <!-- WIDGET 3: NEED HELP PROMO CARD -->
+                  <div class="cs-help-promo-card" onclick="NavController.navigateToPage('aigen')">
+                    <div class="cs-help-sparkle-icon">
+                      <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    </div>
+                    <div class="cs-help-info">
+                      <strong>Cần hỗ trợ gấp?</strong>
+                      <span>Bạn có thể thử tính năng <b>Tạo câu hỏi bằng AI</b></span>
+                    </div>
+                    <i class="fa-solid fa-arrow-right cs-help-arrow"></i>
+                  </div>
 
-                  <button type="button" id="curriculum-run-btn" class="btn btn-primary curriculum-run-btn" style="background:linear-gradient(135deg, #10b981 0%, #2563eb 100%);box-shadow:0 6px 20px rgba(16,185,129,0.35);">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i> Tóm tắt bằng AI
-                  </button>
+                </div><!-- /.cs-sidebar-column -->
 
-                  <div class="curriculum-status" id="curriculum-status" aria-live="polite"></div>
-                </div>
-
-              </div><!-- /.curriculum-summary-body -->
-
-              <!-- HISTORY NEARBY -->
-              <div class="curriculum-history-card" style="margin-top:28px;">
-                <div class="curriculum-history-header">
-                  <b><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử tóm tắt gần đây</b>
-                  <button type="button" id="curriculum-clear-history-btn" class="btn btn-ghost btn-xs">Xóa tất cả</button>
-                </div>
-                <div id="curriculum-history-list" class="curriculum-history-list">
-                  <div class="curriculum-history-empty">Chưa có lịch sử tóm tắt nào.</div>
-                </div>
-              </div>
-
+              </div><!-- /.cs-layout-grid -->
             </div><!-- /#cs-input-stage -->
 
-            <!-- STAGE 2: RESULT STAGE (SCREENSHOT 3 & 4 STYLE) -->
+            <!-- STAGE 2: RESULT STAGE (CLEAN ACADEMIC DETAILED SUMMARY UI) -->
             <div id="cs-result-stage" class="cs-result-stage hidden">
 
-              <!-- DOCUMENT BANNER (SCREENSHOT 3) -->
+              <!-- TOP UTILITY & SEARCH BAR -->
+              <div class="cs-top-utility-bar">
+                <button type="button" id="cs-btn-back-input" class="cs-back-btn">
+                  <i class="fa-solid fa-arrow-left"></i> Quay lại
+                </button>
+
+                <div class="cs-search-pill-wrap">
+                  <i class="fa-solid fa-magnifying-glass cs-search-icon"></i>
+                  <input type="text" class="cs-search-pill-input" placeholder="Tìm kiếm kiến thức, môn học, chuyên đề…" aria-label="Tìm kiếm kiến thức">
+                  <kbd class="cs-search-kbd">⌘ K</kbd>
+                </div>
+              </div>
+
+              <!-- DOCUMENT HEADER CARD -->
               <div class="cs-doc-banner">
                 <div class="cs-doc-info">
-                  <button type="button" id="cs-btn-back-input" class="btn btn-secondary btn-sm" style="border-radius:12px;">
-                    <i class="fa-solid fa-chevron-left"></i> Quay lại
-                  </button>
-                  <div class="cs-doc-badge">
-                    <i class="fa-solid fa-file-pdf"></i>
+                  <div class="cs-doc-icon-box">
+                    <i class="fa-solid fa-book-bookmark"></i>
                   </div>
                   <div class="cs-doc-details">
-                    <h3 id="cs-active-doc-title">Tài liệu học tập</h3>
+                    <h3 id="cs-active-doc-title">Cấu Trúc Giáo Trình Theo Chương / Mục</h3>
                     <div class="cs-doc-meta" id="cs-active-doc-meta">
-                      <span><i class="fa-solid fa-file"></i> Tài liệu</span>
-                      <span>&bull;</span>
-                      <span id="cs-doc-timestamp">Tóm tắt vừa xong</span>
+                      <span>Công nghệ thực phẩm</span>
+                      <span class="cs-meta-dot">•</span>
+                      <span>Học kỳ 7</span>
+                      <span class="cs-meta-dot">•</span>
+                      <span id="cs-doc-timestamp">Cập nhật: 22/09/2026</span>
                     </div>
                   </div>
                 </div>
 
                 <div class="cs-doc-actions">
-                  <button type="button" id="cs-btn-reload-summary" class="btn btn-secondary btn-sm" style="border-radius:12px;">
+                  <span class="cs-pill-badge-green" id="cs-mode-badge-pill">Tóm tắt chương</span>
+                  <button type="button" id="cs-btn-export-pdf" class="btn btn-primary btn-sm" style="border-radius:12px;">
+                    <i class="fa-solid fa-file-pdf"></i> Xuất PDF
+                  </button>
+                  <button type="button" id="cs-btn-share-summary" class="btn btn-secondary btn-sm" style="border-radius:12px;">
+                    <i class="fa-solid fa-share-nodes"></i> Chia sẻ bản tóm tắt
+                  </button>
+                  <button type="button" id="cs-btn-study-summary" class="btn btn-secondary btn-sm" style="border-radius:12px;">
+                    <i class="fa-solid fa-book-open-reader"></i> Vào ôn tập
+                  </button>
+                  <button type="button" id="cs-btn-reload-summary" class="btn btn-secondary btn-sm" style="border-radius:12px;" title="Tải lại">
                     <i class="fa-solid fa-rotate-right"></i> Tải lại
+                  </button>
+                  <button type="button" class="cs-more-menu-btn" title="Tùy chọn khác">
+                    <i class="fa-solid fa-ellipsis"></i>
                   </button>
                 </div>
               </div>
 
-              <!-- SUB-NAVIGATION TABS (DEEP STUDY STYLE) -->
+              <!-- SUB-NAVIGATION TABS -->
               <div class="cs-tab-bar" role="tablist">
                 <button type="button" class="cs-tab-item active" data-cs-tab="summary" id="cs-tab-btn-summary">
-                  <i class="fa-solid fa-graduation-cap"></i> Học sâu
+                  <i class="fa-solid fa-chart-column"></i> Nội dung chính
                 </button>
                 <button type="button" class="cs-tab-item" data-cs-tab="mindmap" id="cs-tab-btn-mindmap">
                   <i class="fa-solid fa-diagram-project"></i> Sơ đồ tư duy
                 </button>
-                <button type="button" class="cs-tab-item" data-cs-tab="questions" id="cs-tab-btn-questions">
+                <button type="button" class="cs-tab-item" data-cs-tab="notes" id="cs-tab-btn-notes">
+                  <i class="fa-solid fa-pen-to-square"></i> Ghi chú nhanh
+                </button>
+                <button type="button" class="cs-tab-item" data-cs-tab="questions" id="cs-tab-btn-questions" hidden>
                   <i class="fa-solid fa-circle-question"></i> Tự kiểm tra
                 </button>
-                <button type="button" class="cs-tab-item" data-cs-tab="source" id="cs-tab-btn-source">
+                <button type="button" class="cs-tab-item" data-cs-tab="source" id="cs-tab-btn-source" hidden>
                   <i class="fa-solid fa-book-open"></i> Nguồn tài liệu
                 </button>
               </div>
@@ -1085,14 +1146,10 @@
                   </div>
                 </div>
 
-                <!-- TAB 2: MINDMAP & DOC ASSISTANT (SCREENSHOT 4) -->
+                <!-- TAB 2: MINDMAP -->
                 <div id="cs-pane-mindmap" class="cs-pane hidden">
                   <div class="cs-mindmap-grid">
-                    <!-- LEFT: MINDMAP SVG CANVAS -->
                     <div id="cs-mindmap-container"></div>
-
-                    <!-- RIGHT: DOC ASSISTANT SIDEBAR -->
-                    <div id="cs-doc-assistant-container"></div>
                   </div>
                 </div>
 
@@ -1117,6 +1174,44 @@
             </div><!-- /#cs-result-stage -->
 
           </div><!-- /.curriculum-summary-shell -->
+        </section>
+
+        <section id="page-summary-study" class="page-container hidden" aria-label="Không gian ôn tập">
+          <div class="summary-study-shell">
+            <header class="summary-study-header">
+              <button type="button" id="summary-study-back" class="summary-study-back"><i class="fa-solid fa-arrow-left"></i> Quay lại bản tóm tắt</button>
+              <div class="summary-study-brand"><i class="fa-solid fa-sparkles"></i><strong>FTECA Study Tutor</strong><span>Ôn tập trên tài liệu của bạn</span></div>
+              <button type="button" id="summary-study-theme-toggle" class="summary-study-icon-btn" aria-label="Đổi giao diện sáng tối"><i class="fa-solid fa-moon"></i></button>
+              <button type="button" class="summary-study-icon-btn" data-summary-action="share-summary" aria-label="Chia sẻ bản tóm tắt" title="Chia sẻ bản tóm tắt"><i class="fa-solid fa-share-nodes"></i></button>
+              <button type="button" id="summary-study-more" class="summary-study-icon-btn" aria-label="Tùy chọn"><i class="fa-solid fa-ellipsis"></i></button>
+            </header>
+            <div id="summary-study-shared-banner" class="summary-study-shared-banner" hidden><i class="fa-solid fa-link"></i><span>Bản tóm tắt được chia sẻ · Chế độ chỉ đọc</span></div>
+            <div class="summary-study-workspace">
+              <aside class="summary-study-outline">
+                <div class="summary-study-file summary-study-storage-head"><i class="fa-solid fa-star"></i><div><strong>Kho lưu trữ tương tác</strong><small>Thuật ngữ đã lưu</small></div></div>
+                <div id="summary-study-saved-terms" class="summary-study-saved-terms"><small>Chưa có thuật ngữ nào được lưu.</small></div>
+                <div class="summary-study-outline-title">Nội dung tài liệu</div>
+                <nav id="summary-study-outline-list"></nav>
+                <div class="summary-study-tip"><i class="fa-regular fa-lightbulb"></i><strong>Mẹo học</strong><span>Bôi đen một đoạn văn để yêu cầu AI giải thích hoặc đặt câu hỏi.</span></div>
+              </aside>
+              <main class="summary-study-document">
+                <div class="summary-study-document-bar"><span><i class="fa-solid fa-book-open"></i> <b id="summary-study-location">Tóm tắt chi tiết</b></span><div><button type="button" data-summary-action="zoom-out">−</button><span id="summary-study-zoom">100%</span><button type="button" data-summary-action="zoom-in">+</button><button type="button" data-summary-action="fullscreen"><i class="fa-solid fa-expand"></i></button></div></div>
+                <article id="summary-study-document-body" class="summary-study-document-body"></article>
+                <div class="summary-study-document-tools"><button type="button" data-summary-action="highlight"><i class="fa-solid fa-highlighter"></i> Đánh dấu</button><button type="button" data-summary-action="remove-highlight"><i class="fa-solid fa-highlighter"></i> Bỏ đánh dấu</button><button type="button" data-summary-action="note"><i class="fa-solid fa-note-sticky"></i> Ghi chú</button><button type="button" data-summary-action="draw"><i class="fa-solid fa-pen-ruler"></i> Vẽ</button><button type="button" data-summary-action="erase"><i class="fa-solid fa-eraser"></i> Gôm</button><button type="button" data-summary-action="undo"><i class="fa-solid fa-rotate-left"></i> Hoàn tác</button><button type="button" data-summary-action="edit"><i class="fa-solid fa-pen-to-square"></i> Chỉnh sửa</button><span class="summary-study-color-palette" role="group" aria-label="Màu đánh dấu"><button type="button" class="active" data-summary-color="#fde68a" title="Vàng" aria-label="Màu vàng"></button><button type="button" data-summary-color="#bbf7d0" title="Xanh lá" aria-label="Màu xanh lá"></button><button type="button" data-summary-color="#bfdbfe" title="Xanh dương" aria-label="Màu xanh dương"></button><button type="button" data-summary-color="#fbcfe8" title="Hồng" aria-label="Màu hồng"></button></span><div class="summary-study-interaction-wrap"><button type="button" class="summary-study-interaction-trigger" data-summary-action="interaction" aria-haspopup="menu" aria-expanded="false"><i class="fa-solid fa-wand-magic-sparkles"></i> Tương tác <i class="fa-solid fa-chevron-down"></i></button><div class="summary-study-interaction-menu" role="menu" hidden><button type="button" data-interaction-action="define-term"><i class="fa-solid fa-book-open"></i><span><b>Giải thích nghĩa của từ</b><small>Ý nghĩa và cách dùng trong Công nghệ thực phẩm</small></span></button><button type="button" data-interaction-action="discuss"><i class="fa-solid fa-comments"></i><span><b>Thảo luận cùng AI</b><small>Trao đổi thêm trong chat box</small></span></button></div></div><button type="button" data-summary-action="export"><i class="fa-solid fa-file-pdf"></i> Xuất PDF</button></div>
+                <div class="summary-study-learning-actions"><button type="button" data-summary-action="self-explain"><i class="fa-solid fa-brain"></i> Tự giải thích &amp; đối chiếu</button><button type="button" data-summary-action="share-selection"><i class="fa-solid fa-share-nodes"></i> Chia sẻ đoạn chọn</button></div>
+                <div id="summary-study-context-menu" class="summary-study-context-menu" role="menu" hidden><button type="button" data-summary-context-action="highlight"><i class="fa-solid fa-highlighter"></i> Đánh dấu đoạn chọn</button><button type="button" data-summary-context-action="remove-highlight"><i class="fa-solid fa-highlighter"></i> Bỏ đánh dấu tại đây</button><button type="button" data-summary-context-action="note"><i class="fa-solid fa-note-sticky"></i> Tạo ghi chú từ đoạn chọn</button></div>
+                <div id="summary-study-term-dialog" class="summary-study-term-dialog" role="dialog" aria-modal="true" aria-labelledby="summary-study-term-title" hidden><div class="summary-study-term-card"><button type="button" class="summary-study-term-close" aria-label="Đóng">&times;</button><span class="summary-study-term-kicker"><i class="fa-solid fa-book-open"></i> TRA CỨU THUẬT NGỮ</span><div class="summary-study-term-title-row"><h3 id="summary-study-term-title">Giải thích nghĩa của từ</h3><button type="button" id="summary-study-term-save" class="summary-study-term-save" aria-label="Lưu thuật ngữ" title="Lưu vào kho"><i class="fa-regular fa-star"></i></button></div><div id="summary-study-term-status" class="summary-study-term-status">Đang kết nối AI…</div><div id="summary-study-term-result" class="summary-study-term-result"></div></div></div>
+                <div id="summary-study-note-dialog" class="summary-study-term-dialog" role="dialog" aria-modal="true" aria-labelledby="summary-study-note-title" hidden><div class="summary-study-term-card summary-study-note-card"><button type="button" class="summary-study-note-close summary-study-term-close" aria-label="Đóng">&times;</button><span class="summary-study-term-kicker"><i class="fa-solid fa-note-sticky"></i> GHI CHÚ THEO ĐOẠN</span><h3 id="summary-study-note-title">Ghi chú của bạn</h3><blockquote id="summary-study-note-quote"></blockquote><textarea id="summary-study-note-input" rows="5" maxlength="2000" placeholder="Viết ghi chú, câu hỏi hoặc điều cần nhớ…"></textarea><div class="summary-study-note-actions"><button type="button" id="summary-study-note-delete" hidden>Xóa ghi chú</button><button type="button" id="summary-study-note-save">Lưu ghi chú</button></div></div></div>
+                <div id="summary-study-self-explain-dialog" class="summary-study-term-dialog" role="dialog" aria-modal="true" aria-labelledby="summary-study-self-explain-title" hidden><div class="summary-study-term-card summary-study-self-explain-card"><button type="button" class="summary-study-self-explain-close summary-study-term-close" aria-label="Đóng">&times;</button><span class="summary-study-term-kicker"><i class="fa-solid fa-brain"></i> TỰ NHỚ LẠI</span><h3 id="summary-study-self-explain-title">Hãy giải thích bằng lời của bạn</h3><p class="summary-study-self-explain-hint">Thử viết điều bạn nhớ trước. Đoạn gốc sẽ được mở sau khi AI đối chiếu.</p><textarea id="summary-study-self-explain-input" rows="5" maxlength="3000" placeholder="Mình hiểu phần này là…"></textarea><div id="summary-study-self-explain-result" class="summary-study-self-explain-result" hidden></div><blockquote id="summary-study-self-explain-source" hidden></blockquote><div class="summary-study-note-actions"><button type="button" id="summary-study-self-explain-submit">Đối chiếu với AI</button></div></div></div>
+                <div id="summary-study-shared-dialog" class="summary-study-term-dialog" role="dialog" aria-modal="true" aria-labelledby="summary-study-shared-title" hidden><div class="summary-study-term-card"><button type="button" class="summary-study-shared-close summary-study-term-close" aria-label="Đóng">&times;</button><span class="summary-study-term-kicker"><i class="fa-solid fa-share-nodes"></i> ĐOẠN TÓM TẮT ĐƯỢC CHIA SẺ</span><h3 id="summary-study-shared-title"></h3><blockquote id="summary-study-shared-excerpt"></blockquote><button type="button" id="summary-study-shared-copy">Sao chép đoạn trích</button></div></div>
+              </main>
+              <aside class="summary-study-ai">
+                <div id="summary-study-chat" class="summary-study-chat"><div class="summary-study-mascot-stage"><button type="button" class="summary-study-mascot summary-study-mascot-main" aria-label="Tương tác với Lumi"><span class="summary-study-mascot-squash"><span class="summary-study-mascot-layer summary-study-mascot-directions"></span><span class="summary-study-mascot-layer summary-study-mascot-reactions"></span></span><span class="summary-study-mascot-bubble" role="status"></span></button><div class="summary-study-mascot-caption">Lumi đang đồng hành cùng bạn</div></div><div class="summary-study-comic-scene"><div class="summary-study-ai-message"><b>Xin chào! Mình là Lumi.</b><span>Mình có thể giúp bạn hiểu, ghi nhớ và luyện tập trên tài liệu này. Bạn muốn hỏi điều gì?</span></div></div></div>
+                <div class="summary-study-quick-actions"><button type="button" data-ai-action="explain">Giải thích ngắn</button><button type="button" data-summary-chat-prompt="why">Vì sao?</button><button type="button" data-summary-chat-prompt="what-if">Điều gì xảy ra nếu…?</button><button type="button" data-ai-action="solve">Giải bài tập</button><button type="button" data-ai-action="quiz">Tạo trắc nghiệm</button><button type="button" data-ai-action="flashcard">Tạo flashcard</button></div>
+                <form id="summary-study-chat-form" class="summary-study-chat-form"><textarea id="summary-study-chat-input" rows="2" placeholder="Hỏi Lumi về nội dung đang học..."></textarea><button type="submit" aria-label="Gửi câu hỏi"><i class="fa-solid fa-paper-plane"></i></button><small>Lumi ưu tiên bản tóm tắt, và tìm nguồn Internet khi tài liệu chưa đủ.</small></form>
+              </aside>
+            </div>
+          </div>
         </section>
 
         <!-- ══════ PAGE 6: THÔNG BÁO ══════ -->
@@ -2061,7 +2156,7 @@
           <img src="chatbot.webp" alt="FTECA 24" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
         </div>
         <div>
-          <div class="cera-name">FTECA 24</div>
+          <div class="cera-name">FTECA</div>
           <div class="cera-status" id="cera-status-text">
             <span class="cera-dot"></span>Sẵn sàng hỗ trợ
           </div>
@@ -2106,10 +2201,10 @@
     <div class="cera-messages" id="cera-messages">
       <div class="cera-msg cera-msg-bot">
         <div class="cera-msg-avatar">
-          <img src="chatbot.webp" alt="FTECA 24" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
+          <img src="chatbot.webp" alt="FTECA" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">
         </div>
         <div class="cera-msg-bubble">
-          <p>Xin chào! Tôi là <strong>FTECA 24</strong> — trợ lý AI ôn thi QLCL & ATTP. 👋</p>
+          <p>Hế lô cậu! Tớ là <strong>FTECA</strong> — bạn đồng hành Ngành Công nghệ Thực phẩm đây! ✨ Cần tám chuyện hay hỏi bài gì cứ nhắn tớ nha~ 🪷</p>
 
         </div>
       </div>
@@ -2138,11 +2233,11 @@
       <textarea
         id="cera-input"
         class="cera-input"
-        placeholder="Nhắn tin cho FTECA 24..."
+        placeholder="Nhắn tin cho FTECA..."
         rows="1"
         onkeydown="ceraKeyDown(event)"
         oninput="this.style.height='auto';this.style.height=Math.min(this.scrollHeight,120)+'px'"
-        aria-label="Nhập tin nhắn cho FTECA 24"
+        aria-label="Nhập tin nhắn cho FTECA"
       ></textarea>
       <button id="cera-send-btn" class="cera-send-btn" onclick="ceraSend()" title="Gửi (Enter)" aria-label="Gửi">
         <i class="fa-solid fa-paper-plane"></i>
@@ -2337,8 +2432,156 @@
       const count = parseInt(document.getElementById('exam-question-count').value) || 50;
       document.getElementById('exam-duration-text').textContent = count + ' phút';
     }
+
+    // 🤖 Official page-mascot Component Engine (Ported to Vanilla JS)
+    document.addEventListener('DOMContentLoaded', function () {
+      const container = document.getElementById('page-mascot-standalone');
+      if (!container) return;
+
+      const DIRECTIONS = [
+        'up-left', 'up', 'up-right',
+        'left', 'center', 'right',
+        'down-left', 'down', 'down-right'
+      ];
+      const REACTIONS = [
+        'blink', 'heart', 'sparkle',
+        'surprised', 'wink', 'bashful',
+        'sleepy', 'dizzy', 'delighted'
+      ];
+      const CLOCKWISE = [
+        'right', 'down-right', 'down', 'down-left',
+        'left', 'up-left', 'up', 'up-right'
+      ];
+      const SECTOR = (Math.PI * 2) / 8;
+      const HYSTERESIS = 0.12;
+      const DEAD_ZONE = 70;
+      const PAYOFFS = ['heart', 'sparkle', 'delighted'];
+
+      const timestamp = Date.now();
+      const directionsUrl = 'mascots/skater-directions.webp?v=' + timestamp;
+      const reactionsUrl = 'mascots/skater-reactions.webp?v=' + timestamp;
+
+      container.innerHTML = `
+        <button type="button" id="mascot-boop-btn" aria-label="Boop the mascot" class="mascot-button">
+          <span id="mascot-squash-span" class="mascot-squash">
+            <span id="mascot-layer-directions" class="mascot-layer"></span>
+            <span id="mascot-layer-reactions" class="mascot-layer"></span>
+          </span>
+        </button>
+      `;
+
+      const btn = document.getElementById('mascot-boop-btn');
+      const squashSpan = document.getElementById('mascot-squash-span');
+      const dirLayer = document.getElementById('mascot-layer-directions');
+      const reactLayer = document.getElementById('mascot-layer-reactions');
+
+      dirLayer.style.backgroundImage = `url(${directionsUrl})`;
+      reactLayer.style.backgroundImage = `url(${reactionsUrl})`;
+
+      let currentDir = 'center';
+      let currentReaction = null;
+      let timers = [];
+      let boopState = { count: 0, at: 0 };
+      let sector = -1;
+      let pointer = null;
+
+      function cell(index) {
+        const col = index % 3;
+        const row = Math.floor(index / 3);
+        return `${col * 50}% ${row * 50}%`;
+      }
+
+      function updateVisuals() {
+        const dirIdx = DIRECTIONS.indexOf(currentDir);
+        dirLayer.style.backgroundPosition = cell(dirIdx >= 0 ? dirIdx : 4);
+
+        if (currentReaction) {
+          const reactIdx = REACTIONS.indexOf(currentReaction);
+          reactLayer.style.backgroundPosition = cell(reactIdx >= 0 ? reactIdx : 0);
+          reactLayer.style.opacity = '1';
+          dirLayer.style.opacity = '0';
+        } else {
+          reactLayer.style.opacity = '0';
+          dirLayer.style.opacity = '1';
+        }
+      }
+
+      function wrapAngle(angle) {
+        return Math.atan2(Math.sin(angle), Math.cos(angle));
+      }
+
+      function aim() {
+        if (!pointer || currentReaction) return;
+        const box = btn.getBoundingClientRect();
+        const dx = pointer.x - (box.left + box.width / 2);
+        const dy = pointer.y - (box.top + box.height / 2);
+
+        if (Math.hypot(dx, dy) < DEAD_ZONE) {
+          sector = -1;
+          currentDir = 'center';
+          updateVisuals();
+          return;
+        }
+
+        const angle = Math.atan2(dy, dx);
+        if (sector !== -1 && Math.abs(wrapAngle(angle - sector * SECTOR)) < SECTOR / 2 + HYSTERESIS) {
+          return;
+        }
+
+        sector = (Math.round(angle / SECTOR) + 8) % 8;
+        currentDir = CLOCKWISE[sector];
+        updateVisuals();
+      }
+
+      window.addEventListener('pointermove', (e) => {
+        pointer = { x: e.clientX, y: e.clientY };
+        aim();
+      }, { passive: true });
+
+      window.addEventListener('scroll', aim, { passive: true });
+
+      function boop() {
+        timers.forEach(clearTimeout);
+        timers = [];
+
+        const later = (ms, next) => {
+          timers.push(setTimeout(() => {
+            currentReaction = next;
+            updateVisuals();
+          }, ms));
+        };
+
+        const now = Date.now();
+        boopState.count = (now - boopState.at < 1600) ? boopState.count + 1 : 1;
+        boopState.at = now;
+
+        if (boopState.count >= 4) {
+          boopState.count = 0;
+          currentReaction = 'dizzy';
+          updateVisuals();
+          later(1100, null);
+        } else {
+          currentReaction = 'blink';
+          updateVisuals();
+          later(120, PAYOFFS[(boopState.count - 1) % PAYOFFS.length]);
+          later(560, null);
+        }
+
+        if (squashSpan.animate) {
+          squashSpan.animate([
+            { transform: 'scale(1, 1)', easing: 'ease-in' },
+            { transform: 'scale(1.10, 0.86)', offset: 0.18, easing: 'ease-out' },
+            { transform: 'scale(0.95, 1.08)', offset: 0.45, easing: 'ease-in-out' },
+            { transform: 'scale(1.03, 0.97)', offset: 0.72, easing: 'ease-in-out' },
+            { transform: 'scale(1, 1)' }
+          ], { duration: 420, easing: 'linear' });
+        }
+      }
+
+      btn.addEventListener('click', boop);
+      updateVisuals();
+    });
   </script>
-  <script type="module" src="app.js?v=20260913-restore-admin-subject"></script>
-  <script type="module" src="modules/adminDashboard.js?v=20260912-admin-redesign"></script>
+  <script type="module" src="app.js?v=20260926-approved-study-tools"></script>
 </body>
 </html>

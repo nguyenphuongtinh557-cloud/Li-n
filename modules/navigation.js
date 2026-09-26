@@ -8,6 +8,24 @@ import { DB } from './db.js';
 import { AuthModule, SUPER_ADMIN_EMAILS, getUserRole } from './auth.js';
 import { ArticlesModule } from './articles.js';
 
+const lazyStyles = new Map();
+
+function ensureStylesheet(href) {
+  if (document.querySelector(`link[data-lazy-style="${href}"]`)) return Promise.resolve();
+  if (lazyStyles.has(href)) return lazyStyles.get(href);
+  const promise = new Promise((resolve, reject) => {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = href;
+    link.dataset.lazyStyle = href;
+    link.onload = resolve;
+    link.onerror = () => reject(new Error(`Không thể tải stylesheet: ${href}`));
+    document.head.appendChild(link);
+  });
+  lazyStyles.set(href, promise);
+  return promise;
+}
+
 const SUBJECT_VISUAL_THEMES = {
   defense: { art: ['fa-shield-halved', 'fa-flag', 'fa-star'], description: 'Khám phá kiến thức quốc phòng, an ninh và kỹ năng cần thiết; lựa chọn các danh mục bên dưới để bắt đầu ôn luyện hiệu quả.' },
   physics: { art: ['fa-atom', 'fa-wave-square', 'fa-bolt'], description: 'Khám phá các quy luật vật lý, năng lượng và hiện tượng nền tảng ứng dụng trong Công nghệ thực phẩm.' },
@@ -40,14 +58,82 @@ function getSubjectVisualTheme(subject) {
 export const NavController = {
   activePage: 'home',
   currentUser: null,
+  restoringRoute: false,
+
+  syncUrl(pageId = this.activePage, extra = {}, { replace = false } = {}) {
+    if (this.restoringRoute) return;
+    const params = new URLSearchParams();
+    if (pageId && pageId !== 'home') params.set('page', pageId);
+    Object.entries(extra).forEach(([key, value]) => {
+      if (value !== undefined && value !== null && value !== '') params.set(key, value);
+    });
+    const query = params.toString();
+    const method = replace ? 'replaceState' : 'pushState';
+    window.history[method]({ page: pageId, ...extra }, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+  },
+
+  getSharedRoute() {
+    const params = new URLSearchParams(window.location.search);
+    return {
+      page: params.get('page') || 'home',
+      subject: params.get('subject'),
+      article: params.get('article'),
+      tab: params.get('tab'),
+      sharedSummary: params.get('share-summary')
+    };
+  },
+
+  async shareCurrentSubject(subjectId) {
+    const url = new URL(window.location.href);
+    url.search = '';
+    url.searchParams.set('page', 'subject-detail');
+    url.searchParams.set('subject', subjectId);
+    await window.shareUrl(url.href, 'Chia sẻ môn học');
+  },
+
+  async restoreSharedRoute() {
+    const route = this.getSharedRoute();
+    this.restoringRoute = true;
+    try {
+      if (route.sharedSummary) {
+        this.navigateToPage('summary-study', null, { 'share-summary': route.sharedSummary });
+      } else if (route.article) {
+        this.navigateToPage('about');
+        window.ArticlesModule?.openDetail(route.article);
+      } else if (route.subject) {
+        this.openSubjectDetail(route.subject, route.page === 'subject-detail' ? 'study-space' : route.page);
+      } else {
+        this.navigateToPage(route.page, route.tab || null);
+      }
+    } finally {
+      this.restoringRoute = false;
+      if (route.sharedSummary) {
+        this.syncUrl('summary-study', { 'share-summary': route.sharedSummary }, { replace: true });
+        void window.openSharedSummary?.(route.sharedSummary);
+      } else if (route.article) this.syncUrl('about', { article: route.article }, { replace: true });
+      else if (route.subject) this.syncUrl('subject-detail', { subject: route.subject }, { replace: true });
+      else this.syncUrl(route.page, route.tab ? { tab: route.tab } : {}, { replace: true });
+    }
+  },
 
   async init() {
-    // Quyền phải được tải xong trước khi Firebase có thể ghi phiên đăng nhập
-    // lên cloud, nếu không danh sách Premium rỗng có thể ghi đè quyền vừa cấp.
-    await AuthModule.init();
+    // Khôi phục phiên cục bộ trước để route có thể hiển thị ngay. Các lượt
+    // đồng bộ Firebase/role không được phép chặn màn hình đầu tiên.
+    AuthModule.restoreSession();
     this.restoreUserSession();
     this.renderUserAuthZone();
     this.setupSearchShortcut();
+    window.setTimeout(() => {
+      void AuthModule.init().then(() => {
+        this.restoreUserSession();
+        this.renderUserAuthZone();
+      }).catch(error => {
+        console.warn('[Auth] Khởi tạo nền thất bại:', error);
+      });
+    }, 900);
+    window.addEventListener('popstate', () => {
+      void this.restoreSharedRoute();
+    });
   },
 
   toggleSidebar() {
@@ -58,7 +144,7 @@ export const NavController = {
   },
 
   // ─── PAGE NAVIGATION ────────────────────────────────────────────────────────
-  navigateToPage(pageId, subTabId = null) {
+  navigateToPage(pageId, subTabId = null, routeParams = {}) {
     // Tự động đồng bộ các trang con về Ôn tập & Kiểm tra (ontap)
     if (pageId === 'aigen') {
       pageId = 'ontap';
@@ -71,6 +157,15 @@ export const NavController = {
     if (pageId === 'ontap' && !subTabId) {
       subTabId = 'exam-tab';
     }
+    if (pageId === 'ontap') {
+      void window.ensureStudySeed?.().catch(error => {
+        console.error('[Study] Không thể tải dữ liệu học tập:', error);
+        window.showToast?.('Không thể tải dữ liệu học tập. Vui lòng thử lại.', 'error');
+      });
+    }
+    if (pageId !== 'summary-study') window.leaveSharedSummary?.();
+    document.body.classList.toggle('summary-page-active', pageId === 'curriculum-summary');
+    document.body.classList.toggle('summary-study-body-active', pageId === 'summary-study');
     const hasUser = this.currentUser || AuthModule?.user;
     if ((pageId === 'aigen' || pageId === 'curriculum-summary') && (!hasUser || !hasUser.email)) {
       const featureName = pageId === 'aigen' ? 'Tạo câu hỏi bằng AI' : 'Tóm tắt giáo trình';
@@ -123,15 +218,26 @@ export const NavController = {
         pageId = 'ontap';
         subTabId = 'exam-tab';
       } else {
+        void ensureStylesheet('admin-dashboard.css?v=20260912-admin-redesign').catch(error => {
+          console.error('[Admin] Không thể tải stylesheet dashboard:', error);
+        });
+        const adminDashboardReady = Promise.resolve(window.ensureAdminDashboard?.()).catch(error => {
+          console.error('[Admin] Không thể tải dashboard:', error);
+          window.showToast?.('Không thể tải mô-đun quản trị. Vui lòng thử lại.', 'error');
+          return null;
+        });
         window.refreshUserRolesFromServer?.();
         void window.openAdminFeedbackInbox?.();
-        setTimeout(() => {
-          if (window.renderAdminDashboard) window.renderAdminDashboard();
-        }, 50);
+        void adminDashboardReady.then(() => {
+          setTimeout(() => {
+            if (window.renderAdminDashboard) window.renderAdminDashboard();
+          }, 50);
+        });
       }
     }
 
     this.activePage = pageId;
+    this.syncUrl(pageId, { ...(subTabId ? { tab: subTabId } : {}), ...routeParams });
 
     // 1. Highlight active sidebar item
     document.querySelectorAll('.sidebar-nav-item').forEach(item => {
@@ -151,6 +257,10 @@ export const NavController = {
       document.getElementById('page-study-reader')?.classList.add('hidden');
       document.querySelector('.app-layout')?.classList.remove('study-reader-active');
     }
+    document.querySelector('.app-layout')?.classList.toggle('summary-study-active', pageId === 'summary-study');
+    const ceraFab = document.getElementById('cera-fab');
+    const ceraPanel = document.getElementById('cera-panel');
+    [ceraFab, ceraPanel].forEach(element => element?.classList.toggle('hidden', pageId === 'summary-study'));
     // Hide all normal page containers and show selected.
     document.querySelectorAll('.page-container').forEach(page => {
       page.classList.add('hidden');
@@ -160,10 +270,23 @@ export const NavController = {
     if (targetPage) {
       targetPage.classList.remove('hidden');
     }
+    if (pageId === 'summary-study') window.renderSummaryStudyPage?.(window._summaryStudyResult, window._summaryStudyTitle);
 
     // 3. Chuyển tab con nếu có
     if (subTabId && window.switchTab) {
       window.switchTab(subTabId);
+    }
+    if (pageId === 'ontap') {
+      const activeTab = document.getElementById(subTabId || 'exam-tab');
+      if (activeTab) {
+        activeTab.classList.add('active');
+        activeTab.classList.remove('hidden');
+      }
+      if (subTabId === 'exam-tab') {
+        document.getElementById('exam-start-card')?.classList.remove('hidden');
+        document.getElementById('exam-active-card')?.classList.add('hidden');
+        document.getElementById('exam-result-card')?.classList.add('hidden');
+      }
     }
 
     // Close mobile sidebar if open
@@ -296,6 +419,9 @@ export const NavController = {
 
   // ─── SUBJECT DETAIL PAGE ──────────────────────────────────────────────────
   openSubjectDetail(subjectId, returnPage = 'study-space') {
+    void ensureStylesheet('subject-page.css?v=20260912-subject-redesign').catch(error => {
+      console.error('[Subject] Không thể tải stylesheet:', error);
+    });
     const s = getSubjectById(subjectId);
     if (!s) return;
 
@@ -350,9 +476,14 @@ export const NavController = {
     const lessonCount = chapters.reduce((sum, chap) => sum + ((chap && chap.lessons || []).length), 0);
     detailContainer.innerHTML = `
       <div class="sd2-shell">
-        <button class="sd2-back" onclick="NavController.navigateToPage('${returnPage === 'ontap' ? 'ontap' : 'study-space'}')" aria-label="Quay lại danh sách môn học">
-          <i class="fa-solid fa-arrow-left"></i><span>Quay lại</span>
-        </button>
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
+          <button class="sd2-back" onclick="NavController.navigateToPage('${returnPage === 'ontap' ? 'ontap' : 'study-space'}')" aria-label="Quay lại danh sách môn học">
+            <i class="fa-solid fa-arrow-left"></i><span>Quay lại</span>
+          </button>
+          <button class="btn btn-secondary btn-sm" onclick="NavController.shareCurrentSubject('${s.id}')">
+            <i class="fa-solid fa-share-nodes"></i> Chia sẻ
+          </button>
+        </div>
 
         <!-- SECTION 1 · HERO -->
         <article class="sd2-hero subject-theme-${visualThemeKey}" style="${banner ? `background-image: url('${banner}'); background-size: cover; background-position: center;` : ''}">
@@ -548,7 +679,7 @@ export const NavController = {
       </div>
     `;
 
-    this.navigateToPage('subject-detail');
+    this.navigateToPage('subject-detail', null, { subject: subjectId });
     window.scrollTo({ top: 0, behavior: 'auto' });
   },
 
@@ -613,61 +744,11 @@ export const NavController = {
       const defaultAvatar = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 128 128'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%2300b96b'/><stop offset='100%' stop-color='%23008f4f'/></linearGradient></defs><rect width='128' height='128' rx='64' fill='url(%23g)'/><text x='50%' y='54%' font-family='system-ui,-apple-system,sans-serif' font-size='56' font-weight='800' fill='%23ffffff' dominant-baseline='middle' text-anchor='middle'>${(safeName.charAt(0) || 'U').toUpperCase()}</text></svg>`;
 
       container.innerHTML = `
-        <button class="user-avatar-btn" onclick="NavController.toggleUserPopover()" title="${this.currentUser.name}">
+        <button class="user-avatar-btn" onclick="NavController.openProfileCenter()" title="${this.currentUser.name}">
           <img src="${this.currentUser.avatar || defaultAvatar}" alt="Avatar" class="user-avatar-img" referrerpolicy="no-referrer" onerror="window.handleAvatarError(this, '${safeName}')">
           <span class="user-avatar-name">${this.currentUser.name}</span>
           <i class="fa-solid fa-chevron-down text-xs" style="color:var(--text-muted);margin-left:4px;"></i>
         </button>
-
-        <!-- User Dropdown Popover -->
-        <div id="user-profile-popover" class="user-popover hidden">
-          <div class="popover-header">
-            <img src="${this.currentUser.avatar || defaultAvatar}" class="popover-avatar" referrerpolicy="no-referrer" onerror="window.handleAvatarError(this, '${safeName}')">
-            <div class="popover-user-info">
-              <div class="popover-user-name">${this.currentUser.name}</div>
-              <div class="popover-user-email">${this.currentUser.email || ''}</div>
-              <div class="mt-1">${roleBadgeHtml}</div>
-            </div>
-          </div>
-
-          <div class="popover-divider"></div>
-
-          <!-- Wallet & Quota -->
-          <div class="popover-wallet-box">
-            <div class="wallet-row">
-              <span>💳 Quyền Hạn AI:</span>
-              <span class="font-bold" style="color:var(--success);">${role === 'NEWBIE' ? 'Cơ bản (Cera Standard)' : 'Không giới hạn (VIP AI)'}</span>
-            </div>
-            <div class="wallet-row">
-              <span>⚡ Mô Hình AI:</span>
-              <span class="font-bold" style="color:var(--primary);">${role === 'NEWBIE' ? 'Standard Tier' : 'DeepSeek R1 / Claude 3.5'}</span>
-            </div>
-          </div>
-
-          <div class="popover-divider"></div>
-
-          <div class="popover-menu">
-            ${isSuperAdmin ? `
-              <button class="popover-menu-item" onclick="NavController.navigateToPage('admin')" style="color:#ef4444;font-weight:700;">
-                <i class="fa-solid fa-shield-halved"></i> <span>🛡️ Quản trị Admin System</span>
-              </button>
-            ` : ''}
-            <button class="popover-menu-item" onclick="NavController.openProfileSettingsModal()">
-              <i class="fa-solid fa-id-card"></i> <span>Cài đặt & Hồ sơ</span>
-            </button>
-            <button class="popover-menu-item" onclick="NavController.navigateToPage('report')">
-              <i class="fa-solid fa-bug"></i> <span>Báo cáo lỗi & Góp ý</span>
-            </button>
-          </div>
-
-          <div class="popover-divider"></div>
-
-          <div class="popover-footer">
-            <button class="popover-signout-btn" onclick="NavController.handleSignOut()">
-              <i class="fa-solid fa-right-from-bracket"></i> Đăng xuất
-            </button>
-          </div>
-        </div>
       `;
     } else {
       container.innerHTML = `
@@ -706,9 +787,543 @@ export const NavController = {
     AuthModule.signOut();
   },
 
+  openProfileCenter() {
+    this.closeUserPopover();
+    const existing = document.getElementById('profile-center-modal');
+    if (existing) {
+      existing.classList.add('open');
+      return;
+    }
+
+    const role = getUserRole(this.currentUser?.email || '');
+    const safeName = (this.currentUser?.name || 'User').replace(/'/g, "\\'");
+    const defaultAvatar = `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 128 128'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%2300b96b'/><stop offset='100%' stop-color='%23008f4f'/></linearGradient></defs><rect width='128' height='128' rx='64' fill='url(%23g)'/><text x='50%' y='54%' font-family='system-ui,-apple-system,sans-serif' font-size='56' font-weight='800' fill='%23ffffff' dominant-baseline='middle' text-anchor='middle'>${(safeName.charAt(0) || 'U').toUpperCase()}</text></svg>`;
+    const avatarUrl = this.currentUser?.avatar || defaultAvatar;
+    const displayName = this.currentUser?.name || 'User';
+    const displayEmail = this.currentUser?.email || '';
+    const profileModal = document.createElement('div');
+    profileModal.id = 'profile-center-modal';
+    profileModal.className = 'profile-center-overlay open';
+    profileModal.innerHTML = `
+      <div class="profile-center-modal" role="dialog" aria-modal="true" aria-label="Profile Center">
+        <button class="profile-center-close" onclick="NavController.closeProfileCenter()" aria-label="Đóng profile center">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+        <div class="profile-center-shell">
+          <aside class="profile-sidebar">
+            <div class="profile-sidebar-identity">
+              <div class="profile-sidebar-avatar-wrap">
+                <img src="${avatarUrl}" alt="Avatar" class="profile-sidebar-avatar" referrerpolicy="no-referrer" onerror="window.handleAvatarError(this, '${safeName}')">
+              </div>
+              <div class="profile-sidebar-user">
+                <h3>${displayName}</h3>
+                <p>${displayEmail}</p>
+                <span class="profile-badge premium">${role === 'PREMIUM' || role === 'ADMIN' ? 'PREMIUM MEMBER' : 'NEWBIE MEMBER'}</span>
+              </div>
+            </div>
+            <nav class="profile-sidebar-nav">
+              <button class="profile-nav-item active" data-profile-section="profile"><i class="fa-solid fa-user"></i><span>Hồ sơ cá nhân</span></button>
+              <button class="profile-nav-item" data-profile-section="security"><i class="fa-solid fa-shield-halved"></i><span>Bảo mật</span></button>
+              <button class="profile-nav-item" data-profile-section="notifications"><i class="fa-solid fa-bell"></i><span>Thông báo</span></button>
+              <button class="profile-nav-item" data-profile-section="appearance"><i class="fa-solid fa-palette"></i><span>Giao diện</span></button>
+              <button class="profile-nav-item" data-profile-section="language"><i class="fa-solid fa-globe"></i><span>Ngôn ngữ</span></button>
+              <button class="profile-nav-item" data-profile-section="privacy"><i class="fa-solid fa-lock"></i><span>Quyền riêng tư</span></button>
+            </nav>
+            <div class="profile-sidebar-divider"></div>
+            <button class="profile-sidebar-logout" onclick="NavController.handleSignOut()">
+              <i class="fa-solid fa-right-from-bracket"></i><span>Đăng xuất</span>
+            </button>
+          </aside>
+
+          <main class="profile-content" id="profile-center-content"></main>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(profileModal);
+    document.body.classList.add('profile-center-open');
+
+    profileModal.addEventListener('click', (event) => {
+      if (event.target === profileModal) {
+        this.closeProfileCenter();
+      }
+    });
+
+    if (this.__profileCenterEscListener) {
+      document.removeEventListener('keydown', this.__profileCenterEscListener);
+    }
+    this.__profileCenterEscListener = (event) => {
+      if (event.key === 'Escape') {
+        this.closeProfileCenter();
+      }
+    };
+    document.addEventListener('keydown', this.__profileCenterEscListener);
+
+    this.renderProfileCenterContent('profile');
+    profileModal.querySelectorAll('.profile-nav-item').forEach((button) => {
+      button.addEventListener('click', () => {
+        const section = button.dataset.profileSection;
+        profileModal.querySelectorAll('.profile-nav-item').forEach(item => item.classList.toggle('active', item === button));
+        this.renderProfileCenterContent(section);
+      });
+    });
+  },
+
+  closeProfileCenter() {
+    const modal = document.getElementById('profile-center-modal');
+    if (modal) {
+      modal.classList.remove('open');
+      setTimeout(() => modal.remove(), 180);
+    }
+    if (this.__profileCenterEscListener) {
+      document.removeEventListener('keydown', this.__profileCenterEscListener);
+      this.__profileCenterEscListener = null;
+    }
+    document.body.classList.remove('profile-center-open');
+  },
+
+  getProfileCover() {
+    const userKey = this.currentUser?.uid || this.currentUser?.email || 'guest';
+    return {
+      image: this.currentUser?.profileCover || localStorage.getItem(`lien_profile_cover_${userKey}`) || '',
+      positionX: Number(this.currentUser?.profileCoverPositionX ?? localStorage.getItem(`lien_profile_cover_x_${userKey}`) ?? 50),
+      positionY: Number(this.currentUser?.profileCoverPositionY ?? localStorage.getItem(`lien_profile_cover_y_${userKey}`) ?? 50)
+    };
+  },
+
+  openProfileCoverEditor() {
+    const existing = document.getElementById('profile-cover-editor');
+    if (existing) {
+      existing.classList.add('open');
+      return;
+    }
+
+    const cover = this.getProfileCover();
+    const editor = document.createElement('div');
+    editor.id = 'profile-cover-editor';
+    editor.className = 'profile-cover-editor-overlay open';
+    editor.innerHTML = `
+      <div class="profile-cover-editor" role="dialog" aria-modal="true" aria-label="Chỉnh sửa ảnh bìa">
+        <div class="profile-cover-editor-head">
+          <div>
+            <h3>Chỉnh sửa ảnh bìa</h3>
+            <p>Chọn ảnh và kéo thanh trượt để căn vị trí hiển thị.</p>
+          </div>
+          <button type="button" class="profile-cover-editor-close" onclick="NavController.closeProfileCoverEditor()" aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="profile-cover-editor-preview" id="profile-cover-editor-preview"></div>
+        <input id="profile-cover-file" type="file" accept="image/jpeg,image/png,image/webp,image/gif" hidden>
+        <button type="button" class="profile-cover-select" onclick="document.getElementById('profile-cover-file').click()">
+          <i class="fa-solid fa-upload"></i> Chọn ảnh từ thiết bị
+        </button>
+        <div class="profile-cover-position-controls">
+          <label>Vị trí ngang <input id="profile-cover-position-x" type="range" min="0" max="100" value="${cover.positionX}"></label>
+          <label>Vị trí dọc <input id="profile-cover-position-y" type="range" min="0" max="100" value="${cover.positionY}"></label>
+        </div>
+        <div class="profile-cover-editor-actions">
+          <button type="button" class="ghost-button" onclick="NavController.closeProfileCoverEditor()">Hủy</button>
+          <button type="button" class="btn btn-primary" onclick="NavController.saveProfileCover()">Lưu ảnh bìa</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(editor);
+
+    const preview = editor.querySelector('#profile-cover-editor-preview');
+    const fileInput = editor.querySelector('#profile-cover-file');
+    const positionX = editor.querySelector('#profile-cover-position-x');
+    const positionY = editor.querySelector('#profile-cover-position-y');
+    const updatePreview = () => {
+      preview.style.backgroundImage = cover.image ? `url("${cover.image}")` : '';
+      preview.style.backgroundPosition = `${positionX.value}% ${positionY.value}%`;
+      preview.classList.toggle('has-image', Boolean(cover.image));
+    };
+    updatePreview();
+    positionX.addEventListener('input', updatePreview);
+    positionY.addEventListener('input', updatePreview);
+    fileInput.addEventListener('change', (event) => {
+      const file = event.target.files?.[0];
+      if (!file || !file.type.startsWith('image/')) return;
+      const reader = new FileReader();
+      reader.onload = (loadEvent) => {
+        const image = new Image();
+        image.onload = () => {
+          const maxSize = 1400;
+          const scale = Math.min(1, maxSize / Math.max(image.width, image.height));
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round(image.width * scale));
+          canvas.height = Math.max(1, Math.round(image.height * scale));
+          canvas.getContext('2d').drawImage(image, 0, 0, canvas.width, canvas.height);
+          cover.image = canvas.toDataURL('image/jpeg', 0.84);
+          updatePreview();
+        };
+        image.src = loadEvent.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+    editor.addEventListener('click', (event) => {
+      if (event.target === editor) this.closeProfileCoverEditor();
+    });
+  },
+
+  closeProfileCoverEditor() {
+    document.getElementById('profile-cover-editor')?.remove();
+  },
+
+  saveProfileCover() {
+    const editor = document.getElementById('profile-cover-editor');
+    const preview = editor?.querySelector('#profile-cover-editor-preview');
+    const positionX = editor?.querySelector('#profile-cover-position-x');
+    const positionY = editor?.querySelector('#profile-cover-position-y');
+    if (!editor || !preview || !positionX || !positionY) return;
+
+    const cover = this.getProfileCover();
+    const image = preview.classList.contains('has-image')
+      ? preview.style.backgroundImage.replace(/^url\(["']?/, '').replace(/["']?\)$/, '')
+      : cover.image;
+    const userKey = this.currentUser?.uid || this.currentUser?.email || 'guest';
+    const x = Number(positionX.value);
+    const y = Number(positionY.value);
+    if (image) {
+      this.currentUser.profileCover = image;
+      localStorage.setItem(`lien_profile_cover_${userKey}`, image);
+    }
+    this.currentUser.profileCoverPositionX = x;
+    this.currentUser.profileCoverPositionY = y;
+    localStorage.setItem(`lien_profile_cover_x_${userKey}`, String(x));
+    localStorage.setItem(`lien_profile_cover_y_${userKey}`, String(y));
+    AuthModule.setUserSession(this.currentUser, false);
+    this.closeProfileCoverEditor();
+    this.renderProfileCenterContent('profile');
+    if (window.showToast) window.showToast('Đã cập nhật ảnh bìa.', 'success');
+  },
+
+  renderProfileCenterContent(section) {
+    const content = document.getElementById('profile-center-content');
+    if (!content) return;
+
+    const user = this.currentUser || {};
+    const displayName = String(user.name || 'Người dùng').trim() || 'Người dùng';
+    const safeDisplayName = displayName.replace(/'/g, "\\'");
+    const email = String(user.email || 'Email chưa cập nhật').trim() || 'Email chưa cập nhật';
+    const avatar = user.avatar || `data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='128' height='128' viewBox='0 0 128 128'><defs><linearGradient id='g' x1='0%' y1='0%' x2='100%' y2='100%'><stop offset='0%' stop-color='%2300b96b'/><stop offset='100%' stop-color='%23008f4f'/></linearGradient></defs><rect width='128' height='128' rx='64' fill='url(%23g)'/><text x='50%' y='54%' font-family='system-ui,-apple-system,sans-serif' font-size='56' font-weight='800' fill='%23ffffff' dominant-baseline='middle' text-anchor='middle'>${(displayName.charAt(0) || 'U').toUpperCase()}</text></svg>`;
+    const role = getUserRole(user.email || '');
+    const roleText = role === 'PREMIUM' || role === 'ADMIN' ? 'Không giới hạn (VIP AI)' : 'Cơ bản';
+    const modelText = role === 'PREMIUM' || role === 'ADMIN' ? 'DeepSeek R1 / Claude 3.5' : 'Standard Tier';
+    const userKey = user.uid || user.email || 'guest';
+    const bio = user.bio || localStorage.getItem(`lien_profile_bio_${userKey}`) || 'Học không chỉ để biết, mà để làm được.';
+    const joinedAt = user.joinedAt || localStorage.getItem(`lien_joined_at_${userKey}`) || new Date().toISOString();
+    const joinedDate = new Date(joinedAt).toLocaleDateString('vi-VN');
+    const cover = this.getProfileCover();
+    const coverStyle = cover.image
+      ? ` style="background-image:linear-gradient(120deg,rgba(7,32,42,.22),rgba(18,49,60,.45)),url('${cover.image}');background-position:${cover.positionX}% ${cover.positionY}%"`
+      : '';
+
+    document.querySelectorAll('.profile-nav-item').forEach(item => {
+      item.classList.toggle('active', item.dataset.profileSection === section);
+    });
+
+    const sections = {
+      profile: `
+        <div class="profile-section hero">
+          <div class="profile-hero-header">
+            <div class="profile-cover"${coverStyle}>
+              <button class="profile-cover-button" type="button" onclick="NavController.openProfileCoverEditor()"><i class="fa-solid fa-camera"></i> Đổi ảnh bìa</button>
+            </div>
+            <div class="profile-identity-head">
+              <div class="profile-avatar-wrap">
+                <img src="${avatar}" alt="avatar" class="profile-main-avatar" referrerpolicy="no-referrer" onerror="window.handleAvatarError(this, '${safeDisplayName}')">
+                <label class="profile-avatar-upload" for="profile-avatar-upload" title="Thay ảnh đại diện"><i class="fa-solid fa-camera"></i></label>
+                <input id="profile-avatar-upload" type="file" accept="image/*" style="display:none;" onchange="NavController.handleAvatarFileUpload(event)">
+              </div>
+              <div class="profile-header-text">
+                <div class="profile-name-row">
+                  <h2>${displayName}</h2>
+                  ${role === 'PREMIUM' || role === 'ADMIN' ? '<span class="name-crown-icon" title="Tài khoản Premium VIP"><i class="fa-solid fa-crown"></i></span>' : ''}
+                </div>
+                <p class="profile-bio"><span class="profile-bio-text">"${bio}"</span> <button type="button" class="bio-edit-icon" onclick="NavController.editProfileBio()" title="Sửa tiểu sử" aria-label="Sửa tiểu sử"><i class="fa-solid fa-pen"></i></button></p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="status-bar-container">
+          <div class="status-col">
+            <span class="status-label"><i class="fa-solid fa-robot"></i> AI Access</span>
+            <strong class="status-val">${roleText}</strong>
+          </div>
+          <div class="status-col">
+            <span class="status-label"><i class="fa-solid fa-microchip"></i> Mô hình AI</span>
+            <strong class="status-val">${modelText}</strong>
+          </div>
+          <div class="status-col">
+            <span class="status-label"><i class="fa-solid fa-infinity"></i> Quota còn lại</span>
+            <strong class="status-val">Không giới hạn</strong>
+          </div>
+        </div>
+
+        <div class="profile-panel">
+          <div class="panel-head">
+            <h3><i class="fa-solid fa-user-gear"></i> Thông tin cá nhân</h3>
+          </div>
+          <div class="profile-info-list">
+            <div class="profile-info-row">
+              <div class="profile-info-label"><i class="fa-solid fa-user"></i> Tên hiển thị</div>
+              <div class="profile-info-value" data-field="name">${displayName}</div>
+              <button class="profile-inline-edit" data-inline-field="name" type="button" onclick="NavController.editProfileField(this)" title="Chỉnh sửa"><i class="fa-solid fa-pen"></i></button>
+            </div>
+            <div class="profile-info-row">
+              <div class="profile-info-label"><i class="fa-solid fa-envelope"></i> Email</div>
+              <div class="profile-info-value" data-field="email">${email}</div>
+              <button class="profile-inline-edit" data-inline-field="email" type="button" onclick="NavController.editProfileField(this)" title="Chỉnh sửa"><i class="fa-solid fa-pen"></i></button>
+            </div>
+            <div class="profile-info-row">
+              <div class="profile-info-label"><i class="fa-solid fa-calendar-days"></i> Ngày tham gia</div>
+              <div class="profile-info-value" data-field="joined">${joinedDate}</div>
+              <span class="profile-inline-edit profile-inline-edit-disabled" aria-hidden="true"></span>
+            </div>
+            <div class="profile-info-row">
+              <div class="profile-info-label"><i class="fa-solid fa-circle-dot"></i> Trạng thái</div>
+              <div class="profile-info-value" data-field="status"><span class="profile-live-dot"></span> Đang hoạt động</div>
+              <button class="profile-inline-edit" data-inline-field="status" type="button" onclick="NavController.editProfileField(this)" title="Chỉnh sửa"><i class="fa-solid fa-pen"></i></button>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-panel">
+          <div class="panel-head">
+            <h3><i class="fa-solid fa-sliders"></i> Cài đặt nhanh</h3>
+          </div>
+          <div class="quick-setting-grid">
+            <button type="button" class="quick-setting-card" data-profile-section="security"><i class="fa-solid fa-lock"></i><span>Đổi mật khẩu</span><i class="fa-solid fa-chevron-right"></i></button>
+            <button type="button" class="quick-setting-card" data-profile-section="security"><i class="fa-solid fa-link"></i><span>Tài khoản liên kết</span><i class="fa-solid fa-chevron-right"></i></button>
+            <button type="button" class="quick-setting-card" data-profile-section="notifications"><i class="fa-solid fa-bell"></i><span>Thông báo</span><i class="fa-solid fa-chevron-right"></i></button>
+            <button type="button" class="quick-setting-card" data-profile-section="language"><i class="fa-solid fa-globe"></i><span>Ngôn ngữ</span><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+        </div>
+      `,
+      security: `
+        <div class="profile-panel single">
+          <div class="panel-head"><h3>Tài khoản &amp; Bảo mật</h3></div>
+          <div class="security-stack">
+            <div class="security-row">
+              <div>
+                <strong>Đăng nhập Google</strong>
+                <small>${email}</small>
+              </div>
+              <button class="ghost-button" type="button">Liên kết lại</button>
+            </div>
+            <div class="security-row">
+              <div>
+                <strong>Đổi mật khẩu</strong>
+                <small>Cập nhật lần cuối 7 ngày trước</small>
+              </div>
+              <button class="ghost-button" type="button">Đổi</button>
+            </div>
+            <div class="toggle-list">
+              <label class="toggle-row"><div><strong>Xác minh 2 bước</strong><small>Khuyến nghị bật để tăng cường bảo vệ</small></div><input type="checkbox" checked></label>
+              <label class="toggle-row"><div><strong>Yêu cầu xác nhận khi đăng nhập mới</strong><small>Nhắc nhở trên thiết bị mới</small></div><input type="checkbox" checked></label>
+            </div>
+          </div>
+        </div>
+      `,
+      notifications: `
+        <div class="profile-panel single">
+          <div class="panel-head"><h3>Thông báo</h3></div>
+          <div class="toggle-list">
+            <label class="toggle-row"><div><strong>Thông báo học tập</strong><small>Nhật ký, lời nhắc và đề xuất học tập</small></div><input type="checkbox" checked></label>
+            <label class="toggle-row"><div><strong>Thông báo ưu đãi và cập nhật</strong><small>Thông tin về tính năng mới, khuyến mãi</small></div><input type="checkbox" checked></label>
+            <label class="toggle-row"><div><strong>Email nhắc nhở</strong><small>Gửi email khi chiến lược ôn tập trễ</small></div><input type="checkbox"></label>
+          </div>
+        </div>
+      `,
+      appearance: `
+        <div class="profile-panel single">
+          <div class="panel-head"><h3>Giao diện</h3></div>
+          <div class="appearance-grid">
+            <button type="button" class="appearance-option" data-theme-choice="dark"><span>Chủ đề tối</span><small>Phù hợp học khuya và dễ nhìn hơn</small></button>
+            <button type="button" class="appearance-option" data-theme-choice="light"><span>Chủ đề sáng</span><small>Trải nghiệm tối giản và rõ nét</small></button>
+            <button type="button" class="appearance-option" data-theme-choice="auto"><span>Tự động</span><small>Theo cài đặt hệ thống</small></button>
+          </div>
+        </div>
+      `,
+      language: `
+        <div class="profile-panel single">
+          <div class="panel-head"><h3>Ngôn ngữ</h3></div>
+          <div class="language-list" aria-label="Chọn ngôn ngữ">
+            <button type="button" class="language-option" data-translate-language="vi"><span>Tiếng Việt</span><img class="language-flag" src="https://flagcdn.com/w40/vn.png" alt="Cờ Việt Nam"></button>
+            <button type="button" class="language-option" data-translate-language="en"><span>English</span><img class="language-flag" src="https://flagcdn.com/w40/gb.png" alt="Cờ Vương quốc Anh"></button>
+            <button type="button" class="language-option" data-translate-language="zh-CN"><span>中文</span><img class="language-flag" src="https://flagcdn.com/w40/cn.png" alt="Cờ Trung Quốc"></button>
+            <button type="button" class="language-option" data-translate-language="ja"><span>日本語</span><img class="language-flag" src="https://flagcdn.com/w40/jp.png" alt="Cờ Nhật Bản"></button>
+            <button type="button" class="language-option" data-translate-language="ko"><span>한국어</span><img class="language-flag" src="https://flagcdn.com/w40/kr.png" alt="Cờ Hàn Quốc"></button>
+            <button type="button" class="language-option" data-translate-language="fr"><span>Français</span><img class="language-flag" src="https://flagcdn.com/w40/fr.png" alt="Cờ Pháp"></button>
+            <button type="button" class="language-option" data-translate-language="de"><span>Deutsch</span><img class="language-flag" src="https://flagcdn.com/w40/de.png" alt="Cờ Đức"></button>
+          </div>
+        </div>
+      `,
+      privacy: `
+        <div class="profile-panel single">
+          <div class="panel-head"><h3>Quyền riêng tư</h3></div>
+          <div class="toggle-list">
+            <label class="toggle-row"><div><strong>Hiển thị hồ sơ công khai</strong><small>Cho phép người khác nhìn thấy trạng thái học tập</small></div><input type="checkbox"></label>
+            <label class="toggle-row"><div><strong>Cho phép lưu lịch sử ôn tập</strong><small>Đồng bộ tiến độ trên thiết bị của bạn</small></div><input type="checkbox" checked></label>
+            <label class="toggle-row"><div><strong>Chia sẻ dữ liệu cải thiện sản phẩm</strong><small>Giúp đội ngũ hiểu trải nghiệm học tập</small></div><input type="checkbox"></label>
+          </div>
+        </div>
+      `,
+      settings: `
+        <div class="profile-panel single">
+          <div class="panel-head"><h3>Cài đặt</h3></div>
+          <div class="toggle-list">
+            <label class="toggle-row"><div><strong>Hiển thị hồ sơ công khai</strong><small>Cho phép người khác nhìn thấy trạng thái học tập</small></div><input type="checkbox"></label>
+            <label class="toggle-row"><div><strong>Cho phép lưu lịch sử ôn tập</strong><small>Đồng bộ tiến độ trên thiết bị của bạn</small></div><input type="checkbox" checked></label>
+            <label class="toggle-row"><div><strong>Chia sẻ dữ liệu cải thiện sản phẩm</strong><small>Giúp đội ngũ hiểu trải nghiệm học tập</small></div><input type="checkbox"></label>
+          </div>
+        </div>
+      `,
+      help: `
+        <div class="profile-panel single">
+          <div class="panel-head"><h3>Trợ giúp</h3></div>
+          <div class="help-list">
+            <div class="help-item"><strong>Hướng dẫn sử dụng</strong><small>Xem các mẹo học tập và quy trình thao tác trong ứng dụng.</small></div>
+            <div class="help-item"><strong>Liên hệ hỗ trợ</strong><small>Gửi yêu cầu hoặc báo lỗi qua kênh hỗ trợ trong hệ thống.</small></div>
+            <div class="help-item"><strong>Cập nhật và thông tin phiên bản</strong><small>Phiên bản hiện tại: FTECA 24 • 2026</small></div>
+          </div>
+        </div>
+      `
+    };
+
+    const html = sections[section] || sections.profile;
+    content.innerHTML = html;
+
+    content.querySelectorAll('[data-profile-section]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const nextSection = button.dataset.profileSection;
+        const navButtons = document.querySelectorAll('.profile-nav-item');
+        navButtons.forEach(item => item.classList.toggle('active', item.dataset.profileSection === nextSection));
+        this.renderProfileCenterContent(nextSection);
+      });
+    });
+
+    content.querySelectorAll('.appearance-option').forEach((button) => {
+      button.classList.toggle('active', button.dataset.themeChoice === (DB.getSettings().theme || 'light'));
+      button.addEventListener('click', () => {
+        const choice = button.dataset.themeChoice;
+        const appliedTheme = choice === 'auto'
+          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
+          : choice;
+        document.documentElement.setAttribute('data-theme', appliedTheme);
+        DB.saveSettings({ theme: choice });
+        if (typeof updateThemeButton === 'function') updateThemeButton(appliedTheme);
+        content.querySelectorAll('.appearance-option').forEach((item) => {
+          item.classList.toggle('active', item === button);
+        });
+      });
+    });
+
+    content.querySelectorAll('.language-option').forEach((button) => {
+      button.classList.toggle('active', button.dataset.translateLanguage === (localStorage.getItem('fteca_translate_language') || 'vi'));
+    });
+    content.addEventListener('click', (event) => {
+      const button = event.target.closest('.language-option');
+      if (!button || !content.contains(button)) return;
+
+      const language = button.dataset.translateLanguage;
+      if (typeof window.selectFtecaLanguage !== 'function') {
+        window.showToast?.('Không thể tải Google Translate. Vui lòng kiểm tra kết nối mạng.', 'error');
+        return;
+      }
+      content.querySelectorAll('.language-option').forEach((item) => { item.disabled = true; });
+      window.selectFtecaLanguage(language, () => {
+        localStorage.setItem('fteca_translate_language', language);
+        content.querySelectorAll('.language-option').forEach((item) => {
+          item.disabled = false;
+          item.classList.toggle('active', item.dataset.translateLanguage === language);
+        });
+      });
+    });
+  },
+
+  editProfileBio() {
+    const bio = document.querySelector('.profile-bio');
+    const text = bio?.querySelector('.profile-bio-text');
+    if (!bio || !text || bio.querySelector('.profile-bio-input')) return;
+
+    const currentValue = text.textContent.trim().replace(/^"|"$/g, '');
+    text.outerHTML = `<input class="profile-bio-input" type="text" value="${currentValue.replace(/"/g, '&quot;')}" maxlength="160">`;
+    const input = bio.querySelector('.profile-bio-input');
+    const save = document.createElement('button');
+    save.type = 'button';
+    save.className = 'bio-edit-icon';
+    save.title = 'Lưu tiểu sử';
+    save.innerHTML = '<i class="fa-solid fa-check"></i>';
+    save.addEventListener('click', () => this.saveProfileBio(input.value));
+    bio.appendChild(save);
+    input.focus();
+    input.select();
+    input.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') this.saveProfileBio(input.value);
+      if (event.key === 'Escape') this.renderProfileCenterContent('profile');
+    });
+  },
+
+  saveProfileBio(value) {
+    const nextValue = String(value || '').trim().slice(0, 160) || 'Học không chỉ để biết, mà để làm được.';
+    const user = this.currentUser;
+    if (!user) return;
+    const userKey = user.uid || user.email || 'guest';
+    user.bio = nextValue;
+    localStorage.setItem(`lien_profile_bio_${userKey}`, nextValue);
+    AuthModule.setUserSession(user, false);
+    this.renderProfileCenterContent('profile');
+  },
+
+  editProfileField(button) {
+    const row = button.closest('.profile-info-row');
+    if (!row) return;
+
+    const valueBlock = row.querySelector('.profile-info-value');
+    const field = button.dataset.inlineField;
+    const currentValue = valueBlock.dataset.value || valueBlock.textContent.trim();
+    valueBlock.dataset.value = currentValue;
+    valueBlock.innerHTML = `<input type="text" class="profile-inline-input" value="${String(currentValue).replace(/"/g, '&quot;')}" data-inline-field="${field}">`;
+    button.classList.add('hidden');
+    button.insertAdjacentHTML('afterend', '<button class="profile-inline-save" onclick="NavController.saveProfileField(this)"><i class="fa-solid fa-check"></i> Lưu</button>');
+  },
+
+  saveProfileField(button) {
+    const row = button.closest('.profile-info-row');
+    if (!row) return;
+
+    const input = row.querySelector('.profile-inline-input');
+    const valueBlock = row.querySelector('.profile-info-value');
+    const field = input?.dataset.inlineField;
+    const nextValue = input ? (input.value.trim() || '—') : '—';
+    valueBlock.dataset.value = nextValue;
+    valueBlock.textContent = nextValue;
+
+    const editButton = row.querySelector('.profile-inline-edit');
+    if (editButton) editButton.classList.remove('hidden');
+    const saveButton = row.querySelector('.profile-inline-save');
+    if (saveButton) saveButton.remove();
+
+    if (field === 'name' && this.currentUser) {
+      this.currentUser.name = nextValue;
+      this.renderUserAuthZone();
+    }
+    if (field === 'email' && this.currentUser) {
+      this.currentUser.email = nextValue;
+    }
+  },
+
+  toggleProfileInlineEditor() {
+    document.querySelectorAll('.profile-inline-edit').forEach(btn => {
+      btn.classList.toggle('hidden');
+    });
+  },
+
   openProfileSettingsModal() {
     this.closeUserPopover();
-    this.openEditAvatarModal();
+    this.openProfileCenter();
   },
 
   tempAvatarData: null,

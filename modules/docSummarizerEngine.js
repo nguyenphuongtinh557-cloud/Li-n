@@ -159,9 +159,11 @@ export const FileParser = {
   },
 
   async _parsePdf(file) {
-    // Dùng pdf.js CDN đã load trong index.html
     if (!window.pdfjsLib) {
-      throw new Error('pdf-lib-not-loaded');
+      if (typeof window.ensurePdfJs === 'function') {
+        await window.ensurePdfJs();
+      }
+      if (!window.pdfjsLib) throw new Error('pdf-lib-not-loaded');
     }
 
     return new Promise((resolve, reject) => {
@@ -207,9 +209,11 @@ export const FileParser = {
   },
 
   async _parseDocx(file) {
-    // Dùng mammoth.js CDN đã load trong index.html
     if (!window.mammoth) {
-      throw new Error('mammoth-lib-not-loaded');
+      if (typeof window.ensureMammoth === 'function') {
+        await window.ensureMammoth();
+      }
+      if (!window.mammoth) throw new Error('mammoth-lib-not-loaded');
     }
 
     return new Promise((resolve, reject) => {
@@ -382,9 +386,12 @@ function cleanAndParseJSON(rawText) {
 // ─── AI API CALL (Multi-Model Native + Multi-Provider Fallback) ───────────────
 // Danh sách model đã được kiểm tra trực tiếp thành công HTTP 200 OK trên Google API Server
 const CANDIDATE_GEMINI_MODELS = [
-  'gemini-3.5-flash-lite', // ✅ PRIMARY: 500 RPD
-  'gemini-3.1-flash-lite', // ✅ BACKUP: 500 RPD
-  'gemini-2.5-flash'       // Fallback cuối: 20 RPD
+  'gemini-3.5-flash-lite'
+];
+const CANDIDATE_GROQ_MODELS = [
+  'openai/gpt-oss-120b',
+  'llama-3.3-70b-versatile',
+  'llama-3.1-8b-instant'
 ];
 
 async function callGeminiJSON(prompt, { timeoutMs = 35000, maxTokens = 4096 } = {}) {
@@ -392,7 +399,7 @@ async function callGeminiJSON(prompt, { timeoutMs = 35000, maxTokens = 4096 } = 
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   const errors = [];
 
-  // 1. Thử Native Google Gemini API (Ưu tiên gemini-3.5-flash-lite: 500 RPD)
+  // 1. Thử Native Google Gemini API
   const keys = RAW_KEYS.gemini || [];
   for (let kIdx = 0; kIdx < keys.length; kIdx++) {
     const key = getGeminiKey();
@@ -420,8 +427,8 @@ async function callGeminiJSON(prompt, { timeoutMs = 35000, maxTokens = 4096 } = 
             clearTimeout(timer);
             return cleanAndParseJSON(text);
           }
-        } else if (res.status === 429) {
-          errors.push(`Gemini ${model}: 429 rate-limited`);
+        } else if (res.status === 401 || res.status === 403) {
+          errors.push(`Gemini ${model}: HTTP ${res.status} (key không hợp lệ hoặc chưa bật API)`);
         } else {
           errors.push(`Gemini ${model}: HTTP ${res.status}`);
         }
@@ -435,38 +442,43 @@ async function callGeminiJSON(prompt, { timeoutMs = 35000, maxTokens = 4096 } = 
   // 2. Thử Groq AI (Cực nhanh & Ổn định)
   const groqKeys = RAW_KEYS.groq || [];
   for (const key of groqKeys) {
-    try {
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${key}`
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [
-            { role: 'system', content: 'You are an expert Vietnamese academic summarizer. Always respond in valid JSON format.' },
-            { role: 'user', content: prompt }
-          ],
-          temperature: 0.15,
-          max_tokens: maxTokens
-        }),
-        signal: controller.signal
-      });
+    for (const model of CANDIDATE_GROQ_MODELS) {
+      try {
+        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${key}`
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: 'You are an expert Vietnamese academic summarizer. Always respond in valid JSON format.' },
+              { role: 'user', content: prompt }
+            ],
+            temperature: 0.15,
+            max_tokens: maxTokens
+          }),
+          signal: controller.signal
+        });
 
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.choices?.[0]?.message?.content || '';
-        if (text) {
-          clearTimeout(timer);
-          return cleanAndParseJSON(text);
+        if (res.ok) {
+          const data = await res.json();
+          const text = data.choices?.[0]?.message?.content || '';
+          if (text) {
+            clearTimeout(timer);
+            return cleanAndParseJSON(text);
+          }
+        } else if (res.status === 401 || res.status === 403) {
+          errors.push(`Groq ${model}: HTTP ${res.status} (key không hợp lệ hoặc hết quyền)`);
+          break;
+        } else {
+          errors.push(`Groq ${model}: HTTP ${res.status}`);
         }
-      } else {
-        errors.push(`Groq: HTTP ${res.status}`);
+      } catch (err) {
+        if (err.name === 'AbortError') throw new Error('timeout');
+        errors.push(`Groq ${model}: ${err.message}`);
       }
-    } catch (err) {
-      if (err.name === 'AbortError') throw new Error('timeout');
-      errors.push(`Groq error: ${err.message}`);
     }
   }
 
@@ -2376,7 +2388,7 @@ function _buildKbFinalOutput(synthesized, bank, validation) {
       ? synthesized.comparisons.map(cp => ({
           title: String(cp && cp.title || ''),
           rows: Array.isArray(cp && cp.rows) ? cp.rows.map(r => ({
-            concept: String(r && r.concept || ''), essence: String(r && r.essence || ''), diff: String(r && r.diff || '')
+            concept: String(r && r.concept || ''), essence: String(r && r.essence || ''), diff: String(r && r.diff || ''), when: String(r && r.when || '')
           })) : []
         }))
       : [],

@@ -136,6 +136,9 @@ export const AuthModule = {
         if (firebaseUser) {
           const customAvatar = localStorage.getItem(`lien_custom_avatar_${firebaseUser.uid}`);
           const customName = localStorage.getItem(`lien_custom_name_${firebaseUser.uid}`);
+          const customCover = localStorage.getItem(`lien_profile_cover_${firebaseUser.uid}`);
+          const customCoverX = localStorage.getItem(`lien_profile_cover_x_${firebaseUser.uid}`);
+          const customCoverY = localStorage.getItem(`lien_profile_cover_y_${firebaseUser.uid}`);
 
           const realUser = {
             uid: firebaseUser.uid,
@@ -144,7 +147,10 @@ export const AuthModule = {
             avatar: customAvatar || firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(firebaseUser.email)}`,
             emailVerified: firebaseUser.emailVerified,
             provider: 'google.com',
-            signedInAt: new Date().toISOString()
+            signedInAt: new Date().toISOString(),
+            profileCover: customCover || '',
+            profileCoverPositionX: customCoverX === null ? 50 : Number(customCoverX),
+            profileCoverPositionY: customCoverY === null ? 50 : Number(customCoverY)
           };
           await this.setUserSession(realUser, false);
         }
@@ -205,6 +211,9 @@ export const AuthModule = {
 
       const customAvatar = localStorage.getItem(`lien_custom_avatar_${user.uid}`);
       const customName = localStorage.getItem(`lien_custom_name_${user.uid}`);
+      const customCover = localStorage.getItem(`lien_profile_cover_${user.uid}`);
+      const customCoverX = localStorage.getItem(`lien_profile_cover_x_${user.uid}`);
+      const customCoverY = localStorage.getItem(`lien_profile_cover_y_${user.uid}`);
 
       const realUser = {
         uid: user.uid,
@@ -213,7 +222,10 @@ export const AuthModule = {
         avatar: customAvatar || user.photoURL || null,
         emailVerified: user.emailVerified,
         provider: 'google.com',
-        signedInAt: new Date().toISOString()
+        signedInAt: new Date().toISOString(),
+        profileCover: customCover || '',
+        profileCoverPositionX: customCoverX === null ? 50 : Number(customCoverX),
+        profileCoverPositionY: customCoverY === null ? 50 : Number(customCoverY)
       };
 
       await this.setUserSession(realUser, true);
@@ -267,6 +279,11 @@ export const AuthModule = {
     if (user && user.email) {
       user.email = user.email.trim().toLowerCase();
       user.role = getUserRole(user.email);
+      const uidKey = user.uid || user.email;
+      const joinedKey = `lien_joined_at_${uidKey}`;
+      user.joinedAt = user.joinedAt || localStorage.getItem(joinedKey) || new Date().toISOString();
+      localStorage.setItem(joinedKey, user.joinedAt);
+      user.bio = user.bio || localStorage.getItem(`lien_profile_bio_${uidKey}`) || 'Học không chỉ để biết, mà để làm được.';
       registryResult = await DB.saveUserToRegistry(user);
       // Đồng bộ thông tin học viên lên Firestore Cloud real-time
       upsertUserToFirestore(user).catch((err) => console.warn('[Auth] Upsert user error:', err));
@@ -277,6 +294,11 @@ export const AuthModule = {
       name: user.name,
       email: user.email,
       avatar: user.avatar,
+      profileCover: user.profileCover || '',
+      profileCoverPositionX: user.profileCoverPositionX ?? 50,
+      profileCoverPositionY: user.profileCoverPositionY ?? 50,
+      joinedAt: user.joinedAt,
+      bio: user.bio,
       role: user ? user.role : 'NEWBIE'
     }));
 
