@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "public": true,
+  "rewrites": [
+    { "source": "/api/subject-details", "destination": "/api/subject-details.js" },
+    { "source": "/api/summary-share", "destination": "/api/summary-share.js" },
+    { "source": "/api/document-summary", "destination": "/api/document-summary.js" },
+    { "source": "/api/lesson-summary", "destination": "/api/lesson-summary.js" },
+    { "source": "/api/user_roles", "destination": "/data/user_roles.json" },
+    { "source": "/api/system_announcements", "destination": "/data/system_announcements.json" },
+    { "source": "/api/cms_articles", "destination": "/data/cms_articles.json" },
+    { "source": "/api/community", "destination": "/data/community.json" }
+  ]
+}

@@ -7,6 +7,7 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server.js",
+    "build": "echo static",
     "test:lumi-study": "node test_lumi_study_assistant.js",
     "test:subject-canvas": "node test_subject_canvas.js",
     "test:subject-api": "node test_subject_details_api.js"
