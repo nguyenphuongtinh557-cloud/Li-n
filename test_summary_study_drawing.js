@@ -1,0 +1,45 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import vm from 'node:vm';
+
+const source = fs.readFileSync('app.js', 'utf8');
+
+test('eraser hit testing measures distance in document pixels', () => {
+  const start = source.indexOf('function summaryStudyDistanceToSegment');
+  const end = source.indexOf('function drawSummaryStudyStroke', start);
+  assert.ok(start >= 0 && end > start);
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(`${source.slice(start, end)}\nthis.distance = summaryStudyDistanceToSegment;`, context);
+  assert.ok(Math.abs(context.distance({ x: 0.5, y: 0.52 }, { x: 0, y: 0.5 }, { x: 1, y: 0.5 }, 1000, 500) - 10) < 1e-8);
+  assert.equal(context.distance({ x: 0.5, y: 0.5 }, { x: 0.5, y: 0.5 }, { x: 0.5, y: 0.5 }, 1000, 500), 0);
+});
+
+test('pointer movement batches new segments instead of redrawing all saved strokes', () => {
+  const start = source.indexOf('canvas.onpointermove = event =>', source.indexOf('function mountSummaryStudyDrawingLayer'));
+  const end = source.indexOf('canvas.onpointerup = finish', start);
+  const handler = source.slice(start, end);
+  assert.ok(start >= 0 && end > start);
+  assert.match(handler, /getCoalescedEvents/);
+  assert.match(handler, /queueFrame\(\)/);
+  assert.doesNotMatch(handler, /redrawSummaryStudyDrawing|clearRect/);
+});
+
+test('drawing layer remains mounted when drawing mode is turned off', () => {
+  const mountStart = source.indexOf('function mountSummaryStudyDrawingLayer');
+  const mountEnd = source.indexOf('function setSummaryStudyEditing', mountStart);
+  const mount = source.slice(mountStart, mountEnd);
+  assert.match(mount, /root\.querySelector\('\.summary-study-drawing-layer'\)/);
+  assert.match(mount, /if \(!canvas \|\| canvas !== _summaryStudyDrawingCanvas\)/);
+  assert.match(mount, /canvas\.style\.pointerEvents = _summaryStudyDrawing \? 'auto' : 'none'/);
+  assert.doesNotMatch(mount, /summary-study-drawing-layer'\)\?\.remove/);
+});
+
+test('completed and cancelled strokes are saved, with storage errors surfaced', () => {
+  assert.match(source, /canvas\.onpointerup = finish/);
+  assert.match(source, /canvas\.onpointercancel = finish/);
+  assert.match(source, /persistSummaryStudyAnnotations\(strokes\)/);
+  assert.match(source, /Không lưu được nét vẽ/);
+  assert.match(source, /_summaryStudyFinishDrawing\?\.\(\); _summaryStudyDrawing = !_summaryStudyDrawing/);
+});

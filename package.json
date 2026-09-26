@@ -9,6 +9,8 @@
     "dev": "node server.js",
     "build": "echo static",
     "test:lumi-study": "node test_lumi_study_assistant.js",
+    "test:summary-markdown": "node test_summary_markdown.js",
+    "test:summary-study-drawing": "node test_summary_study_drawing.js",
     "test:subject-canvas": "node test_subject_canvas.js",
     "test:subject-api": "node test_subject_details_api.js"
   },

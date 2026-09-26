@@ -17,6 +17,7 @@ import { ArticlesModule } from './modules/articles.js?v=20260921-deep-link-histo
 import { readSummary, writeSummary, clearSessionCache, summaryIsComplete, summaryIsStale } from './modules/firestoreSummary.js';
 import { renderMindmap, renderStructuredMindmap, initMindmapControls } from './modules/mindmap.js';
 import { updateUserRoleInFirestore } from './modules/firestoreUsers.js';
+import { renderMarkdownTables } from './modules/markdownTables.js';
 
 const _lazyAssets = new Map();
 
@@ -4308,6 +4309,13 @@ function _csRunBtnHTML() {
 let _summaryStudyColor = '#fde68a';
 let _summaryStudyDrawing = false;
 let _summaryStudyErasing = false;
+let _summaryStudyDrawingCanvas = null;
+let _summaryStudyDrawingContext = null;
+let _summaryStudyDrawingResizeObserver = null;
+let _summaryStudyDrawingActiveStroke = null;
+let _summaryStudyDrawingPendingFrame = null;
+let _summaryStudyDrawingDrawnPointCount = 0;
+let _summaryStudyFinishDrawing = null;
 let _summaryStudyEditing = false;
 let _summaryStudyUndoStack = [];
 let _summaryStudyContextHighlight = null;
@@ -4669,43 +4677,227 @@ function summaryStudyHighlightFromSelection() {
   const selection = window.getSelection?.();
   return selection?.anchorNode ? summaryStudyHighlightFromTarget(selection.anchorNode.parentElement) : null;
 }
-function summaryStudyPointDistance(a, b) {
-  return Math.hypot(a.x - b.x, a.y - b.y);
+function summaryStudyDistanceToSegment(point, start, end, width, height) {
+  const px = (point.x - start.x) * width, py = (point.y - start.y) * height;
+  const sx = (end.x - start.x) * width, sy = (end.y - start.y) * height;
+  const lengthSquared = sx * sx + sy * sy;
+  const ratio = lengthSquared ? Math.max(0, Math.min(1, (px * sx + py * sy) / lengthSquared)) : 0;
+  return Math.hypot(px - ratio * sx, py - ratio * sy);
+}
+function drawSummaryStudyStroke(ctx, stroke, width, height) {
+  if (!stroke.points?.length) return;
+  if (stroke.points.length === 1) {
+    ctx.beginPath();
+    ctx.arc(stroke.points[0].x * width, stroke.points[0].y * height, 1, 0, Math.PI * 2);
+    ctx.fillStyle = stroke.color || '#10b981';
+    ctx.fill();
+    return;
+  }
+  ctx.beginPath();
+  stroke.points.forEach((point, index) => index
+    ? ctx.lineTo(point.x * width, point.y * height)
+    : ctx.moveTo(point.x * width, point.y * height));
+  ctx.strokeStyle = stroke.color || '#10b981';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+}
+function redrawSummaryStudyDrawing(strokes) {
+  const canvas = _summaryStudyDrawingCanvas, ctx = _summaryStudyDrawingContext;
+  if (!canvas || !ctx) return;
+  const width = Math.max(1, canvas.clientWidth), height = Math.max(1, canvas.clientHeight);
+  const ratio = Math.min(2, window.devicePixelRatio || 1);
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  strokes.forEach(stroke => drawSummaryStudyStroke(ctx, stroke, width, height));
+  if (_summaryStudyDrawingActiveStroke) {
+    drawSummaryStudyStroke(ctx, _summaryStudyDrawingActiveStroke, width, height);
+    _summaryStudyDrawingDrawnPointCount = _summaryStudyDrawingActiveStroke.points.length;
+  }
+}
+function resizeSummaryStudyDrawingLayer() {
+  const canvas = _summaryStudyDrawingCanvas, root = canvas?.parentElement;
+  if (!canvas || !root) return;
+  const width = Math.max(1, root.clientWidth), height = Math.max(1, root.scrollHeight, root.clientHeight);
+  const ratio = Math.min(2, window.devicePixelRatio || 1);
+  canvas.style.width = `${width}px`;
+  canvas.style.height = `${height}px`;
+  const pixelWidth = Math.round(width * ratio), pixelHeight = Math.round(height * ratio);
+  const resized = canvas.width !== pixelWidth || canvas.height !== pixelHeight;
+  if (resized) {
+    canvas.width = pixelWidth;
+    canvas.height = pixelHeight;
+  }
+  const ctx = canvas.getContext('2d');
+  const contextChanged = ctx !== _summaryStudyDrawingContext;
+  _summaryStudyDrawingContext = ctx;
+  if (!ctx) {
+    showToast('Không thể khởi tạo vùng vẽ cho bản tóm tắt này.', 'error');
+    return;
+  }
+  if (!resized && !contextChanged) return;
+  ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
+  redrawSummaryStudyDrawing(getSummaryStudyState().annotations);
+}
+function flushSummaryStudyActiveStroke() {
+  const stroke = _summaryStudyDrawingActiveStroke, canvas = _summaryStudyDrawingCanvas, ctx = _summaryStudyDrawingContext;
+  if (!stroke || !canvas || !ctx || stroke.points.length < 2) return;
+  const width = Math.max(1, canvas.clientWidth), height = Math.max(1, canvas.clientHeight);
+  const startIndex = Math.max(1, _summaryStudyDrawingDrawnPointCount);
+  if (startIndex >= stroke.points.length) return;
+  ctx.beginPath();
+  ctx.moveTo(stroke.points[startIndex - 1].x * width, stroke.points[startIndex - 1].y * height);
+  for (let index = startIndex; index < stroke.points.length; index++) {
+    const point = stroke.points[index];
+    ctx.lineTo(point.x * width, point.y * height);
+  }
+  ctx.strokeStyle = stroke.color;
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.stroke();
+  _summaryStudyDrawingDrawnPointCount = stroke.points.length;
+}
+function persistSummaryStudyAnnotations(strokes) {
+  try {
+    saveSummaryStudyState({ annotations: strokes });
+    return true;
+  } catch (error) {
+    console.error('[SummaryStudy] Không thể lưu nét vẽ:', error);
+    showToast('Không lưu được nét vẽ. Có thể bộ nhớ trình duyệt đã đầy.', 'error');
+    return false;
+  }
 }
 function mountSummaryStudyDrawingLayer() {
   const root = document.getElementById('summary-study-document-body');
   if (!root) return;
-  root.querySelector('.summary-study-drawing-layer')?.remove();
-  if (!_summaryStudyDrawing) return;
   root.style.position = 'relative';
-  const canvas = document.createElement('canvas');
-  canvas.className = 'summary-study-drawing-layer';
+  let canvas = root.querySelector('.summary-study-drawing-layer');
+  if (!canvas && (_summaryStudyReadOnly || (!_summaryStudyDrawing && !getSummaryStudyState().annotations.length))) {
+    _summaryStudyDrawingResizeObserver?.disconnect();
+    _summaryStudyDrawingResizeObserver = null;
+    _summaryStudyDrawingCanvas = null;
+    _summaryStudyDrawingContext = null;
+    _summaryStudyFinishDrawing = null;
+    return;
+  }
+  if (!canvas || canvas !== _summaryStudyDrawingCanvas) {
+    _summaryStudyDrawingResizeObserver?.disconnect();
+    _summaryStudyDrawingActiveStroke = null;
+    if (_summaryStudyDrawingPendingFrame !== null) cancelAnimationFrame(_summaryStudyDrawingPendingFrame);
+    _summaryStudyDrawingPendingFrame = null;
+    canvas = document.createElement('canvas');
+    canvas.className = 'summary-study-drawing-layer';
+    root.appendChild(canvas);
+    _summaryStudyDrawingCanvas = canvas;
+    const strokes = getSummaryStudyState().annotations.slice();
+    let erased = false;
+    let erasePoints = [];
+    const pointAt = event => {
+      const box = canvas.getBoundingClientRect();
+      return { x: (event.clientX - box.left) / box.width, y: (event.clientY - box.top) / box.height };
+    };
+    const eraseAt = point => {
+      const width = Math.max(1, canvas.clientWidth), height = Math.max(1, canvas.clientHeight);
+      const hitIndex = strokes.findIndex(stroke => {
+        const points = stroke.points || [];
+        if (points.length === 1) return summaryStudyDistanceToSegment(point, points[0], points[0], width, height) <= 14;
+        return points.some((item, index) => index > 0
+          && summaryStudyDistanceToSegment(point, points[index - 1], item, width, height) <= 14);
+      });
+      if (hitIndex < 0) return false;
+      if (!erased) { summaryStudyPushUndo(); erased = true; }
+      strokes.splice(hitIndex, 1);
+      return true;
+    };
+    const processErasePoints = () => {
+      let changed = false;
+      for (const point of erasePoints.splice(0)) changed = eraseAt(point) || changed;
+      if (changed) redrawSummaryStudyDrawing(strokes);
+    };
+    const finish = () => {
+      if (_summaryStudyDrawingPendingFrame !== null) {
+        cancelAnimationFrame(_summaryStudyDrawingPendingFrame);
+        _summaryStudyDrawingPendingFrame = null;
+      }
+      if (_summaryStudyErasing) processErasePoints();
+      else flushSummaryStudyActiveStroke();
+      const active = _summaryStudyDrawingActiveStroke;
+      if (active?.points.length) strokes.push(active);
+      _summaryStudyDrawingActiveStroke = null;
+      _summaryStudyDrawingDrawnPointCount = 0;
+      if (active?.points.length || erased) {
+        if (!persistSummaryStudyAnnotations(strokes)) {
+          strokes.splice(0, strokes.length, ...getSummaryStudyState().annotations);
+          redrawSummaryStudyDrawing(strokes);
+        }
+      }
+      erased = false;
+    };
+    _summaryStudyFinishDrawing = finish;
+    const queueFrame = () => {
+      if (_summaryStudyDrawingPendingFrame !== null) return;
+      _summaryStudyDrawingPendingFrame = requestAnimationFrame(() => {
+        _summaryStudyDrawingPendingFrame = null;
+        if (_summaryStudyErasing) processErasePoints();
+        else flushSummaryStudyActiveStroke();
+      });
+    };
+    canvas.onpointerdown = event => {
+      event.preventDefault();
+      const box = canvas.getBoundingClientRect();
+      if (!box.width || !box.height) return;
+      canvas.setPointerCapture(event.pointerId);
+      if (_summaryStudyErasing) {
+        erasePoints.push(pointAt(event));
+        queueFrame();
+        return;
+      }
+      summaryStudyPushUndo();
+      const point = pointAt(event);
+      _summaryStudyDrawingActiveStroke = { color: _summaryStudyColor, points: [point] };
+      _summaryStudyDrawingDrawnPointCount = 1;
+      const ctx = _summaryStudyDrawingContext;
+      if (ctx) {
+        ctx.beginPath();
+        ctx.arc(point.x * box.width, point.y * box.height, 1, 0, Math.PI * 2);
+        ctx.fillStyle = _summaryStudyColor;
+        ctx.fill();
+      }
+    };
+    canvas.onpointermove = event => {
+      const box = canvas.getBoundingClientRect();
+      const samples = event.getCoalescedEvents ? event.getCoalescedEvents() : [event];
+      if (_summaryStudyErasing) {
+        samples.forEach(sample => erasePoints.push(pointAt(sample)));
+        queueFrame();
+        return;
+      }
+      const active = _summaryStudyDrawingActiveStroke;
+      if (!active) return;
+      for (const sample of samples) {
+        const point = pointAt(sample), previous = active.points[active.points.length - 1];
+        const dx = (point.x - previous.x) * box.width, dy = (point.y - previous.y) * box.height;
+        if (dx * dx + dy * dy >= 1) active.points.push(point);
+      }
+      queueFrame();
+    };
+    canvas.onpointerup = finish;
+    canvas.onpointercancel = finish;
+    canvas.onlostpointercapture = finish;
+    if (typeof ResizeObserver !== 'undefined') {
+      _summaryStudyDrawingResizeObserver = new ResizeObserver(resizeSummaryStudyDrawingLayer);
+      _summaryStudyDrawingResizeObserver.observe(root);
+    }
+    resizeSummaryStudyDrawingLayer();
+    redrawSummaryStudyDrawing(strokes);
+  }
   canvas.classList.toggle('is-eraser', _summaryStudyErasing);
-  canvas.width = root.clientWidth; canvas.height = root.scrollHeight;
-  const ctx = canvas.getContext('2d'); const strokes = getSummaryStudyState().annotations.slice();
-  const draw = stroke => { if (!stroke.points?.length) return; ctx.beginPath(); stroke.points.forEach((point, index) => index ? ctx.lineTo(point.x * canvas.width, point.y * canvas.height) : ctx.moveTo(point.x * canvas.width, point.y * canvas.height)); ctx.strokeStyle = stroke.color || '#10b981'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke(); };
-  strokes.forEach(draw);
-  let active = null;
-  let erased = false;
-  const pointAt = event => { const box = canvas.getBoundingClientRect(); return { x: (event.clientX - box.left) / box.width, y: (event.clientY - box.top) / box.height }; };
-  const redraw = () => { ctx.clearRect(0, 0, canvas.width, canvas.height); strokes.forEach(draw); if (active) draw(active); };
-  const eraseAt = point => {
-    const index = strokes.findIndex(stroke => stroke.points.some(item => summaryStudyPointDistance(item, point) <= 0.025));
-    if (index < 0) return false;
-    if (!erased) { summaryStudyPushUndo(); erased = true; }
-    strokes.splice(index, 1);
-    saveSummaryStudyState({ annotations: strokes });
-    redraw();
-    return true;
-  };
-  canvas.onpointerdown = event => {
-    const point = pointAt(event);
-    if (_summaryStudyErasing) { canvas.setPointerCapture(event.pointerId); eraseAt(point); return; }
-    const box = canvas.getBoundingClientRect(); canvas.setPointerCapture(event.pointerId); summaryStudyPushUndo(); active = { color: _summaryStudyColor, points: [point] };
-  };
-  canvas.onpointermove = event => { if (_summaryStudyErasing) { eraseAt(pointAt(event)); return; } if (!active) return; active.points.push(pointAt(event)); redraw(); };
-  canvas.onpointerup = () => { if (active?.points.length > 1) { strokes.push(active); saveSummaryStudyState({ annotations: strokes }); } active = null; erased = false; redraw(); };
-  root.appendChild(canvas);
+  canvas.style.pointerEvents = _summaryStudyDrawing ? 'auto' : 'none';
+  document.querySelector('[data-summary-action="draw"]')?.classList.toggle('active', _summaryStudyDrawing && !_summaryStudyErasing);
+  document.querySelector('[data-summary-action="erase"]')?.classList.toggle('active', _summaryStudyErasing);
 }
 function setSummaryStudyEditing(enabled) {
   const body = document.getElementById('summary-study-document-body');
@@ -4798,6 +4990,7 @@ function renderSummaryStudyPage(result, title, { readOnly = false } = {}) {
   const outline = document.getElementById('summary-study-outline-list');
   const fileTitle = document.getElementById('summary-study-file-title');
   if (!body || !result) return;
+  _summaryStudyFinishDrawing?.();
   _summaryStudyReadOnly = readOnly;
   document.querySelector('.summary-study-shell')?.classList.toggle('is-shared', readOnly);
   const sharedBanner = document.getElementById('summary-study-shared-banner');
@@ -5045,8 +5238,8 @@ function initSummaryStudyPage() {
     if (action === 'export') return exportCurriculumSummaryPdf(window._summaryStudyResult, window._summaryStudyTitle || 'Tài liệu ôn tập');
     if (action === 'highlight') return applySummaryStudyHighlight();
     if (action === 'remove-highlight') return removeSummaryStudyHighlight();
-    if (action === 'draw') { _summaryStudyDrawing = !_summaryStudyDrawing; _summaryStudyErasing = false; mountSummaryStudyDrawingLayer(); button.classList.toggle('active', _summaryStudyDrawing); document.querySelector('[data-summary-action="erase"]')?.classList.remove('active'); return showToast(_summaryStudyDrawing ? 'Chế độ vẽ đã bật.' : 'Chế độ vẽ đã tắt.', 'info'); }
-    if (action === 'erase') { _summaryStudyDrawing = true; _summaryStudyErasing = !_summaryStudyErasing; mountSummaryStudyDrawingLayer(); button.classList.toggle('active', _summaryStudyErasing); document.querySelector('[data-summary-action="draw"]')?.classList.toggle('active', !_summaryStudyErasing); return showToast(_summaryStudyErasing ? 'Gôm đã bật. Kéo qua nét vẽ để xóa.' : 'Gôm đã tắt.', 'info'); }
+    if (action === 'draw') { _summaryStudyFinishDrawing?.(); _summaryStudyDrawing = !_summaryStudyDrawing; _summaryStudyErasing = false; mountSummaryStudyDrawingLayer(); button.classList.toggle('active', _summaryStudyDrawing); document.querySelector('[data-summary-action="erase"]')?.classList.remove('active'); return showToast(_summaryStudyDrawing ? 'Chế độ vẽ đã bật.' : 'Chế độ vẽ đã tắt.', 'info'); }
+    if (action === 'erase') { _summaryStudyFinishDrawing?.(); _summaryStudyDrawing = true; _summaryStudyErasing = !_summaryStudyErasing; mountSummaryStudyDrawingLayer(); button.classList.toggle('active', _summaryStudyErasing); document.querySelector('[data-summary-action="draw"]')?.classList.toggle('active', !_summaryStudyErasing); return showToast(_summaryStudyErasing ? 'Gôm đã bật. Kéo qua nét vẽ để xóa.' : 'Gôm đã tắt.', 'info'); }
     if (action === 'undo') return summaryStudyUndo();
     if (action === 'interaction') return openSummaryStudyInteraction();
     if (action === 'edit') return setSummaryStudyEditing(!_summaryStudyEditing);
@@ -5300,6 +5493,7 @@ function _csMarkdown(md) {
 
   // Strip leftover double or triple asterisks just in case
   str = str.replace(/\*{2,}/g, '');
+  str = renderMarkdownTables(str);
 
   // Paragraph breaks
   const paragraphs = str.split(/\n\n+/).filter(Boolean);
