@@ -16,13 +16,15 @@ test('eraser hit testing measures distance in document pixels', () => {
   assert.equal(context.distance({ x: 0.5, y: 0.5 }, { x: 0.5, y: 0.5 }, { x: 0.5, y: 0.5 }, 1000, 500), 0);
 });
 
-test('pointer movement batches new segments instead of redrawing all saved strokes', () => {
+test('pointer movement draws new segments immediately without redrawing saved strokes', () => {
   const start = source.indexOf('canvas.onpointermove = event =>', source.indexOf('function mountSummaryStudyDrawingLayer'));
   const end = source.indexOf('canvas.onpointerup = finish', start);
   const handler = source.slice(start, end);
+  const drawingPath = handler.slice(handler.indexOf('const active = _summaryStudyDrawingActiveStroke'));
   assert.ok(start >= 0 && end > start);
   assert.match(handler, /getCoalescedEvents/);
-  assert.match(handler, /queueFrame\(\)/);
+  assert.match(drawingPath, /flushSummaryStudyActiveStroke\(\)/);
+  assert.doesNotMatch(drawingPath, /queueFrame\(\)/);
   assert.doesNotMatch(handler, /redrawSummaryStudyDrawing|clearRect/);
 });
 

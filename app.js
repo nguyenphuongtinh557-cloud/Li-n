@@ -4882,7 +4882,7 @@ function mountSummaryStudyDrawingLayer() {
         const dx = (point.x - previous.x) * box.width, dy = (point.y - previous.y) * box.height;
         if (dx * dx + dy * dy >= 1) active.points.push(point);
       }
-      queueFrame();
+      flushSummaryStudyActiveStroke();
     };
     canvas.onpointerup = finish;
     canvas.onpointercancel = finish;
