@@ -16,6 +16,19 @@ test('eraser hit testing measures distance in document pixels', () => {
   assert.equal(context.distance({ x: 0.5, y: 0.5 }, { x: 0.5, y: 0.5 }, { x: 0.5, y: 0.5 }, 1000, 500), 0);
 });
 
+test('drawing canvas resolution stays within a bounded pixel budget', () => {
+  const start = source.indexOf('const SUMMARY_STUDY_MAX_CANVAS_PIXELS');
+  const end = source.indexOf('function resizeSummaryStudyDrawingLayer', start);
+  assert.ok(start >= 0 && end > start);
+  const context = {};
+  vm.createContext(context);
+  vm.runInContext(`${source.slice(start, end)}\nthis.pixelRatio = summaryStudyCanvasPixelRatio; this.pixelBudget = SUMMARY_STUDY_MAX_CANVAS_PIXELS;`, context);
+  assert.equal(context.pixelRatio(800, 2000, 2), 2);
+  const ratio = context.pixelRatio(1000, 12000, 2);
+  assert.ok(ratio < 2);
+  assert.ok(Math.floor(1000 * ratio) * Math.floor(12000 * ratio) <= context.pixelBudget);
+});
+
 test('pointer movement draws new segments immediately without redrawing saved strokes', () => {
   const start = source.indexOf('canvas.onpointermove = event =>', source.indexOf('function mountSummaryStudyDrawingLayer'));
   const end = source.indexOf('canvas.onpointerup = finish', start);

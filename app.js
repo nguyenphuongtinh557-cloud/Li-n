@@ -4707,7 +4707,7 @@ function redrawSummaryStudyDrawing(strokes) {
   const canvas = _summaryStudyDrawingCanvas, ctx = _summaryStudyDrawingContext;
   if (!canvas || !ctx) return;
   const width = Math.max(1, canvas.clientWidth), height = Math.max(1, canvas.clientHeight);
-  const ratio = Math.min(2, window.devicePixelRatio || 1);
+  const ratio = canvas.width / width;
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, canvas.width, canvas.height);
   ctx.setTransform(ratio, 0, 0, ratio, 0, 0);
@@ -4717,14 +4717,20 @@ function redrawSummaryStudyDrawing(strokes) {
     _summaryStudyDrawingDrawnPointCount = _summaryStudyDrawingActiveStroke.points.length;
   }
 }
+const SUMMARY_STUDY_MAX_CANVAS_PIXELS = 16_777_216;
+function summaryStudyCanvasPixelRatio(width, height, devicePixelRatio = 1) {
+  const desiredRatio = Math.min(2, Math.max(0.1, Number(devicePixelRatio) || 1));
+  const pixelBudgetRatio = Math.sqrt(SUMMARY_STUDY_MAX_CANVAS_PIXELS / (Math.max(1, width) * Math.max(1, height)));
+  return Math.min(desiredRatio, pixelBudgetRatio);
+}
 function resizeSummaryStudyDrawingLayer() {
   const canvas = _summaryStudyDrawingCanvas, root = canvas?.parentElement;
   if (!canvas || !root) return;
   const width = Math.max(1, root.clientWidth), height = Math.max(1, root.scrollHeight, root.clientHeight);
-  const ratio = Math.min(2, window.devicePixelRatio || 1);
+  const ratio = summaryStudyCanvasPixelRatio(width, height, window.devicePixelRatio || 1);
   canvas.style.width = `${width}px`;
   canvas.style.height = `${height}px`;
-  const pixelWidth = Math.round(width * ratio), pixelHeight = Math.round(height * ratio);
+  const pixelWidth = Math.max(1, Math.floor(width * ratio)), pixelHeight = Math.max(1, Math.floor(height * ratio));
   const resized = canvas.width !== pixelWidth || canvas.height !== pixelHeight;
   if (resized) {
     canvas.width = pixelWidth;
