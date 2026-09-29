@@ -419,7 +419,7 @@ export const NavController = {
 
   // ─── SUBJECT DETAIL PAGE ──────────────────────────────────────────────────
   openSubjectDetail(subjectId, returnPage = 'study-space') {
-    void ensureStylesheet('subject-page.css?v=20260912-subject-redesign').catch(error => {
+    void ensureStylesheet('subject-page.css?v=20260928-neutral-dark').catch(error => {
       console.error('[Subject] Không thể tải stylesheet:', error);
     });
     const s = getSubjectById(subjectId);

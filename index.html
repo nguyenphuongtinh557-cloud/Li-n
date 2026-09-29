@@ -12,7 +12,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20260926-summary-drawing-1x">
+  <link rel="stylesheet" href="style.css?v=20260928-reader-white-textfix">
   <style>
     @media (max-width: 720px) {
       #study-space-root .study-hub-shell { padding: 16px 12px 30px; }
@@ -181,8 +181,8 @@
         </div>
 
         <div class="top-header-right">
-          <button id="btn-theme-top" class="btn-icon" onclick="toggleTheme()" title="Chuyển chế độ tối/sáng">
-            <i class="fa-solid fa-moon"></i>
+          <button type="button" id="btn-theme-top" class="btn-icon" onclick="toggleTheme()" title="Chuyển chế độ tối/sáng" aria-label="Chuyển chế độ tối/sáng">
+            <i class="fa-solid fa-moon" aria-hidden="true"></i>
           </button>
           <button id="btn-notifications-top" class="btn-icon notification-top-btn" onclick="NavController.navigateToPage('notifications')" title="Thông báo" aria-label="Mở thông báo">
             <i class="fa-solid fa-bell"></i><span class="badge-dot"></span>
@@ -830,11 +830,11 @@
             <header class="study-reader-header">
               <div class="study-reader-brand"><button id="study-reader-back" class="study-reader-back" type="button" aria-label="Quay lại"><i class="fa-solid fa-arrow-left"></i><span>Quay lại</span></button><div id="study-reader-crumb" class="study-reader-crumb">Tài liệu học tập</div></div>
               <a id="study-reader-resource-link" class="study-reader-resource-link" href="#" target="_blank" rel="noopener noreferrer" hidden><i class="fa-solid fa-download"></i><span>Tải tài liệu</span></a>
-              <div class="study-reader-header-actions"><button id="study-reader-toc-toggle" type="button" aria-controls="study-reader-toc" aria-expanded="false"><i class="fa-solid fa-list"></i><span>Mục lục</span></button><button id="study-reader-panel-toggle" type="button" aria-controls="study-reader-right-panel" aria-expanded="false"><i class="fa-solid fa-note-sticky"></i><span>Ghi chú</span></button></div>
+              <div class="study-reader-header-actions"><button id="study-reader-focus-toggle" type="button" class="btn-focus-mode" onclick="toggleStudyReaderFocusMode()" title="Chế độ đọc tập trung"><i class="fa-solid fa-expand"></i> <span>Tập trung</span></button><button id="study-reader-toc-toggle" type="button" aria-controls="study-reader-toc" aria-expanded="false"><i class="fa-solid fa-list"></i><span>Mục lục</span></button><button id="study-reader-panel-toggle" type="button" aria-controls="study-reader-right-panel" aria-expanded="false"><i class="fa-solid fa-note-sticky"></i><span>Ghi chú</span></button></div>
             </header>
             <div class="study-reader-grid">
               <aside id="study-reader-toc" class="study-reader-toc" aria-label="Mục lục bài giảng"><div class="study-reader-course-card"><div class="study-reader-course-icon"><i class="fa-solid fa-graduation-cap"></i></div><div><span id="study-reader-course-code">FTECA</span><strong id="study-reader-course-title">Tài liệu học tập &amp; Bài giảng ôn tập</strong></div></div><div class="study-reader-toc-head"><span>Tiến độ học tập</span><b id="study-reader-progress">0%</b></div><div class="study-reader-progress-track" aria-label="Tiến độ học"><i id="study-reader-progress-bar" style="width:0%"></i></div><label class="study-reader-find-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="study-reader-find" class="study-reader-find" type="search" placeholder="Tìm trong bài giảng…" autocomplete="off"></label><nav id="study-reader-toc-list" class="study-reader-toc-list"></nav></aside>
-              <main class="study-reader-main"><div class="study-reader-main-top"><span id="study-reader-location"><i class="fa-solid fa-book-open"></i> Không gian học tập</span><span class="study-reader-page-count">Reader <b id="study-reader-page-indicator">1 / 1</b></span></div><div id="study-reader-toolbar" class="study-reader-toolbar" aria-label="Công cụ học"><button type="button" data-reader-action="note"><i class="fa-solid fa-note-sticky"></i> Tạo ghi chú</button><button type="button" data-reader-action="highlight"><i class="fa-solid fa-highlighter"></i> Highlight</button><button type="button" data-reader-action="annotate"><i class="fa-solid fa-pen-ruler"></i> Vẽ</button><button type="button" data-reader-action="undo"><i class="fa-solid fa-rotate-left"></i> Hoàn tác</button><button type="button" data-reader-action="clear"><i class="fa-solid fa-eraser"></i> Xóa nét vẽ</button><div class="study-reader-color-palette" role="group" aria-label="Chọn màu bút"><button type="button" class="active" data-annotation-color="#10b981" aria-label="Màu xanh lá" title="Xanh lá"></button><button type="button" data-annotation-color="#2563eb" aria-label="Màu xanh dương" title="Xanh dương"></button><button type="button" data-annotation-color="#8b5cf6" aria-label="Màu tím" title="Tím"></button><button type="button" data-annotation-color="#ec4899" aria-label="Màu hồng" title="Hồng"></button><button type="button" data-annotation-color="#f97316" aria-label="Màu cam" title="Cam"></button><button type="button" data-annotation-color="#eab308" aria-label="Màu vàng" title="Vàng"></button><button type="button" data-annotation-color="#1f2937" aria-label="Màu đen" title="Đen"></button></div></div><article id="study-reader-content" class="study-reader-content" tabindex="-1"></article><footer class="study-reader-document-footer" aria-label="Trạng thái tài liệu"><span><i class="fa-solid fa-sparkles"></i> Học từng chút, giỏi từng ngày</span><div class="study-reader-footer-progress"><i></i></div></footer></main>
+              <main class="study-reader-main"><div class="study-reader-main-top"><span id="study-reader-location"><i class="fa-solid fa-book-open"></i> Không gian học tập</span><span class="study-reader-page-count">Reader <b id="study-reader-page-indicator">1 / 1</b></span></div><div id="study-reader-toolbar" class="study-reader-toolbar" aria-label="Công cụ học"><button type="button" class="study-reader-tool-btn" data-reader-action="note"><i class="fa-solid fa-note-sticky"></i> Tạo ghi chú</button><button type="button" class="study-reader-tool-btn" data-reader-action="highlight"><i class="fa-solid fa-highlighter"></i> Highlight</button><button type="button" class="study-reader-tool-btn" data-reader-action="annotate"><i class="fa-solid fa-pen-ruler"></i> Vẽ</button><button type="button" class="study-reader-tool-btn" data-reader-action="undo"><i class="fa-solid fa-rotate-left"></i> Hoàn tác</button><button type="button" class="study-reader-tool-btn" data-reader-action="clear"><i class="fa-solid fa-eraser"></i> Xóa nét vẽ</button><div id="study-reader-color-palette" class="study-reader-color-palette hidden" role="group" aria-label="Chọn màu bút"><button type="button" class="swatch-btn active" data-annotation-color="#10b981" aria-label="Màu xanh lá" title="Xanh lá" style="background:#10b981!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#06b6d4" aria-label="Màu xanh ngọc" title="Xanh ngọc" style="background:#06b6d4!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#2563eb" aria-label="Màu xanh dương" title="Xanh dương" style="background:#2563eb!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#6366f1" aria-label="Màu chàm" title="Xanh chàm" style="background:#6366f1!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#8b5cf6" aria-label="Màu tím" title="Tím" style="background:#8b5cf6!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#ec4899" aria-label="Màu hồng" title="Hồng" style="background:#ec4899!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#ef4444" aria-label="Màu đỏ" title="Đỏ" style="background:#ef4444!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#f97316" aria-label="Màu cam" title="Cam" style="background:#f97316!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#eab308" aria-label="Màu vàng" title="Vàng" style="background:#eab308!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#1e293b" aria-label="Màu đen" title="Đen" style="background:#1e293b!important;"></button></div></div><article id="study-reader-content" class="study-reader-content" tabindex="-1"></article><footer class="study-reader-document-footer" aria-label="Trạng thái tài liệu"><span><i class="fa-solid fa-sparkles"></i> Học từng chút, giỏi từng ngày</span><div class="study-reader-footer-progress"><i></i></div></footer></main>
               <aside id="study-reader-right-panel" class="study-reader-right-panel"><div class="study-reader-panel-orb" aria-hidden="true"></div><section id="study-reader-note" class="study-reader-note-paper"><div class="study-reader-panel-title"><span><i class="fa-solid fa-note-sticky"></i> Ghi chú của bạn</span><small id="study-reader-note-status">Chưa lưu</small></div><textarea id="study-reader-note-input" placeholder="Viết ghi chú để tiện ghi nhớ…"></textarea><div class="study-reader-note-tools"><button type="button" data-note-format="bold"><b>B</b></button><button type="button" data-note-format="italic"><i>I</i></button><button type="button" data-note-format="list"><i class="fa-solid fa-list"></i></button></div></section><section id="study-reader-ai" class="study-reader-ai"><div class="study-reader-panel-title"><span><i class="fa-solid fa-sparkles"></i> Tóm tắt bài học</span></div><p class="study-reader-ai-copy">Tóm tắt tiêu chuẩn do hệ thống phát hành.</p><div class="study-reader-ai-modes" role="group" aria-label="Chế độ tóm tắt"><button type="button" data-summary-mode="quick">⚡ 1 phút</button><button type="button" data-summary-mode="study" class="active">📚 Chi tiết</button><button type="button" data-summary-mode="exam" disabled title="Tính năng đang bảo trì">🚧 Ôn thi</button></div><input id="study-reader-ai-instruction" type="text" maxlength="300" placeholder="Bạn chưa hiểu phần nào? (không bắt buộc)" style="display:none;"><button id="study-reader-ai-summary" type="button" class="study-reader-ai-action" style="display:none;"><i class="fa-solid fa-wand-magic-sparkles"></i> Tóm tắt bài này</button><div id="study-reader-ai-status" class="study-reader-ai-status" aria-live="polite">Đang tải tóm tắt…</div><div id="study-reader-ai-result" class="study-reader-ai-result"></div><div class="study-reader-ai-actions"><button type="button" id="study-reader-ai-save" disabled>Lưu vào ghi chú</button><button type="button" id="study-reader-ai-regenerate" disabled><i class="fa-solid fa-rotate-right"></i> Tạo lại bằng AI</button><button type="button" id="study-reader-ai-explain" disabled>Giải thích phần đang bôi đen</button></div></section><section id="study-reader-share" class="study-reader-share"><div class="study-reader-panel-title"><span><i class="fa-solid fa-link"></i> Tài liệu &amp; Chia sẻ</span></div><div class="study-reader-key-row"><input id="study-reader-key-input" type="text" placeholder="Nhập key để truy cập ghi chú"><button id="study-reader-key-open" type="button">Xác nhận</button></div><div class="study-reader-share-actions"><button id="study-reader-save" type="button"><i class="fa-regular fa-bookmark"></i> Lưu lại</button><button id="study-reader-share-create" type="button"><i class="fa-solid fa-share-nodes"></i> Chia sẻ</button></div><small id="study-reader-share-status">Chia sẻ hoạt động cục bộ trên thiết bị này.</small></section></aside>
             </div>
           </div>
@@ -1179,25 +1179,619 @@
         <section id="page-summary-study" class="page-container hidden" aria-label="Không gian ôn tập">
           <div class="summary-study-shell">
             <header class="summary-study-header">
-              <button type="button" id="summary-study-back" class="summary-study-back"><i class="fa-solid fa-arrow-left"></i> Quay lại bản tóm tắt</button>
-              <div class="summary-study-brand"><i class="fa-solid fa-sparkles"></i><strong>FTECA Study Tutor</strong><span>Ôn tập trên tài liệu của bạn</span></div>
-              <button type="button" id="summary-study-theme-toggle" class="summary-study-icon-btn" aria-label="Đổi giao diện sáng tối"><i class="fa-solid fa-moon"></i></button>
-              <button type="button" class="summary-study-icon-btn" data-summary-action="share-summary" aria-label="Chia sẻ bản tóm tắt" title="Chia sẻ bản tóm tắt"><i class="fa-solid fa-share-nodes"></i></button>
-              <button type="button" id="summary-study-more" class="summary-study-icon-btn" aria-label="Tùy chọn"><i class="fa-solid fa-ellipsis"></i></button>
+              <button type="button" id="summary-study-back" class="summary-study-back" aria-label="Quay lại bản tóm tắt"><i class="fa-solid fa-arrow-left"></i></button>
+              <div class="summary-study-brand"><span class="summary-study-brand-mark"><i class="fa-solid fa-book-open"></i></span><div><strong id="summary-study-doc-title">Tài liệu tóm tắt</strong><span id="summary-study-save-status" role="status" aria-live="polite" title="Bản lưu trên thiết bị">✓ Đã lưu</span></div></div>
+              <div class="summary-study-header-actions">
+                <button type="button" class="summary-study-icon-btn" data-summary-action="undo" aria-label="Hoàn tác" title="Hoàn tác (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i></button>
+                <button type="button" class="summary-study-icon-btn" data-summary-action="redo" aria-label="Làm lại" title="Làm lại (Ctrl+Y)"><i class="fa-solid fa-rotate-right"></i></button>
+                <button type="button" class="summary-study-history-btn" data-summary-action="history"><i class="fa-solid fa-clock-rotate-left"></i><span>Lịch sử</span></button>
+                <button type="button" class="summary-study-history-btn" data-summary-action="save-version"><i class="fa-solid fa-bookmark"></i><span>Lưu phiên bản</span></button>
+                <button type="button" id="summary-study-theme-toggle" class="summary-study-icon-btn" aria-label="Đổi giao diện sáng tối"><i class="fa-solid fa-moon"></i></button>
+                <button type="button" class="summary-study-icon-btn" data-summary-action="share-summary" aria-label="Chia sẻ bản tóm tắt" title="Chia sẻ bản tóm tắt"><i class="fa-solid fa-share-nodes"></i></button>
+                <button type="button" class="summary-study-icon-btn" data-summary-action="toggle-ai" aria-label="Mở trợ lý Lumi" aria-expanded="false" title="Mở trợ lý Lumi"><i class="fa-solid fa-comments"></i></button>
+                <button type="button" class="summary-study-icon-btn" data-summary-action="outline" aria-label="Hiện kho thuật ngữ và dẫn hướng" aria-expanded="false" title="Hiện kho thuật ngữ và dẫn hướng"><i class="fa-solid fa-bars-staggered"></i></button>
+                <button type="button" class="summary-study-primary-action" data-summary-action="edit"><i class="fa-solid fa-pen-to-square"></i><span>Chỉnh sửa</span></button>
+                <button type="button" class="summary-study-cancel-edit" data-summary-editor-action="cancel" hidden>Hủy</button>
+              </div>
             </header>
+            <section class="summary-study-ribbon" aria-label="Công cụ tài liệu">
+              <div class="summary-study-ribbon-tabs" role="tablist" aria-label="Nhóm công cụ">
+                <button type="button" id="summary-study-tab-home" class="active" role="tab" aria-selected="true" aria-controls="summary-study-panel-home" tabindex="0" data-summary-ribbon-tab="home">Trang đầu</button>
+                <button type="button" id="summary-study-tab-insert" role="tab" aria-selected="false" aria-controls="summary-study-panel-insert" tabindex="-1" data-summary-ribbon-tab="insert">Chèn</button>
+                <button type="button" id="summary-study-tab-layout" role="tab" aria-selected="false" aria-controls="summary-study-panel-layout" tabindex="-1" data-summary-ribbon-tab="layout">Bố cục</button>
+                <button type="button" id="summary-study-tab-references" role="tab" aria-selected="false" aria-controls="summary-study-panel-references" tabindex="-1" data-summary-ribbon-tab="references">Tham chiếu</button>
+                <button type="button" id="summary-study-tab-review" role="tab" aria-selected="false" aria-controls="summary-study-panel-review" tabindex="-1" data-summary-ribbon-tab="review">Ôn tập</button>
+                <button type="button" id="summary-study-tab-view" role="tab" aria-selected="false" aria-controls="summary-study-panel-view" tabindex="-1" data-summary-ribbon-tab="view">Hiển thị</button>
+                <button type="button" id="summary-study-tab-table-design" role="tab" aria-selected="false" aria-controls="summary-study-panel-table-design" tabindex="-1" data-summary-ribbon-tab="table-design" hidden>Thiết kế bảng</button>
+                <button type="button" id="summary-study-tab-table-layout" role="tab" aria-selected="false" aria-controls="summary-study-panel-table-layout" tabindex="-1" data-summary-ribbon-tab="table-layout" hidden>Bố cục bảng</button>
+                <button type="button" id="summary-study-tab-picture-format" role="tab" aria-selected="false" aria-controls="summary-study-panel-picture-format" tabindex="-1" data-summary-ribbon-tab="picture-format" hidden>Định dạng ảnh</button>
+                <button type="button" id="summary-study-tab-chart-design" role="tab" aria-selected="false" aria-controls="summary-study-panel-chart-design" tabindex="-1" data-summary-ribbon-tab="chart-design" hidden>Thiết kế biểu đồ</button>
+                <button type="button" id="summary-study-tab-diagram-design" role="tab" aria-selected="false" aria-controls="summary-study-panel-diagram-design" tabindex="-1" data-summary-ribbon-tab="diagram-design" hidden>Thiết kế sơ đồ</button>
+                <button type="button" id="summary-study-tab-shape-format" role="tab" aria-selected="false" aria-controls="summary-study-panel-shape-format" tabindex="-1" data-summary-ribbon-tab="shape-format" hidden>Định dạng hình</button>
+              </div>
+              <div id="summary-study-panel-home" class="summary-study-ribbon-panel" role="tabpanel" aria-labelledby="summary-study-tab-home" data-summary-ribbon-panel="home">
+                <div class="summary-study-ribbon-group" role="group" aria-label="Lịch sử chỉnh sửa">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-summary-action="undo" aria-label="Hoàn tác" title="Hoàn tác (Ctrl+Z)"><i class="fa-solid fa-rotate-left"></i></button>
+                    <button type="button" data-summary-action="redo" aria-label="Làm lại" title="Làm lại (Ctrl+Y)"><i class="fa-solid fa-rotate-right"></i></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Lịch sử</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Kiểu đoạn">
+                  <div class="summary-study-ribbon-tools">
+                    <label class="summary-study-ribbon-select"><select data-summary-editor-format aria-label="Kiểu đoạn văn"><option value="p">Đoạn văn</option><option value="h1">Tiêu đề 1</option><option value="h2">Tiêu đề 2</option><option value="h3">Tiêu đề 3</option><option value="h4">Tiêu đề 4</option><option value="h5">Tiêu đề 5</option><option value="h6">Tiêu đề 6</option><option value="blockquote">Trích dẫn</option></select></label>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Kiểu đoạn</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Kiểu cá nhân">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-tool="named-styles"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Áp dụng kiểu</span></button>
+                    <button type="button" data-editor-tool="save-named-style"><i class="fa-regular fa-bookmark"></i><span>Lưu kiểu</span></button>
+                    <button type="button" data-editor-tool="manage-named-styles"><i class="fa-solid fa-list-check"></i><span>Quản lý kiểu</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Kiểu cá nhân</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Phông chữ và cỡ chữ">
+                  <div class="summary-study-ribbon-tools">
+                    <label class="summary-study-ribbon-select summary-study-ribbon-select--font"><select data-editor-command-select="FontName" aria-label="Phông chữ"><option value="">Phông chữ</option><option value="Inter">Inter</option><option value="Arial">Arial</option><option value="Calibri">Calibri</option><option value="Georgia">Georgia</option><option value="Times New Roman">Times New Roman</option></select></label>
+                    <label class="summary-study-ribbon-select summary-study-ribbon-select--size"><select data-editor-command-select="FontSize" aria-label="Cỡ chữ"><option value="">Cỡ chữ</option><option value="10pt">10</option><option value="11pt">11</option><option value="12pt">12</option><option value="14pt">14</option><option value="16pt">16</option><option value="18pt">18</option><option value="20pt">20</option><option value="24pt">24</option><option value="28pt">28</option><option value="36pt">36</option></select></label>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Phông chữ</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Định dạng chữ">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-command="Bold" aria-label="In đậm" title="In đậm"><i class="fa-solid fa-bold"></i></button>
+                    <button type="button" data-editor-command="Italic" aria-label="In nghiêng" title="In nghiêng"><i class="fa-solid fa-italic"></i></button>
+                    <button type="button" data-editor-command="Underline" aria-label="Gạch chân" title="Gạch chân"><i class="fa-solid fa-underline"></i></button>
+                    <button type="button" data-editor-command="Strikethrough" aria-label="Gạch ngang" title="Gạch ngang"><i class="fa-solid fa-strikethrough"></i></button>
+                    <button type="button" data-editor-command="RemoveFormat" aria-label="Xóa định dạng" title="Xóa định dạng"><i class="fa-solid fa-text-slash"></i></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Kiểu chữ</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Màu sắc">
+                  <div class="summary-study-ribbon-tools">
+                    <label class="summary-study-ribbon-color"><input type="color" value="#26384b" data-editor-command-select="ForeColor" aria-label="Màu chữ"></label>
+                    <label class="summary-study-ribbon-color"><input type="color" value="#fff2b3" data-editor-command-select="HiliteColor" aria-label="Màu tô nền"></label>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Màu sắc</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Hiệu ứng chữ">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-tool="text-effects"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Hiệu ứng chữ</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Hiệu ứng</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Căn chỉnh và danh sách">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-command="JustifyLeft" aria-label="Căn trái" title="Căn trái"><i class="fa-solid fa-align-left"></i></button>
+                    <button type="button" data-editor-command="JustifyCenter" aria-label="Căn giữa" title="Căn giữa"><i class="fa-solid fa-align-center"></i></button>
+                    <button type="button" data-editor-command="JustifyRight" aria-label="Căn phải" title="Căn phải"><i class="fa-solid fa-align-right"></i></button>
+                    <button type="button" data-editor-command="JustifyFull" aria-label="Căn đều hai bên" title="Căn đều hai bên"><i class="fa-solid fa-align-justify"></i></button>
+                    <button type="button" data-editor-command="InsertUnorderedList" aria-label="Danh sách dấu đầu dòng" title="Danh sách dấu đầu dòng"><i class="fa-solid fa-list-ul"></i></button>
+                    <button type="button" data-editor-command="InsertOrderedList" aria-label="Danh sách đánh số" title="Danh sách đánh số"><i class="fa-solid fa-list-ol"></i></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Đoạn văn</span>
+                </div>
+              </div>
+              <div id="summary-study-panel-insert" class="summary-study-ribbon-panel" role="tabpanel" aria-labelledby="summary-study-tab-insert" data-summary-ribbon-panel="insert" hidden>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Trang">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-tool="cover-page"><i class="fa-solid fa-book-open"></i><span>Trang bìa</span></button>
+                    <button type="button" data-editor-tool="blank-page"><i class="fa-regular fa-file"></i><span>Trang trắng</span></button>
+                    <button type="button" data-editor-insert="page-break"><i class="fa-solid fa-scissors"></i><span>Ngắt trang</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Trang</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Bảng">
+                  <div class="summary-study-ribbon-tools summary-study-table-insert">
+                    <button type="button" class="summary-study-table-insert-trigger" data-summary-table-menu-toggle aria-expanded="false" aria-controls="summary-study-table-insert-menu"><i class="fa-solid fa-table"></i><span>Bảng</span><i class="fa-solid fa-caret-down" aria-hidden="true"></i></button>
+                    <div id="summary-study-table-insert-menu" class="summary-study-table-menu" role="group" aria-label="Chèn bảng" hidden>
+                      <div class="summary-study-table-menu-heading"><strong>Chèn bảng</strong><span id="summary-study-table-grid-status" aria-live="polite">Chọn số hàng và cột</span></div>
+                      <div class="summary-study-table-grid" role="grid" aria-label="Chọn kích thước bảng, tối đa 10 cột và 8 hàng"></div>
+                      <div class="summary-study-table-menu-actions">
+                        <button type="button" data-editor-tool="table-dialog"><i class="fa-solid fa-table-cells-large"></i><span>Chèn bảng tùy chỉnh…</span></button>
+                        <button type="button" data-editor-tool="table-template"><i class="fa-solid fa-list"></i><span>Bảng mẫu…</span></button>
+                        <button type="button" data-editor-tool="text-to-table"><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Văn bản thành bảng…</span></button>
+                      </div>
+                    </div>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Bảng</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Hình ảnh">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-insert="image"><i class="fa-solid fa-image"></i><span>Hình ảnh</span></button>
+                    <button type="button" data-editor-tool="image-layout"><i class="fa-solid fa-text-width"></i><span>Bố trí ảnh</span></button>
+                    <button type="button" data-editor-tool="figure-caption"><i class="fa-solid fa-closed-captioning"></i><span>Chú thích hình</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Hình ảnh</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Biểu đồ">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-tool="chart-insert"><i class="fa-solid fa-chart-column"></i><span>Biểu đồ…</span></button>
+                    <button type="button" data-editor-tool="chart-edit"><i class="fa-solid fa-table-list"></i><span>Sửa dữ liệu biểu đồ</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Biểu đồ</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Phương trình và ký hiệu">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-tool="equation-insert"><i class="fa-solid fa-square-root-variable"></i><span>Phương trình…</span></button>
+                    <button type="button" data-editor-tool="equation-new"><i class="fa-solid fa-plus"></i><span>Phương trình mới…</span></button>
+                    <button type="button" data-editor-tool="symbol-insert"><i class="fa-solid fa-omega"></i><span>Ký hiệu…</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Phương trình & ký hiệu</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Sơ đồ">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-tool="diagram-insert"><i class="fa-solid fa-diagram-project"></i><span>Sơ đồ…</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Sơ đồ</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Hình dạng">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-tool="shape-insert"><i class="fa-regular fa-square"></i><span>Hình dạng…</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Hình dạng</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Liên kết">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-insert="link"><i class="fa-solid fa-link"></i><span>Liên kết</span></button>
+                    <button type="button" data-editor-tool="bookmark"><i class="fa-regular fa-bookmark"></i><span>Dấu trang</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Liên kết</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Đầu trang và chân trang">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-tool="header"><i class="fa-solid fa-arrow-up"></i><span>Đầu trang</span></button>
+                    <button type="button" data-editor-tool="footer"><i class="fa-solid fa-arrow-down"></i><span>Chân trang</span></button>
+                    <button type="button" data-editor-tool="page-number"><i class="fa-solid fa-hashtag"></i><span>Số trang</span></button>
+                    <button type="button" data-editor-tool="static-date"><i class="fa-regular fa-calendar"></i><span>Ngày</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Đầu & chân trang</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Nhập xuất tài liệu">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-summary-action="import-docx"><i class="fa-solid fa-file-arrow-up"></i><span>Nhập DOCX</span></button>
+                    <button type="button" data-summary-action="export-docx"><i class="fa-solid fa-file-export"></i><span>Xuất DOCX</span></button>
+                    <button type="button" data-summary-action="export"><i class="fa-solid fa-file-pdf"></i><span>In / PDF</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Nhập & xuất</span>
+                </div>
+              </div>
+              <div id="summary-study-panel-layout" class="summary-study-ribbon-panel" role="tabpanel" aria-labelledby="summary-study-tab-layout" data-summary-ribbon-panel="layout" hidden>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Thiết lập trang">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-tool="page-setup"><i class="fa-solid fa-file-lines"></i><span>Lề, khổ & hướng giấy</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Thiết lập trang</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Đoạn văn">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-tool="paragraph-format"><i class="fa-solid fa-indent"></i><span>Giãn dòng & thụt lề</span></button>
+                    <button type="button" data-editor-command="Outdent" aria-label="Giảm thụt lề"><i class="fa-solid fa-outdent"></i><span>Giảm thụt lề</span></button>
+                    <button type="button" data-editor-command="Indent" aria-label="Tăng thụt lề"><i class="fa-solid fa-indent"></i><span>Tăng thụt lề</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Đoạn văn</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Ngắt và cột">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-insert="page-break"><i class="fa-solid fa-scissors"></i><span>Ngắt trang</span></button>
+                    <button type="button" data-editor-tool="page-setup"><i class="fa-solid fa-table-columns"></i><span>Cột & lề</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Bố cục trang</span>
+                </div>
+              </div>
+              <div id="summary-study-panel-references" class="summary-study-ribbon-panel" role="tabpanel" aria-labelledby="summary-study-tab-references" data-summary-ribbon-panel="references" hidden>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Mục lục và danh mục">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-tool="toc"><i class="fa-solid fa-list-ol"></i><span>Mục lục</span></button>
+                    <button type="button" data-editor-tool="figure-list"><i class="fa-regular fa-image"></i><span>Danh sách hình</span></button>
+                    <button type="button" data-editor-tool="table-list"><i class="fa-solid fa-table"></i><span>Danh sách bảng</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Mục lục & danh mục</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Chú thích và tham chiếu">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-tool="footnote"><i class="fa-solid fa-asterisk"></i><span>Chú thích cuối trang</span></button>
+                    <button type="button" data-editor-tool="endnote"><i class="fa-solid fa-arrow-down-1-9"></i><span>Cuối tài liệu</span></button>
+                    <button type="button" data-editor-tool="cross-reference"><i class="fa-solid fa-arrow-turn-up"></i><span>Tham chiếu chéo</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Chú thích & tham chiếu</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Trích dẫn và tài liệu tham khảo">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-tool="citation"><i class="fa-solid fa-quote-left"></i><span>Trích dẫn</span></button>
+                    <button type="button" data-editor-tool="bibliography"><i class="fa-solid fa-book"></i><span>Tài liệu tham khảo</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Nguồn trích dẫn</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Chỉ mục và căn cứ">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-tool="index-mark"><i class="fa-solid fa-bookmark"></i><span>Đánh dấu chỉ mục</span></button>
+                    <button type="button" data-editor-tool="index"><i class="fa-solid fa-list"></i><span>Tạo chỉ mục</span></button>
+                    <button type="button" data-editor-tool="authority-mark"><i class="fa-solid fa-scale-balanced"></i><span>Đánh dấu căn cứ</span></button>
+                    <button type="button" data-editor-tool="authorities"><i class="fa-solid fa-list-check"></i><span>Bảng căn cứ</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Chỉ mục & căn cứ</span>
+                </div>
+              </div>
+              <div id="summary-study-panel-review" class="summary-study-ribbon-panel" role="tabpanel" aria-labelledby="summary-study-tab-review" data-summary-ribbon-panel="review" hidden>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Đánh dấu và ghi chú">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-summary-action="highlight"><i class="fa-solid fa-highlighter"></i><span>Đánh dấu</span></button>
+                    <button type="button" data-summary-action="remove-highlight"><i class="fa-solid fa-eraser"></i><span>Bỏ đánh dấu</span></button>
+                    <button type="button" data-summary-action="note"><i class="fa-solid fa-note-sticky"></i><span>Ghi chú</span></button>
+                    <button type="button" data-editor-tool="comment"><i class="fa-regular fa-comment"></i><span>Bình luận</span></button>
+                    <button type="button" data-editor-tool="read-aloud"><i class="fa-solid fa-volume-high"></i><span>Đọc đoạn chọn</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Đánh dấu & ghi chú</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Học tập">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-summary-action="self-explain"><i class="fa-solid fa-brain"></i><span>Tự giải thích</span></button>
+                    <button type="button" data-summary-action="share-selection"><i class="fa-solid fa-share-nodes"></i><span>Chia sẻ đoạn chọn</span></button>
+                    <button type="button" data-summary-action="draw"><i class="fa-solid fa-pen-ruler"></i><span>Vẽ</span></button>
+                    <button type="button" data-summary-action="erase"><i class="fa-solid fa-eraser"></i><span>Gôm</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Học tập & tương tác</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Lịch sử phiên bản">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-summary-action="history"><i class="fa-solid fa-clock-rotate-left"></i><span>Lịch sử</span></button>
+                    <button type="button" data-summary-action="save-version"><i class="fa-solid fa-bookmark"></i><span>Lưu phiên bản</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Phiên bản</span>
+                </div>
+              </div>
+              <div id="summary-study-panel-view" class="summary-study-ribbon-panel" role="tabpanel" aria-labelledby="summary-study-tab-view" data-summary-ribbon-panel="view" hidden>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Tùy chọn hiển thị">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-summary-action="outline"><i class="fa-solid fa-list"></i><span>Dẫn hướng</span></button>
+                    <button type="button" data-editor-tool="find-replace"><i class="fa-solid fa-arrow-right-arrow-left"></i><span>Tìm &amp; thay thế</span></button>
+                    <button type="button" data-summary-action="toggle-ai"><i class="fa-solid fa-comments"></i><span>Trợ lý AI</span></button>
+                    <label class="summary-study-ribbon-search"><i class="fa-solid fa-magnifying-glass"></i><input type="search" id="summary-study-find" placeholder="Tìm trong tài liệu" aria-label="Tìm trong tài liệu"><button type="button" data-summary-action="find">Tìm</button></label>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Dẫn hướng & tìm kiếm</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Thu phóng và công cụ">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-summary-action="zoom-out" aria-label="Thu nhỏ">−</button><span id="summary-study-zoom">100%</span>
+                    <button type="button" data-summary-action="zoom-in" aria-label="Phóng to">+</button>
+                    <button type="button" data-summary-action="fullscreen"><i class="fa-solid fa-expand"></i><span>Toàn màn hình</span></button>
+                    <button type="button" data-summary-action="advanced-tools"><i class="fa-solid fa-sliders"></i><span>Công cụ nâng cao</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Hiển thị</span>
+                </div>
+              </div>
+              <div id="summary-study-panel-table-design" class="summary-study-ribbon-panel summary-study-table-context-panel" role="tabpanel" aria-labelledby="summary-study-tab-table-design" data-summary-ribbon-panel="table-design" hidden>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Tùy chọn kiểu bảng">
+                  <div class="summary-study-ribbon-tools summary-study-table-options">
+                    <label><input type="checkbox" data-summary-table-option="header-row"><span>Hàng tiêu đề</span></label>
+                    <label><input type="checkbox" data-summary-table-option="total-row"><span>Hàng tổng</span></label>
+                    <label><input type="checkbox" data-summary-table-option="banded-rows"><span>Hàng xen kẽ</span></label>
+                    <label><input type="checkbox" data-summary-table-option="first-column"><span>Cột đầu</span></label>
+                    <label><input type="checkbox" data-summary-table-option="last-column"><span>Cột cuối</span></label>
+                    <label><input type="checkbox" data-summary-table-option="banded-columns"><span>Cột xen kẽ</span></label>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Tùy chọn kiểu bảng</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Kiểu bảng">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-summary-table-style="plain"><i class="fa-solid fa-table"></i><span>Đơn giản</span></button>
+                    <button type="button" data-summary-table-style="teal"><i class="fa-solid fa-table"></i><span>Xanh QLCL</span></button>
+                    <button type="button" data-summary-table-style="blue"><i class="fa-solid fa-table"></i><span>Xanh dương</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Kiểu bảng</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Tô màu ô">
+                  <div class="summary-study-ribbon-tools">
+                    <label class="summary-study-ribbon-color"><input type="color" value="#e8f3ef" data-summary-table-shading aria-label="Màu nền ô được chọn"></label>
+                    <button type="button" data-summary-table-command="clear-shading"><i class="fa-solid fa-eraser"></i><span>Xóa màu nền</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Tô màu ô</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Đường viền bảng">
+                  <div class="summary-study-ribbon-tools">
+                    <select data-summary-table-borders aria-label="Đường viền bảng">
+                      <option value="all">Tất cả đường viền</option>
+                      <option value="outside">Chỉ viền ngoài</option>
+                      <option value="none">Không viền</option>
+                    </select>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Đường viền</span>
+                </div>
+              </div>
+              <div id="summary-study-panel-table-layout" class="summary-study-ribbon-panel summary-study-table-context-panel" role="tabpanel" aria-labelledby="summary-study-tab-table-layout" data-summary-ribbon-panel="table-layout" hidden>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Chọn bảng">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-summary-table-command="select-cell"><i class="fa-regular fa-square"></i><span>Chọn ô</span></button>
+                    <button type="button" data-summary-table-command="select-row"><i class="fa-solid fa-grip-lines"></i><span>Chọn hàng</span></button>
+                    <button type="button" data-summary-table-command="select-column"><i class="fa-solid fa-grip-lines-vertical"></i><span>Chọn cột</span></button>
+                    <button type="button" data-summary-table-command="select-table"><i class="fa-solid fa-table"></i><span>Chọn bảng</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Chọn</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Thêm hàng và cột">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-summary-table-command="row-before"><i class="fa-solid fa-arrow-up"></i><span>Thêm hàng trên</span></button>
+                    <button type="button" data-summary-table-command="row-after"><i class="fa-solid fa-arrow-down"></i><span>Thêm hàng dưới</span></button>
+                    <button type="button" data-summary-table-command="column-before"><i class="fa-solid fa-arrow-left"></i><span>Thêm cột trái</span></button>
+                    <button type="button" data-summary-table-command="column-after"><i class="fa-solid fa-arrow-right"></i><span>Thêm cột phải</span></button>
+                    <button type="button" data-summary-table-command="delete-row"><i class="fa-solid fa-minus"></i><span>Xóa hàng</span></button>
+                    <button type="button" data-summary-table-command="delete-column"><i class="fa-solid fa-minus"></i><span>Xóa cột</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Hàng & cột</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Gộp và tách ô">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-summary-table-command="merge-cells"><i class="fa-solid fa-object-group"></i><span>Gộp ô</span></button>
+                    <button type="button" data-summary-table-command="split-cells"><i class="fa-solid fa-table-cells"></i><span>Tách ô</span></button>
+                    <button type="button" data-summary-table-command="split-table"><i class="fa-solid fa-scissors"></i><span>Chia bảng</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Gộp</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Kích thước hàng và cột">
+                  <div class="summary-study-ribbon-tools summary-study-table-dimensions">
+                    <label><span>Cao hàng (cm)</span><input type="number" min="0.2" max="30" step="0.1" data-summary-table-size="row-height" aria-label="Chiều cao hàng tính bằng xăng-ti-mét"></label>
+                    <label><span>Rộng cột (cm)</span><input type="number" min="0.2" max="30" step="0.1" data-summary-table-size="column-width" aria-label="Chiều rộng cột tính bằng xăng-ti-mét"></label>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Kích thước</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Kích thước và căn chỉnh ô">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-summary-table-command="distribute-rows"><i class="fa-solid fa-arrows-up-down"></i><span>Chia đều hàng</span></button>
+                    <button type="button" data-summary-table-command="distribute-columns"><i class="fa-solid fa-arrows-left-right"></i><span>Chia đều cột</span></button>
+                    <button type="button" data-summary-table-command="repeat-header"><i class="fa-solid fa-repeat"></i><span>Lặp hàng tiêu đề</span></button>
+                    <button type="button" data-summary-table-command="sort-ascending"><i class="fa-solid fa-arrow-down-a-z"></i><span>Sắp xếp A → Z</span></button>
+                    <button type="button" data-summary-table-command="sort-descending"><i class="fa-solid fa-arrow-up-z-a"></i><span>Sắp xếp Z → A</span></button>
+                    <button type="button" data-summary-table-command="convert-to-text"><i class="fa-solid fa-arrow-right-from-bracket"></i><span>Chuyển bảng thành văn bản</span></button>
+                    <select data-summary-table-autofit aria-label="Tự động điều chỉnh bảng">
+                      <option value="window">Vừa chiều rộng trang</option>
+                      <option value="contents">Vừa nội dung</option>
+                    </select>
+                    <select data-summary-table-cell-align aria-label="Căn nội dung trong ô">
+                      <option value="top">Căn trên</option>
+                      <option value="middle">Căn giữa dọc</option>
+                      <option value="bottom">Căn dưới</option>
+                    </select>
+                    <select data-summary-table-cell-padding aria-label="Lề trong ô">
+                      <option value="4">Lề ô nhỏ</option>
+                      <option value="8" selected>Lề ô vừa</option>
+                      <option value="12">Lề ô rộng</option>
+                    </select>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Kích thước & căn chỉnh</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Công thức bảng">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-summary-table-command="insert-formula"><i class="fa-solid fa-square-root-variable"></i><span>Công thức…</span></button>
+                    <button type="button" data-summary-table-command="recalculate-formulas"><i class="fa-solid fa-arrows-rotate"></i><span>Cập nhật công thức</span></button>
+                    <button type="button" data-summary-table-command="remove-formula"><i class="fa-solid fa-arrow-right-to-bracket"></i><span>Giữ giá trị</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Dữ liệu</span>
+                </div>
+              </div>
+              <div id="summary-study-panel-picture-format" class="summary-study-ribbon-panel summary-study-picture-context-panel" role="tabpanel" aria-labelledby="summary-study-tab-picture-format" data-summary-ribbon-panel="picture-format" hidden>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Xoay và lật ảnh">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-summary-image-action="rotate-left" aria-label="Xoay trái 90 độ"><i class="fa-solid fa-rotate-left"></i><span>Xoay trái</span></button>
+                    <button type="button" data-summary-image-action="rotate-right" aria-label="Xoay phải 90 độ"><i class="fa-solid fa-rotate-right"></i><span>Xoay phải</span></button>
+                    <button type="button" data-summary-image-action="flip-horizontal" aria-label="Lật ngang ảnh"><i class="fa-solid fa-arrows-left-right"></i><span>Lật ngang</span></button>
+                    <button type="button" data-summary-image-action="flip-vertical" aria-label="Lật dọc ảnh"><i class="fa-solid fa-arrows-up-down"></i><span>Lật dọc</span></button>
+                    <button type="button" data-summary-image-action="reset-image-transform"><i class="fa-solid fa-arrow-rotate-left"></i><span>Đặt lại</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Xoay & lật</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Thay ảnh và văn bản thay thế">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-summary-image-action="replace-image"><i class="fa-solid fa-repeat"></i><span>Thay ảnh</span></button>
+                    <button type="button" data-summary-image-action="image-alt-text"><i class="fa-solid fa-universal-access"></i><span>Văn bản thay thế</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Trợ năng & nguồn ảnh</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Bố trí ảnh và chữ">
+                  <div class="summary-study-ribbon-tools">
+                    <select data-summary-image-layout-select aria-label="Bố trí ảnh và chữ">
+                      <option value="inline">Cùng dòng với văn bản</option>
+                      <option value="center">Căn giữa</option>
+                      <option value="float-left">Chữ ôm bên trái</option>
+                      <option value="float-right">Chữ ôm bên phải</option>
+                    </select>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Bố trí</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Kích thước ảnh">
+                  <div class="summary-study-ribbon-tools summary-study-picture-size">
+                    <label><span>Rộng (px)</span><input type="number" min="16" max="2400" step="1" data-summary-image-size="width" aria-label="Chiều rộng ảnh tính bằng pixel"></label>
+                    <label><span>Cao (px)</span><input type="number" min="16" max="2400" step="1" data-summary-image-size="height" aria-label="Chiều cao ảnh tính bằng pixel"></label>
+                    <button type="button" data-summary-image-action="reset-image-size"><i class="fa-solid fa-arrows-rotate"></i><span>Đặt lại cỡ</span></button>
+                    <button type="button" data-summary-image-action="crop-image"><i class="fa-solid fa-crop-simple"></i><span>Cắt ảnh</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Kích thước</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Kiểu viền ảnh">
+                  <div class="summary-study-ribbon-tools">
+                    <select data-summary-image-border aria-label="Kiểu viền ảnh">
+                      <option value="none">Không viền</option>
+                      <option value="gray">Viền xám</option>
+                      <option value="teal">Viền xanh ngọc</option>
+                      <option value="black">Viền đen</option>
+                    </select>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Kiểu ảnh</span>
+                </div>
+              </div>
+              <div id="summary-study-panel-chart-design" class="summary-study-ribbon-panel summary-study-chart-context-panel" role="tabpanel" aria-labelledby="summary-study-tab-chart-design" data-summary-ribbon-panel="chart-design" hidden>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Dữ liệu biểu đồ">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-tool="chart-edit"><i class="fa-solid fa-table-list"></i><span>Sửa dữ liệu</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Dữ liệu</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Loại biểu đồ">
+                  <div class="summary-study-ribbon-tools">
+                    <select data-summary-chart-type aria-label="Loại biểu đồ">
+                      <option value="column">Biểu đồ cột</option>
+                      <option value="bar">Biểu đồ thanh</option>
+                      <option value="line">Biểu đồ đường</option>
+                    </select>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Loại</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Màu biểu đồ">
+                  <div class="summary-study-ribbon-tools">
+                    <select data-summary-chart-palette aria-label="Bảng màu biểu đồ">
+                      <option value="teal">Xanh ngọc</option>
+                      <option value="blue">Xanh dương</option>
+                      <option value="orange">Cam</option>
+                    </select>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Màu sắc</span>
+                </div>
+              </div>
+              <div id="summary-study-panel-diagram-design" class="summary-study-ribbon-panel summary-study-diagram-context-panel" role="tabpanel" aria-labelledby="summary-study-tab-diagram-design" data-summary-ribbon-panel="diagram-design" hidden>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Nội dung sơ đồ">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-tool="diagram-edit"><i class="fa-solid fa-diagram-project"></i><span>Sửa sơ đồ…</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Nội dung</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Bố cục sơ đồ">
+                  <div class="summary-study-ribbon-tools">
+                    <select data-summary-diagram-layout aria-label="Bố cục sơ đồ">
+                      <option value="process">Quy trình</option>
+                      <option value="cycle">Chu trình</option>
+                      <option value="hierarchy">Phân cấp</option>
+                    </select>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Bố cục</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Màu sơ đồ">
+                  <div class="summary-study-ribbon-tools">
+                    <select data-summary-diagram-palette aria-label="Bảng màu sơ đồ">
+                      <option value="teal">Xanh ngọc</option>
+                      <option value="blue">Xanh dương</option>
+                      <option value="orange">Cam</option>
+                    </select>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Màu sắc</span>
+                </div>
+              </div>
+              <div id="summary-study-panel-shape-format" class="summary-study-ribbon-panel summary-study-shape-context-panel" role="tabpanel" aria-labelledby="summary-study-tab-shape-format" data-summary-ribbon-panel="shape-format" hidden>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Kiểu hình dạng">
+                  <div class="summary-study-ribbon-tools">
+                    <select data-summary-shape-type aria-label="Kiểu hình dạng">
+                      <option value="rectangle">Hình chữ nhật</option>
+                      <option value="rounded-rectangle">Chữ nhật bo góc</option>
+                      <option value="ellipse">Hình elip</option>
+                      <option value="line">Đường thẳng</option>
+                      <option value="arrow">Mũi tên</option>
+                      <option value="triangle">Tam giác</option>
+                      <option value="diamond">Hình thoi</option>
+                      <option value="star">Ngôi sao</option>
+                      <option value="callout">Chú thích hội thoại</option>
+                    </select>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Hình dạng</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Màu tô hình dạng">
+                  <div class="summary-study-ribbon-tools">
+                    <label class="summary-study-ribbon-color"><input type="color" value="#DDF4EE" data-summary-shape-fill aria-label="Màu tô hình dạng"></label>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Tô màu</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Màu đường viền hình dạng">
+                  <div class="summary-study-ribbon-tools">
+                    <label class="summary-study-ribbon-color"><input type="color" value="#168C71" data-summary-shape-outline aria-label="Màu đường viền hình dạng"></label>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Đường viền</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Văn bản hình dạng">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-tool="shape-edit"><i class="fa-solid fa-font"></i><span>Sửa văn bản…</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Văn bản</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Kích thước hình dạng">
+                  <div class="summary-study-ribbon-tools summary-study-shape-size">
+                    <label><span>Rộng (px)</span><input type="number" min="16" max="2400" step="1" data-summary-shape-size="width" aria-label="Chiều rộng hình dạng tính bằng pixel"></label>
+                    <label><span>Cao (px)</span><input type="number" min="16" max="2400" step="1" data-summary-shape-size="height" aria-label="Chiều cao hình dạng tính bằng pixel"></label>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Kích thước</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Căn chỉnh hình dạng">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-summary-shape-align="left" aria-label="Căn hình sang trái" aria-pressed="false"><i class="fa-solid fa-align-left"></i><span>Trái</span></button>
+                    <button type="button" data-summary-shape-align="center" aria-label="Căn hình vào giữa" aria-pressed="true"><i class="fa-solid fa-align-center"></i><span>Giữa</span></button>
+                    <button type="button" data-summary-shape-align="right" aria-label="Căn hình sang phải" aria-pressed="false"><i class="fa-solid fa-align-right"></i><span>Phải</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Căn chỉnh</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Vị trí và ngắt dòng hình dạng">
+                  <div class="summary-study-ribbon-tools">
+                    <select data-summary-shape-layout aria-label="Vị trí và cách bố trí văn bản quanh hình">
+                      <option value="inline">Cùng dòng</option>
+                      <option value="center">Giữa văn bản</option>
+                      <option value="float-left">Bên trái, chữ bao quanh</option>
+                      <option value="float-right">Bên phải, chữ bao quanh</option>
+                    </select>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Vị trí & ngắt dòng</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Trợ năng hình dạng">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-editor-tool="shape-alt-text"><i class="fa-solid fa-universal-access"></i><span>Văn bản thay thế…</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Trợ năng</span>
+                </div>
+                <div class="summary-study-ribbon-group" role="group" aria-label="Xoay hình dạng">
+                  <div class="summary-study-ribbon-tools">
+                    <button type="button" data-summary-shape-transform="rotate-left" aria-label="Xoay hình dạng sang trái 90 độ"><i class="fa-solid fa-rotate-left"></i><span>Xoay trái</span></button>
+                    <button type="button" data-summary-shape-transform="rotate-right" aria-label="Xoay hình dạng sang phải 90 độ"><i class="fa-solid fa-rotate-right"></i><span>Xoay phải</span></button>
+                    <button type="button" data-summary-shape-transform="reset" aria-label="Đặt lại góc xoay hình dạng"><i class="fa-solid fa-arrow-rotate-left"></i><span>Đặt lại góc</span></button>
+                  </div>
+                  <span class="summary-study-ribbon-group-caption">Xoay</span>
+                </div>
+              </div>
+            </section>
             <div id="summary-study-shared-banner" class="summary-study-shared-banner" hidden><i class="fa-solid fa-link"></i><span>Bản tóm tắt được chia sẻ · Chế độ chỉ đọc</span></div>
             <div class="summary-study-workspace">
-              <aside class="summary-study-outline">
+              <aside id="summary-study-outline-panel" class="summary-study-outline">
                 <div class="summary-study-file summary-study-storage-head"><i class="fa-solid fa-star"></i><div><strong>Kho lưu trữ tương tác</strong><small>Thuật ngữ đã lưu</small></div></div>
                 <div id="summary-study-saved-terms" class="summary-study-saved-terms"><small>Chưa có thuật ngữ nào được lưu.</small></div>
                 <div class="summary-study-outline-title">Nội dung tài liệu</div>
                 <nav id="summary-study-outline-list"></nav>
                 <div class="summary-study-tip"><i class="fa-regular fa-lightbulb"></i><strong>Mẹo học</strong><span>Bôi đen một đoạn văn để yêu cầu AI giải thích hoặc đặt câu hỏi.</span></div>
               </aside>
-              <main class="summary-study-document">
-                <div class="summary-study-document-bar"><span><i class="fa-solid fa-book-open"></i> <b id="summary-study-location">Tóm tắt chi tiết</b></span><div><button type="button" data-summary-action="zoom-out">−</button><span id="summary-study-zoom">100%</span><button type="button" data-summary-action="zoom-in">+</button><button type="button" data-summary-action="fullscreen"><i class="fa-solid fa-expand"></i></button></div></div>
+              <main class="summary-study-document" aria-label="Tài liệu tóm tắt">
+                <div class="summary-study-document-bar"><span><i class="fa-solid fa-file-lines"></i> <b id="summary-study-location">Tóm tắt chi tiết</b></span><span class="summary-study-document-hint" id="summary-study-document-hint">Chế độ đọc · Chọn “Chỉnh sửa” để biên tập nội dung</span></div>
                 <article id="summary-study-document-body" class="summary-study-document-body"></article>
-                <div class="summary-study-document-tools"><button type="button" data-summary-action="highlight"><i class="fa-solid fa-highlighter"></i> Đánh dấu</button><button type="button" data-summary-action="remove-highlight"><i class="fa-solid fa-highlighter"></i> Bỏ đánh dấu</button><button type="button" data-summary-action="note"><i class="fa-solid fa-note-sticky"></i> Ghi chú</button><button type="button" data-summary-action="draw"><i class="fa-solid fa-pen-ruler"></i> Vẽ</button><button type="button" data-summary-action="erase"><i class="fa-solid fa-eraser"></i> Gôm</button><button type="button" data-summary-action="undo"><i class="fa-solid fa-rotate-left"></i> Hoàn tác</button><button type="button" data-summary-action="edit"><i class="fa-solid fa-pen-to-square"></i> Chỉnh sửa</button><span class="summary-study-color-palette" role="group" aria-label="Màu đánh dấu"><button type="button" class="active" data-summary-color="#fde68a" title="Vàng" aria-label="Màu vàng"></button><button type="button" data-summary-color="#bbf7d0" title="Xanh lá" aria-label="Màu xanh lá"></button><button type="button" data-summary-color="#bfdbfe" title="Xanh dương" aria-label="Màu xanh dương"></button><button type="button" data-summary-color="#fbcfe8" title="Hồng" aria-label="Màu hồng"></button></span><div class="summary-study-interaction-wrap"><button type="button" class="summary-study-interaction-trigger" data-summary-action="interaction" aria-haspopup="menu" aria-expanded="false"><i class="fa-solid fa-wand-magic-sparkles"></i> Tương tác <i class="fa-solid fa-chevron-down"></i></button><div class="summary-study-interaction-menu" role="menu" hidden><button type="button" data-interaction-action="define-term"><i class="fa-solid fa-book-open"></i><span><b>Giải thích nghĩa của từ</b><small>Ý nghĩa và cách dùng trong Công nghệ thực phẩm</small></span></button><button type="button" data-interaction-action="discuss"><i class="fa-solid fa-comments"></i><span><b>Thảo luận cùng AI</b><small>Trao đổi thêm trong chat box</small></span></button></div></div><button type="button" data-summary-action="export"><i class="fa-solid fa-file-pdf"></i> Xuất PDF</button></div>
+                <section id="summary-study-editor-shell" class="summary-study-editor-shell" hidden aria-label="Soạn thảo bản tóm tắt">
+                  <div class="summary-study-editor-controls">
+                    <span id="summary-study-editor-status" role="status">Đang chuẩn bị trình soạn thảo…</span>
+                    <input id="summary-study-docx-file" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document" hidden>
+                    <button type="button" data-summary-editor-action="import-docx"><i class="fa-solid fa-file-import"></i> Nhập DOCX</button>
+                    <button type="button" data-summary-editor-action="export-docx"><i class="fa-solid fa-file-export"></i> Xuất DOCX</button>
+                    <input id="summary-study-history-name" type="text" maxlength="80" placeholder="Tên phiên bản" aria-label="Tên phiên bản cần lưu">
+                    <button type="button" data-summary-editor-action="create-version"><i class="fa-solid fa-bookmark"></i> Lưu phiên bản</button>
+                    <button type="button" data-summary-editor-action="open-history"><i class="fa-solid fa-clock-rotate-left"></i> Lịch sử</button>
+                    <button type="button" data-summary-editor-action="cancel">Hủy thay đổi</button>
+                    <button type="button" data-summary-editor-action="save"><i class="fa-solid fa-floppy-disk"></i> Lưu bản tóm tắt</button>
+                  </div>
+                  <textarea id="summary-study-editor-source" aria-label="Nội dung bản tóm tắt"></textarea>
+                </section>
+                <dialog id="summary-study-history-dialog" class="summary-study-history-dialog" aria-labelledby="summary-study-history-title">
+                  <div class="summary-study-history-dialog-header">
+                    <div><span>QUẢN LÝ BẢN LƯU</span><h2 id="summary-study-history-title">Lịch sử phiên bản</h2></div>
+                    <button type="button" data-summary-history-close aria-label="Đóng lịch sử phiên bản">&times;</button>
+                  </div>
+                  <p class="summary-study-history-hint">Chỉ những phiên bản bạn chủ động lưu mới xuất hiện tại đây. Tối đa 8 phiên bản trên thiết bị này.</p>
+                  <div id="summary-study-history-list" class="summary-study-history-list"></div>
+                  <section id="summary-study-history-preview" class="summary-study-history-preview" hidden>
+                    <h3 id="summary-study-history-preview-title"></h3>
+                    <article id="summary-study-history-preview-content" class="summary-study-history-preview-content"></article>
+                  </section>
+                </dialog>
+                <div class="summary-study-document-tools"><button type="button" data-summary-action="highlight"><i class="fa-solid fa-highlighter"></i> Đánh dấu</button><button type="button" data-summary-action="remove-highlight"><i class="fa-solid fa-highlighter"></i> Bỏ đánh dấu</button><button type="button" data-summary-action="note"><i class="fa-solid fa-note-sticky"></i> Ghi chú</button><button type="button" data-summary-action="draw"><i class="fa-solid fa-pen-ruler"></i> Vẽ</button><button type="button" data-summary-action="erase"><i class="fa-solid fa-eraser"></i> Gôm</button><button type="button" data-summary-action="undo"><i class="fa-solid fa-rotate-left"></i> Hoàn tác</button><button type="button" data-summary-action="redo"><i class="fa-solid fa-rotate-right"></i> Làm lại</button><button type="button" data-summary-action="edit"><i class="fa-solid fa-pen-to-square"></i> Chỉnh sửa</button><span class="summary-study-color-palette" role="group" aria-label="Màu đánh dấu"><button type="button" class="active" data-summary-color="#fde68a" data-summary-contrast="true" title="Vàng" aria-label="Màu vàng"></button><button type="button" data-summary-color="#bbf7d0" data-summary-contrast="true" title="Xanh lá" aria-label="Màu xanh lá"></button><button type="button" data-summary-color="#bfdbfe" data-summary-contrast="true" title="Xanh dương" aria-label="Màu xanh dương"></button><button type="button" data-summary-color="#fbcfe8" data-summary-contrast="true" title="Hồng" aria-label="Màu hồng"></button></span><details class="summary-study-more-colors"><summary aria-label="Mở bảng màu đầy đủ">Màu khác</summary><div class="summary-study-more-colors-panel"><div class="summary-study-more-colors-heading">Màu chủ đề</div><div class="summary-study-color-palette" role="group" aria-label="Màu chủ đề"><button type="button" data-summary-color="#fff2cc" data-summary-contrast="true" title="Vàng nhạt" aria-label="Vàng nhạt"></button><button type="button" data-summary-color="#e2f0d9" data-summary-contrast="true" title="Xanh lá nhạt" aria-label="Xanh lá nhạt"></button><button type="button" data-summary-color="#d9eaf7" data-summary-contrast="true" title="Xanh da trời nhạt" aria-label="Xanh da trời nhạt"></button><button type="button" data-summary-color="#e4dfec" data-summary-contrast="true" title="Tím nhạt" aria-label="Tím nhạt"></button><button type="button" data-summary-color="#fce4d6" data-summary-contrast="true" title="Cam nhạt" aria-label="Cam nhạt"></button><button type="button" data-summary-color="#f4cccc" data-summary-contrast="true" title="Đỏ nhạt" aria-label="Đỏ nhạt"></button><button type="button" data-summary-color="#d9ead3" data-summary-contrast="true" title="Lá nhạt" aria-label="Lá nhạt"></button><button type="button" data-summary-color="#cfe2f3" data-summary-contrast="true" title="Lam nhạt" aria-label="Lam nhạt"></button></div><div class="summary-study-more-colors-heading">Màu tiêu chuẩn</div><div class="summary-study-color-palette" role="group" aria-label="Màu tiêu chuẩn"><button type="button" data-summary-color="#ff0000" title="Đỏ" aria-label="Đỏ"></button><button type="button" data-summary-color="#ff9900" title="Cam" aria-label="Cam"></button><button type="button" data-summary-color="#ffff00" title="Vàng" aria-label="Vàng"></button><button type="button" data-summary-color="#00ff00" title="Xanh lá" aria-label="Xanh lá"></button><button type="button" data-summary-color="#00ffff" title="Xanh ngọc" aria-label="Xanh ngọc"></button><button type="button" data-summary-color="#0000ff" title="Xanh dương" aria-label="Xanh dương"></button><button type="button" data-summary-color="#9900ff" title="Tím" aria-label="Tím"></button><button type="button" data-summary-color="#ff00ff" title="Hồng tím" aria-label="Hồng tím"></button></div><label class="summary-study-custom-color">Màu tùy chỉnh <input type="color" data-summary-color-picker aria-label="Chọn màu tùy chỉnh" value="#fde68a"></label><label class="summary-study-high-contrast"><input type="checkbox" data-summary-high-contrast> Chỉ màu tương phản cao</label></div></details><div class="summary-study-interaction-wrap"><button type="button" class="summary-study-interaction-trigger" data-summary-action="interaction" aria-haspopup="menu" aria-expanded="false"><i class="fa-solid fa-wand-magic-sparkles"></i> Tương tác <i class="fa-solid fa-chevron-down"></i></button><div class="summary-study-interaction-menu" role="menu" hidden><button type="button" data-interaction-action="define-term"><i class="fa-solid fa-book-open"></i><span><b>Giải thích nghĩa của từ</b><small>Ý nghĩa và cách dùng trong Công nghệ thực phẩm</small></span></button><button type="button" data-interaction-action="discuss"><i class="fa-solid fa-comments"></i><span><b>Thảo luận cùng AI</b><small>Trao đổi thêm trong chat box</small></span></button></div></div><button type="button" data-summary-action="export"><i class="fa-solid fa-file-pdf"></i> Xuất PDF</button></div>
                 <div class="summary-study-learning-actions"><button type="button" data-summary-action="self-explain"><i class="fa-solid fa-brain"></i> Tự giải thích &amp; đối chiếu</button><button type="button" data-summary-action="share-selection"><i class="fa-solid fa-share-nodes"></i> Chia sẻ đoạn chọn</button></div>
                 <div id="summary-study-context-menu" class="summary-study-context-menu" role="menu" hidden><button type="button" data-summary-context-action="highlight"><i class="fa-solid fa-highlighter"></i> Đánh dấu đoạn chọn</button><button type="button" data-summary-context-action="remove-highlight"><i class="fa-solid fa-highlighter"></i> Bỏ đánh dấu tại đây</button><button type="button" data-summary-context-action="note"><i class="fa-solid fa-note-sticky"></i> Tạo ghi chú từ đoạn chọn</button></div>
                 <div id="summary-study-term-dialog" class="summary-study-term-dialog" role="dialog" aria-modal="true" aria-labelledby="summary-study-term-title" hidden><div class="summary-study-term-card"><button type="button" class="summary-study-term-close" aria-label="Đóng">&times;</button><span class="summary-study-term-kicker"><i class="fa-solid fa-book-open"></i> TRA CỨU THUẬT NGỮ</span><div class="summary-study-term-title-row"><h3 id="summary-study-term-title">Giải thích nghĩa của từ</h3><button type="button" id="summary-study-term-save" class="summary-study-term-save" aria-label="Lưu thuật ngữ" title="Lưu vào kho"><i class="fa-regular fa-star"></i></button></div><div id="summary-study-term-status" class="summary-study-term-status">Đang kết nối AI…</div><div id="summary-study-term-result" class="summary-study-term-result"></div></div></div>
@@ -1205,12 +1799,33 @@
                 <div id="summary-study-self-explain-dialog" class="summary-study-term-dialog" role="dialog" aria-modal="true" aria-labelledby="summary-study-self-explain-title" hidden><div class="summary-study-term-card summary-study-self-explain-card"><button type="button" class="summary-study-self-explain-close summary-study-term-close" aria-label="Đóng">&times;</button><span class="summary-study-term-kicker"><i class="fa-solid fa-brain"></i> TỰ NHỚ LẠI</span><h3 id="summary-study-self-explain-title">Hãy giải thích bằng lời của bạn</h3><p class="summary-study-self-explain-hint">Thử viết điều bạn nhớ trước. Đoạn gốc sẽ được mở sau khi AI đối chiếu.</p><textarea id="summary-study-self-explain-input" rows="5" maxlength="3000" placeholder="Mình hiểu phần này là…"></textarea><div id="summary-study-self-explain-result" class="summary-study-self-explain-result" hidden></div><blockquote id="summary-study-self-explain-source" hidden></blockquote><div class="summary-study-note-actions"><button type="button" id="summary-study-self-explain-submit">Đối chiếu với AI</button></div></div></div>
                 <div id="summary-study-shared-dialog" class="summary-study-term-dialog" role="dialog" aria-modal="true" aria-labelledby="summary-study-shared-title" hidden><div class="summary-study-term-card"><button type="button" class="summary-study-shared-close summary-study-term-close" aria-label="Đóng">&times;</button><span class="summary-study-term-kicker"><i class="fa-solid fa-share-nodes"></i> ĐOẠN TÓM TẮT ĐƯỢC CHIA SẺ</span><h3 id="summary-study-shared-title"></h3><blockquote id="summary-study-shared-excerpt"></blockquote><button type="button" id="summary-study-shared-copy">Sao chép đoạn trích</button></div></div>
               </main>
-              <aside class="summary-study-ai">
-                <div id="summary-study-chat" class="summary-study-chat"><div class="summary-study-mascot-stage"><button type="button" class="summary-study-mascot summary-study-mascot-main" aria-label="Tương tác với Lumi"><span class="summary-study-mascot-squash"><span class="summary-study-mascot-layer summary-study-mascot-directions"></span><span class="summary-study-mascot-layer summary-study-mascot-reactions"></span></span><span class="summary-study-mascot-bubble" role="status"></span></button><div class="summary-study-mascot-caption">Lumi đang đồng hành cùng bạn</div></div><div class="summary-study-comic-scene"><div class="summary-study-ai-message"><b>Xin chào! Mình là Lumi.</b><span>Mình có thể giúp bạn hiểu, ghi nhớ và luyện tập trên tài liệu này. Bạn muốn hỏi điều gì?</span></div></div></div>
-                <div class="summary-study-quick-actions"><button type="button" data-ai-action="explain">Giải thích ngắn</button><button type="button" data-summary-chat-prompt="why">Vì sao?</button><button type="button" data-summary-chat-prompt="what-if">Điều gì xảy ra nếu…?</button><button type="button" data-ai-action="solve">Giải bài tập</button><button type="button" data-ai-action="quiz">Tạo trắc nghiệm</button><button type="button" data-ai-action="flashcard">Tạo flashcard</button></div>
+              <button type="button" id="summary-study-ai-backdrop" class="summary-study-ai-backdrop" aria-label="Đóng bảng Lumi" hidden></button>
+              <aside class="summary-study-ai" role="dialog" aria-modal="false" aria-labelledby="summary-study-ai-title" aria-hidden="true">
+                <header class="summary-study-ai-header">
+                  <span class="summary-study-avatar summary-study-avatar-static" aria-hidden="true">L</span>
+                  <div><strong id="summary-study-ai-title">Lumi</strong><small>Lumi đang đồng hành cùng bạn</small></div>
+                  <button type="button" class="summary-study-ai-close" data-summary-action="toggle-ai" aria-label="Đóng Lumi" title="Đóng Lumi" aria-expanded="false"><i class="fa-solid fa-xmark"></i></button>
+                </header>
+                <div id="summary-study-chat" class="summary-study-chat"><div class="summary-study-comic-scene"><div class="summary-study-ai-message"><b>Xin chào! Mình là Lumi.</b><span>Mình có thể giúp bạn hiểu, ghi nhớ và luyện tập trên tài liệu này. Bạn muốn hỏi điều gì?</span></div></div></div>
                 <form id="summary-study-chat-form" class="summary-study-chat-form"><textarea id="summary-study-chat-input" rows="2" placeholder="Hỏi Lumi về nội dung đang học..."></textarea><button type="submit" aria-label="Gửi câu hỏi"><i class="fa-solid fa-paper-plane"></i></button><small>Lumi ưu tiên bản tóm tắt, và tìm nguồn Internet khi tài liệu chưa đủ.</small></form>
               </aside>
             </div>
+            <button type="button" id="lumi-fab" class="lumi-fab" data-summary-action="toggle-ai" aria-label="Mở trợ lý Lumi" aria-expanded="false" title="Mở trợ lý Lumi"><i class="fa-solid fa-comments"></i></button>
+            <div id="selection-toolbar" class="summary-study-selection-toolbar" role="toolbar" aria-label="Công cụ văn bản đã chọn" hidden>
+              <button type="button" data-selection-action="bold" aria-label="In đậm" title="In đậm"><strong>B</strong></button>
+              <button type="button" data-selection-action="italic" aria-label="In nghiêng" title="In nghiêng"><em>I</em></button>
+              <button type="button" data-selection-action="underline" aria-label="Gạch chân" title="Gạch chân"><u>U</u></button>
+              <span class="summary-study-selection-divider" aria-hidden="true"></span>
+              <button type="button" data-selection-action="highlight" aria-label="Tô màu nền" title="Tô màu nền"><i class="fa-solid fa-highlighter"></i><span>Màu nền</span></button>
+              <button type="button" data-selection-action="read-aloud" aria-label="Đọc đoạn đã chọn" title="Đọc to"><i class="fa-solid fa-volume-high"></i><span>Đọc to</span></button>
+              <button type="button" data-selection-action="note" aria-label="Ghi chú đoạn đã chọn" title="Ghi chú"><i class="fa-solid fa-note-sticky"></i><span>Ghi chú</span></button>
+              <button type="button" data-selection-action="ask-lumi" aria-label="Hỏi Lumi về đoạn đã chọn" title="Hỏi Lumi"><i class="fa-solid fa-comments"></i><span>Hỏi Lumi</span></button>
+            </div>
+            <footer class="summary-study-statusbar" aria-label="Trạng thái tài liệu">
+              <span id="summary-study-word-count">0 từ</span>
+              <span><i class="fa-solid fa-hard-drive"></i> <span id="summary-study-statusbar-save" title="Bản lưu trên thiết bị">✓ Đã lưu</span></span>
+              <button type="button" data-summary-action="export"><i class="fa-solid fa-print"></i> In / PDF</button>
+            </footer>
           </div>
         </section>
 
@@ -2582,6 +3197,6 @@
       updateVisuals();
     });
   </script>
-  <script type="module" src="app.js?v=20260926-summary-drawing-1x"></script>
+  <script type="module" src="app.js?v=20260928-reader-split-resources"></script>
 </body>
 </html>

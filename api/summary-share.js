@@ -3,6 +3,8 @@ import admin from 'firebase-admin';
 const COLLECTION = 'summaryShares';
 const SHARE_ID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_SUMMARY_BYTES = 450_000;
+const MAX_DOCUMENT_HTML_BYTES = 450_000;
+const MAX_SHARE_BYTES = 850_000;
 const rateBuckets = new Map();
 
 function json(res, status, body) {
@@ -58,6 +60,12 @@ function cleanSummary(value) {
   return summary;
 }
 
+function cleanDocumentHtml(value) {
+  if (value === undefined || value === null || value === '') return null;
+  if (typeof value !== 'string' || Buffer.byteLength(value, 'utf8') > MAX_DOCUMENT_HTML_BYTES) return null;
+  return value;
+}
+
 function getShareId(req) {
   const requestUrl = new URL(req.url || '/', 'https://fteca.invalid');
   const shareId = String(req.query?.id || requestUrl.searchParams.get('id') || '');
@@ -84,19 +92,23 @@ export default async function handler(req, res) {
       const data = snapshot.data();
       return json(res, 200, {
         ok: true,
-        summary: { title: data.title, result: data.result, createdAt: data.createdAt }
+        summary: { title: data.title, result: data.result, documentHtml: data.documentHtml || null, createdAt: data.createdAt }
       });
     }
 
     const uid = await requireUser(req, serviceAccount);
     if (req.method === 'POST') {
-      const { shareId, title, result } = req.body || {};
+      const { shareId, title, result, documentHtml: rawDocumentHtml } = req.body || {};
       if (!SHARE_ID_PATTERN.test(String(shareId || ''))) {
         return json(res, 400, { ok: false, reason: 'invalid-share-id' });
       }
       const summary = cleanSummary(result);
+      const documentHtml = cleanDocumentHtml(rawDocumentHtml);
       const cleanTitle = String(title || '').trim().slice(0, 180);
-      if (!cleanTitle || !summary) return json(res, 400, { ok: false, reason: 'invalid-summary' });
+      if (!cleanTitle || !summary || (rawDocumentHtml != null && rawDocumentHtml !== '' && !documentHtml)
+        || Buffer.byteLength(JSON.stringify({ summary, documentHtml }), 'utf8') > MAX_SHARE_BYTES) {
+        return json(res, 400, { ok: false, reason: 'invalid-summary' });
+      }
 
       const ref = db.collection(COLLECTION).doc(shareId);
       const existing = await ref.get();
@@ -104,7 +116,7 @@ export default async function handler(req, res) {
         return json(res, 409, { ok: false, reason: 'share-id-conflict' });
       }
       const createdAt = existing.exists ? existing.data().createdAt : new Date().toISOString();
-      await ref.set({ ownerUid: uid, title: cleanTitle, result: summary, createdAt, updatedAt: new Date().toISOString() });
+      await ref.set({ ownerUid: uid, title: cleanTitle, result: summary, documentHtml, createdAt, updatedAt: new Date().toISOString() });
       return json(res, 200, { ok: true, shareId, createdAt });
     }
 
