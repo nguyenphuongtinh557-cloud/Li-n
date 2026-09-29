@@ -11,13 +11,17 @@ import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion } 
 import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer, pullFeedbacksFromServer, pullSubjectDetailsFromServer } from './modules/sync.js?v=20260908subject-details-api1';
 import { initAdminAuth } from './modules/admin.js';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js?v=20260901c';
-import { NavController } from './modules/navigation.js?v=20260921-deep-link-history';
+import { NavController } from './modules/navigation.js?v=20260928-neutral-dark';
 import { AuthModule, getUserRole, SUPER_ADMIN_EMAILS } from './modules/auth.js?v=20260920-profile-hero-cleanup';
 import { ArticlesModule } from './modules/articles.js?v=20260921-deep-link-history';
 import { readSummary, writeSummary, clearSessionCache, summaryIsComplete, summaryIsStale } from './modules/firestoreSummary.js';
 import { renderMindmap, renderStructuredMindmap, initMindmapControls } from './modules/mindmap.js';
 import { updateUserRoleInFirestore } from './modules/firestoreUsers.js';
 import { renderMarkdownTables } from './modules/markdownTables.js';
+import { mountRichTextEditor, prepareRichTextDocument, readSummaryText, runSummaryEditorTableCommand, runSummaryEditorTool, sanitizeRichTextHtml } from './modules/richTextEditor.js?v=20260928-summary-study-ribbon-v35';
+import { createSummaryDocumentVersion, readSummaryDocumentHistory } from './modules/summaryDocumentHistory.js?v=20260926-summary-history-v2';
+import { updateThemeMorphIcons } from './vendor/themeMorphIcon.js?v=20260926-morphicons-theme-toggle-v2';
+import { exportSummaryHtmlToDocx } from './vendor/summaryDocx.js?v=20260928-insert-layout-v18';
 
 const _lazyAssets = new Map();
 
@@ -55,6 +59,19 @@ function ensureMammoth() {
   return loadExternalScript('https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js', 'mammoth');
 }
 window.ensureMammoth = window.ensureMammoth || ensureMammoth;
+
+async function importSummaryStudyDocx(file) {
+  if (!file || !/\.docx$/i.test(file.name)) throw new Error('Vui lòng chọn tệp .docx.');
+  if (file.size > 20 * 1024 * 1024) throw new Error('Tệp DOCX vượt quá giới hạn 20 MB.');
+  await ensureMammoth();
+  const result = await window.mammoth.convertToHtml(
+    { arrayBuffer: await file.arrayBuffer() },
+    { includeDefaultStyleMap: true, styleMap: ["u => u", "strike => s"] }
+  );
+  const html = sanitizeRichTextHtml(result.value);
+  if (!html.trim()) throw new Error('Không tìm thấy nội dung văn bản trong tệp DOCX.');
+  return { html, warnings: result.messages.filter(message => message.type === 'warning') };
+}
 
 function ensureTinyMCE() {
   return loadExternalScript('https://cdnjs.cloudflare.com/ajax/libs/tinymce/6.8.2/tinymce.min.js', 'tinymce');
@@ -1380,6 +1397,7 @@ function saveSettings() {
 
   DB.saveSettings({ apiKey, theme: isDark ? 'dark' : 'light' });
   document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+  updateThemeButton(isDark ? 'dark' : 'light');
 
   closeSettings();
   showToast('Đã lưu cài đặt!', 'success');
@@ -1394,13 +1412,7 @@ function toggleTheme() {
 }
 
 function updateThemeButton(theme) {
-  const btn = document.getElementById('btn-theme-top');
-  if (!btn) return;
-
-  const isDark = theme === 'dark';
-  btn.innerHTML = isDark ? '<i class="fa-solid fa-sun"></i>' : '<i class="fa-solid fa-moon"></i>';
-  btn.title = isDark ? 'Chuyển sang chế độ sáng' : 'Chuyển sang chế độ tối';
-  btn.setAttribute('aria-label', btn.title);
+  updateThemeMorphIcons(theme, { animate: document.documentElement.hasAttribute('data-theme') });
 }
 
 function togglePauseExam() {
@@ -3282,6 +3294,12 @@ function buildLessonOutline(blocks = []) {
   return (Array.isArray(blocks) ? blocks : []).filter(b => b?.type === 'heading')
     .map((b, i) => ({ id: `reader-heading-${i}`, level: String(b.level || 'h2').toLowerCase() === 'h3' ? 'h3' : 'h2', title: String(b.content || '').replace(/<[^>]*>/g, '').trim() || `Phần ${i + 1}` }));
 }
+function studyReaderResourceCategory(r = {}) {
+  if (/đề thi|exam|giữa kỳ|cuối kỳ|thi thử|ngân hàng đề/i.test(String(r.name || ''))) return 'exam';
+  const type = String(r.type || '').toLowerCase();
+  if (type === 'exam' || type === 'quiz') return 'exam';
+  return 'lecture';
+}
 function getStudyReaderDetails(context = {}) {
   if (context.summaryResult) {
     return {
@@ -3294,12 +3312,14 @@ function getStudyReaderDetails(context = {}) {
     };
   }
   const details = DB.getSubjectDetails(context.subjectId) || {};
-  const resources = DB.getResources(context.subjectId).filter(r => r.readerConfig?.visibility !== 'draft');
-  const resource = context.resourceId ? resources.find(r => r.id === context.resourceId) : null;
+  const visibleResources = DB.getResources(context.subjectId).filter(r => r.readerConfig?.visibility !== 'draft');
+  const resource = context.resourceId ? visibleResources.find(r => r.id === context.resourceId) : null;
+  const resourceCategory = context.resourceCategory === 'exam' || context.resourceCategory === 'lecture' ? context.resourceCategory : studyReaderResourceCategory(resource || {});
+  const resources = visibleResources.filter(r => studyReaderResourceCategory(r) === resourceCategory);
   let found = null;
   for (const chapter of details.chapters || []) for (const lesson of chapter.lessons || []) if (lesson.id === (context.lessonId || resource?.readerConfig?.lessonId)) found = { chapter, lesson };
   if (!found && !resource) { const chapter = (details.chapters || []).find(c => c.lessons?.length); if (chapter) found = { chapter, lesson: chapter.lessons[0] }; }
-  return { ...context, details, resources, resource, lesson: found?.lesson || null, chapterId: found?.chapter?.id || context.chapterId || resource?.readerConfig?.chapterId || null };
+  return { ...context, details, resources, resource, resourceCategory, lesson: found?.lesson || null, chapterId: found?.chapter?.id || context.chapterId || resource?.readerConfig?.chapterId || null };
 }
 function stripStudyReaderText(value) { const el = document.createElement('div'); el.innerHTML = String(value || ''); return (el.textContent || '').replace(/\s+/g, ' ').trim(); }
 function extractStudyReaderText(context = _studyReaderContext || {}) {
@@ -3320,7 +3340,10 @@ function safeStudyReaderRichText(html) {
   const allowed = new Set(['P','DIV','BR','STRONG','B','EM','I','U','UL','OL','LI','H2','H3','H4','BLOCKQUOTE','PRE','CODE','A','IMG','TABLE','THEAD','TBODY','TR','TH','TD','VIDEO','SOURCE','IFRAME']);
   template.content.querySelectorAll('*').forEach(node => {
     if (!allowed.has(node.tagName)) return node.replaceWith(document.createTextNode(node.textContent || ''));
+    const rawAlign = (node.style ? node.style.textAlign : '') || node.getAttribute('align') || '';
     [...node.attributes].forEach(attr => { const floating = node.tagName === 'IMG' && ((attr.name === 'class' && attr.value === 'review-floating-media') || (['data-review-float-x','data-review-float-y'].includes(attr.name) && /^-?\d{1,4}$/.test(attr.value))); const media = ['IMG','VIDEO','SOURCE','IFRAME'].includes(node.tagName) && ['src','alt','title','width','height','controls','allowfullscreen'].includes(attr.name) && (attr.name !== 'src' || (isStudyReaderAllowedUrl(attr.value) && (node.tagName !== 'IFRAME' || /youtube\.com|youtu\.be|vimeo\.com/i.test(new URL(attr.value).hostname)))); const valid = (node.tagName === 'A' && attr.name === 'href' && isStudyReaderAllowedUrl(attr.value)) || media || floating; if (!valid) node.removeAttribute(attr.name); });
+    const align = { left: 'left', center: 'center', right: 'right', justify: 'justify', start: 'left', end: 'right' }[String(rawAlign).trim().toLowerCase()];
+    if (align) node.style.textAlign = align;
     if (node.tagName === 'A') { node.target = '_blank'; node.rel = 'noopener noreferrer'; } if (node.tagName === 'IMG' && node.classList.contains('review-floating-media')) { const x = Number(node.getAttribute('data-review-float-x') || 0), y = Number(node.getAttribute('data-review-float-y') || 0); node.style.position = 'absolute'; node.style.left = Math.max(-240, Math.min(900, x)) + 'px'; node.style.top = Math.max(-240, Math.min(1600, y)) + 'px'; }
   }); return template.innerHTML;
 }
@@ -3332,16 +3355,30 @@ function renderStudyReaderContent(context = _studyReaderContext || {}) {
     const result = data.summaryResult;
     const chapters = Array.isArray(result.chapters) ? result.chapters : [];
     const chapterHtml = chapters.map((chapter, index) => `<section class="summary-study-chapter" id="summary-study-chapter-${index + 1}"><h2>${escapeHtml(chapter.title || `Chương ${index + 1}`)}</h2>${chapter.content ? `<div class="student-reader-body">${_csMarkdown(chapter.content)}</div>` : ''}${Array.isArray(chapter.key_points) && chapter.key_points.length ? `<ul>${chapter.key_points.map(point => `<li>${escapeHtml(point)}</li>`).join('')}</ul>` : ''}</section>`).join('');
-    content.innerHTML = `<header class="study-reader-document-head"><span class="study-reader-kicker"><i class="fa-solid fa-graduation-cap"></i> KHÔNG GIAN ÔN TẬP</span><div class="study-reader-doc-number">01</div><div><h1>${escapeHtml(result.title || context.title || 'Tài liệu ôn tập')}</h1><p>Đọc tài liệu, ghi chú và trao đổi với AI Tutor trong cùng một không gian.</p></div></header><section class="student-reader-body summary-study-overview">${result.overview ? _csMarkdown(result.overview) : ''}${Array.isArray(result.key_points) && result.key_points.length ? `<h2>Điểm cần nhớ</h2><ul>${result.key_points.map(point => `<li>${escapeHtml(point)}</li>`).join('')}</ul>` : ''}</section>${chapterHtml || '<p class="interactive-reader-text">Bản tóm tắt chưa có nội dung chương.</p>'}`;
+    content.innerHTML = `<header class="study-reader-document-head"><div class="study-reader-kicker">Không gian ôn tập</div><h1 class="study-reader-doc-title">01 · ${escapeHtml(result.title || context.title || 'Tài liệu ôn tập')}</h1></header><section class="student-reader-body summary-study-overview">${result.overview ? _csMarkdown(result.overview) : ''}${Array.isArray(result.key_points) && result.key_points.length ? `<h2>Điểm cần nhớ</h2><ul>${result.key_points.map(point => `<li>${escapeHtml(point)}</li>`).join('')}</ul>` : ''}</section>${chapterHtml || '<p class="interactive-reader-text">Bản tóm tắt chưa có nội dung chương.</p>'}`;
   } else if (data.resource) {
     const r = data.resource, url = isStudyReaderAllowedUrl(r.url) ? r.url : '', embeddable = url && (/\.pdf(?:[?#]|$)/i.test(url) || /drive\.google\.com|youtu(?:\.be|be\.com)/i.test(url));
-    content.innerHTML = `<header class="study-reader-document-head"><span class="study-reader-kicker"><i class="fa-solid fa-file-lines"></i> TÀI LIỆU HỌC TẬP</span><div class="study-reader-doc-number">${escapeHtml(String(r.readerConfig?.order || '•'))}</div><div><h1>${escapeHtml(r.name || 'Tài liệu')}</h1><p>${escapeHtml(r.description || '')}</p></div></header>${r.content ? `<section class="student-reader-body">${safeStudyReaderRichText(r.content)}</section>` : '<div class="study-reader-empty"><div><i class="fa-solid fa-pen-to-square"></i><p>Admin chưa đăng nội dung trọng tâm cho tài liệu này.</p><small>File gốc có thể tải từ nút ở góc trên bên phải.</small></div></div>'}`;
+    content.innerHTML = `<header class="study-reader-document-head"><div class="study-reader-kicker">Tài liệu học tập</div><h1 class="study-reader-doc-title">${escapeHtml(String(r.readerConfig?.order || '01'))} · ${escapeHtml(r.name || 'Tài liệu')}</h1></header>${r.content ? `<section class="student-reader-body">${safeStudyReaderRichText(r.content)}</section>` : '<div class="study-reader-empty"><div><i class="fa-solid fa-pen-to-square"></i><p>Admin chưa đăng nội dung trọng tâm cho tài liệu này.</p><small>File gốc có thể tải từ nút ở góc trên bên phải.</small></div></div>'}`;
   } else if (data.lesson) {
     const outline = buildLessonOutline(data.lesson.blocks); let n = 0;
     const body = (data.lesson.blocks || []).map(b => { const text = escapeHtml(b.content || '').replace(/\n/g, '<br>'); if (b.type === 'lessonDocument') return `<article class="review-lesson-document">${safeStudyReaderRichText(b.content)}</article>`; if (b.type === 'image' && isStudyReaderAllowedUrl(b.src)) return `<figure class="review-lesson-media-reader"><img src="${escapeHtml(b.src)}" alt="${escapeHtml(b.alt || '')}"></figure>`; if (b.type === 'video' && isStudyReaderAllowedUrl(b.src)) return `<p class="review-lesson-media-reader"><a href="${escapeHtml(b.src)}" target="_blank" rel="noopener noreferrer">Mở video bài giảng</a></p>`; if (b.type === 'heading') { const h = outline[n++]; return `<${h.level} id="${h.id}" class="interactive-reader-heading">${text}</${h.level}>`; } return b.type === 'legacyHtml' ? `<div class="student-reader-body">${safeStudyReaderRichText(b.content)}</div>` : `<p class="interactive-reader-text">${text}</p>`; }).join('') || '<p class="interactive-reader-text">Bài học chưa có nội dung soạn thảo.</p>';
-    content.innerHTML = `<header class="study-reader-document-head"><span class="study-reader-kicker"><i class="fa-solid fa-book-open"></i> BÀI GIẢNG TƯƠNG TÁC</span><div class="study-reader-doc-number">01</div><div><h1>${escapeHtml(data.lesson.title || 'Bài giảng')}</h1></div></header><section class="student-reader-body">${body}</section>`;
-  } else content.innerHTML = '<div class="study-reader-empty"><div><i class="fa-solid fa-book-open-reader"></i><p>Chưa có bài giảng hoặc tài liệu đã xuất bản.</p></div></div>';
+    content.innerHTML = `<header class="study-reader-document-head"><div class="study-reader-kicker">Bài giảng tương tác</div><h1 class="study-reader-doc-title">01 · ${escapeHtml(data.lesson.title || 'Bài giảng')}</h1></header><section class="student-reader-body">${body}</section>`;
+  } else content.innerHTML = '<div class="study-reader-empty"><div class="study-reader-empty-card"><div class="empty-pencil-icon"><i class="fa-solid fa-pen-nib"></i></div><h3>Chưa có nội dung tài liệu</h3><p>Tài liệu sẽ hiển thị tại đây khi bạn chọn bài học từ danh sách mục lục.</p></div></div>';
   restoreStudyReaderHighlights(); mountStudyReaderAnnotationLayer(); return data;
+}
+
+function toggleStudyReaderFocusMode() {
+  const page = document.getElementById('page-study-reader');
+  if (!page) return;
+  const isFocus = page.classList.toggle('focus-mode');
+  const btn = document.getElementById('study-reader-focus-toggle');
+  if (btn) {
+    btn.classList.toggle('active', isFocus);
+    btn.innerHTML = isFocus
+      ? '<i class="fa-solid fa-compress"></i> <span>Thoát tập trung</span>'
+      : '<i class="fa-solid fa-expand"></i> <span>Tập trung</span>';
+  }
+  showToast(isFocus ? '🔍 Đã bật Chế độ Tập Trung Đọc' : 'Đã thoát Chế độ Tập Trung', 'info');
 }
 function renderStudyReaderToc(context = _studyReaderContext || {}) {
   const data = getStudyReaderDetails(context), list = document.getElementById('study-reader-toc-list'); if (!list) return; list.innerHTML = '';
@@ -3538,7 +3575,51 @@ function initStudyReaderSummaryControls() {
   loadStudyReaderSummaryCache();
 }
 
-function bindStudyReaderControls() { document.getElementById('study-reader-back').onclick = () => NavController.closeStudyReader(); const input = document.getElementById('study-reader-note-input'); if (input) input.oninput = () => { clearTimeout(_studyReaderNoteTimer); _studyReaderNoteTimer = setTimeout(() => saveStudyReaderNote({ text: input.value }), 450); }; const find = document.getElementById('study-reader-find'); if (find) find.oninput = () => { const query = find.value.trim().toLocaleLowerCase('vi-VN'); document.querySelectorAll('#study-reader-toc-list button').forEach(b => { const match = !query || b.dataset.readerLabel.includes(query); b.hidden = !match; b.classList.toggle('reader-search-match', Boolean(query && match)); }); }; document.querySelectorAll('[data-reader-action]').forEach(b => b.onclick = ({ note: studyReaderCreateNoteFromSelection, highlight: studyReaderApplyHighlight, annotate: studyReaderToggleAnnotation, undo: studyReaderUndoAnnotation, clear: studyReaderClearAnnotations }[b.dataset.readerAction] || (() => {}))); document.querySelectorAll('[data-annotation-color]').forEach(button => button.onclick = () => { _studyReaderAnnotationColor = button.dataset.annotationColor; document.querySelectorAll('[data-annotation-color]').forEach(item => item.classList.toggle('active', item === button)); if (_studyReaderAnnotationEnabled) mountStudyReaderAnnotationLayer(); }); }
+function bindStudyReaderControls() {
+  document.getElementById('study-reader-back').onclick = () => NavController.closeStudyReader();
+  const input = document.getElementById('study-reader-note-input');
+  if (input) input.oninput = () => { clearTimeout(_studyReaderNoteTimer); _studyReaderNoteTimer = setTimeout(() => saveStudyReaderNote({ text: input.value }), 450); };
+  const find = document.getElementById('study-reader-find');
+  if (find) find.oninput = () => {
+    const query = find.value.trim().toLocaleLowerCase('vi-VN');
+    document.querySelectorAll('#study-reader-toc-list button').forEach(b => {
+      const match = !query || b.dataset.readerLabel.includes(query);
+      b.hidden = !match;
+      b.classList.toggle('reader-search-match', Boolean(query && match));
+    });
+  };
+
+  const palette = document.getElementById('study-reader-color-palette');
+  const actionHandlers = {
+    note: studyReaderCreateNoteFromSelection,
+    highlight: () => {
+      studyReaderApplyHighlight();
+      if (palette) palette.classList.remove('hidden');
+    },
+    annotate: () => {
+      studyReaderToggleAnnotation();
+      if (palette) palette.classList.toggle('hidden', !_studyReaderAnnotationEnabled);
+    },
+    undo: studyReaderUndoAnnotation,
+    clear: () => {
+      studyReaderClearAnnotations();
+      if (palette) palette.classList.add('hidden');
+    }
+  };
+
+  document.querySelectorAll('[data-reader-action]').forEach(b => {
+    b.onclick = () => {
+      const fn = actionHandlers[b.dataset.readerAction];
+      if (fn) fn();
+    };
+  });
+
+  document.querySelectorAll('[data-annotation-color]').forEach(button => button.onclick = () => {
+    _studyReaderAnnotationColor = button.dataset.annotationColor;
+    document.querySelectorAll('[data-annotation-color]').forEach(item => item.classList.toggle('active', item === button));
+    if (_studyReaderAnnotationEnabled) mountStudyReaderAnnotationLayer();
+  });
+}
 function bindStudyReaderDrawers() {
   const pairs = [['study-reader-toc-toggle', 'study-reader-toc'], ['study-reader-panel-toggle', 'study-reader-right-panel']];
   const close = (trigger, panel) => { panel.classList.remove('open'); trigger.setAttribute('aria-expanded', 'false'); trigger.focus(); };
@@ -4318,8 +4399,19 @@ let _summaryStudyDrawingDrawnPointCount = 0;
 let _summaryStudyFinishDrawing = null;
 let _summaryStudyEditing = false;
 let _summaryStudyUndoStack = [];
+let _summaryStudyRedoStack = [];
+let _summaryStudyRichTextEditor = null;
+let _summaryStudyEditorMountPromise = null;
+let _summaryStudyEditorSaveTimer = null;
+let _summaryStudyEditorDirty = false;
+let _summaryStudyEditorOriginalHtml = '';
+let _summaryStudyZoom = 100;
+let _summaryStudyRibbonBookmark = null;
 let _summaryStudyContextHighlight = null;
+let _summaryStudyContextSelection = null;
 let _summaryStudyInteractionQuote = '';
+const SUMMARY_STUDY_COLOR_KEY = 'fteca_summary_study_annotation_color_v1';
+const SUMMARY_STUDY_HIGH_CONTRAST_KEY = 'fteca_summary_study_high_contrast_v1';
 let _summaryStudyTermResult = null;
 let _summaryStudyChatHistory = [];
 let _summaryStudyChatDocumentTitle = '';
@@ -4329,7 +4421,86 @@ let _summaryStudyLoadedShareId = '';
 let _summaryStudyActiveNoteId = null;
 let _summaryStudyActiveNoteAnchor = null;
 let _summaryStudySelfExplainAnchor = null;
+let _summaryStudySelectionToolbarPicked = null;
 const SUMMARY_STUDY_SAVED_TERMS_KEY = 'fteca_summary_study_saved_terms_v1';
+const SUMMARY_STUDY_LUMI_PANEL_KEY = 'lumi_panel_open';
+const SUMMARY_STUDY_OUTLINE_PANEL_KEY = 'left_panel_open';
+let _summaryStudyLumiReturnFocus = null;
+
+function setSummaryStudyLumiPanelOpen(open, { persist = true } = {}) {
+  const shell = document.querySelector('.summary-study-shell');
+  if (!shell) return;
+  const isOpen = Boolean(open) && !shell.classList.contains('is-shared');
+  const wasOpen = shell.classList.contains('is-ai-visible');
+  if (isOpen && !wasOpen && document.activeElement instanceof HTMLElement) {
+    _summaryStudyLumiReturnFocus = document.activeElement;
+  }
+  shell.classList.toggle('is-ai-visible', isOpen);
+  const panel = document.querySelector('.summary-study-ai');
+  const backdrop = document.getElementById('summary-study-ai-backdrop');
+  if (panel) panel.setAttribute('aria-hidden', String(!isOpen));
+  if (backdrop) backdrop.hidden = !isOpen;
+  document.querySelectorAll('[data-summary-action="toggle-ai"]').forEach(button => {
+    button.setAttribute('aria-expanded', String(isOpen));
+    button.setAttribute('aria-label', isOpen ? 'Đóng trợ lý Lumi' : 'Mở trợ lý Lumi');
+  });
+  if (persist) {
+    try {
+      localStorage.setItem(SUMMARY_STUDY_LUMI_PANEL_KEY, String(isOpen));
+    } catch (error) {
+      console.warn('[SummaryStudy] Không thể lưu trạng thái Lumi:', error);
+      showToast('Không thể lưu tùy chọn hiển thị Lumi trên thiết bị này.', 'warning');
+    }
+  }
+  if (isOpen) {
+    document.getElementById('summary-study-chat-input')?.focus({ preventScroll: true });
+  } else if (wasOpen && _summaryStudyLumiReturnFocus?.isConnected) {
+    _summaryStudyLumiReturnFocus.focus({ preventScroll: true });
+    _summaryStudyLumiReturnFocus = null;
+  }
+}
+
+function getSummaryStudyLumiPanelOpen() {
+  try {
+    return localStorage.getItem(SUMMARY_STUDY_LUMI_PANEL_KEY) === 'true';
+  } catch (error) {
+    console.warn('[SummaryStudy] Không đọc được trạng thái Lumi:', error);
+    return false;
+  }
+}
+
+function getSummaryStudyOutlinePanelOpen() {
+  try {
+    const savedPreference = localStorage.getItem(SUMMARY_STUDY_OUTLINE_PANEL_KEY);
+    if (savedPreference === 'true') return true;
+    if (savedPreference === 'false') return false;
+    return getSummaryStudySavedTerms().length > 0;
+  } catch (error) {
+    console.warn('[SummaryStudy] Không đọc được trạng thái kho thuật ngữ:', error);
+    return false;
+  }
+}
+
+function setSummaryStudyOutlinePanelOpen(open, { persist = true } = {}) {
+  const shell = document.querySelector('.summary-study-shell');
+  if (!shell) return;
+  const isOpen = Boolean(open);
+  const isMobile = window.matchMedia('(max-width: 720px)').matches;
+  shell.classList.toggle('is-outline-hidden', !isOpen);
+  shell.classList.toggle('is-outline-visible', isMobile && isOpen);
+  document.querySelectorAll('[data-summary-action="outline"]').forEach(button => {
+    button.setAttribute('aria-expanded', String(isOpen));
+    button.setAttribute('aria-label', isOpen ? 'Ẩn kho thuật ngữ và dẫn hướng' : 'Hiện kho thuật ngữ và dẫn hướng');
+  });
+  if (persist) {
+    try {
+      localStorage.setItem(SUMMARY_STUDY_OUTLINE_PANEL_KEY, String(isOpen));
+    } catch (error) {
+      console.warn('[SummaryStudy] Không thể lưu trạng thái kho thuật ngữ:', error);
+      showToast('Không thể lưu tùy chọn hiển thị kho thuật ngữ trên thiết bị này.', 'warning');
+    }
+  }
+}
 
 function getSummaryStudySavedTerms() {
   try {
@@ -4373,26 +4544,49 @@ function showSummaryStudyTermResult(data, saved = false) {
 }
 
 function summaryStudyStorageKey(title) {
+  const identity = !_summaryStudyReadOnly && typeof _csCurrentSummaryId === 'string' && _csCurrentSummaryId
+    ? `id_${_csCurrentSummaryId}`
+    : String(title || 'summary').trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').slice(0, 80);
+  return `fteca_summary_study_${identity}`;
+}
+function summaryStudyDocumentStorageKey(title) {
+  return `${summaryStudyStorageKey(title)}_document_v1`;
+}
+function summaryStudyHistoryStorageKey(title = window._summaryStudyTitle) {
+  return `${summaryStudyStorageKey(title)}_history_v1`;
+}
+function summaryStudyLegacyStorageKey(title) {
   return `fteca_summary_study_${String(title || 'summary').trim().toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '-').slice(0, 80)}`;
 }
 function getSummaryStudyState(title = window._summaryStudyTitle) {
   try {
-    const raw = JSON.parse(localStorage.getItem(summaryStudyStorageKey(title)) || '{}');
+    const storageKey = summaryStudyStorageKey(title);
+    const legacyKey = summaryStudyLegacyStorageKey(title);
+    const raw = JSON.parse(localStorage.getItem(storageKey) || (storageKey !== legacyKey ? localStorage.getItem(legacyKey) : null) || '{}');
+    const savedDocument = localStorage.getItem(summaryStudyDocumentStorageKey(title))
+      ?? (storageKey !== legacyKey ? localStorage.getItem(`${legacyKey}_document_v1`) : null);
+    const editedHtml = savedDocument === null ? raw.editedHtml : savedDocument;
     return {
-      editedHtml: typeof raw.editedHtml === 'string' ? raw.editedHtml : '',
+      editedHtml: typeof editedHtml === 'string' ? editedHtml : '',
+      hasEditedHtml: savedDocument !== null || typeof raw.editedHtml === 'string',
       highlights: Array.isArray(raw.highlights) ? raw.highlights : [],
       annotations: Array.isArray(raw.annotations) ? raw.annotations : [],
       notes: Array.isArray(raw.notes) ? raw.notes.filter(note => note?.id && Number.isFinite(note.start) && Number.isFinite(note.end) && typeof note.text === 'string') : []
     };
   } catch (error) {
     console.warn('[SummaryStudy] Không đọc được dữ liệu chú thích:', error);
-    return { editedHtml: '', highlights: [], annotations: [], notes: [] };
+    return { editedHtml: '', hasEditedHtml: false, highlights: [], annotations: [], notes: [] };
   }
 }
 function saveSummaryStudyState(patch = {}) {
   const title = window._summaryStudyTitle || 'summary';
   const state = { ...getSummaryStudyState(title), ...patch, updatedAt: new Date().toISOString() };
-  localStorage.setItem(summaryStudyStorageKey(title), JSON.stringify(state));
+  if (Object.prototype.hasOwnProperty.call(patch, 'editedHtml')) {
+    localStorage.setItem(summaryStudyDocumentStorageKey(title), String(patch.editedHtml || ''));
+    state.hasEditedHtml = true;
+  }
+  const { editedHtml, ...metadata } = state;
+  localStorage.setItem(summaryStudyStorageKey(title), JSON.stringify(metadata));
   return state;
 }
 function summaryStudyPushUndo() {
@@ -4400,18 +4594,44 @@ function summaryStudyPushUndo() {
   if (!body) return;
   _summaryStudyUndoStack.push({ html: body.innerHTML, state: getSummaryStudyState() });
   if (_summaryStudyUndoStack.length > 30) _summaryStudyUndoStack.shift();
+  _summaryStudyRedoStack = [];
 }
 function summaryStudyUndo() {
+  if (_summaryStudyRichTextEditor) {
+    _summaryStudyRichTextEditor.undoManager.undo();
+    return;
+  }
   const previous = _summaryStudyUndoStack.pop();
   const body = document.getElementById('summary-study-document-body');
   if (!previous || !body) return showToast('Không còn thay đổi để hoàn tác.', 'info');
-  body.innerHTML = previous.html;
-  const state = saveSummaryStudyState(previous.state);
-  if (state.editedHtml) saveSummaryStudyState({ editedHtml: summaryStudyContentWithoutHighlights(body) });
+  _summaryStudyRedoStack.push({ html: body.innerHTML, state: getSummaryStudyState() });
+  restoreSummaryStudySnapshot(previous, body);
+  showToast('Đã hoàn tác thay đổi gần nhất.', 'success');
+}
+function summaryStudyRedo() {
+  if (_summaryStudyRichTextEditor) {
+    _summaryStudyRichTextEditor.undoManager.redo();
+    return;
+  }
+  const next = _summaryStudyRedoStack.pop();
+  const body = document.getElementById('summary-study-document-body');
+  if (!next || !body) return showToast('Không còn thay đổi để làm lại.', 'info');
+  _summaryStudyUndoStack.push({ html: body.innerHTML, state: getSummaryStudyState() });
+  restoreSummaryStudySnapshot(next, body);
+  showToast('Đã làm lại thay đổi.', 'success');
+}
+function restoreSummaryStudySnapshot(snapshot, body) {
+  body.innerHTML = snapshot.html;
+  const { editedHtml = '', hasEditedHtml = false, ...metadata } = snapshot.state;
+  saveSummaryStudyState(metadata);
+  if (hasEditedHtml) {
+    saveSummaryStudyState({ editedHtml: editedHtml || summaryStudyContentWithoutHighlights(body) });
+  } else {
+    localStorage.removeItem(summaryStudyDocumentStorageKey(window._summaryStudyTitle));
+  }
   restoreSummaryStudyHighlights();
   renderSummaryStudyNotes();
   mountSummaryStudyDrawingLayer();
-  showToast('Đã hoàn tác thay đổi gần nhất.', 'success');
 }
 function summaryStudyContentWithoutHighlights(body) {
   const clone = body.cloneNode(true);
@@ -4420,14 +4640,54 @@ function summaryStudyContentWithoutHighlights(body) {
   clone.querySelector('.summary-study-drawing-layer')?.remove();
   return clone.innerHTML;
 }
-function summaryStudyTextOffset(root, node, offset) {
-  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
-  let total = 0, item;
-  while ((item = walker.nextNode())) {
-    if (item === node) return total + offset;
-    total += item.nodeValue.length;
+function reanchorSummaryStudyAnnotations(body, { removeMissing = false } = {}) {
+  const state = getSummaryStudyState();
+  const walker = document.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+  let documentText = '';
+  while (walker.nextNode()) {
+    documentText += walker.currentNode.nodeValue || '';
   }
-  return -1;
+  let detached = 0;
+  let changed = false;
+  const reanchor = entry => {
+    if (!entry.quote) return entry;
+    let match = -1;
+    let nearestDistance = Infinity;
+    let cursor = 0;
+    while ((cursor = documentText.indexOf(entry.quote, cursor)) !== -1) {
+      const distance = Math.abs(cursor - entry.start);
+      if (distance < nearestDistance) {
+        match = cursor;
+        nearestDistance = distance;
+      }
+      cursor += 1;
+    }
+    if (match < 0) {
+      detached += 1;
+      if (removeMissing) {
+        changed = true;
+        return null;
+      }
+      return entry;
+    }
+    changed ||= entry.start !== match || entry.end !== match + entry.quote.length;
+    return { ...entry, start: match, end: match + entry.quote.length };
+  };
+  const highlights = state.highlights.map(reanchor).filter(Boolean);
+  const notes = state.notes.map(reanchor).filter(Boolean);
+  if (changed) saveSummaryStudyState({ highlights, notes });
+  return detached;
+}
+function summaryStudyTextOffset(root, node, offset) {
+  if (!root || !node || (node !== root && !root.contains(node))) return -1;
+  try {
+    const range = root.ownerDocument.createRange();
+    range.selectNodeContents(root);
+    range.setEnd(node, offset);
+    return range.toString().length;
+  } catch {
+    return -1;
+  }
 }
 function summaryStudyRangeForAnchor(anchor) {
   const root = document.getElementById('summary-study-document-body');
@@ -4449,6 +4709,7 @@ function summaryStudyRangeForAnchor(anchor) {
 function restoreSummaryStudyHighlights() {
   const root = document.getElementById('summary-study-document-body');
   if (!root) return;
+  summaryStudyUnwrapHighlights(root);
   getSummaryStudyState().highlights.forEach(anchor => {
     const range = summaryStudyRangeForAnchor(anchor);
     if (!range || range.collapsed) return;
@@ -4479,12 +4740,183 @@ function renderSummaryStudyNotes() {
 }
 function summaryStudySelection() {
   const root = document.getElementById('summary-study-document-body');
+  if (_summaryStudyRichTextEditor) {
+    const editorBody = _summaryStudyRichTextEditor.getBody();
+    const editorRange = _summaryStudyRichTextEditor.selection.getRng();
+    if (editorBody && editorRange && !editorRange.collapsed &&
+        editorBody.contains(editorRange.startContainer) && editorBody.contains(editorRange.endContainer)) {
+      const start = summaryStudyTextOffset(editorBody, editorRange.startContainer, editorRange.startOffset);
+      const end = summaryStudyTextOffset(editorBody, editorRange.endContainer, editorRange.endOffset);
+      const range = start >= 0 && end > start ? summaryStudyRangeForAnchor({ start, end }) : null;
+      const quote = _summaryStudyRichTextEditor.selection.getContent({ format: 'text' }).slice(0, 500);
+      if (range && quote.trim()) {
+        return {
+          selection: window.getSelection(),
+          range,
+          start,
+          end,
+          quote,
+          editor: _summaryStudyRichTextEditor,
+          editorRange: editorRange.cloneRange()
+        };
+      }
+    }
+  }
   const selection = window.getSelection?.();
   if (!root || !selection?.rangeCount || selection.isCollapsed || !root.contains(selection.anchorNode) || !root.contains(selection.focusNode)) return null;
   const range = selection.getRangeAt(0);
   const start = summaryStudyTextOffset(root, range.startContainer, range.startOffset);
   const end = summaryStudyTextOffset(root, range.endContainer, range.endOffset);
   return start >= 0 && end > start ? { selection, range, start, end, quote: selection.toString().slice(0, 500) } : null;
+}
+
+function summaryStudyEditorRangeForAnchor(editorBody, start, end) {
+  if (!editorBody || start < 0 || end <= start) return null;
+  const walker = editorBody.ownerDocument.createTreeWalker(editorBody, NodeFilter.SHOW_TEXT);
+  let total = 0, startNode, endNode, startOffset, endOffset, item;
+  while ((item = walker.nextNode())) {
+    const next = total + item.nodeValue.length;
+    if (!startNode && start >= total && start <= next) {
+      startNode = item;
+      startOffset = start - total;
+    }
+    if (end >= total && end <= next) {
+      endNode = item;
+      endOffset = end - total;
+      break;
+    }
+    total = next;
+  }
+  if (!startNode || !endNode) return null;
+  const range = editorBody.ownerDocument.createRange();
+  range.setStart(startNode, startOffset);
+  range.setEnd(endNode, endOffset);
+  return range;
+}
+
+function hideSummaryStudySelectionToolbar() {
+  const toolbar = document.getElementById('selection-toolbar');
+  if (toolbar) toolbar.hidden = true;
+  _summaryStudySelectionToolbarPicked = null;
+}
+
+function updateSummaryStudySelectionToolbar() {
+  const toolbar = document.getElementById('selection-toolbar');
+  if (!toolbar || _summaryStudyReadOnly) return hideSummaryStudySelectionToolbar();
+  const hasOpenDialog = [...document.querySelectorAll('dialog[open], [role="dialog"]:not([hidden]):not([aria-hidden="true"])')].some(dialog => {
+    const style = getComputedStyle(dialog);
+    const rect = dialog.getBoundingClientRect();
+    return style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0;
+  });
+  if (hasOpenDialog) return hideSummaryStudySelectionToolbar();
+  const picked = summaryStudySelection();
+  if (!picked || !picked.quote.trim()) return hideSummaryStudySelectionToolbar();
+  const selectionRange = picked.editor ? picked.editorRange : picked.range;
+  const rect = selectionRange?.getBoundingClientRect();
+  if (!rect || (!rect.width && !rect.height)) return hideSummaryStudySelectionToolbar();
+  let left = rect.left, top = rect.top, right = rect.right, bottom = rect.bottom;
+  if (picked.editor) {
+    const iframe = picked.editor.iframeElement || picked.editor.getContentAreaContainer()?.querySelector('iframe');
+    const frameRect = iframe?.getBoundingClientRect();
+    if (!frameRect) return hideSummaryStudySelectionToolbar();
+    left += frameRect.left;
+    right += frameRect.left;
+    top += frameRect.top;
+    bottom += frameRect.top;
+  }
+  toolbar.hidden = false;
+  _summaryStudySelectionToolbarPicked = picked;
+  const toolbarWidth = toolbar.offsetWidth;
+  const toolbarHeight = toolbar.offsetHeight;
+  const x = Math.max(8, Math.min(left + (right - left) / 2 - toolbarWidth / 2, window.innerWidth - toolbarWidth - 8));
+  const y = Math.max(8, Math.min(top - toolbarHeight - 8 >= 8 ? top - toolbarHeight - 8 : bottom + 8, window.innerHeight - toolbarHeight - 8));
+  toolbar.style.left = `${x}px`;
+  toolbar.style.top = `${y}px`;
+}
+
+async function runSummaryStudySelectionToolbarAction(action) {
+  const picked = summaryStudySelection() || _summaryStudySelectionToolbarPicked;
+  if (!picked) return showToast('Hãy bôi đen một đoạn văn bản trước.', 'info');
+  if (action === 'read-aloud') {
+    try {
+      if (!readSummaryText(picked.quote)) showToast('Trình duyệt này chưa hỗ trợ đọc văn bản.', 'error');
+    } catch (error) {
+      console.error('[SummaryStudy] Không thể đọc đoạn văn bản:', error);
+      showToast('Không thể đọc đoạn văn bản đã chọn.', 'error');
+    }
+    return;
+  }
+  if (action === 'ask-lumi') {
+    _summaryStudyPendingQuote = picked.quote.slice(0, 500);
+    setSummaryStudyLumiPanelOpen(true);
+    return;
+  }
+  if (action === 'highlight' || action === 'note') {
+    document.querySelector(`[data-summary-action="${action}"]`)?.click();
+    return;
+  }
+  const command = { bold: 'Bold', italic: 'Italic', underline: 'Underline' }[action];
+  if (!command) return;
+  if (_summaryStudyReadOnly) return showToast('Tài liệu được chia sẻ ở chế độ chỉ đọc.', 'info');
+  if (picked.editor) {
+    picked.editor.selection.setRng(picked.editorRange);
+    summaryStudyRunEditorCommand(command);
+    return;
+  }
+  const editor = await setSummaryStudyEditing(true);
+  if (!editor) return;
+  const range = summaryStudyEditorRangeForAnchor(editor.getBody(), picked.start, picked.end);
+  if (!range) return showToast('Không thể khôi phục đoạn chọn trong trình soạn thảo.', 'error');
+  editor.selection.setRng(range);
+  summaryStudyRunEditorCommand(command);
+}
+
+function initSummaryStudySelectionToolbar() {
+  const toolbar = document.getElementById('selection-toolbar');
+  if (!toolbar || toolbar.dataset.bound === 'true') return;
+  toolbar.dataset.bound = 'true';
+  toolbar.addEventListener('pointerdown', event => event.preventDefault());
+  toolbar.addEventListener('click', event => {
+    const button = event.target instanceof Element ? event.target.closest('[data-selection-action]') : null;
+    if (button) void runSummaryStudySelectionToolbarAction(button.dataset.selectionAction);
+  });
+  document.addEventListener('selectionchange', updateSummaryStudySelectionToolbar);
+  document.getElementById('summary-study-document-body')?.addEventListener('mouseup', updateSummaryStudySelectionToolbar);
+  document.addEventListener('scroll', updateSummaryStudySelectionToolbar, true);
+  window.addEventListener('resize', updateSummaryStudySelectionToolbar);
+  document.addEventListener('pointerdown', event => {
+    if (!toolbar.contains(event.target) && !document.getElementById('summary-study-document-body')?.contains(event.target)) {
+      hideSummaryStudySelectionToolbar();
+    }
+  });
+}
+function splitSummaryStudyHighlights(highlights, start, end, quoteForRange) {
+  return highlights.flatMap(anchor => {
+    if (anchor.end <= start || anchor.start >= end) return [anchor];
+    const remaining = [];
+    const createRemainder = (from, to, side) => {
+      if (to <= from) return;
+      remaining.push({
+        ...anchor,
+        id: `${anchor.id || `highlight-${anchor.start}-${anchor.end}`}-${side}-${from}-${to}`,
+        start: from,
+        end: to,
+        quote: quoteForRange(from, to)
+      });
+    };
+    createRemainder(anchor.start, Math.min(anchor.end, start), 'left');
+    createRemainder(Math.max(anchor.start, end), anchor.end, 'right');
+    return remaining;
+  });
+}
+function summaryStudyUnwrapHighlights(root) {
+  root.querySelectorAll('mark.summary-study-highlight').forEach(mark => {
+    mark.replaceWith(...mark.childNodes);
+  });
+}
+function summaryStudyQuoteForRange(start, end) {
+  const range = summaryStudyRangeForAnchor({ start, end });
+  return range?.toString() || '';
 }
 function openSummaryStudyNoteDialog(note = null, picked = null) {
   const dialog = document.getElementById('summary-study-note-dialog');
@@ -4537,6 +4969,31 @@ function openSummaryStudyNoteById(noteId) {
   const note = getSummaryStudyState().notes.find(item => item.id === noteId);
   if (note) openSummaryStudyNoteDialog(note);
 }
+function renderSummaryStudyExplanationFeedback(feedback) {
+  const normalizedLines = [];
+  let previousWasListItem = false;
+  for (const rawLine of String(feedback || '').split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line) {
+      if (normalizedLines.length && normalizedLines[normalizedLines.length - 1] !== '') normalizedLines.push('');
+      previousWasListItem = false;
+      continue;
+    }
+    const heading = line.match(/^\*\*(.+?)\*\*:?\s*(.*)$/);
+    if (heading) {
+      if (normalizedLines.length && normalizedLines[normalizedLines.length - 1] !== '') normalizedLines.push('');
+      normalizedLines.push(`## ${heading[1].replace(/:\s*$/, '')}`);
+      if (heading[2]) normalizedLines.push('', heading[2]);
+      previousWasListItem = false;
+      continue;
+    }
+    const isListItem = /^(?:[-*•]|\d+[.)])\s+/.test(line);
+    if (!previousWasListItem && normalizedLines.length && normalizedLines[normalizedLines.length - 1] !== '') normalizedLines.push('');
+    normalizedLines.push(line);
+    previousWasListItem = isListItem;
+  }
+  return `<div class="summary-study-self-explain-markdown">${_csMarkdown(normalizedLines.join('\n'))}</div>`;
+}
 function openSummaryStudySelfExplain() {
   const picked = summaryStudySelection();
   if (!picked) return showToast('Hãy bôi đen phần bạn muốn tự giải thích trước.', 'info');
@@ -4581,7 +5038,7 @@ async function compareSummaryStudySelfExplanation() {
       summary: body.innerText.slice(0, 12000),
       studentExplanation: explanation
     });
-    result.textContent = feedback;
+    result.innerHTML = renderSummaryStudyExplanationFeedback(feedback);
     source.hidden = false;
     submit.textContent = 'Đối chiếu lại';
   } catch (error) {
@@ -4650,27 +5107,67 @@ function showSharedSummaryStudyExcerpt() {
 function applySummaryStudyHighlight() {
   const picked = summaryStudySelection();
   if (!picked) return showToast('Hãy bôi đen đoạn văn trước khi đánh dấu.', 'info');
+  if (picked.quote.length > 10000) return showToast('Mỗi lần chỉ có thể đánh dấu tối đa 10.000 ký tự.', 'warning');
   summaryStudyPushUndo();
+  const highlights = splitSummaryStudyHighlights(
+    getSummaryStudyState().highlights,
+    picked.start,
+    picked.end,
+    summaryStudyQuoteForRange
+  );
   const anchor = { id: `highlight-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`, start: picked.start, end: picked.end, quote: picked.quote, color: _summaryStudyColor };
-  saveSummaryStudyState({ highlights: [...getSummaryStudyState().highlights, anchor] });
+  highlights.push(anchor);
   const mark = document.createElement('mark');
   mark.className = 'summary-study-highlight'; mark.dataset.summaryHighlightId = anchor.id; mark.style.backgroundColor = _summaryStudyColor;
-  try { mark.appendChild(picked.range.extractContents()); picked.range.insertNode(mark); picked.selection.removeAllRanges(); } catch (error) { console.warn('[SummaryStudy] Không thể đánh dấu:', error); showToast('Không thể đánh dấu đoạn này.', 'warning'); }
+  try {
+    const extracted = picked.range.extractContents();
+    summaryStudyUnwrapHighlights(extracted);
+    mark.appendChild(extracted);
+    picked.range.insertNode(mark);
+    summaryStudyUnwrapHighlights(document.getElementById('summary-study-document-body'));
+    saveSummaryStudyState({ highlights });
+    restoreSummaryStudyHighlights();
+    picked.selection.removeAllRanges();
+  } catch (error) {
+    console.warn('[SummaryStudy] Không thể đánh dấu:', error);
+    showToast('Không thể đánh dấu đoạn này.', 'warning');
+  }
 }
 function summaryStudyHighlightFromTarget(target) {
   const mark = target?.closest?.('mark.summary-study-highlight');
   return mark && document.getElementById('summary-study-document-body')?.contains(mark) ? mark : null;
 }
-function removeSummaryStudyHighlight(target = null) {
-  const mark = summaryStudyHighlightFromTarget(target) || summaryStudyHighlightFromSelection();
-  if (!mark) return showToast('Hãy đặt con trỏ vào vùng đã đánh dấu hoặc chọn đoạn cần bỏ đánh dấu.', 'info');
+function removeSummaryStudyHighlight(target = null, selectedRange = null) {
+  const root = document.getElementById('summary-study-document-body');
+  if (!root) return showToast('Không tìm thấy nội dung bản tóm tắt.', 'error');
+  const picked = selectedRange ? null : summaryStudySelection();
+  let range = selectedRange || picked?.range || null;
+  const contextMark = summaryStudyHighlightFromTarget(target);
+  const selectionMarks = range
+    ? [...root.querySelectorAll('mark.summary-study-highlight')].filter(mark => range.intersectsNode(mark))
+    : [];
+  if (!selectionMarks.length) {
+    const mark = contextMark || summaryStudyHighlightFromSelection();
+    if (!mark) return showToast('Hãy chọn đoạn đã đánh dấu hoặc đặt con trỏ vào vùng đánh dấu.', 'info');
+    range = document.createRange();
+    range.selectNodeContents(mark);
+  }
+  const start = summaryStudyTextOffset(root, range.startContainer, range.startOffset);
+  const end = summaryStudyTextOffset(root, range.endContainer, range.endOffset);
+  if (start < 0 || end <= start) return showToast('Không xác định được đoạn cần bỏ đánh dấu.', 'warning');
   summaryStudyPushUndo();
-  const text = mark.textContent || '';
-  const state = getSummaryStudyState();
-  const id = mark.dataset.summaryHighlightId;
-  const remaining = state.highlights.filter(anchor => id ? (anchor.id || `${anchor.start}-${anchor.end}`) !== id : !(anchor.quote && text && (anchor.quote === text || text.startsWith(anchor.quote) || anchor.quote.startsWith(text))));
-  mark.replaceWith(document.createTextNode(text));
-  saveSummaryStudyState({ highlights: remaining, editedHtml: summaryStudyContentWithoutHighlights(document.getElementById('summary-study-document-body')) });
+  const extracted = range.extractContents();
+  summaryStudyUnwrapHighlights(extracted);
+  range.insertNode(extracted);
+  const highlights = splitSummaryStudyHighlights(
+    getSummaryStudyState().highlights,
+    start,
+    end,
+    summaryStudyQuoteForRange
+  );
+  summaryStudyUnwrapHighlights(root);
+  saveSummaryStudyState({ highlights, editedHtml: summaryStudyContentWithoutHighlights(root) });
+  restoreSummaryStudyHighlights();
   showToast('Đã bỏ đánh dấu.', 'success');
 }
 function summaryStudyHighlightFromSelection() {
@@ -4905,25 +5402,665 @@ function mountSummaryStudyDrawingLayer() {
   document.querySelector('[data-summary-action="draw"]')?.classList.toggle('active', _summaryStudyDrawing && !_summaryStudyErasing);
   document.querySelector('[data-summary-action="erase"]')?.classList.toggle('active', _summaryStudyErasing);
 }
-function setSummaryStudyEditing(enabled) {
+function summaryStudySetEditorStatus(message, state = '') {
+  const status = document.getElementById('summary-study-editor-status');
+  if (status) {
+    status.textContent = message;
+    status.dataset.state = state;
+  }
+  const headerStatus = document.getElementById('summary-study-save-status');
+  const footerStatus = document.getElementById('summary-study-statusbar-save');
+  const savedTime = state === 'saved' ? message.match(/lúc\s+(\d{1,2}:\d{2})/u)?.[1] : '';
+  const isReadOnly = state === 'saved' && message === 'Chế độ chỉ đọc';
+  if (headerStatus) {
+    if (state === 'dirty') {
+      headerStatus.textContent = '● Đang soạn thảo...';
+      headerStatus.title = message;
+    } else if (state === 'saving') {
+      headerStatus.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Đang lưu...';
+      headerStatus.title = 'Đang lưu thay đổi trên thiết bị';
+    } else if (state === 'loading') {
+      headerStatus.innerHTML = '<i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i> Đang tải...';
+      headerStatus.title = message;
+    } else if (state === 'error') {
+      headerStatus.textContent = 'Lỗi lưu';
+      headerStatus.title = message;
+    } else if (isReadOnly) {
+      headerStatus.textContent = message;
+      headerStatus.title = message;
+    } else {
+      headerStatus.textContent = '✓ Đã lưu';
+      headerStatus.title = savedTime ? `Đã lưu trên thiết bị lúc ${savedTime}` : message;
+    }
+  }
+  if (footerStatus) {
+    if (state === 'saved' && !isReadOnly) footerStatus.textContent = savedTime ? `✓ ${savedTime}` : '✓ Đã lưu';
+    else if (state === 'dirty') footerStatus.textContent = '● Đang soạn thảo';
+    else if (state === 'saving') footerStatus.textContent = 'Đang lưu...';
+    else if (state === 'loading') footerStatus.textContent = 'Đang tải...';
+    else if (state === 'error') footerStatus.textContent = 'Lỗi lưu';
+    else if (state === 'ready') footerStatus.textContent = '✓';
+    else footerStatus.textContent = message;
+    footerStatus.title = state === 'saved' && savedTime ? `Đã lưu trên thiết bị lúc ${savedTime}` : message;
+  }
+  document.querySelector('.summary-study-shell')?.setAttribute('data-save-state', state || 'saved');
+}
+function summaryStudyUpdateWordCount() {
+  const text = _summaryStudyRichTextEditor
+    ? _summaryStudyRichTextEditor.getContent({ format: 'text' })
+    : document.getElementById('summary-study-document-body')?.innerText || '';
+  const count = text.trim() ? text.trim().split(/\s+/u).length : 0;
+  const label = document.getElementById('summary-study-word-count');
+  if (label) label.textContent = `${count.toLocaleString('vi-VN')} từ`;
+}
+function summaryStudyFind() {
+  const query = document.getElementById('summary-study-find')?.value.trim();
+  if (!query) return showToast('Nhập nội dung cần tìm.', 'info');
+  if (_summaryStudyRichTextEditor) {
+    _summaryStudyRichTextEditor.execCommand('SearchReplace');
+    return;
+  }
   const body = document.getElementById('summary-study-document-body');
   if (!body) return;
-  _summaryStudyEditing = enabled;
-  body.contentEditable = String(enabled);
-  body.classList.toggle('is-editing', enabled);
-  body.focus();
+  const text = body.textContent || '';
+  const selection = window.getSelection();
+  const currentOffset = selection?.rangeCount
+    ? summaryStudyTextOffset(body, selection.getRangeAt(0).endContainer, selection.getRangeAt(0).endOffset)
+    : 0;
+  const haystack = text.toLocaleLowerCase();
+  const firstMatch = haystack.indexOf(query.toLocaleLowerCase(), Math.max(currentOffset, 0));
+  const matchIndex = firstMatch >= 0 ? firstMatch : haystack.indexOf(query.toLocaleLowerCase());
+  if (matchIndex < 0) return showToast('Không tìm thấy nội dung phù hợp.', 'info');
+  const range = summaryStudyRangeForAnchor({ start: matchIndex, end: matchIndex + query.length });
+  if (!range || !selection) return showToast('Không thể chọn kết quả tìm kiếm.', 'error');
+  selection.removeAllRanges();
+  selection.addRange(range);
+  range.startContainer.parentElement?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+function summaryStudyRunEditorCommand(command, value) {
+  const editor = _summaryStudyRichTextEditor;
+  if (!editor || _summaryStudyReadOnly) {
+    showToast('Bấm “Chỉnh sửa” trước khi định dạng tài liệu.', 'info');
+    return;
+  }
+  editor.focus();
+  if (_summaryStudyRibbonBookmark) {
+    editor.selection.moveToBookmark(_summaryStudyRibbonBookmark);
+    _summaryStudyRibbonBookmark = null;
+  }
+  if (command === 'FormatBlock') value = `<${String(value || 'p').toLowerCase()}>`;
+  editor.undoManager.transact(() => editor.execCommand(command, false, value));
+  editor.nodeChanged();
+  scheduleSummaryStudyEditorSave(editor);
+}
+function summaryStudyRunEditorTool(tool, options = {}) {
+  if (tool.startsWith('diagram-')) return summaryStudyRunDiagramTool(tool, options);
+  const editor = _summaryStudyRichTextEditor;
+  if (!editor || _summaryStudyReadOnly) {
+    showToast('Bấm “Chỉnh sửa” trước khi dùng công cụ tài liệu.', 'info');
+    return;
+  }
+  editor.focus();
+  if (_summaryStudyRibbonBookmark) {
+    editor.selection.moveToBookmark(_summaryStudyRibbonBookmark);
+    _summaryStudyRibbonBookmark = null;
+  }
+  const previousContent = editor.getContent();
+  runSummaryEditorTool(editor, tool, options);
+  if (editor.getContent() !== previousContent) {
+    editor.nodeChanged();
+    scheduleSummaryStudyEditorSave(editor);
+  }
+}
+function summaryStudyActivateRibbonTab(tab) {
+  if (!tab || tab.hidden) return;
+  const selected = tab.dataset.summaryRibbonTab;
+  document.querySelectorAll('[data-summary-ribbon-tab]').forEach(item => {
+    const active = item === tab;
+    item.classList.toggle('active', active);
+    item.setAttribute('aria-selected', String(active));
+    item.tabIndex = active ? 0 : -1;
+  });
+  document.querySelectorAll('[data-summary-ribbon-panel]').forEach(panel => {
+    panel.hidden = panel.dataset.summaryRibbonPanel !== selected;
+  });
+}
+function summaryStudySetTableContext(isInsideTable, context = {}) {
+  const tableTabs = ['table-design', 'table-layout'];
+  tableTabs.forEach(name => {
+    const tab = document.querySelector(`[data-summary-ribbon-tab="${name}"]`);
+    const panel = document.querySelector(`[data-summary-ribbon-panel="${name}"]`);
+    if (tab) tab.hidden = !isInsideTable;
+    if (panel) panel.hidden = !isInsideTable || !tab?.classList.contains('active');
+  });
+  if (isInsideTable) {
+    const options = new Set(context.options || []);
+    document.querySelectorAll('[data-summary-table-option]').forEach(control => {
+      control.checked = options.has(control.dataset.summaryTableOption);
+    });
+    const rowHeight = document.querySelector('[data-summary-table-size="row-height"]');
+    const columnWidth = document.querySelector('[data-summary-table-size="column-width"]');
+    if (rowHeight) rowHeight.value = context.rowHeightCm || '';
+    if (columnWidth) columnWidth.value = context.columnWidthCm || '';
+  }
+  const activeTab = document.querySelector('[data-summary-ribbon-tab].active');
+  if (!isInsideTable && activeTab?.dataset.summaryRibbonTab.startsWith('table-')) {
+    summaryStudyActivateRibbonTab(document.querySelector('[data-summary-ribbon-tab="home"]'));
+  }
+}
+function summaryStudySetImageContext(isInsideImage, context = {}) {
+  const tab = document.querySelector('[data-summary-ribbon-tab="picture-format"]');
+  const panel = document.querySelector('[data-summary-ribbon-panel="picture-format"]');
+  if (tab) tab.hidden = !isInsideImage;
+  if (panel) panel.hidden = !isInsideImage || !tab?.classList.contains('active');
+  if (isInsideImage) {
+    const width = document.querySelector('[data-summary-image-size="width"]');
+    const height = document.querySelector('[data-summary-image-size="height"]');
+    const layout = document.querySelector('[data-summary-image-layout-select]');
+    const border = document.querySelector('[data-summary-image-border]');
+    if (width) width.value = context.width ? String(context.width) : '';
+    if (height) height.value = context.height ? String(context.height) : '';
+    if (layout) layout.value = context.layout || 'inline';
+    if (border) border.value = context.border || 'none';
+  }
+  const activeTab = document.querySelector('[data-summary-ribbon-tab].active');
+  if (!isInsideImage && activeTab?.dataset.summaryRibbonTab === 'picture-format') {
+    summaryStudyActivateRibbonTab(document.querySelector('[data-summary-ribbon-tab="home"]'));
+  }
+}
+function summaryStudySetChartContext(isInsideChart, context = {}) {
+  const tab = document.querySelector('[data-summary-ribbon-tab="chart-design"]');
+  const panel = document.querySelector('[data-summary-ribbon-panel="chart-design"]');
+  if (tab) tab.hidden = !isInsideChart;
+  if (panel) panel.hidden = !isInsideChart || !tab?.classList.contains('active');
+  if (isInsideChart) {
+    const type = document.querySelector('[data-summary-chart-type]');
+    const palette = document.querySelector('[data-summary-chart-palette]');
+    if (type) type.value = context.type || 'column';
+    if (palette) palette.value = context.palette || 'teal';
+  }
+  const activeTab = document.querySelector('[data-summary-ribbon-tab].active');
+  if (!isInsideChart && activeTab?.dataset.summaryRibbonTab === 'chart-design') {
+    summaryStudyActivateRibbonTab(document.querySelector('[data-summary-ribbon-tab="home"]'));
+  }
+}
+function summaryStudySetDiagramContext(isInsideDiagram, context = {}) {
+  const tab = document.querySelector('[data-summary-ribbon-tab="diagram-design"]');
+  const panel = document.querySelector('[data-summary-ribbon-panel="diagram-design"]');
+  if (tab) tab.hidden = !isInsideDiagram;
+  if (panel) panel.hidden = !isInsideDiagram || !tab?.classList.contains('active');
+  if (isInsideDiagram) {
+    const layout = document.querySelector('[data-summary-diagram-layout]');
+    const palette = document.querySelector('[data-summary-diagram-palette]');
+    if (layout) layout.value = context.layout || 'process';
+    if (palette) palette.value = context.palette || 'teal';
+  }
+  const activeTab = document.querySelector('[data-summary-ribbon-tab].active');
+  if (!isInsideDiagram && activeTab?.dataset.summaryRibbonTab === 'diagram-design') {
+    summaryStudyActivateRibbonTab(document.querySelector('[data-summary-ribbon-tab="home"]'));
+  }
+}
+function summaryStudySetShapeContext(isInsideShape, context = {}) {
+  const tab = document.querySelector('[data-summary-ribbon-tab="shape-format"]');
+  const panel = document.querySelector('[data-summary-ribbon-panel="shape-format"]');
+  if (tab) tab.hidden = !isInsideShape;
+  if (panel) panel.hidden = !isInsideShape || !tab?.classList.contains('active');
+  if (isInsideShape) {
+    const type = document.querySelector('[data-summary-shape-type]');
+    const fill = document.querySelector('[data-summary-shape-fill]');
+    const outline = document.querySelector('[data-summary-shape-outline]');
+    const alignment = context.alignment || 'center';
+    const layout = document.querySelector('[data-summary-shape-layout]');
+    const width = document.querySelector('[data-summary-shape-size="width"]');
+    const height = document.querySelector('[data-summary-shape-size="height"]');
+    if (type) type.value = context.type || 'rectangle';
+    if (fill) fill.value = context.fill || '#DDF4EE';
+    if (outline) outline.value = context.outline || '#168C71';
+    if (layout) layout.value = context.layout || 'center';
+    document.querySelectorAll('[data-summary-shape-align]').forEach(button => {
+      button.setAttribute('aria-pressed', String(button.dataset.summaryShapeAlign === alignment));
+    });
+    if (width) width.value = context.width ? String(context.width) : '';
+    if (height) height.value = context.height ? String(context.height) : '';
+  }
+  const activeTab = document.querySelector('[data-summary-ribbon-tab].active');
+  if (!isInsideShape && activeTab?.dataset.summaryRibbonTab === 'shape-format') {
+    summaryStudyActivateRibbonTab(document.querySelector('[data-summary-ribbon-tab="home"]'));
+  }
+}
+function summaryStudyRunShapeTool(tool, options = {}) {
+  const editor = _summaryStudyRichTextEditor;
+  if (!editor || _summaryStudyReadOnly) {
+    showToast('Bấm “Chỉnh sửa” trước khi dùng công cụ hình dạng.', 'info');
+    return;
+  }
+  const selectedNode = editor.selection.getNode();
+  const selectedShape = selectedNode?.closest?.('figure.summary-study-shape') || null;
+  editor.focus();
+  if (_summaryStudyRibbonBookmark) {
+    editor.selection.moveToBookmark(_summaryStudyRibbonBookmark);
+    _summaryStudyRibbonBookmark = null;
+  }
+  try {
+    runSummaryEditorTool(editor, tool, { ...options, shape: selectedShape });
+  } catch (error) {
+    console.error('[SummaryStudyEditor] Không thể cập nhật hình dạng:', error);
+    showToast(error.message || 'Không thể cập nhật hình dạng.', 'error');
+  }
+}
+function summaryStudyRunChartTool(tool, options = {}) {
+  const editor = _summaryStudyRichTextEditor;
+  if (!editor || _summaryStudyReadOnly) {
+    showToast('Bấm “Chỉnh sửa” trước khi dùng công cụ biểu đồ.', 'info');
+    return;
+  }
+  editor.focus();
+  if (_summaryStudyRibbonBookmark) {
+    editor.selection.moveToBookmark(_summaryStudyRibbonBookmark);
+    _summaryStudyRibbonBookmark = null;
+  }
+  try {
+    runSummaryEditorTool(editor, tool, options);
+  } catch (error) {
+    console.error('[SummaryStudyEditor] Không thể cập nhật biểu đồ:', error);
+    showToast(error.message || 'Không thể cập nhật biểu đồ.', 'error');
+  }
+}
+function summaryStudyRunDiagramTool(tool, options = {}) {
+  const editor = _summaryStudyRichTextEditor;
+  if (!editor || _summaryStudyReadOnly) {
+    showToast('Bấm “Chỉnh sửa” trước khi dùng công cụ sơ đồ.', 'info');
+    return;
+  }
+  const selectedNode = editor.selection.getNode();
+  const selectedDiagram = selectedNode?.closest?.('figure.summary-study-diagram') || null;
+  editor.focus();
+  if (_summaryStudyRibbonBookmark) {
+    editor.selection.moveToBookmark(_summaryStudyRibbonBookmark);
+    _summaryStudyRibbonBookmark = null;
+  }
+  try {
+    runSummaryEditorTool(editor, tool, { ...options, diagram: selectedDiagram });
+  } catch (error) {
+    console.error('[SummaryStudyEditor] Không thể cập nhật sơ đồ:', error);
+    showToast(error.message || 'Không thể cập nhật sơ đồ.', 'error');
+  }
+}
+function summaryStudyRunTableCommand(command, value) {
+  const editor = _summaryStudyRichTextEditor;
+  if (!editor || _summaryStudyReadOnly) {
+    showToast('Bấm “Chỉnh sửa” trước khi dùng công cụ bảng.', 'info');
+    return;
+  }
+  editor.focus();
+  if (_summaryStudyRibbonBookmark) {
+    editor.selection.moveToBookmark(_summaryStudyRibbonBookmark);
+    _summaryStudyRibbonBookmark = null;
+  }
+  try {
+    const previousContent = editor.getContent();
+    runSummaryEditorTableCommand(editor, command, value);
+    if (editor.getContent() !== previousContent) {
+      editor.nodeChanged();
+      scheduleSummaryStudyEditorSave(editor);
+    }
+  } catch (error) {
+    console.error('[SummaryStudyEditor] Không thể áp dụng lệnh bảng:', error);
+    showToast(error.message || 'Không thể áp dụng thao tác cho bảng này.', 'error');
+  }
+}
+function summaryStudyRememberRibbonSelection() {
+  if (!_summaryStudyRichTextEditor) return;
+  _summaryStudyRibbonBookmark = _summaryStudyRichTextEditor.selection.getBookmark(2, true);
+}
+function summaryStudyInsert(type) {
+  const editor = _summaryStudyRichTextEditor;
+  if (!editor || _summaryStudyReadOnly) {
+    showToast('Bấm “Chỉnh sửa” trước khi chèn nội dung.', 'info');
+    return;
+  }
+  editor.focus();
+  if (_summaryStudyRibbonBookmark) {
+    editor.selection.moveToBookmark(_summaryStudyRibbonBookmark);
+    _summaryStudyRibbonBookmark = null;
+  }
+  if (type === 'link') {
+    const entered = window.prompt('Nhập địa chỉ liên kết (https://...)');
+    if (!entered) return;
+    let url;
+    try {
+      url = new URL(entered.trim());
+    } catch {
+      showToast('Địa chỉ liên kết không hợp lệ.', 'error');
+      return;
+    }
+    if (!['http:', 'https:'].includes(url.protocol)) {
+      showToast('Chỉ hỗ trợ liên kết HTTP hoặc HTTPS.', 'error');
+      return;
+    }
+    editor.execCommand('mceInsertLink', false, { href: url.href });
+  } else if (type === 'image') {
+    editor.execCommand('mceImage');
+    return;
+  } else if (type === 'table') {
+    const rows = Number(window.prompt('Số hàng (1–20):', '3'));
+    const columns = Number(window.prompt('Số cột (1–10):', '3'));
+    if (!Number.isInteger(rows) || !Number.isInteger(columns) || rows < 1 || rows > 20 || columns < 1 || columns > 10) {
+      showToast('Bảng cần có 1–20 hàng và 1–10 cột.', 'error');
+      return;
+    }
+    const html = `<table><tbody>${Array.from({ length: rows }, () => `<tr>${Array.from({ length: columns }, () => '<td><p>&nbsp;</p></td>').join('')}</tr>`).join('')}</tbody></table><p>&nbsp;</p>`;
+    editor.insertContent(sanitizeRichTextHtml(html));
+  } else if (type === 'page-break') {
+    editor.insertContent('<div class="summary-study-page-break" data-summary-page-break="true" contenteditable="false"><span>Ngắt trang</span></div><p>&nbsp;</p>');
+  }
+  editor.nodeChanged();
+  scheduleSummaryStudyEditorSave(editor);
+}
+function renderSummaryStudyVersionHistory() {
+  const list = document.getElementById('summary-study-history-list');
+  const preview = document.getElementById('summary-study-history-preview');
+  if (!list) return;
+  let versions;
+  if (preview) preview.hidden = true;
+  try {
+    versions = readSummaryDocumentHistory(localStorage, summaryStudyHistoryStorageKey());
+  } catch (error) {
+    console.error('[SummaryStudyHistory] Không thể đọc lịch sử phiên bản:', error);
+    list.replaceChildren();
+    const message = document.createElement('p');
+    message.className = 'summary-study-history-empty';
+    message.textContent = error.message;
+    list.append(message);
+    if (preview) preview.hidden = true;
+    return;
+  }
+
+  list.replaceChildren();
+  if (!versions.length) {
+    const empty = document.createElement('p');
+    empty.className = 'summary-study-history-empty';
+    empty.textContent = 'Chưa có phiên bản nào. Nhập tên rồi bấm “Lưu phiên bản” để tạo mốc đầu tiên.';
+    list.append(empty);
+    if (preview) preview.hidden = true;
+    return;
+  }
+
+  versions.forEach(version => {
+    const item = document.createElement('article');
+    item.className = 'summary-study-history-item';
+    const details = document.createElement('div');
+    details.className = 'summary-study-history-item-details';
+    const label = document.createElement('strong');
+    label.textContent = version.label;
+    const date = document.createElement('time');
+    date.dateTime = version.createdAt;
+    date.textContent = new Date(version.createdAt).toLocaleString('vi-VN');
+    details.append(label, date);
+
+    const actions = document.createElement('div');
+    actions.className = 'summary-study-history-item-actions';
+    const previewButton = document.createElement('button');
+    previewButton.type = 'button';
+    previewButton.dataset.historyAction = 'preview';
+    previewButton.dataset.versionId = version.id;
+    previewButton.textContent = 'Xem trước';
+    const restoreButton = document.createElement('button');
+    restoreButton.type = 'button';
+    restoreButton.dataset.historyAction = 'restore';
+    restoreButton.dataset.versionId = version.id;
+    restoreButton.textContent = 'Khôi phục';
+    actions.append(previewButton, restoreButton);
+    item.append(details, actions);
+    list.append(item);
+  });
+}
+function createSummaryStudyVersion(label, html = null) {
+  const currentHtml = html ?? (_summaryStudyRichTextEditor
+    ? prepareRichTextDocument(_summaryStudyRichTextEditor)
+    : getSummaryStudyState().editedHtml);
+  const result = createSummaryDocumentVersion(
+    localStorage,
+    summaryStudyHistoryStorageKey(),
+    currentHtml,
+    label
+  );
+  renderSummaryStudyVersionHistory();
+  if (result.removed) {
+    showToast(`Đã lưu phiên bản; tự xóa ${result.removed} phiên bản cũ để tiết kiệm dung lượng.`, 'warning', 5000);
+  } else {
+    showToast(`Đã lưu phiên bản “${result.version.label}”.`, 'success');
+  }
+  return result.version;
+}
+function openSummaryStudyVersionHistory() {
+  const dialog = document.getElementById('summary-study-history-dialog');
+  if (!dialog) return;
+  renderSummaryStudyVersionHistory();
+  if (!dialog.open) dialog.showModal();
+}
+async function restoreSummaryStudyVersion(versionId) {
+  if (!_summaryStudyRichTextEditor) {
+    await setSummaryStudyEditing(true);
+    if (_summaryStudyEditorMountPromise && !_summaryStudyRichTextEditor) await _summaryStudyEditorMountPromise;
+  }
+  const editor = _summaryStudyRichTextEditor;
+  if (!editor) return;
+  let version;
+  try {
+    version = readSummaryDocumentHistory(localStorage, summaryStudyHistoryStorageKey())
+      .find(item => item.id === versionId);
+    if (!version) throw new Error('Không tìm thấy phiên bản cần khôi phục.');
+    createSummaryStudyVersion('Trước khi khôi phục');
+  } catch (error) {
+    console.error('[SummaryStudyHistory] Không thể tạo bản dự phòng trước khi khôi phục:', error);
+    showToast(error.message || 'Không thể khôi phục phiên bản vì không lưu được bản dự phòng.', 'error', 6500);
+    return;
+  }
+  summaryStudyPushUndo();
+  try {
+    editor.undoManager.transact(() => editor.setContent(sanitizeRichTextHtml(version.html)));
+    editor.nodeChanged();
+    scheduleSummaryStudyEditorSave(editor);
+    document.getElementById('summary-study-history-dialog')?.close();
+    showToast(`Đã khôi phục “${version.label}”. Bản hiện tại đã được lưu thành phiên bản dự phòng.`, 'success', 6000);
+  } catch (error) {
+    console.error('[SummaryStudyHistory] Không thể áp dụng phiên bản:', error);
+    showToast('Không thể áp dụng phiên bản đã chọn. Nội dung hiện tại vẫn đang mở.', 'error');
+  }
+}
+function closeSummaryStudyRichTextEditor() {
+  if (_summaryStudyEditorSaveTimer !== null) clearTimeout(_summaryStudyEditorSaveTimer);
+  _summaryStudyEditorSaveTimer = null;
+  const activeEditor = _summaryStudyRichTextEditor || window.tinymce?.get('summary-study-editor-source');
+  activeEditor?.remove();
+  _summaryStudyRichTextEditor = null;
+  _summaryStudyEditorMountPromise = null;
+  _summaryStudyEditorInitialState = null;
+  const shell = document.getElementById('summary-study-editor-shell');
+  const body = document.getElementById('summary-study-document-body');
+  const documentPane = document.querySelector('.summary-study-document');
+  if (shell) shell.hidden = true;
+  if (body) body.hidden = false;
+  documentPane?.classList.remove('is-editing');
+  document.querySelector('.summary-study-shell')?.classList.remove('is-editing', 'is-advanced-tools');
+  _summaryStudyEditing = false;
+  _summaryStudyEditorDirty = false;
+  hideSummaryStudySelectionToolbar();
+  document.querySelectorAll('[data-summary-editor-action]').forEach(control => { control.disabled = false; });
   const button = document.querySelector('[data-summary-action="edit"]');
-  if (button) button.innerHTML = enabled ? '<i class="fa-solid fa-floppy-disk"></i> Lưu chỉnh sửa' : '<i class="fa-solid fa-pen-to-square"></i> Chỉnh sửa';
-  if (enabled) summaryStudyPushUndo();
-  else { saveSummaryStudyState({ editedHtml: summaryStudyContentWithoutHighlights(body) }); renderSummaryStudyNotes(); showToast('Đã lưu nội dung chỉnh sửa.', 'success'); }
+  if (button) button.innerHTML = '<i class="fa-solid fa-pen-to-square"></i><span>Chỉnh sửa</span>';
+  const cancelButton = document.querySelector('.summary-study-cancel-edit');
+  if (cancelButton) cancelButton.hidden = true;
+  const hint = document.getElementById('summary-study-document-hint');
+  if (hint) hint.textContent = 'Chế độ đọc · Chọn “Chỉnh sửa” để biên tập nội dung';
+  summaryStudyUpdateWordCount();
+}
+function scheduleSummaryStudyEditorSave(editor) {
+  _summaryStudyEditorDirty = true;
+  summaryStudySetEditorStatus('Có thay đổi chưa lưu', 'dirty');
+  summaryStudyUpdateWordCount();
+  if (_summaryStudyEditorSaveTimer !== null) clearTimeout(_summaryStudyEditorSaveTimer);
+  _summaryStudyEditorSaveTimer = setTimeout(() => {
+    _summaryStudyEditorSaveTimer = null;
+    if (!_summaryStudyEditing || _summaryStudyRichTextEditor !== editor) return;
+    saveSummaryStudyEditorContent(editor, { close: false });
+  }, 900);
+}
+function saveSummaryStudyEditorContent(editor = _summaryStudyRichTextEditor, { close = true } = {}) {
+  if (!editor) return false;
+  if (_summaryStudyEditorSaveTimer !== null) clearTimeout(_summaryStudyEditorSaveTimer);
+  _summaryStudyEditorSaveTimer = null;
+  summaryStudySetEditorStatus('Đang lưu...', 'saving');
+  let html;
+  try {
+    html = prepareRichTextDocument(editor);
+    const template = document.createElement('template');
+    template.innerHTML = html;
+    if (!template.content.textContent.trim() && !template.content.querySelector('img,table')) {
+      summaryStudySetEditorStatus('Thêm nội dung trước khi lưu', 'error');
+      showToast('Bản tóm tắt không thể để trống.', 'warning');
+      return false;
+    }
+    saveSummaryStudyState({ editedHtml: html });
+  } catch (error) {
+    console.error('[SummaryStudyEditor] Không thể lưu nội dung:', error);
+    summaryStudySetEditorStatus('Lưu thất bại — nội dung vẫn đang mở', 'error');
+    showToast('Không lưu được nội dung. Hãy sao chép phần vừa sửa và kiểm tra dung lượng bộ nhớ trình duyệt.', 'error', 6500);
+    return false;
+  }
+  const annotationDocument = document.createElement('div');
+  annotationDocument.innerHTML = html;
+  let detachedAnnotations = 0;
+  try {
+    detachedAnnotations = reanchorSummaryStudyAnnotations(annotationDocument, { removeMissing: close });
+  } catch (error) {
+    console.warn('[SummaryStudyEditor] Không thể cập nhật vị trí chú thích:', error);
+    if (close) showToast('Đã lưu nội dung, nhưng không thể cập nhật một số vị trí ghi chú. Hãy kiểm tra lại chú thích.', 'warning');
+  }
+  _summaryStudyEditorDirty = false;
+  summaryStudySetEditorStatus(`Đã lưu trên thiết bị lúc ${new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`, 'saved');
+  if (!close) return true;
+
+  const body = document.getElementById('summary-study-document-body');
+  if (!body) return false;
+  body.innerHTML = html;
+  closeSummaryStudyRichTextEditor();
+  restoreSummaryStudyHighlights();
+  renderSummaryStudyNotes();
+  mountSummaryStudyDrawingLayer();
+  if (detachedAnnotations) {
+    showToast(`Đã lưu nội dung; ${detachedAnnotations} đánh dấu hoặc ghi chú không còn đoạn văn bản tương ứng nên đã được gỡ.`, 'warning', 6000);
+  } else {
+    showToast('Đã lưu nội dung chỉnh sửa.', 'success');
+  }
+  return true;
+}
+async function cancelSummaryStudyEditing() {
+  if (!_summaryStudyEditing) return;
+  if (_summaryStudyEditorMountPromise && !_summaryStudyRichTextEditor) await _summaryStudyEditorMountPromise;
+  if (!_summaryStudyEditing) return;
+  const initialState = _summaryStudyEditorInitialState;
+  try {
+    if (initialState?.hasEditedHtml) {
+      saveSummaryStudyState({ editedHtml: initialState.editedHtml });
+    }
+    else {
+      localStorage.removeItem(summaryStudyDocumentStorageKey(window._summaryStudyTitle));
+      saveSummaryStudyState({});
+    }
+  } catch (error) {
+    console.error('[SummaryStudyEditor] Không thể khôi phục nội dung trước khi hủy:', error);
+    summaryStudySetEditorStatus('Không thể hủy — bản nháp vẫn được giữ', 'error');
+    showToast('Không thể khôi phục nội dung trước khi sửa. Bản nháp vẫn được giữ an toàn.', 'error');
+    return;
+  }
+  closeSummaryStudyRichTextEditor();
+  summaryStudySetEditorStatus('Bản lưu trên thiết bị', 'saved');
+  _summaryStudyUndoStack.pop();
+  showToast('Đã hủy các thay đổi trong phiên soạn thảo.', 'info');
+}
+let _summaryStudyEditorInitialState = null;
+async function setSummaryStudyEditing(enabled) {
+  const body = document.getElementById('summary-study-document-body');
+  const shell = document.getElementById('summary-study-editor-shell');
+  const textarea = document.getElementById('summary-study-editor-source');
+  const documentPane = document.querySelector('.summary-study-document');
+  if (!body || !shell || !textarea || _summaryStudyReadOnly) return;
+  const button = document.querySelector('[data-summary-action="edit"]');
+  if (!enabled) {
+    if (_summaryStudyEditorMountPromise && !_summaryStudyRichTextEditor) await _summaryStudyEditorMountPromise;
+    return saveSummaryStudyEditorContent(_summaryStudyRichTextEditor);
+  }
+  if (_summaryStudyEditing) return _summaryStudyEditorMountPromise;
+
+  _summaryStudyEditorInitialState = getSummaryStudyState();
+  _summaryStudyEditorOriginalHtml = sanitizeRichTextHtml(summaryStudyContentWithoutHighlights(body));
+  summaryStudyPushUndo();
+  _summaryStudyEditing = true;
+  body.hidden = true;
+  shell.hidden = false;
+  documentPane?.classList.add('is-editing');
+  document.querySelector('.summary-study-shell')?.classList.add('is-editing');
+  const cancelButton = document.querySelector('.summary-study-cancel-edit');
+  if (cancelButton) cancelButton.hidden = false;
+  const hint = document.getElementById('summary-study-document-hint');
+  if (hint) hint.textContent = 'Đang chỉnh sửa · thay đổi tự lưu trên thiết bị';
+  textarea.value = _summaryStudyEditorOriginalHtml;
+  summaryStudySetEditorStatus('Đang tải trình soạn thảo…', 'loading');
+  if (button) {
+    button.disabled = true;
+    button.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Đang mở…';
+  }
+  document.querySelectorAll('[data-summary-editor-action]').forEach(control => { control.disabled = true; });
+
+  _summaryStudyEditorMountPromise = (async () => {
+    try {
+      await ensureTinyMCE();
+      _summaryStudyRichTextEditor = await mountRichTextEditor({
+        target: textarea,
+        initialHtml: _summaryStudyEditorOriginalHtml,
+        onChange: editor => scheduleSummaryStudyEditorSave(editor),
+        onTableContextChange: (isInsideTable, context) => summaryStudySetTableContext(isInsideTable, context),
+        onImageContextChange: (isInsideImage, context) => summaryStudySetImageContext(isInsideImage, context),
+        onChartContextChange: (isInsideChart, context) => summaryStudySetChartContext(isInsideChart, context),
+        onDiagramContextChange: (isInsideDiagram, context) => summaryStudySetDiagramContext(isInsideDiagram, context),
+        onShapeContextChange: (isInsideShape, context) => summaryStudySetShapeContext(isInsideShape, context)
+      });
+      _summaryStudyRichTextEditor.on('SelectionChange', updateSummaryStudySelectionToolbar);
+      _summaryStudyRichTextEditor.on('mouseup', updateSummaryStudySelectionToolbar);
+      _summaryStudyRichTextEditor.on('keyup', updateSummaryStudySelectionToolbar);
+      summaryStudySetEditorStatus('Tự lưu trên thiết bị sau khi ngừng nhập', 'ready');
+      if (button) {
+        button.disabled = false;
+        button.innerHTML = '<i class="fa-solid fa-floppy-disk"></i><span>Hoàn tất chỉnh sửa</span>';
+      }
+      document.querySelectorAll('[data-summary-editor-action]').forEach(control => { control.disabled = false; });
+      _summaryStudyRichTextEditor.focus();
+      return _summaryStudyRichTextEditor;
+    } catch (error) {
+      console.error('[SummaryStudyEditor] Không thể mở trình soạn thảo:', error);
+      closeSummaryStudyRichTextEditor();
+      _summaryStudyUndoStack.pop();
+      showToast('Không thể mở trình soạn thảo. Bản tóm tắt hiện tại vẫn được giữ nguyên.', 'error');
+      return null;
+    } finally {
+      if (button) button.disabled = false;
+    }
+  })();
+  return _summaryStudyEditorMountPromise;
 }
 function showSummaryStudyContextMenu(event) {
   if (_summaryStudyReadOnly) return;
   event.preventDefault();
   const menu = document.getElementById('summary-study-context-menu');
   const highlight = summaryStudyHighlightFromTarget(event.target);
-  if (!menu || (!summaryStudySelection() && !highlight)) return;
+  const picked = summaryStudySelection();
+  if (!menu || (!picked && !highlight)) return;
   _summaryStudyContextHighlight = highlight;
+  _summaryStudyContextSelection = picked && highlight && picked.range.intersectsNode(highlight)
+    ? picked.range.cloneRange()
+    : null;
   menu.dataset.highlightTarget = highlight ? 'true' : 'false';
   menu.querySelector('[data-summary-context-action="remove-highlight"]').hidden = !highlight;
   menu.querySelector('[data-summary-context-action="highlight"]').hidden = Boolean(highlight);
@@ -4972,6 +6109,7 @@ function saveCurrentSummaryStudyTerm() {
     showToast('Đã lưu thuật ngữ vào kho.', 'success');
   }
   renderSummaryStudySavedTerms();
+  if (terms.length === 0 || existing < 0) setSummaryStudyOutlinePanelOpen(terms.length > 0);
 }
 function openSummaryStudyInteraction() {
   const picked = summaryStudySelection();
@@ -4995,6 +6133,7 @@ function renderSummaryStudyPage(result, title, { readOnly = false } = {}) {
   const body = document.getElementById('summary-study-document-body');
   const outline = document.getElementById('summary-study-outline-list');
   const fileTitle = document.getElementById('summary-study-file-title');
+  const documentTitle = document.getElementById('summary-study-doc-title');
   if (!body || !result) return;
   _summaryStudyFinishDrawing?.();
   _summaryStudyReadOnly = readOnly;
@@ -5005,6 +6144,7 @@ function renderSummaryStudyPage(result, title, { readOnly = false } = {}) {
   if (back) back.innerHTML = readOnly
     ? '<i class="fa-solid fa-arrow-left"></i> Quay lại trang chủ'
     : '<i class="fa-solid fa-arrow-left"></i> Quay lại bản tóm tắt';
+  back?.setAttribute('aria-label', readOnly ? 'Quay lại trang chủ' : 'Quay lại bản tóm tắt');
   if (readOnly) {
     _summaryStudyDrawing = false;
     _summaryStudyErasing = false;
@@ -5020,9 +6160,21 @@ function renderSummaryStudyPage(result, title, { readOnly = false } = {}) {
   renderSummaryStudySavedTerms();
   const chapters = Array.isArray(result.chapters) ? result.chapters : [];
   if (fileTitle) fileTitle.textContent = title || 'Tài liệu tóm tắt';
+  if (documentTitle) documentTitle.textContent = title || 'Tài liệu tóm tắt';
+  const previousTitle = window._summaryStudyTitle;
   window._summaryStudyTitle = nextChatTitle;
-  const generatedHtml = `<header class="summary-study-cover"><span>TÓM TẮT KIẾN THỨC</span><h1>${escapeHtml(title || 'Tài liệu tóm tắt')}</h1><p>${_csMarkdown(result.overview || '')}</p></header>${chapters.map((chapter, index) => `<section class="summary-study-section" id="summary-study-section-${index}"><div class="summary-study-section-label">PHẦN ${String(index + 1).padStart(2, '0')}</div><h2>${escapeHtml(chapter.title || `Chương ${index + 1}`)}</h2><div class="summary-study-richtext">${_csMarkdown(chapter.content || '')}</div></section>`).join('') || `<section class="summary-study-section"><div class="summary-study-richtext">${_csMarkdown(result.overview || 'Chưa có nội dung tóm tắt.')}</div></section>`}`;
-  body.innerHTML = readOnly ? generatedHtml : (getSummaryStudyState(window._summaryStudyTitle).editedHtml || generatedHtml);
+  if (previousTitle && previousTitle !== nextChatTitle) {
+    _summaryStudyUndoStack = [];
+    _summaryStudyRedoStack = [];
+  }
+  const generatedHtml = `<div class="summary-study-page"><header class="summary-study-cover"><span>TÓM TẮT KIẾN THỨC</span><h1>${escapeHtml(title || 'Tài liệu tóm tắt')}</h1><p>${_csMarkdown(result.overview || '')}</p></header>${chapters.map((chapter, index) => `<section class="summary-study-section" id="summary-study-section-${index}"><div class="summary-study-section-label">PHẦN ${String(index + 1).padStart(2, '0')}</div><h2>${escapeHtml(chapter.title || `Chương ${index + 1}`)}</h2><div class="summary-study-richtext">${_csMarkdown(chapter.content || '')}</div></section>`).join('') || `<section class="summary-study-section"><div class="summary-study-richtext">${_csMarkdown(result.overview || 'Chưa có nội dung tóm tắt.')}</div></section>`}</div>`;
+  const savedState = readOnly ? null : getSummaryStudyState(window._summaryStudyTitle);
+  body.innerHTML = readOnly ? generatedHtml : savedState.hasEditedHtml
+    ? sanitizeRichTextHtml(savedState.editedHtml)
+    : generatedHtml;
+  summaryStudyUpdateWordCount();
+  summaryStudySetEditorStatus(readOnly ? 'Chế độ chỉ đọc' : 'Bản lưu trên thiết bị', 'saved');
+  document.querySelector('.summary-study-shell')?.classList.remove('is-editing', 'is-advanced-tools');
   _summaryStudyEditing = false;
   body.contentEditable = 'false';
   if (!readOnly) {
@@ -5079,6 +6231,10 @@ async function openSharedSummary(shareId) {
     _csCurrentResult = payload.summary.result;
     _csCurrentSummaryId = '';
     renderSummaryStudyPage(payload.summary.result, window._summaryStudyTitle, { readOnly: true });
+    if (typeof payload.summary.documentHtml === 'string') {
+      const sharedBody = document.getElementById('summary-study-document-body');
+      if (sharedBody) sharedBody.innerHTML = sanitizeRichTextHtml(payload.summary.documentHtml);
+    }
   } catch (error) {
     console.error('[SummaryShare] Không thể tải bản tóm tắt:', error);
     _summaryStudyLoadedShareId = '';
@@ -5229,24 +6385,183 @@ function initSummaryStudyMascot() {
 }
 
 function initSummaryStudyPage() {
+  try {
+    const savedColor = localStorage.getItem(SUMMARY_STUDY_COLOR_KEY);
+    if (/^#[\da-f]{6}$/i.test(savedColor || '')) _summaryStudyColor = savedColor;
+    const picker = document.querySelector('[data-summary-color-picker]');
+    if (picker) picker.value = _summaryStudyColor;
+    let colorMatched = false;
+    document.querySelectorAll('[data-summary-color]').forEach(swatch => {
+      const isSelected = swatch.dataset.summaryColor?.toLowerCase() === _summaryStudyColor.toLowerCase();
+      swatch.classList.toggle('active', isSelected);
+      colorMatched ||= isSelected;
+    });
+    document.querySelector('.summary-study-custom-color')?.classList.toggle('active', !colorMatched);
+    const highContrast = localStorage.getItem(SUMMARY_STUDY_HIGH_CONTRAST_KEY) === 'true';
+    const highContrastToggle = document.querySelector('[data-summary-high-contrast]');
+    if (highContrastToggle) {
+      highContrastToggle.checked = highContrast;
+      document.querySelectorAll('[data-summary-contrast]').forEach(swatch => {
+        swatch.hidden = highContrast && swatch.dataset.summaryContrast !== 'true';
+      });
+    }
+  } catch (error) {
+    console.warn('[SummaryStudy] Không đọc được tùy chọn màu đánh dấu:', error);
+  }
   const back = document.getElementById('summary-study-back');
-  back?.addEventListener('click', () => NavController.navigateToPage(_summaryStudyReadOnly ? 'home' : 'curriculum-summary'));
-  initSummaryStudyMascot();
+  back?.addEventListener('click', async () => {
+    if (_summaryStudyEditing && _summaryStudyEditorMountPromise && !_summaryStudyRichTextEditor) await _summaryStudyEditorMountPromise;
+    if (_summaryStudyEditing && !saveSummaryStudyEditorContent(_summaryStudyRichTextEditor)) return;
+    NavController.navigateToPage(_summaryStudyReadOnly ? 'home' : 'curriculum-summary');
+  });
+  document.querySelector('[data-summary-editor-action="save"]')?.addEventListener('click', () => {
+    saveSummaryStudyEditorContent(_summaryStudyRichTextEditor);
+  });
+  const docxInput = document.getElementById('summary-study-docx-file');
+  document.querySelector('[data-summary-editor-action="import-docx"]')?.addEventListener('click', () => docxInput?.click());
+  docxInput?.addEventListener('change', () => {
+    handleSummaryStudyDocxImport(docxInput.files?.[0], docxInput);
+  });
+  document.querySelector('[data-summary-editor-action="export-docx"]')?.addEventListener('click', exportSummaryStudyDocx);
+  document.querySelector('[data-summary-editor-action="cancel"]')?.addEventListener('click', cancelSummaryStudyEditing);
+  document.querySelector('[data-summary-editor-action="create-version"]')?.addEventListener('click', () => {
+    const input = document.getElementById('summary-study-history-name');
+    try {
+      createSummaryStudyVersion(input?.value || '');
+      if (input) input.value = '';
+    } catch (error) {
+      console.error('[SummaryStudyHistory] Không thể lưu phiên bản:', error);
+      showToast(error.message || 'Không thể lưu phiên bản vào bộ nhớ trình duyệt.', 'error', 6500);
+    }
+  });
+  document.querySelector('[data-summary-editor-action="open-history"]')?.addEventListener('click', openSummaryStudyVersionHistory);
+  document.querySelector('[data-summary-history-close]')?.addEventListener('click', () => {
+    document.getElementById('summary-study-history-dialog')?.close();
+  });
+  document.getElementById('summary-study-history-list')?.addEventListener('click', event => {
+    const button = event.target instanceof Element ? event.target.closest('[data-history-action]') : null;
+    if (!button) return;
+    const { historyAction, versionId } = button.dataset;
+    if (historyAction === 'preview') {
+      let version;
+      try {
+        version = readSummaryDocumentHistory(localStorage, summaryStudyHistoryStorageKey())
+          .find(item => item.id === versionId);
+        if (!version) throw new Error('Không tìm thấy phiên bản cần xem.');
+      } catch (error) {
+        console.error('[SummaryStudyHistory] Không thể xem phiên bản:', error);
+        showToast(error.message || 'Không thể đọc phiên bản đã chọn.', 'error');
+        return;
+      }
+      const preview = document.getElementById('summary-study-history-preview');
+      const title = document.getElementById('summary-study-history-preview-title');
+      const content = document.getElementById('summary-study-history-preview-content');
+      if (preview && title && content) {
+        title.textContent = version.label;
+        content.innerHTML = sanitizeRichTextHtml(version.html);
+        preview.hidden = false;
+        preview.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      }
+      return;
+    }
+    if (historyAction === 'restore' && window.confirm('Khôi phục phiên bản này? Nội dung đang mở sẽ được lưu làm bản dự phòng trước khi áp dụng.')) {
+      restoreSummaryStudyVersion(versionId);
+    }
+  });
+  window.addEventListener('beforeunload', () => {
+    if (!_summaryStudyRichTextEditor || !_summaryStudyEditorDirty) return;
+    try {
+      saveSummaryStudyState({ editedHtml: sanitizeRichTextHtml(_summaryStudyRichTextEditor.getContent()) });
+    } catch (error) {
+      console.error('[SummaryStudyEditor] Không thể lưu trước khi rời trang:', error);
+    }
+  });
   document.getElementById('summary-study-theme-toggle')?.addEventListener('click', () => {
     if (typeof toggleTheme === 'function') toggleTheme();
-    const icon = document.querySelector('#summary-study-theme-toggle i');
-    if (icon) icon.className = document.documentElement.getAttribute('data-theme') === 'dark' ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+  });
+  setSummaryStudyLumiPanelOpen(getSummaryStudyLumiPanelOpen(), { persist: false });
+  setSummaryStudyOutlinePanelOpen(getSummaryStudyOutlinePanelOpen(), { persist: false });
+  initSummaryStudySelectionToolbar();
+  window.addEventListener('resize', () => {
+    const shell = document.querySelector('.summary-study-shell');
+    if (shell) setSummaryStudyOutlinePanelOpen(!shell.classList.contains('is-outline-hidden'), { persist: false });
+  });
+  document.getElementById('summary-study-ai-backdrop')?.addEventListener('click', () => {
+    setSummaryStudyLumiPanelOpen(false);
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && document.querySelector('.summary-study-shell')?.classList.contains('is-ai-visible')) {
+      setSummaryStudyLumiPanelOpen(false);
+    }
   });
   document.querySelectorAll('[data-summary-action]').forEach(button => button.addEventListener('click', () => {
     const action = button.dataset.summaryAction;
-    if (_summaryStudyReadOnly && !['zoom-out', 'zoom-in', 'fullscreen'].includes(action)) return;
+    if (_summaryStudyReadOnly && !['zoom-out', 'zoom-in', 'fullscreen', 'export', 'export-docx', 'find', 'outline', 'toggle-ai'].includes(action)) return;
     if (action === 'share-summary') return shareCurrentCurriculumSummary();
-    if (action === 'export') return exportCurriculumSummaryPdf(window._summaryStudyResult, window._summaryStudyTitle || 'Tài liệu ôn tập');
+    if (action === 'export') return exportSummaryStudyDocument();
+    if (action === 'export-docx') return exportSummaryStudyDocx();
+    if (action === 'import-docx') {
+      if (!_summaryStudyRichTextEditor) return showToast('Bấm “Chỉnh sửa” trước khi nhập DOCX.', 'info');
+      return document.querySelector('[data-summary-editor-action="import-docx"]')?.click();
+    }
+    if (action === 'find') return summaryStudyFind();
+    if (action === 'history') return openSummaryStudyVersionHistory();
+    if (action === 'save-version') {
+      const defaultLabel = `Phiên bản ${new Date().toLocaleString('vi-VN', { dateStyle: 'short', timeStyle: 'short' })}`;
+      const label = window.prompt('Đặt tên cho phiên bản này:', defaultLabel);
+      if (label === null) return;
+      try {
+        const html = _summaryStudyRichTextEditor
+          ? prepareRichTextDocument(_summaryStudyRichTextEditor)
+          : summaryStudyContentWithoutHighlights(document.getElementById('summary-study-document-body'));
+        createSummaryStudyVersion(label, html);
+      } catch (error) {
+        console.error('[SummaryStudyHistory] Không thể lưu phiên bản:', error);
+        showToast(error.message || 'Không thể lưu phiên bản vào bộ nhớ trình duyệt.', 'error', 6500);
+      }
+      return;
+    }
+    if (action === 'outline') {
+      const isOpen = !document.querySelector('.summary-study-shell')?.classList.contains('is-outline-hidden');
+      setSummaryStudyOutlinePanelOpen(!isOpen);
+      return;
+    }
+    if (action === 'toggle-ai') {
+      setSummaryStudyLumiPanelOpen(!document.querySelector('.summary-study-shell')?.classList.contains('is-ai-visible'));
+      return;
+    }
+    if (action === 'zoom-in' || action === 'zoom-out') {
+      _summaryStudyZoom = Math.max(60, Math.min(160, _summaryStudyZoom + (action === 'zoom-in' ? 10 : -10)));
+      const body = document.getElementById('summary-study-document-body');
+      if (body) body.style.zoom = `${_summaryStudyZoom}%`;
+      const editorBody = _summaryStudyRichTextEditor?.getBody();
+      if (editorBody) editorBody.style.zoom = `${_summaryStudyZoom}%`;
+      const zoom = document.getElementById('summary-study-zoom');
+      if (zoom) zoom.textContent = `${_summaryStudyZoom}%`;
+      return;
+    }
+    if (action === 'fullscreen') {
+      const shell = document.querySelector('.summary-study-shell');
+      if (document.fullscreenElement) {
+        document.exitFullscreen?.().catch(error => console.error('[SummaryStudy] Không thoát được chế độ toàn màn hình:', error));
+      } else {
+        shell?.requestFullscreen?.().catch(error => {
+          console.error('[SummaryStudy] Không mở được chế độ toàn màn hình:', error);
+          showToast('Trình duyệt không cho phép mở toàn màn hình.', 'error');
+        });
+      }
+      return;
+    }
+    if (action === 'advanced-tools') {
+      document.querySelector('.summary-study-shell')?.classList.toggle('is-advanced-tools');
+      return;
+    }
     if (action === 'highlight') return applySummaryStudyHighlight();
     if (action === 'remove-highlight') return removeSummaryStudyHighlight();
     if (action === 'draw') { _summaryStudyFinishDrawing?.(); _summaryStudyDrawing = !_summaryStudyDrawing; _summaryStudyErasing = false; mountSummaryStudyDrawingLayer(); button.classList.toggle('active', _summaryStudyDrawing); document.querySelector('[data-summary-action="erase"]')?.classList.remove('active'); return showToast(_summaryStudyDrawing ? 'Chế độ vẽ đã bật.' : 'Chế độ vẽ đã tắt.', 'info'); }
     if (action === 'erase') { _summaryStudyFinishDrawing?.(); _summaryStudyDrawing = true; _summaryStudyErasing = !_summaryStudyErasing; mountSummaryStudyDrawingLayer(); button.classList.toggle('active', _summaryStudyErasing); document.querySelector('[data-summary-action="draw"]')?.classList.toggle('active', !_summaryStudyErasing); return showToast(_summaryStudyErasing ? 'Gôm đã bật. Kéo qua nét vẽ để xóa.' : 'Gôm đã tắt.', 'info'); }
     if (action === 'undo') return summaryStudyUndo();
+    if (action === 'redo') return summaryStudyRedo();
     if (action === 'interaction') return openSummaryStudyInteraction();
     if (action === 'edit') return setSummaryStudyEditing(!_summaryStudyEditing);
     if (action === 'self-explain') return openSummaryStudySelfExplain();
@@ -5258,7 +6573,283 @@ function initSummaryStudyPage() {
       openSummaryStudyNoteDialog(null, picked);
     }
   }));
+  const ribbonTabs = [...document.querySelectorAll('[data-summary-ribbon-tab]')];
+  ribbonTabs.forEach(tab => {
+    tab.addEventListener('click', () => summaryStudyActivateRibbonTab(tab));
+    tab.addEventListener('keydown', event => {
+      if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
+      event.preventDefault();
+      const visibleTabs = ribbonTabs.filter(item => !item.hidden);
+      const visibleIndex = visibleTabs.indexOf(tab);
+      let nextTab;
+      if (event.key === 'Home') nextTab = visibleTabs[0];
+      else if (event.key === 'End') nextTab = visibleTabs[visibleTabs.length - 1];
+      else nextTab = visibleTabs[(visibleIndex + (event.key === 'ArrowRight' ? 1 : -1) + visibleTabs.length) % visibleTabs.length];
+      if (!nextTab) return;
+      nextTab.focus();
+      summaryStudyActivateRibbonTab(nextTab);
+    });
+  });
+  const tableGrid = document.querySelector('.summary-study-table-grid');
+  const tableGridStatus = document.getElementById('summary-study-table-grid-status');
+  if (tableGrid && !tableGrid.childElementCount) {
+    for (let row = 1; row <= 8; row += 1) {
+      for (let column = 1; column <= 10; column += 1) {
+        const cell = document.createElement('button');
+        cell.type = 'button';
+        cell.setAttribute('role', 'gridcell');
+        cell.setAttribute('aria-label', `${row} hàng, ${column} cột`);
+        cell.title = `${row} hàng × ${column} cột`;
+        cell.dataset.editorTool = 'insert-table';
+        cell.dataset.tableRows = String(row);
+        cell.dataset.tableColumns = String(column);
+        cell.addEventListener('pointerenter', () => {
+          tableGrid.dataset.previewIndex = String((row - 1) * 10 + column);
+          tableGrid.style.setProperty('--summary-table-preview-index', String((row - 1) * 10 + column));
+          if (tableGridStatus) tableGridStatus.textContent = `${row} hàng × ${column} cột`;
+        });
+        cell.addEventListener('focus', () => {
+          tableGrid.dataset.previewIndex = String((row - 1) * 10 + column);
+          tableGrid.style.setProperty('--summary-table-preview-index', String((row - 1) * 10 + column));
+          if (tableGridStatus) tableGridStatus.textContent = `${row} hàng × ${column} cột`;
+        });
+        tableGrid.append(cell);
+      }
+    }
+    tableGrid.addEventListener('keydown', event => {
+      const current = event.target.closest('[role="gridcell"]');
+      if (!current) return;
+      const index = [...tableGrid.children].indexOf(current);
+      const move = { ArrowRight: 1, ArrowLeft: -1, ArrowDown: 10, ArrowUp: -10 }[event.key];
+      if (!move) return;
+      event.preventDefault();
+      const next = tableGrid.children[Math.max(0, Math.min(tableGrid.children.length - 1, index + move))];
+      next.focus();
+    });
+  }
+  const tableMenuToggle = document.querySelector('[data-summary-table-menu-toggle]');
+  const tableInsertMenu = document.getElementById('summary-study-table-insert-menu');
+  tableMenuToggle?.addEventListener('click', () => {
+    const opening = tableInsertMenu?.hidden ?? false;
+    if (tableInsertMenu) tableInsertMenu.hidden = !opening;
+    tableMenuToggle.setAttribute('aria-expanded', String(opening));
+    if (opening) tableGrid?.querySelector('[role="gridcell"]')?.focus();
+  });
+  tableInsertMenu?.addEventListener('click', event => {
+    if (event.target.closest('[data-editor-tool]')) {
+      tableInsertMenu.hidden = true;
+      tableMenuToggle?.setAttribute('aria-expanded', 'false');
+    }
+  });
+  document.addEventListener('pointerdown', event => {
+    if (!tableInsertMenu?.hidden && !event.target.closest('.summary-study-table-insert')) {
+      tableInsertMenu.hidden = true;
+      tableMenuToggle?.setAttribute('aria-expanded', 'false');
+    }
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && tableInsertMenu && !tableInsertMenu.hidden) {
+      tableInsertMenu.hidden = true;
+      tableMenuToggle?.setAttribute('aria-expanded', 'false');
+      tableMenuToggle?.focus();
+    }
+  });
+  document.querySelectorAll('[data-editor-command]').forEach(button => {
+    button.addEventListener('mousedown', event => {
+      summaryStudyRememberRibbonSelection();
+      event.preventDefault();
+    });
+    button.addEventListener('click', () => summaryStudyRunEditorCommand(button.dataset.editorCommand));
+  });
+  document.querySelectorAll('[data-editor-insert]').forEach(button => {
+    button.addEventListener('mousedown', event => {
+      summaryStudyRememberRibbonSelection();
+      event.preventDefault();
+    });
+    button.addEventListener('click', () => summaryStudyInsert(button.dataset.editorInsert));
+  });
+  document.querySelectorAll('[data-editor-tool]').forEach(button => {
+    button.addEventListener('mousedown', event => {
+      summaryStudyRememberRibbonSelection();
+      event.preventDefault();
+    });
+    button.addEventListener('click', () => summaryStudyRunEditorTool(button.dataset.editorTool, {
+      rows: Number(button.dataset.tableRows),
+      columns: Number(button.dataset.tableColumns)
+    }));
+  });
+  const shapeLayout = document.querySelector('[data-summary-shape-layout]');
+  if (shapeLayout && !shapeLayout.dataset.shapeLayoutBound) {
+    shapeLayout.dataset.shapeLayoutBound = 'true';
+    shapeLayout.addEventListener('pointerdown', summaryStudyRememberRibbonSelection);
+    shapeLayout.addEventListener('change', event => summaryStudyRunShapeTool('shape-layout', {
+      layout: event.currentTarget.value
+    }));
+  }
+  document.querySelectorAll('[data-summary-table-command]').forEach(button => {
+    button.addEventListener('mousedown', event => {
+      summaryStudyRememberRibbonSelection();
+      event.preventDefault();
+    });
+    button.addEventListener('click', () => summaryStudyRunTableCommand(button.dataset.summaryTableCommand));
+  });
+  document.querySelectorAll('[data-summary-image-action]').forEach(button => {
+    if (button.dataset.imageActionBound) return;
+    button.dataset.imageActionBound = 'true';
+    button.addEventListener('mousedown', event => {
+      summaryStudyRememberRibbonSelection();
+      event.preventDefault();
+    });
+    button.addEventListener('click', () => summaryStudyRunEditorTool(button.dataset.summaryImageAction));
+  });
+  document.querySelectorAll('[data-summary-image-size]').forEach(input => {
+    if (input.dataset.imageSizeBound) return;
+    input.dataset.imageSizeBound = 'true';
+    input.addEventListener('pointerdown', summaryStudyRememberRibbonSelection);
+    input.addEventListener('change', () => summaryStudyRunEditorTool('image-size', {
+      dimension: input.dataset.summaryImageSize,
+      value: input.value
+    }));
+  });
+  const imageLayoutSelect = document.querySelector('[data-summary-image-layout-select]');
+  if (imageLayoutSelect && !imageLayoutSelect.dataset.imageLayoutBound) {
+    imageLayoutSelect.dataset.imageLayoutBound = 'true';
+    imageLayoutSelect.addEventListener('pointerdown', summaryStudyRememberRibbonSelection);
+    imageLayoutSelect.addEventListener('change', event => {
+      summaryStudyRunEditorTool('set-image-layout', { layout: event.currentTarget.value });
+    });
+  }
+  const imageBorderSelect = document.querySelector('[data-summary-image-border]');
+  if (imageBorderSelect && !imageBorderSelect.dataset.imageBorderBound) {
+    imageBorderSelect.dataset.imageBorderBound = 'true';
+    imageBorderSelect.addEventListener('pointerdown', summaryStudyRememberRibbonSelection);
+    imageBorderSelect.addEventListener('change', event => {
+      summaryStudyRunEditorTool('image-border', { value: event.currentTarget.value });
+    });
+  }
+  for (const [selector, setting] of [
+    ['[data-summary-chart-type]', 'type'],
+    ['[data-summary-chart-palette]', 'palette']
+  ]) {
+    const control = document.querySelector(selector);
+    if (!control || control.dataset.chartControlBound) continue;
+    control.dataset.chartControlBound = 'true';
+    control.addEventListener('pointerdown', summaryStudyRememberRibbonSelection);
+    control.addEventListener('change', event => {
+      summaryStudyRunChartTool('chart-config', { setting, value: event.currentTarget.value });
+    });
+  }
+  for (const [selector, setting] of [
+    ['[data-summary-diagram-layout]', 'layout'],
+    ['[data-summary-diagram-palette]', 'palette']
+  ]) {
+    const control = document.querySelector(selector);
+    if (!control || control.dataset.diagramControlBound) continue;
+    control.dataset.diagramControlBound = 'true';
+    control.addEventListener('pointerdown', summaryStudyRememberRibbonSelection);
+    control.addEventListener('change', event => {
+      summaryStudyRunDiagramTool('diagram-config', { setting, value: event.currentTarget.value });
+    });
+  }
+  for (const [selector, setting] of [
+    ['[data-summary-shape-type]', 'type'],
+    ['[data-summary-shape-fill]', 'fill'],
+    ['[data-summary-shape-outline]', 'outline']
+  ]) {
+    const control = document.querySelector(selector);
+    if (!control || control.dataset.shapeControlBound) continue;
+    control.dataset.shapeControlBound = 'true';
+    control.addEventListener('pointerdown', summaryStudyRememberRibbonSelection);
+    control.addEventListener('change', event => {
+      summaryStudyRunShapeTool('shape-config', { setting, value: event.currentTarget.value });
+    });
+  }
+  document.querySelectorAll('[data-summary-shape-size]').forEach(input => {
+    if (input.dataset.shapeSizeBound) return;
+    input.dataset.shapeSizeBound = 'true';
+    input.addEventListener('pointerdown', summaryStudyRememberRibbonSelection);
+    input.addEventListener('change', event => {
+      summaryStudyRunShapeTool('shape-size', {
+        dimension: event.currentTarget.dataset.summaryShapeSize,
+        value: event.currentTarget.value
+      });
+    });
+  });
+  document.querySelectorAll('[data-summary-shape-transform]').forEach(button => {
+    button.addEventListener('mousedown', event => {
+      summaryStudyRememberRibbonSelection();
+      event.preventDefault();
+    });
+    button.addEventListener('click', () => summaryStudyRunShapeTool('shape-rotate', {
+      operation: button.dataset.summaryShapeTransform
+    }));
+  });
+  document.querySelectorAll('[data-summary-shape-align]').forEach(button => {
+    button.addEventListener('mousedown', event => {
+      summaryStudyRememberRibbonSelection();
+      event.preventDefault();
+    });
+    button.addEventListener('click', () => summaryStudyRunShapeTool('shape-align', {
+      alignment: button.dataset.summaryShapeAlign
+    }));
+  });
+  document.querySelectorAll('[data-summary-table-style]').forEach(button => {
+    button.addEventListener('mousedown', event => {
+      summaryStudyRememberRibbonSelection();
+      event.preventDefault();
+    });
+    button.addEventListener('click', () => summaryStudyRunTableCommand(`style:${button.dataset.summaryTableStyle}`));
+  });
+  document.querySelectorAll('[data-summary-table-option]').forEach(control => {
+    control.addEventListener('pointerdown', summaryStudyRememberRibbonSelection);
+    control.addEventListener('keydown', summaryStudyRememberRibbonSelection);
+    control.addEventListener('change', () => summaryStudyRunTableCommand(
+      `option:${control.dataset.summaryTableOption}`,
+      control.checked
+    ));
+  });
+  document.querySelector('[data-summary-table-shading]')?.addEventListener('pointerdown', summaryStudyRememberRibbonSelection);
+  document.querySelector('[data-summary-table-shading]')?.addEventListener('change', event => {
+    summaryStudyRunTableCommand('shading', event.currentTarget.value);
+  });
+  document.querySelector('[data-summary-table-borders]')?.addEventListener('pointerdown', summaryStudyRememberRibbonSelection);
+  document.querySelector('[data-summary-table-borders]')?.addEventListener('change', event => {
+    summaryStudyRunTableCommand('borders', event.currentTarget.value);
+  });
+  [
+    ['[data-summary-table-autofit]', 'autofit'],
+    ['[data-summary-table-cell-align]', 'cell-align'],
+    ['[data-summary-table-cell-padding]', 'cell-padding'],
+    ['[data-summary-table-size="row-height"]', 'row-height'],
+    ['[data-summary-table-size="column-width"]', 'column-width']
+  ].forEach(([selector, command]) => {
+    document.querySelector(selector)?.addEventListener('pointerdown', summaryStudyRememberRibbonSelection);
+    document.querySelector(selector)?.addEventListener('change', event => {
+      summaryStudyRunTableCommand(command, event.currentTarget.value);
+    });
+  });
+  const formatSelect = document.querySelector('[data-summary-editor-format]');
+  formatSelect?.addEventListener('pointerdown', summaryStudyRememberRibbonSelection);
+  formatSelect?.addEventListener('keydown', summaryStudyRememberRibbonSelection);
+  formatSelect?.addEventListener('change', event => summaryStudyRunEditorCommand('FormatBlock', event.currentTarget.value));
+  document.querySelectorAll('[data-editor-command-select]').forEach(control => {
+    control.addEventListener('pointerdown', summaryStudyRememberRibbonSelection);
+    control.addEventListener('keydown', summaryStudyRememberRibbonSelection);
+    control.addEventListener('change', event => {
+      const target = event.currentTarget;
+      if (target.value) summaryStudyRunEditorCommand(target.dataset.editorCommandSelect, target.value);
+    });
+  });
+  document.getElementById('summary-study-find')?.addEventListener('keydown', event => {
+    if (event.key === 'Enter') {
+      event.preventDefault();
+      summaryStudyFind();
+    }
+  });
   document.querySelectorAll('[data-summary-action="note"], [data-summary-action="self-explain"], [data-summary-action="share-selection"]').forEach(button => {
+    button.addEventListener('mousedown', event => event.preventDefault());
+  });
+  document.querySelectorAll('[data-summary-action="highlight"], [data-summary-action="remove-highlight"]').forEach(button => {
     button.addEventListener('mousedown', event => event.preventDefault());
   });
   document.querySelector('.summary-study-interaction-trigger')?.addEventListener('mousedown', event => {
@@ -5311,7 +6902,38 @@ function initSummaryStudyPage() {
     event.stopPropagation();
     _summaryStudyColor = button.dataset.summaryColor || '#fde68a';
     document.querySelectorAll('[data-summary-color]').forEach(item => item.classList.toggle('active', item === button));
+    const picker = document.querySelector('[data-summary-color-picker]');
+    if (picker) picker.value = _summaryStudyColor;
+    try {
+      localStorage.setItem(SUMMARY_STUDY_COLOR_KEY, _summaryStudyColor);
+    } catch (error) {
+      console.warn('[SummaryStudy] Không thể lưu màu đánh dấu:', error);
+    }
   }));
+  document.querySelector('[data-summary-color-picker]')?.addEventListener('input', event => {
+    const color = event.currentTarget.value;
+    if (!/^#[\da-f]{6}$/i.test(color)) return;
+    _summaryStudyColor = color;
+    document.querySelectorAll('[data-summary-color]').forEach(item => item.classList.remove('active'));
+    document.querySelector('.summary-study-custom-color')?.classList.add('active');
+    event.currentTarget.closest('.summary-study-custom-color')?.classList.add('active');
+    try {
+      localStorage.setItem(SUMMARY_STUDY_COLOR_KEY, color);
+    } catch (error) {
+      console.warn('[SummaryStudy] Không thể lưu màu đánh dấu:', error);
+    }
+  });
+  document.querySelector('[data-summary-high-contrast]')?.addEventListener('change', event => {
+    const enabled = event.currentTarget.checked;
+    document.querySelectorAll('[data-summary-contrast]').forEach(swatch => {
+      swatch.hidden = enabled && swatch.dataset.summaryContrast !== 'true';
+    });
+    try {
+      localStorage.setItem(SUMMARY_STUDY_HIGH_CONTRAST_KEY, String(enabled));
+    } catch (error) {
+      console.warn('[SummaryStudy] Không thể lưu tùy chọn tương phản màu:', error);
+    }
+  });
   const body = document.getElementById('summary-study-document-body');
   body?.addEventListener('contextmenu', showSummaryStudyContextMenu);
   body?.addEventListener('click', event => {
@@ -5321,33 +6943,16 @@ function initSummaryStudyPage() {
   document.querySelectorAll('[data-summary-context-action]').forEach(button => button.addEventListener('click', () => {
     document.getElementById('summary-study-context-menu').hidden = true;
     if (button.dataset.summaryContextAction === 'highlight') applySummaryStudyHighlight();
-    else if (button.dataset.summaryContextAction === 'remove-highlight') removeSummaryStudyHighlight(_summaryStudyContextHighlight);
+    else if (button.dataset.summaryContextAction === 'remove-highlight') {
+      removeSummaryStudyHighlight(_summaryStudyContextHighlight, _summaryStudyContextSelection);
+      _summaryStudyContextHighlight = null;
+      _summaryStudyContextSelection = null;
+    }
     else document.querySelector('[data-summary-action="note"]')?.click();
   }));
   document.addEventListener('pointerdown', event => {
     const menu = document.getElementById('summary-study-context-menu');
     if (menu && !menu.contains(event.target)) menu.hidden = true;
-  });
-  document.querySelectorAll('[data-ai-action]').forEach(button => button.addEventListener('click', () => {
-    const input = document.getElementById('summary-study-chat-input');
-    if (input) { input.value = `${button.textContent.trim()} về tài liệu này`; input.focus(); }
-  }));
-  document.querySelectorAll('[data-summary-chat-prompt]').forEach(button => {
-    button.addEventListener('mousedown', event => {
-      const picked = summaryStudySelection();
-      if (picked) _summaryStudyPendingQuote = picked.quote;
-      event.preventDefault();
-    });
-    button.addEventListener('click', () => {
-      const input = document.getElementById('summary-study-chat-input');
-      if (!input) return;
-      const promptType = button.dataset.summaryChatPrompt;
-      const quote = _summaryStudyPendingQuote ? ` trong đoạn “${_summaryStudyPendingQuote}”` : ' trong phần đang học';
-      input.value = promptType === 'why'
-        ? `Vì sao nội dung${quote} lại như vậy?`
-        : `Điều gì sẽ xảy ra nếu thay đổi một điều kiện quan trọng${quote}?`;
-      input.focus();
-    });
   });
   document.getElementById('summary-study-chat-form')?.addEventListener('submit', submitSummaryStudyChat);
 }
@@ -6230,6 +7835,126 @@ function renderCurriculumSummaryResultV2(result, titleLabel) {
   document.getElementById('cs-tab-btn-summary')?.click();
 }
 
+function exportSummaryStudyDocument() {
+  const state = getSummaryStudyState();
+  const activeContent = _summaryStudyRichTextEditor
+    ? prepareRichTextDocument(_summaryStudyRichTextEditor)
+    : (state.hasEditedHtml ? sanitizeRichTextHtml(state.editedHtml) : '');
+  if (!state.hasEditedHtml && !_summaryStudyRichTextEditor) {
+    return exportCurriculumSummaryPdf(window._summaryStudyResult, window._summaryStudyTitle || 'Tài liệu ôn tập');
+  }
+  if (!activeContent) return showToast('Không có nội dung đã lưu để xuất.', 'warning');
+  const layout = document.createElement('div');
+  layout.innerHTML = activeContent;
+  const page = layout.querySelector('.summary-study-page');
+  const paperSizes = { A4: [210, 297], Letter: [216, 279], Legal: [216, 356] };
+  const paper = paperSizes[page?.dataset.summaryPageSize] || paperSizes.A4;
+  const landscape = page?.dataset.summaryPageOrientation === 'landscape';
+  const pageWidth = landscape ? paper[1] : paper[0];
+  const pageHeight = landscape ? paper[0] : paper[1];
+  const pageMargins = ['top', 'right', 'bottom', 'left'].map(side => {
+    const amount = Number(page?.dataset[`summaryPageMargin${side[0].toUpperCase()}${side.slice(1)}`]);
+    return Number.isInteger(amount) && amount >= 5 && amount <= 50 ? amount : 18;
+  });
+  const pageGutterValue = Number(page?.dataset.summaryPageGutter);
+  const pageGutter = Number.isInteger(pageGutterValue) && pageGutterValue >= 0 && pageGutterValue <= 50
+    ? pageGutterValue
+    : 0;
+  const pageColumns = Math.min(3, Math.max(1, Number(page?.dataset.summaryPageColumns) || 1));
+  const pageColumnGap = Number(page?.dataset.summaryPageColumnGap);
+  const columnGap = Number.isInteger(pageColumnGap) && pageColumnGap >= 5 && pageColumnGap <= 50 ? pageColumnGap : 10;
+  const popup = window.open('', '_blank', 'width=1000,height=800');
+  if (!popup) return showToast('Trình duyệt đã chặn cửa sổ xuất. Hãy cho phép popup cho trang này.', 'warning');
+  const title = escapeHtml(window._summaryStudyTitle || 'Tài liệu ôn tập');
+  popup.document.write(`<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${title}</title>
+    <style>
+      @page{size:${pageWidth}mm ${pageHeight}mm;margin:${pageMargins[0]}mm ${pageMargins[1]}mm ${pageMargins[2]}mm ${pageMargins[3] + pageGutter}mm}*{box-sizing:border-box}body{font-family:Arial,"Segoe UI",sans-serif;color:#1f2937;font-size:11pt;line-height:1.7}.summary-study-page{width:auto!important;max-width:none!important;min-height:0!important;margin:0!important;padding:0!important;box-shadow:none!important;column-count:${pageColumns};column-gap:${columnGap}mm;column-fill:auto}h1,h2,h3,h4,h5{color:#163b5c;line-height:1.3;break-after:avoid}p,li{orphans:3;widows:3}img{max-width:100%;height:auto}table{width:100%;border-collapse:collapse;break-inside:avoid}th,td{border:1px solid #94a3b8;padding:6px;text-align:left;vertical-align:top}blockquote{border-left:3px solid #168c71;padding:8px 14px;margin:12px 0;color:#334155}pre{white-space:pre-wrap;background:#f1f5f9;padding:10px}a{color:#075985;text-decoration:underline}.summary-study-page-break{break-before:page;page-break-before:always;height:0!important;margin:0!important;border:0!important}.summary-study-page-break span{display:none}.summary-study-figure,.summary-study-chart,.summary-study-diagram{margin:18px auto;text-align:center;break-inside:avoid;page-break-inside:avoid}.summary-study-figure img,.summary-study-chart img,.summary-study-diagram img{display:block;width:100%;max-width:100%;height:auto;margin:0 auto}.summary-study-image-layout--inline{float:none!important;display:inline-block!important;vertical-align:middle;margin:4px 6px!important}.summary-study-image-layout--center{float:none!important;display:block!important;margin:12px auto!important}.summary-study-image-layout--float-left{float:left!important;width:42%!important;max-width:320px!important;margin:4px 18px 10px 0!important}.summary-study-image-layout--float-right{float:right!important;width:42%!important;max-width:320px!important;margin:4px 0 10px 18px!important}figure.summary-study-image-layout--float-left,figure.summary-study-image-layout--float-right{display:block!important;text-align:left!important}.summary-study-figure figcaption,.summary-study-chart figcaption,.summary-study-diagram figcaption{clear:both;margin-top:6px;color:#475569;font-size:10pt;text-align:center}.summary-study-toc{break-inside:avoid}.summary-study-toc li{margin:3px 0}.summary-study-toc-level-2{margin-left:18px}.summary-study-toc-level-3{margin-left:36px}.summary-study-footnote{margin:4px 0 14px;padding:5px 9px;border-left:1px solid #64748b;font-size:9pt;line-height:1.5;break-inside:avoid;page-break-inside:avoid}.summary-study-endnotes{margin-top:24px;padding-top:10px;border-top:1px solid #64748b}.summary-study-endnote{padding:2px 0 5px;break-inside:avoid;page-break-inside:avoid}
+    </style></head><body><h1>${title}</h1>${activeContent}<script>window.addEventListener('load',()=>setTimeout(()=>window.print(),250));</script></body></html>`);
+  const printDetails = popup.document.createElement('style');
+  printDetails.textContent = '.summary-study-page-number::after{content:counter(page)}.summary-study-text-box{border:1px solid #94a3b8;border-radius:6px;padding:12px 16px;margin:12px 0}.summary-study-shape{margin:18px auto;text-align:center;break-inside:avoid;page-break-inside:avoid}.summary-study-shape img{display:block;width:100%;max-width:640px;height:auto;margin:0 auto}.summary-study-shape.summary-study-image-layout--float-left img,.summary-study-shape.summary-study-image-layout--float-right img{max-width:100%!important}.summary-study-document-header,.summary-study-document-footer{border-bottom:1px solid #cbd5e1;padding:4px 0;color:#52677c;font-size:9pt}.summary-study-document-footer{border-top:1px solid #cbd5e1;border-bottom:0}';
+  popup.document.head.append(printDetails);
+  const textEffectStyles = popup.document.createElement('style');
+  textEffectStyles.textContent = '.summary-study-text-effect--outline{-webkit-text-stroke:1px #2563eb;color:transparent;-webkit-print-color-adjust:exact;print-color-adjust:exact}.summary-study-text-effect--shadow{text-shadow:2px 2px 3px #64748b;-webkit-print-color-adjust:exact;print-color-adjust:exact}.summary-study-text-effect--reflection{display:inline-block;-webkit-box-reflect:below 1px linear-gradient(transparent,rgba(0,0,0,.24));-webkit-print-color-adjust:exact;print-color-adjust:exact}.summary-study-text-effect--glow{text-shadow:0 0 5px #38bdf8,0 0 12px #38bdf8;-webkit-print-color-adjust:exact;print-color-adjust:exact}';
+  popup.document.head.append(textEffectStyles);
+  popup.document.close();
+  popup.focus();
+}
+
+async function exportSummaryStudyDocx() {
+  const state = getSummaryStudyState();
+  const documentBody = document.getElementById('summary-study-document-body');
+  const activeContent = _summaryStudyRichTextEditor
+    ? prepareRichTextDocument(_summaryStudyRichTextEditor)
+    : (state.hasEditedHtml ? sanitizeRichTextHtml(state.editedHtml) : sanitizeRichTextHtml(
+      documentBody ? summaryStudyContentWithoutHighlights(documentBody) : ''
+    ));
+  if (!activeContent) return showToast('Không có nội dung để xuất.', 'warning');
+
+  const title = window._summaryStudyTitle || 'Tài liệu ôn tập';
+  try {
+    const blob = await exportSummaryHtmlToDocx(activeContent, title);
+    const objectUrl = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = objectUrl;
+    link.download = `${title.replace(/[<>:"/\\|?*\u0000-\u001f]/g, '_').trim() || 'tai-lieu-on-tap'}.docx`;
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 1000);
+    showToast('Đã tạo tệp DOCX.', 'success');
+  } catch (error) {
+    console.error('[SummaryStudyDocx] Không thể xuất DOCX:', error);
+    showToast(error.message || 'Không thể tạo tệp DOCX. Hãy kiểm tra ảnh và thử lại.', 'error', 6500);
+  }
+}
+
+async function handleSummaryStudyDocxImport(file, input) {
+  if (!file || !_summaryStudyRichTextEditor) return;
+  const importButton = document.querySelector('[data-summary-editor-action="import-docx"]');
+  if (file.size > 20 * 1024 * 1024) {
+    showToast('Tệp DOCX vượt quá giới hạn 20 MB.', 'error');
+    input.value = '';
+    return;
+  }
+  if (!/\.docx$/i.test(file.name)) {
+    showToast('Vui lòng chọn tệp .docx.', 'error');
+    input.value = '';
+    return;
+  }
+  if (!window.confirm('Nhập DOCX sẽ thay thế toàn bộ nội dung đang soạn. Trình soạn thảo có thể hoàn tác thao tác này. Tiếp tục?')) {
+    input.value = '';
+    return;
+  }
+
+  const contentBeforeImport = _summaryStudyRichTextEditor.getContent();
+  if (importButton) importButton.disabled = true;
+  summaryStudySetEditorStatus('Đang nhập DOCX…', 'loading');
+  try {
+    const { html, warnings } = await importSummaryStudyDocx(file);
+    if (_summaryStudyRichTextEditor.getContent() !== contentBeforeImport) {
+      throw new Error('Nội dung đã thay đổi trong lúc nhập. Hãy chọn lại tệp để tránh ghi đè chỉnh sửa mới.');
+    }
+    summaryStudyPushUndo();
+    _summaryStudyRichTextEditor.undoManager.transact(() => _summaryStudyRichTextEditor.setContent(html));
+    _summaryStudyRichTextEditor.nodeChanged();
+    scheduleSummaryStudyEditorSave(_summaryStudyRichTextEditor);
+    showToast(
+      warnings.length
+        ? `Đã nhập DOCX. Mammoth báo ${warnings.length} nội dung/định dạng không thể chuyển đổi.`
+        : 'Đã nhập nội dung DOCX vào trình soạn thảo.',
+      warnings.length ? 'warning' : 'success',
+      warnings.length ? 6500 : 3500
+    );
+  } catch (error) {
+    console.error('[SummaryStudyDocx] Không thể nhập DOCX:', error);
+    summaryStudySetEditorStatus('Nhập DOCX thất bại; nội dung chưa thay đổi', 'error');
+    showToast(error.message || 'Không thể đọc tệp DOCX. Nội dung hiện tại vẫn được giữ nguyên.', 'error', 6500);
+  } finally {
+    if (importButton) importButton.disabled = false;
+    input.value = '';
+  }
+}
+
 function exportCurriculumSummaryPdf(result, title) {
   if (!result) {
     showToast('Chưa có nội dung tóm tắt để xuất PDF.', 'warning');
@@ -6603,6 +8328,14 @@ async function shareCurrentCurriculumSummary() {
   const title = document.getElementById('cs-active-doc-title')?.textContent?.trim() || window._summaryStudyTitle || 'Bản tóm tắt';
   const result = _csCurrentResult || window._summaryStudyResult;
   if (!result) return showToast('Chưa có bản tóm tắt để chia sẻ.', 'info');
+  const documentState = !_summaryStudyReadOnly && window._summaryStudyTitle === title
+    ? getSummaryStudyState(title)
+    : null;
+  const documentHtml = !_summaryStudyReadOnly && window._summaryStudyTitle === title
+    ? (_summaryStudyRichTextEditor
+      ? prepareRichTextDocument(_summaryStudyRichTextEditor)
+      : documentState?.hasEditedHtml ? sanitizeRichTextHtml(documentState.editedHtml) : null)
+    : null;
   if (!_csCurrentSummaryId) {
     const history = readCurriculumSummaryHistory();
     const matching = history.find(entry => entry.result === result || (entry.title === title && entry.mode === _csMode));
@@ -6619,7 +8352,7 @@ async function shareCurrentCurriculumSummary() {
   const button = document.getElementById('cs-btn-share-summary');
   if (button) button.disabled = true;
   try {
-    await callSummaryShareApi('POST', { shareId: _csCurrentSummaryId, title, result });
+    await callSummaryShareApi('POST', { shareId: _csCurrentSummaryId, title, result, documentHtml });
     const url = new URL(location.pathname, location.origin);
     url.searchParams.set('page', 'summary-study');
     url.searchParams.set('share-summary', _csCurrentSummaryId);
@@ -7572,7 +9305,7 @@ function _reviewLegacyMediaHtml(blocks){return (blocks||[]).filter(function(b){r
 function selectReviewLesson(chapterId,lessonId){destroyReviewLessonDocumentEditor();_reviewLessonChapterId=chapterId;_reviewLessonId=lessonId;var a=_reviewActive();if(!a.lesson)return;document.getElementById('review-lesson-title').value=a.lesson.title||'';document.getElementById('review-lesson-status').value=a.lesson.status||'draft';var doc=_reviewDoc(a.lesson,true),legacy=_reviewLegacyMediaHtml(a.lesson.blocks);if(legacy&&doc.content.indexOf('data-review-inline-migrated')<0){doc.content+=(doc.content?'<p><br></p>':'')+'<div data-review-inline-migrated="true">'+legacy+'</div>';a.lesson.blocks=[doc];}_reviewLessonMediaItems=[];_reviewLessonSelectedMediaId=null;renderReviewLessonTree();initReviewLessonDocumentEditor(doc.content||'');var mediaPanel=document.querySelector('.review-lesson-admin-media');if(mediaPanel){var aiHost=document.getElementById('admin-review-ai-summary-settings');if(!aiHost){aiHost=document.createElement('div');aiHost.id='admin-review-ai-summary-settings';aiHost.className='admin-ai-summary-settings';aiHost.style.marginTop='16px';mediaPanel.appendChild(aiHost);}adminLessonAiSettings(a.lesson,a.chapter,'admin-review-ai-summary-settings');}}
 function createReviewLesson(){var a=_reviewActive(),cs=a.details&&a.details.chapters||[],c=cs.find(function(x){return x.id===_reviewLessonChapterId})||cs[0];if(!c)return showToast('Hãy tạo ít nhất một chương trước.','error');var title=prompt('Tên bài giảng mới:','Bài giảng ôn tập mới');if(!title)return;c.lessons=c.lessons||[];var l={id:'les_review_'+Date.now(),title:title.trim(),duration:'10:00',status:'draft',type:'editor',blocks:[{type:'lessonDocument',content:''}],content:''};c.lessons.push(l);_reviewLessonChapterId=c.id;_reviewLessonId=l.id;DB.saveSubjectDetails(_reviewLessonSubjectId,a.details).then(function(){selectReviewLesson(c.id,l.id)});}
 function updateReviewLessonMetadata(key,value){var l=_reviewActive().lesson;if(!l||!['title','status'].includes(key))return;l[key]=key==='status'?(value==='published'?'published':'draft'):String(value||'');renderReviewLessonTree();}
-function initReviewLessonDocumentEditor(content){var textarea=document.getElementById('admin-review-lesson-document-editor');if(!textarea||!_reviewLessonId)return;if(!window.tinymce){textarea.value=content||'';return showToast('Không thể tải trình soạn thảo TinyMCE.','error')}tinymce.init({selector:'#admin-review-lesson-document-editor',height:520,menubar:false,plugins:'lists link image media table wordcount',toolbar:'undo redo | blocks | bold italic underline forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media reviewFloatingMedia table | removeformat | wordcount',branding:false,images_upload_handler:function(blobInfo){return new Promise(function(resolve,reject){var reader=new FileReader();reader.onload=function(){resolve(reader.result)};reader.onerror=function(){reject('Không đọc được ảnh')};reader.readAsDataURL(blobInfo.blob())})},content_style:'body { position: relative; min-height: 500px; margin: 0; padding: 18px 24px; font-family: Inter, sans-serif; font-size: 15px; line-height: 1.8; } p { margin: 0 0 14px; } h2,h3,h4 { margin: 26px 0 10px; line-height: 1.3; } ul,ol { margin: 0 0 16px; padding-left: 1.5em; } img:not(.review-floating-media) { display: block; max-width: 100%; height: auto; margin: 18px auto; } img.review-floating-media { max-width: min(70%, 560px); height: auto; box-sizing: border-box; } table { border-collapse: collapse; width: 100%; margin: 16px 0; } th,td { border:1px solid #9ca3af; padding:8px; }',setup:function(editor){editor.ui.registry.addButton('reviewFloatingMedia',{icon:'image',tooltip:'Bật/tắt ảnh nổi kéo tự do',onAction:function(){reviewLessonToggleFloatingMedia(editor)}});editor.on('init',function(){_reviewLessonDocumentEditor=editor;editor.setContent(content||'')});bindReviewLessonFloatingMedia(editor);editor.on('input change undo redo',syncReviewLessonDocumentContent)}}).catch(function(){showToast('Không thể khởi tạo TinyMCE.','error')});}
+async function initReviewLessonDocumentEditor(content){var textarea=document.getElementById('admin-review-lesson-document-editor');if(!textarea||!_reviewLessonId)return;try{await ensureTinyMCE();}catch(e){textarea.value=content||'';return showToast('Không thể tải thư viện TinyMCE. Vui lòng kiểm tra kết nối mạng.','error');}tinymce.init({selector:'#admin-review-lesson-document-editor',height:520,menubar:false,plugins:'lists link image media table wordcount',toolbar:'undo redo | blocks | bold italic underline forecolor backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media reviewFloatingMedia table | removeformat | wordcount',branding:false,images_upload_handler:function(blobInfo){return new Promise(function(resolve,reject){var reader=new FileReader();reader.onload=function(){resolve(reader.result)};reader.onerror=function(){reject('Không đọc được ảnh')};reader.readAsDataURL(blobInfo.blob())})},content_style:'body { position: relative; min-height: 500px; margin: 0; padding: 18px 24px; font-family: Inter, sans-serif; font-size: 15px; line-height: 1.8; } p { margin: 0 0 14px; } h2,h3,h4 { margin: 26px 0 10px; line-height: 1.3; } ul,ol { margin: 0 0 16px; padding-left: 1.5em; } img:not(.review-floating-media) { display: block; max-width: 100%; height: auto; margin: 18px auto; } img.review-floating-media { max-width: min(70%, 560px); height: auto; box-sizing: border-box; } table { border-collapse: collapse; width: 100%; margin: 16px 0; } th,td { border:1px solid #9ca3af; padding:8px; }',setup:function(editor){editor.ui.registry.addButton('reviewFloatingMedia',{icon:'image',tooltip:'Bật/tắt ảnh nổi kéo tự do',onAction:function(){reviewLessonToggleFloatingMedia(editor)}});editor.on('init',function(){_reviewLessonDocumentEditor=editor;editor.setContent(content||'')});bindReviewLessonFloatingMedia(editor);editor.on('input change undo redo',syncReviewLessonDocumentContent)}}).catch(function(){showToast('Không thể khởi tạo TinyMCE.','error')});}
 function reviewLessonToggleFloatingMedia(editor) { var image = editor.selection.getNode(); if (!image || image.nodeName !== 'IMG') return showToast('Chọn một ảnh trước khi bật ảnh nổi.', 'info'); image.classList.toggle('review-floating-media'); if (image.classList.contains('review-floating-media')) { var body = editor.getBody(), parent = image.parentNode; if (parent && parent !== body && parent.childNodes.length === 1) { parent.removeChild(image); body.appendChild(image); parent.remove(); } image.setAttribute('data-review-float-x', image.getAttribute('data-review-float-x') || '12'); image.setAttribute('data-review-float-y', image.getAttribute('data-review-float-y') || '12'); image.setAttribute('contenteditable', 'false'); image.style.position = 'absolute'; image.style.left = image.getAttribute('data-review-float-x') + 'px'; image.style.top = image.getAttribute('data-review-float-y') + 'px'; image.style.cursor = 'move'; var textTarget = body.querySelector('p:not(:empty)') || body.appendChild(editor.getDoc().createElement('p')); editor.selection.select(textTarget, true); editor.selection.collapse(false); editor.focus(); } else { image.removeAttribute('data-review-float-x'); image.removeAttribute('data-review-float-y'); image.removeAttribute('contenteditable'); image.style.removeProperty('position'); image.style.removeProperty('left'); image.style.removeProperty('top'); image.style.removeProperty('cursor'); } syncReviewLessonDocumentContent(); }
 function bindReviewLessonFloatingMedia(editor) { var drag = null; editor.on('init', function() { editor.getBody().addEventListener('pointerdown', function(event) { var image = event.target; if (!image.matches || !image.matches('img.review-floating-media')) return; event.preventDefault(); var startX = event.clientX, startY = event.clientY, left = Number(image.getAttribute('data-review-float-x') || 0), top = Number(image.getAttribute('data-review-float-y') || 0); drag = { image: image, startX: startX, startY: startY, left: left, top: top }; image.setPointerCapture(event.pointerId); }); editor.getBody().addEventListener('pointermove', function(event) { if (!drag) return; var x = Math.max(-240, Math.min(900, drag.left + event.clientX - drag.startX)), y = Math.max(-240, Math.min(1600, drag.top + event.clientY - drag.startY)); drag.image.setAttribute('data-review-float-x', String(x)); drag.image.setAttribute('data-review-float-y', String(y)); drag.image.style.left = x + 'px'; drag.image.style.top = y + 'px'; }); editor.getBody().addEventListener('pointerup', function() { if (!drag) return; drag = null; syncReviewLessonDocumentContent(); }); }); }
 function getReviewLessonDocumentContent(){var live=window.tinymce&&window.tinymce.get('admin-review-lesson-document-editor');if(live)return live.getContent();if(_reviewLessonDocumentEditor)return _reviewLessonDocumentEditor.getContent();return(document.getElementById('admin-review-lesson-document-editor')||{}).value||'';}

@@ -78,8 +78,6 @@ async function checkGroq(key, keyIndex) {
   console.log(`   Key: ${key.substring(0, 25)}...`);
   
   const models = [
-    'llama-3.3-70b-versatile',
-    'llama-3.1-8b-instant',
     'openai/gpt-oss-120b',
     'openai/gpt-oss-20b'
   ];
@@ -133,8 +131,7 @@ async function checkOpenRouter(key, keyIndex) {
   
   const models = [
     'meta-llama/llama-3.3-70b-instruct',
-    'openai/gpt-4o-mini',
-    'google/gemini-flash-1.5'
+    'openai/gpt-4o-mini'
   ];
   
   let workingModels = [];
