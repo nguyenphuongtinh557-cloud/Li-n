@@ -3288,7 +3288,22 @@ let _studyReaderAnnotationEnabled = false;
 let _studyReaderAnnotationColor = '#10b981';
 
 function isStudyReaderAllowedUrl(value) {
-  try { return ['http:', 'https:'].includes(new URL(String(value || '')).protocol); } catch { return false; }
+  if (!value) return false;
+  const str = String(value).trim();
+  if (!str) return false;
+  if (/^data:image\/(png|jpeg|jpg|webp|gif|svg\+xml);base64,/i.test(str)) {
+    return true;
+  }
+  if (str.startsWith('blob:') || str.startsWith('/') || str.startsWith('./') || str.startsWith('../')) {
+    return true;
+  }
+  try {
+    const baseUrl = typeof window !== 'undefined' && window.location ? window.location.href : 'http://localhost';
+    const parsed = new URL(str, baseUrl);
+    return ['http:', 'https:', 'blob:'].includes(parsed.protocol);
+  } catch {
+    return false;
+  }
 }
 function buildLessonOutline(blocks = []) {
   return (Array.isArray(blocks) ? blocks : []).filter(b => b?.type === 'heading')
@@ -3337,14 +3352,43 @@ function extractStudyReaderText(context = _studyReaderContext || {}) {
 }
 function safeStudyReaderRichText(html) {
   const template = document.createElement('template'); template.innerHTML = String(html || '');
-  const allowed = new Set(['P','DIV','BR','STRONG','B','EM','I','U','UL','OL','LI','H2','H3','H4','BLOCKQUOTE','PRE','CODE','A','IMG','TABLE','THEAD','TBODY','TR','TH','TD','VIDEO','SOURCE','IFRAME']);
+  const allowed = new Set(['P','DIV','SPAN','BR','STRONG','B','EM','I','U','S','DEL','SUB','SUP','UL','OL','LI','H1','H2','H3','H4','H5','H6','BLOCKQUOTE','PRE','CODE','A','IMG','FIGURE','FIGCAPTION','TABLE','THEAD','TBODY','TFOOT','TR','TH','TD','VIDEO','SOURCE','IFRAME','HR']);
   template.content.querySelectorAll('*').forEach(node => {
     if (!allowed.has(node.tagName)) return node.replaceWith(document.createTextNode(node.textContent || ''));
     const rawAlign = (node.style ? node.style.textAlign : '') || node.getAttribute('align') || '';
-    [...node.attributes].forEach(attr => { const floating = node.tagName === 'IMG' && ((attr.name === 'class' && attr.value === 'review-floating-media') || (['data-review-float-x','data-review-float-y'].includes(attr.name) && /^-?\d{1,4}$/.test(attr.value))); const media = ['IMG','VIDEO','SOURCE','IFRAME'].includes(node.tagName) && ['src','alt','title','width','height','controls','allowfullscreen'].includes(attr.name) && (attr.name !== 'src' || (isStudyReaderAllowedUrl(attr.value) && (node.tagName !== 'IFRAME' || /youtube\.com|youtu\.be|vimeo\.com/i.test(new URL(attr.value).hostname)))); const valid = (node.tagName === 'A' && attr.name === 'href' && isStudyReaderAllowedUrl(attr.value)) || media || floating; if (!valid) node.removeAttribute(attr.name); });
+    [...node.attributes].forEach(attr => {
+      const name = attr.name.toLowerCase();
+      let valid = false;
+      if (['class', 'style', 'align', 'id', 'title'].includes(name)) {
+        valid = true;
+      } else if (node.tagName === 'A' && name === 'href') {
+        valid = isStudyReaderAllowedUrl(attr.value);
+      } else if (['IMG', 'VIDEO', 'SOURCE', 'IFRAME'].includes(node.tagName)) {
+        if (['alt', 'width', 'height', 'controls', 'allowfullscreen', 'loading', 'data-review-float-x', 'data-review-float-y'].includes(name)) {
+          valid = true;
+        } else if (name === 'src') {
+          if (node.tagName === 'IFRAME') {
+            try {
+              const baseUrl = typeof window !== 'undefined' && window.location ? window.location.href : 'http://localhost';
+              const parsed = new URL(attr.value, baseUrl);
+              valid = isStudyReaderAllowedUrl(attr.value) && /youtube\.com|youtu\.be|vimeo\.com/i.test(parsed.hostname);
+            } catch {
+              valid = false;
+            }
+          } else {
+            valid = isStudyReaderAllowedUrl(attr.value);
+          }
+        }
+      }
+      if (!valid) node.removeAttribute(attr.name);
+    });
     const align = { left: 'left', center: 'center', right: 'right', justify: 'justify', start: 'left', end: 'right' }[String(rawAlign).trim().toLowerCase()];
-    if (align) node.style.textAlign = align;
-    if (node.tagName === 'A') { node.target = '_blank'; node.rel = 'noopener noreferrer'; } if (node.tagName === 'IMG' && node.classList.contains('review-floating-media')) { const x = Number(node.getAttribute('data-review-float-x') || 0), y = Number(node.getAttribute('data-review-float-y') || 0); node.style.position = 'absolute'; node.style.left = Math.max(-240, Math.min(900, x)) + 'px'; node.style.top = Math.max(-240, Math.min(1600, y)) + 'px'; }
+    if (align && node.style) node.style.textAlign = align;
+    if (node.tagName === 'A') { node.target = '_blank'; node.rel = 'noopener noreferrer'; }
+    if (node.tagName === 'IMG' && node.classList.contains('review-floating-media')) {
+      const x = Number(node.getAttribute('data-review-float-x') || 0), y = Number(node.getAttribute('data-review-float-y') || 0);
+      node.style.position = 'absolute'; node.style.left = Math.max(-240, Math.min(900, x)) + 'px'; node.style.top = Math.max(-240, Math.min(1600, y)) + 'px';
+    }
   }); return template.innerHTML;
 }
 function studyReaderExternalButton(url) { return isStudyReaderAllowedUrl(url) ? `<a class="btn btn-primary btn-sm" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-arrow-up-right-from-square"></i> Mở tài liệu gốc</a>` : ''; }
