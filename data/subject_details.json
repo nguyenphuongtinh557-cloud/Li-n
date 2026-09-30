@@ -620,25 +620,6 @@
               "cache": {},
               "updatedAt": null
             }
-          },
-          {
-            "id": "les_1790752684273",
-            "title": "4.1.2. Vật chất khô",
-            "duration": "10:00",
-            "status": "published",
-            "type": "editor",
-            "blocks": [],
-            "content": "",
-            "description": "",
-            "order": 1,
-            "updatedAt": "2026-09-30T07:18:27.479Z",
-            "aiSummary": {
-              "enabled": false,
-              "contentHash": "",
-              "status": "none",
-              "cache": {},
-              "updatedAt": null
-            }
           }
         ],
         "order": 3
@@ -664,6 +645,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-09-30T07:18:42.443Z"
+    "updatedAt": "2026-09-30T07:18:55.371Z"
   }
 }
