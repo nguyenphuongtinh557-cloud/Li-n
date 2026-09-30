@@ -680,7 +680,7 @@
           },
           {
             "id": "les_1790752931974",
-            "title": "4.5",
+            "title": "4.5 Sự sinh trưởng và phát triển của vi sinh vật",
             "duration": "10:00",
             "status": "published",
             "type": "editor",
@@ -707,6 +707,12 @@
         "order": 4
       },
       {
+        "id": "chap_1789619252775",
+        "title": "Chương VI. Di truyền học vi sinh vật",
+        "lessons": [],
+        "order": 5
+      },
+      {
         "id": "chap_1789619295899",
         "title": "Chương VII. Kỹ thuật bảo quản giống vi sinh vật",
         "lessons": [],
@@ -715,6 +721,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-09-30T07:24:55.535Z"
+    "updatedAt": "2026-09-30T07:25:09.154Z"
   }
 }
