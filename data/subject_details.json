@@ -620,44 +620,6 @@
               "cache": {},
               "updatedAt": null
             }
-          },
-          {
-            "id": "les_1790752727693",
-            "title": "4.3. Cơ chế vận chuyển chất dinh dưỡng qua màng",
-            "duration": "10:00",
-            "status": "published",
-            "type": "editor",
-            "blocks": [],
-            "content": "",
-            "description": "",
-            "order": 2,
-            "updatedAt": "2026-09-30T07:19:16.513Z",
-            "aiSummary": {
-              "enabled": false,
-              "contentHash": "",
-              "status": "none",
-              "cache": {},
-              "updatedAt": null
-            }
-          },
-          {
-            "id": "les_1790752800479",
-            "title": "4.2. Các kiểu dinh dưỡng ở vi sinh vật",
-            "duration": "10:00",
-            "status": "published",
-            "type": "editor",
-            "blocks": [],
-            "content": "",
-            "description": "",
-            "order": 2,
-            "updatedAt": "2026-09-30T07:20:32.086Z",
-            "aiSummary": {
-              "enabled": false,
-              "contentHash": "",
-              "status": "none",
-              "cache": {},
-              "updatedAt": null
-            }
           }
         ],
         "order": 3
@@ -683,6 +645,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-09-30T07:20:43.162Z"
+    "updatedAt": "2026-09-30T07:20:55.485Z"
   }
 }
