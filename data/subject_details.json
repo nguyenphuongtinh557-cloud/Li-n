@@ -620,25 +620,6 @@
               "cache": {},
               "updatedAt": null
             }
-          },
-          {
-            "id": "les_1790752743814",
-            "title": "4.4. Quá trình trao đổi chất và năng lượng",
-            "duration": "10:00",
-            "status": "published",
-            "type": "editor",
-            "blocks": [],
-            "content": "",
-            "description": "",
-            "order": 1,
-            "updatedAt": "2026-09-30T07:19:31.718Z",
-            "aiSummary": {
-              "enabled": false,
-              "contentHash": "",
-              "status": "none",
-              "cache": {},
-              "updatedAt": null
-            }
           }
         ],
         "order": 3
@@ -664,6 +645,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-09-30T07:20:11.854Z"
+    "updatedAt": "2026-09-30T07:20:23.494Z"
   }
 }
