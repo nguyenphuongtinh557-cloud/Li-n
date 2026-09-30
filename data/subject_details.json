@@ -622,25 +622,6 @@
             }
           },
           {
-            "id": "les_1790752684273",
-            "title": "4.1.2. Vật chất khô",
-            "duration": "10:00",
-            "status": "published",
-            "type": "editor",
-            "blocks": [],
-            "content": "",
-            "description": "",
-            "order": 1,
-            "updatedAt": "2026-09-30T07:18:27.479Z",
-            "aiSummary": {
-              "enabled": false,
-              "contentHash": "",
-              "status": "none",
-              "cache": {},
-              "updatedAt": null
-            }
-          },
-          {
             "id": "les_1790752727693",
             "title": "4.3. Cơ chế vận chuyển chất dinh dưỡng qua màng",
             "duration": "10:00",
@@ -651,25 +632,6 @@
             "description": "",
             "order": 2,
             "updatedAt": "2026-09-30T07:19:16.513Z",
-            "aiSummary": {
-              "enabled": false,
-              "contentHash": "",
-              "status": "none",
-              "cache": {},
-              "updatedAt": null
-            }
-          },
-          {
-            "id": "les_1790752764600",
-            "title": "4.5. Sự sinh trưởng và phát triển của vi sinh vật",
-            "duration": "10:00",
-            "status": "published",
-            "type": "editor",
-            "blocks": [],
-            "content": "",
-            "description": "",
-            "order": 3,
-            "updatedAt": "2026-09-30T07:19:44.132Z",
             "aiSummary": {
               "enabled": false,
               "contentHash": "",
@@ -702,6 +664,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-09-30T07:19:52.966Z"
+    "updatedAt": "2026-09-30T07:20:03.047Z"
   }
 }
