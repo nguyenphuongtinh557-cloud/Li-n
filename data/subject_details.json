@@ -620,6 +620,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790752832064",
+            "title": "4.3. Cơ chế vận chuyển chất dinh dưỡng qua màng",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 1,
+            "updatedAt": "2026-09-30T07:20:57.947Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 3
@@ -645,6 +664,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-09-30T07:20:55.485Z"
+    "updatedAt": "2026-09-30T07:21:08.668Z"
   }
 }
