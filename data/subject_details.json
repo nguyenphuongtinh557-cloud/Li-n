@@ -680,7 +680,7 @@
           },
           {
             "id": "les_1790752931974",
-            "title": "4.5",
+            "title": "4.5. Sự sinh trưởng và phát triển của vi sinh vật",
             "duration": "10:00",
             "status": "published",
             "type": "editor",
@@ -705,10 +705,16 @@
         "title": "Chương V. Ảnh hưởng của các yếu tố môi trường đến sự sinh trưởng của vi sinh vật",
         "lessons": [],
         "order": 4
+      },
+      {
+        "id": "chap_1789619295899",
+        "title": "Chương VII. Kỹ thuật bảo quản giống vi sinh vật",
+        "lessons": [],
+        "order": 6
       }
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-09-30T07:25:50.321Z"
+    "updatedAt": "2026-09-30T07:26:05.974Z"
   }
 }
