@@ -622,8 +622,8 @@
             }
           },
           {
-            "id": "les_1790752684273",
-            "title": "4.1.2. Vật chất khô",
+            "id": "les_1790752743814",
+            "title": "4.4. Quá trình trao đổi chất và năng lượng",
             "duration": "10:00",
             "status": "published",
             "type": "editor",
@@ -631,26 +631,7 @@
             "content": "",
             "description": "",
             "order": 1,
-            "updatedAt": "2026-09-30T07:18:27.479Z",
-            "aiSummary": {
-              "enabled": false,
-              "contentHash": "",
-              "status": "none",
-              "cache": {},
-              "updatedAt": null
-            }
-          },
-          {
-            "id": "les_1790752727693",
-            "title": "4.3. Cơ chế vận chuyển chất dinh dưỡng qua màng",
-            "duration": "10:00",
-            "status": "published",
-            "type": "editor",
-            "blocks": [],
-            "content": "",
-            "description": "",
-            "order": 2,
-            "updatedAt": "2026-09-30T07:19:16.513Z",
+            "updatedAt": "2026-09-30T07:19:31.718Z",
             "aiSummary": {
               "enabled": false,
               "contentHash": "",
@@ -683,6 +664,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-09-30T07:19:29.346Z"
+    "updatedAt": "2026-09-30T07:19:41.979Z"
   }
 }
