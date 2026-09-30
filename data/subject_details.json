@@ -703,18 +703,89 @@
       {
         "id": "chap_1789619225523",
         "title": "Chương V. Ảnh hưởng của các yếu tố môi trường đến sự sinh trưởng của vi sinh vật",
-        "lessons": [],
+        "lessons": [
+          {
+            "id": "les_1790753222164",
+            "title": "5.1. Ảnh hưởng của các tác nhân vật lý",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 0,
+            "updatedAt": "2026-09-30T07:27:02.172Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          },
+          {
+            "id": "les_1790753236187",
+            "title": "5.2. Ảnh hưởng của các yếu tố hóa học",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 1,
+            "updatedAt": "2026-09-30T07:27:16.191Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          },
+          {
+            "id": "les_1790753243290",
+            "title": "5.3. Ảnh hưởng của các yếu tố sinh học (tương tác giữa vi sinh vật với vi sinh vật và với các sinh vật khác)",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 2,
+            "updatedAt": "2026-09-30T07:27:23.293Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          },
+          {
+            "id": "les_1790753250064",
+            "title": "5.4. Tiêu độc và khử trùng",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 3,
+            "updatedAt": "2026-09-30T07:27:30.067Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
         "order": 4
-      },
-      {
-        "id": "chap_1789619295899",
-        "title": "Chương VII. Kỹ thuật bảo quản giống vi sinh vật",
-        "lessons": [],
-        "order": 6
       }
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-09-30T07:26:05.974Z"
+    "updatedAt": "2026-09-30T07:29:28.869Z"
   }
 }
