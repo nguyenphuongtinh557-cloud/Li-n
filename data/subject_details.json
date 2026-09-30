@@ -642,7 +642,7 @@
           },
           {
             "id": "les_1790752879141",
-            "title": "4.3.",
+            "title": "4.3. Cơ chế vận chuyển chất dinh dưỡng qua màng",
             "duration": "10:00",
             "status": "published",
             "type": "editor",
@@ -651,6 +651,44 @@
             "description": "",
             "order": 2,
             "updatedAt": "2026-09-30T07:21:27.280Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          },
+          {
+            "id": "les_1790752910946",
+            "title": "4.4.",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 3,
+            "updatedAt": "2026-09-30T07:22:01.165Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          },
+          {
+            "id": "les_1790752931974",
+            "title": "4.5",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 4,
+            "updatedAt": "2026-09-30T07:22:22.662Z",
             "aiSummary": {
               "enabled": false,
               "contentHash": "",
@@ -683,6 +721,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-09-30T07:22:41.897Z"
+    "updatedAt": "2026-09-30T07:23:03.210Z"
   }
 }
