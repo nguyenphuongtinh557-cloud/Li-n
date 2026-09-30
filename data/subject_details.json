@@ -601,7 +601,27 @@
       {
         "id": "chap_1789619175319",
         "title": "Chương IV. Sinh lý học vi sinh vật",
-        "lessons": [],
+        "lessons": [
+          {
+            "id": "les_1790752671071",
+            "title": "4.1. Thành phần hóa học của tế bào vi khuẩn",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 0,
+            "updatedAt": "2026-09-30T07:17:51.075Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
         "order": 3
       },
       {
@@ -625,6 +645,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-09-30T07:15:27.807Z"
+    "updatedAt": "2026-09-30T07:18:10.800Z"
   }
 }
