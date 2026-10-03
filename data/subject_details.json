@@ -2054,6 +2054,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790995096811",
+            "title": "15.5. Bệnh viêm đường ruột-dạ dày do Escherichia coli",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 3,
+            "updatedAt": "2026-10-03T02:38:16.816Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 13
@@ -2067,6 +2086,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:38:07.268Z"
+    "updatedAt": "2026-10-03T02:38:17.746Z"
   }
 }
