@@ -1509,7 +1509,7 @@
           },
           {
             "id": "les_1790994563832",
-            "title": "10.3",
+            "title": "10.2",
             "duration": "10:00",
             "status": "published",
             "type": "editor",
@@ -1568,6 +1568,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:29:51.040Z"
+    "updatedAt": "2026-10-03T02:29:59.297Z"
   }
 }
