@@ -1819,7 +1819,27 @@
       {
         "id": "chap_1790993622672",
         "title": "Chương 14 BỆNH NHIỄM TRÙNG PHÁT SINH TỪTHỰC PHẨM",
-        "lessons": [],
+        "lessons": [
+          {
+            "id": "les_1790994904471",
+            "title": "14.1. Các bệnh do Salmonella (salmonellosis)",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 0,
+            "updatedAt": "2026-10-03T02:35:04.486Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
         "order": 12
       },
       {
@@ -1837,6 +1857,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:34:32.262Z"
+    "updatedAt": "2026-10-03T02:35:05.651Z"
   }
 }
