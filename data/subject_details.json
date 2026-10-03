@@ -955,10 +955,16 @@
         "title": "Chương 11 SỰ GÂY HƯ HỎNG CÁC NHÓM THỰC PHẨM ĐẶC BIỆT",
         "lessons": [],
         "order": 9
+      },
+      {
+        "id": "chap_1790993570608",
+        "title": "Chương 12 SỰ HƯ HỎNG THỰC PHẨM DO CÁC ENZYME VI SINH VẬT",
+        "lessons": [],
+        "order": 10
       }
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:12:35.480Z"
+    "updatedAt": "2026-10-03T02:12:51.508Z"
   }
 }
