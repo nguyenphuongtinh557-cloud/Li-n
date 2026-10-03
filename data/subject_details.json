@@ -2118,6 +2118,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790995162083",
+            "title": "16.4. Nhóm Enterobacteriaceae",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 2,
+            "updatedAt": "2026-10-03T02:39:22.089Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 14
@@ -2125,6 +2144,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:39:07.250Z"
+    "updatedAt": "2026-10-03T02:39:23.238Z"
   }
 }
