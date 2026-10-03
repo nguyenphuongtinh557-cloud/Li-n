@@ -1627,6 +1627,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790994694639",
+            "title": "11.6. Đồ uống nhẹ, dịch quả và dịch rau",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 5,
+            "updatedAt": "2026-10-03T02:31:34.643Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 9
@@ -1664,6 +1683,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:31:16.592Z"
+    "updatedAt": "2026-10-03T02:31:35.693Z"
   }
 }
