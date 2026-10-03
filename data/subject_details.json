@@ -1129,6 +1129,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790994232061",
+            "title": "5.2 các giống vi khuẩn lactic khởi động:",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 1,
+            "updatedAt": "2026-10-03T02:23:52.081Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 3
@@ -1202,6 +1221,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:23:18.128Z"
+    "updatedAt": "2026-10-03T02:23:52.941Z"
   }
 }
