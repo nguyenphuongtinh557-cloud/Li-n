@@ -1646,6 +1646,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790994708429",
+            "title": "11.7. Ngũ cốc và sản phẩm ngũ cốc",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 6,
+            "updatedAt": "2026-10-03T02:31:48.449Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 9
@@ -1683,6 +1702,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:31:35.693Z"
+    "updatedAt": "2026-10-03T02:31:49.284Z"
   }
 }
