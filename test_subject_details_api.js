@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
 const api = fs.readFileSync('api/subject-details.js', 'utf8');
 const sync = fs.readFileSync('modules/sync.js', 'utf8');
@@ -44,6 +46,53 @@ async function testMissingConfigDiagnostics() {
   Object.assign(process.env, originalEnv);
 }
 
+async function testFallbackWorksOutsideRepoRoot() {
+  const originalEnv = { ...process.env };
+  const originalCwd = process.cwd();
+  const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'fteca-subject-details-'));
+
+  try {
+    delete process.env.GITHUB_TOKEN;
+    delete process.env.GITHUB_OWNER;
+    delete process.env.GITHUB_REPO;
+    delete process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
+    delete process.env.ADMIN_EMAILS;
+
+    process.chdir(tempDir);
+
+    const { default: subjectDetailsHandler } = await import('./api/subject-details.js');
+    const res = {
+      headers: {},
+      setHeader(name, value) {
+        this.headers[name] = value;
+        return this;
+      },
+      status(code) {
+        this.statusCode = code;
+        return this;
+      },
+      end(body) {
+        this.body = body;
+        return body;
+      },
+      statusCode: 200,
+      body: ''
+    };
+
+    await subjectDetailsHandler({ method: 'GET', headers: {} }, res);
+
+    const payload = JSON.parse(res.body);
+    assert.equal(res.statusCode, 200);
+    assert.equal(payload.ok, true);
+    assert.equal(payload.reason, 'missing-required-env');
+    assert.equal(payload.source, 'local-fallback');
+  } finally {
+    process.chdir(originalCwd);
+    Object.assign(process.env, originalEnv);
+    fs.rmSync(tempDir, { recursive: true, force: true });
+  }
+}
+
 assert.match(api, /req\.method === 'GET'/);
 assert.match(api, /req\.method === 'GET'/);
 assert.match(api, /verifyIdToken/);
@@ -62,4 +111,5 @@ assert.match(db, /pushSubjectDetailsToServer\(subjectId, normalized, idToken\)/)
 assert.match(auth, /async getIdToken\(\)/);
 
 await testMissingConfigDiagnostics();
+await testFallbackWorksOutsideRepoRoot();
 console.log('subject details API checks passed');

@@ -1,6 +1,7 @@
 import admin from 'firebase-admin';
 import fs from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
 const SUBJECT_DETAILS_FILE = 'data/subject_details.json';
 const DEFAULT_ADMINS = ['nguyenphuongtinh557@gmail.com', 'macnghich@gmail.com'];
@@ -70,11 +71,41 @@ function decodeFile(content) {
   return JSON.parse(Buffer.from(String(content || ''), 'base64').toString('utf8'));
 }
 
+function resolveLocalSubjectDataPath() {
+  const moduleDir = path.dirname(fileURLToPath(import.meta.url));
+  const repoRoot = path.resolve(moduleDir, '..');
+  const candidates = [
+    path.resolve(process.cwd(), SUBJECT_DETAILS_FILE),
+    path.resolve(process.cwd(), 'data', 'subject_details.json'),
+    path.resolve(repoRoot, SUBJECT_DETAILS_FILE),
+    path.resolve(repoRoot, 'data', 'subject_details.json')
+  ];
+
+  for (const candidate of candidates) {
+    try {
+      if (fs.existsSync(candidate) && fs.statSync(candidate).isFile()) {
+        return candidate;
+      }
+    } catch {
+      // keep checking the next candidate
+    }
+  }
+
+  return candidates[0];
+}
+
 function readLocalSubjectMap() {
-  const filePath = path.join(process.cwd(), SUBJECT_DETAILS_FILE);
-  const raw = fs.readFileSync(filePath, 'utf8');
-  const parsed = JSON.parse(raw);
-  return parsed && typeof parsed === 'object' ? parsed : {};
+  const filePath = resolveLocalSubjectDataPath();
+
+  try {
+    if (!fs.existsSync(filePath)) return {};
+    const raw = fs.readFileSync(filePath, 'utf8');
+    if (!String(raw || '').trim()) return {};
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
 }
 
 function publishedOnly(map) {
