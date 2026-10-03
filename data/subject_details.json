@@ -1193,7 +1193,27 @@
       {
         "id": "chap_1790993443144",
         "title": "Chương 6 GIỐNG KHỞI ĐỘNG VÀ CÁC BACTERIOPHAGE",
-        "lessons": [],
+        "lessons": [
+          {
+            "id": "les_1790994285539",
+            "title": "6.2 – LỊCH SỬ",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 0,
+            "updatedAt": "2026-10-03T02:24:45.544Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
         "order": 4
       },
       {
@@ -1259,6 +1279,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:24:23.266Z"
+    "updatedAt": "2026-10-03T02:24:46.461Z"
   }
 }
