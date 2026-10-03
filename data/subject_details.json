@@ -973,10 +973,16 @@
         "title": "Chương 14 BỆNH NHIỄM TRÙNG PHÁT SINH TỪTHỰC PHẨM",
         "lessons": [],
         "order": 12
+      },
+      {
+        "id": "chap_1790993644852",
+        "title": "Chương 15 BỆNH NHIỄM VÀ GÂY ĐỘC PHÁT SINH TỪ THỰC PHẨM",
+        "lessons": [],
+        "order": 13
       }
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:13:43.834Z"
+    "updatedAt": "2026-10-03T02:14:06.089Z"
   }
 }
