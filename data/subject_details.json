@@ -1314,6 +1314,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790994400312",
+            "title": "7.4",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 3,
+            "updatedAt": "2026-10-03T02:26:40.338Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 5
@@ -1375,6 +1394,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:26:19.236Z"
+    "updatedAt": "2026-10-03T02:26:41.581Z"
   }
 }
