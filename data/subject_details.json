@@ -899,7 +899,27 @@
       {
         "id": "chap_1790993293489",
         "title": "Chương 2. CÁC VI SINH VẬT HAY GẶP NHẤT TRONG THỰC PHẨM",
-        "lessons": [],
+        "lessons": [
+          {
+            "id": "les_1790993808725",
+            "title": "2.1. Sự phân loại vi sinh vật",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 0,
+            "updatedAt": "2026-10-03T02:16:48.734Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
         "order": 0
       },
       {
@@ -989,6 +1009,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:14:27.844Z"
+    "updatedAt": "2026-10-03T02:16:49.497Z"
   }
 }
