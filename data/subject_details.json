@@ -2083,7 +2083,7 @@
         "lessons": [
           {
             "id": "les_1790995135613",
-            "title": "16.2. Các tiêu chuẩn và một sinh vật chỉ thị lý tưởng”",
+            "title": "16.1. Các tiêu chuẩn và một sinh vật chỉ thị lý tưởng”",
             "duration": "10:00",
             "status": "published",
             "type": "editor",
@@ -2144,6 +2144,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:39:23.238Z"
+    "updatedAt": "2026-10-03T02:39:27.913Z"
   }
 }
