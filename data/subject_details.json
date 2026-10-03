@@ -1589,6 +1589,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790994660688",
+            "title": "11.4: Sữa và các sản phẩm sữa",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 3,
+            "updatedAt": "2026-10-03T02:31:00.692Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 9
@@ -1626,6 +1645,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:30:42.025Z"
+    "updatedAt": "2026-10-03T02:31:01.252Z"
   }
 }
