@@ -2080,12 +2080,32 @@
       {
         "id": "chap_1790993661952",
         "title": "Chương 16 VI SINH VẬT CHỈ THỊ ĐỐI VỚI CÁC TÁC NHÂN GÂY BỆNH",
-        "lessons": [],
+        "lessons": [
+          {
+            "id": "les_1790995135613",
+            "title": "16.2. Các tiêu chuẩn và một sinh vật chỉ thị lý tưởng”",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 0,
+            "updatedAt": "2026-10-03T02:38:55.625Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
         "order": 14
       }
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:38:43.596Z"
+    "updatedAt": "2026-10-03T02:38:56.711Z"
   }
 }
