@@ -1774,7 +1774,27 @@
       {
         "id": "chap_1790993595396",
         "title": "Chương 13 BỆNH NGỘ ĐỘC PHÁT SINH TỪ THỰC PHẨM",
-        "lessons": [],
+        "lessons": [
+          {
+            "id": "les_1790994838321",
+            "title": "13.1. Sự ngộ độc do Staphylococcus aureus",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 0,
+            "updatedAt": "2026-10-03T02:33:58.327Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
         "order": 11
       },
       {
@@ -1798,6 +1818,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:33:24.288Z"
+    "updatedAt": "2026-10-03T02:33:59.138Z"
   }
 }
