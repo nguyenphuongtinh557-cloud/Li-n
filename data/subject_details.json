@@ -859,5 +859,52 @@
     "introCanvas": [],
     "introCanvasHeight": 620,
     "updatedAt": "2026-10-02T06:36:30.252Z"
+  },
+  "FT4458": {
+    "subjectId": "FT4458",
+    "code": "FT4458",
+    "name": "",
+    "status": "published",
+    "banner": "",
+    "shortDesc": "",
+    "credits": 3,
+    "semester": 1,
+    "program": "Chương trình Đào tạo Đại học",
+    "intro": "",
+    "cards": {
+      "objectives": {
+        "title": "Mục tiêu môn học",
+        "content": ""
+      },
+      "mainContent": {
+        "title": "Nội dung chính",
+        "content": ""
+      },
+      "targetAudience": {
+        "title": "Đối tượng học",
+        "content": ""
+      },
+      "learningFormat": {
+        "title": "Hình thức học",
+        "content": ""
+      }
+    },
+    "instructor": {
+      "name": "",
+      "role": "Giảng viên phụ trách",
+      "avatar": "",
+      "email": ""
+    },
+    "chapters": [
+      {
+        "id": "chap_1790993293489",
+        "title": "Chương 2. CÁC VI SINH VẬT HAY GẶP NHẤT TRONG THỰC PHẨM",
+        "lessons": [],
+        "order": 0
+      }
+    ],
+    "introCanvas": [],
+    "introCanvasHeight": 620,
+    "updatedAt": "2026-10-03T02:08:15.085Z"
   }
 }
