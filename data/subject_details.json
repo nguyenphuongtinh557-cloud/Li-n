@@ -1110,7 +1110,27 @@
       {
         "id": "chap_1790993411594",
         "title": "Chương 5 CÁC VI SINH VẬT ĐƯỢC SỬ DỤNG TRONG LÊN MEN THỰC PHẨM",
-        "lessons": [],
+        "lessons": [
+          {
+            "id": "les_1790994197289",
+            "title": "5.1. Vi sinh vật học của các thực phẩm lên men",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 0,
+            "updatedAt": "2026-10-03T02:23:17.293Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
         "order": 3
       },
       {
@@ -1182,6 +1202,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:22:46.758Z"
+    "updatedAt": "2026-10-03T02:23:18.128Z"
   }
 }
