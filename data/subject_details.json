@@ -1971,6 +1971,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790995008010",
+            "title": "14.10. Các bệnh nhiễm trùng phát sinh từ thực phẩm khác",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 8,
+            "updatedAt": "2026-10-03T02:36:48.015Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 12
@@ -1990,6 +2009,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:36:38.673Z"
+    "updatedAt": "2026-10-03T02:36:48.928Z"
   }
 }
