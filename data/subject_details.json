@@ -1196,7 +1196,7 @@
         "lessons": [
           {
             "id": "les_1790994285539",
-            "title": "6.2 – LỊCH SỬ",
+            "title": "6.1 – LỊCH SỬ",
             "duration": "10:00",
             "status": "published",
             "type": "editor",
@@ -1279,6 +1279,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:24:46.461Z"
+    "updatedAt": "2026-10-03T02:24:50.910Z"
   }
 }
