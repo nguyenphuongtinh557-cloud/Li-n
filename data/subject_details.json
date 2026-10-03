@@ -1933,6 +1933,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790994984231",
+            "title": "14.8. Bệnh viêm đường ruột - dạ dày do Vibrio spp",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 6,
+            "updatedAt": "2026-10-03T02:36:24.238Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 12
@@ -1952,6 +1971,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:36:10.156Z"
+    "updatedAt": "2026-10-03T02:36:25.152Z"
   }
 }
