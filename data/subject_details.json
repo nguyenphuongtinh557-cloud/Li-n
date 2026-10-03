@@ -982,7 +982,27 @@
       {
         "id": "chap_1790993321750",
         "title": "Chương 3. CÁC YẾU TỐ ẢNH HƯỞNG ĐẾN SINH TRƯỞNG CỦA VI SINH VẬT TRONG THỰC PHẨM",
-        "lessons": [],
+        "lessons": [
+          {
+            "id": "les_1790994067350",
+            "title": "3.1. Các yếu tố bên trong hoặc môi trường thực phẩm",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 0,
+            "updatedAt": "2026-10-03T02:21:07.354Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
         "order": 1
       },
       {
@@ -1066,6 +1086,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:18:48.646Z"
+    "updatedAt": "2026-10-03T02:21:08.246Z"
   }
 }
