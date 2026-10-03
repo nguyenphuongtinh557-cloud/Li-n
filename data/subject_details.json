@@ -1148,6 +1148,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790994249553",
+            "title": "5.3. CÁC GIỐNG KHỞI ĐỘNG KHÁC",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 2,
+            "updatedAt": "2026-10-03T02:24:09.578Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 3
@@ -1221,6 +1240,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:23:52.941Z"
+    "updatedAt": "2026-10-03T02:24:10.936Z"
   }
 }
