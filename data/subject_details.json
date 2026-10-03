@@ -907,10 +907,16 @@
         "title": "Chương 3. CÁC YẾU TỐ ẢNH HƯỞNG ĐẾN SINH TRƯỞNG CỦA VI SINH VẬT TRONG THỰC PHẨM",
         "lessons": [],
         "order": 1
+      },
+      {
+        "id": "chap_1790993383647",
+        "title": "Chương 4 SỰ HÌNH THÀNH BÀO TỬ VÀ SỰ NẢY MẦM BÀO TỬ Ở VI SINH VẬT",
+        "lessons": [],
+        "order": 2
       }
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:09:21.084Z"
+    "updatedAt": "2026-10-03T02:09:44.524Z"
   }
 }
