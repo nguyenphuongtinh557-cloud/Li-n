@@ -1419,7 +1419,7 @@
           },
           {
             "id": "les_1790994480944",
-            "title": "8.6. Sự phát triển hiện nay",
+            "title": "8.5. Sự phát triển hiện nay",
             "duration": "10:00",
             "status": "published",
             "type": "editor",
@@ -1490,6 +1490,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:28:08.504Z"
+    "updatedAt": "2026-10-03T02:28:15.187Z"
   }
 }
