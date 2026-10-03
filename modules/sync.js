@@ -232,6 +232,9 @@ export async function pullSubjectDetailsFromServer() {
     const response = await fetch(`/api/subject-details?t=${Date.now()}`, { cache: 'no-store' });
     const payload = await response.json().catch(() => ({}));
     if (response.ok && payload.ok && payload.subjectDetails && typeof payload.subjectDetails === 'object') return payload.subjectDetails;
+    if (response.status === 503 || payload.reason === 'server-not-configured') {
+      return await fetchRaw(SYNC_CONFIG.subjectDetailsFile);
+    }
   } catch { /* Static/local preview has no API route; use the public GitHub file below. */ }
   return await fetchRaw(SYNC_CONFIG.subjectDetailsFile);
 }

@@ -1,4 +1,6 @@
 import admin from 'firebase-admin';
+import fs from 'node:fs';
+import path from 'node:path';
 
 const SUBJECT_DETAILS_FILE = 'data/subject_details.json';
 const DEFAULT_ADMINS = ['nguyenphuongtinh557@gmail.com', 'macnghich@gmail.com'];
@@ -48,6 +50,13 @@ function decodeFile(content) {
   return JSON.parse(Buffer.from(String(content || ''), 'base64').toString('utf8'));
 }
 
+function readLocalSubjectMap() {
+  const filePath = path.join(process.cwd(), SUBJECT_DETAILS_FILE);
+  const raw = fs.readFileSync(filePath, 'utf8');
+  const parsed = JSON.parse(raw);
+  return parsed && typeof parsed === 'object' ? parsed : {};
+}
+
 function publishedOnly(map) {
   return Object.fromEntries(Object.entries(map && typeof map === 'object' ? map : {})
     .filter(([, details]) => details && details.status === 'published'));
@@ -79,7 +88,17 @@ export default async function handler(req, res) {
   if (!['GET', 'PUT'].includes(req.method)) return json(res, 405, { ok: false, reason: 'method-not-allowed' });
 
   const config = getConfig();
-  if (!config) return json(res, 503, { ok: false, reason: 'server-not-configured' });
+  if (!config) {
+    if (req.method === 'GET') {
+      try {
+        const localMap = readLocalSubjectMap();
+        return json(res, 200, { ok: true, subjectDetails: publishedOnly(localMap), source: 'local-fallback' });
+      } catch {
+        return json(res, 503, { ok: false, reason: 'server-not-configured' });
+      }
+    }
+    return json(res, 503, { ok: false, reason: 'server-not-configured' });
+  }
 
   try {
     if (req.method === 'GET') {
