@@ -1532,7 +1532,27 @@
       {
         "id": "chap_1790993554600",
         "title": "Chương 11 SỰ GÂY HƯ HỎNG CÁC NHÓM THỰC PHẨM ĐẶC BIỆT",
-        "lessons": [],
+        "lessons": [
+          {
+            "id": "les_1790994613051",
+            "title": "11.1. Các sản phẩm thịt tươi và thịt ăn ngay",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 0,
+            "updatedAt": "2026-10-03T02:30:13.064Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
         "order": 9
       },
       {
@@ -1568,6 +1588,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:29:59.297Z"
+    "updatedAt": "2026-10-03T02:30:13.983Z"
   }
 }
