@@ -1167,6 +1167,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790994262384",
+            "title": "5.4. NẤM MEN VÀ NẤM MỐC",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 3,
+            "updatedAt": "2026-10-03T02:24:22.400Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 3
@@ -1240,6 +1259,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:24:10.936Z"
+    "updatedAt": "2026-10-03T02:24:23.266Z"
   }
 }
