@@ -1442,7 +1442,27 @@
       {
         "id": "chap_1790993514571",
         "title": "Chương 9 CÁC CHẤT BẢO QUẢN SINH HỌC CÓ NGUÓN GỐC VI SINH VẬT",
-        "lessons": [],
+        "lessons": [
+          {
+            "id": "les_1790994513053",
+            "title": "9.1. Các tế bào sống của các vi khuẩn lactic là các chất bảo quản sinh học",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 0,
+            "updatedAt": "2026-10-03T02:28:33.071Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
         "order": 7
       },
       {
@@ -1490,6 +1510,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:28:15.187Z"
+    "updatedAt": "2026-10-03T02:28:33.898Z"
   }
 }
