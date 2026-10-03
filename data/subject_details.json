@@ -967,10 +967,16 @@
         "title": "Chương 13 BỆNH NGỘ ĐỘC PHÁT SINH TỪ THỰC PHẨM",
         "lessons": [],
         "order": 11
+      },
+      {
+        "id": "chap_1790993622672",
+        "title": "Chương 14 BỆNH NHIỄM TRÙNG PHÁT SINH TỪTHỰC PHẨM",
+        "lessons": [],
+        "order": 12
       }
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:13:16.282Z"
+    "updatedAt": "2026-10-03T02:13:43.834Z"
   }
 }
