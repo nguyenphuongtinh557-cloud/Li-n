@@ -919,10 +919,16 @@
         "title": "Chương 5 CÁC VI SINH VẬT ĐƯỢC SỬ DỤNG TRONG LÊN MEN THỰC PHẨM",
         "lessons": [],
         "order": 3
+      },
+      {
+        "id": "chap_1790993443144",
+        "title": "Chương 6 GIỐNG KHỞI ĐỘNG VÀ CÁC BACTERIOPHAGE",
+        "lessons": [],
+        "order": 4
       }
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:10:12.445Z"
+    "updatedAt": "2026-10-03T02:10:44.029Z"
   }
 }
