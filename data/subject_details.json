@@ -1295,6 +1295,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790994378349",
+            "title": "7.3. Các sản phẩm thịt lên men",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 2,
+            "updatedAt": "2026-10-03T02:26:18.353Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 5
@@ -1356,6 +1375,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:26:02.582Z"
+    "updatedAt": "2026-10-03T02:26:19.236Z"
   }
 }
