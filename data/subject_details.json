@@ -913,10 +913,16 @@
         "title": "Chương 4 SỰ HÌNH THÀNH BÀO TỬ VÀ SỰ NẢY MẦM BÀO TỬ Ở VI SINH VẬT",
         "lessons": [],
         "order": 2
+      },
+      {
+        "id": "chap_1790993411594",
+        "title": "Chương 5 CÁC VI SINH VẬT ĐƯỢC SỬ DỤNG TRONG LÊN MEN THỰC PHẨM",
+        "lessons": [],
+        "order": 3
       }
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:09:44.524Z"
+    "updatedAt": "2026-10-03T02:10:12.445Z"
   }
 }
