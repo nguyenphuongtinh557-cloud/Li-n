@@ -885,15 +885,15 @@
         "content": ""
       },
       "learningFormat": {
-        "title": "Hình thức học",
-        "content": ""
+        "title": "Hình thức kiểm tra",
+        "content": "Trắc nghiệm / Tự luận"
       }
     },
     "instructor": {
-      "name": "",
-      "role": "Giảng viên phụ trách",
+      "name": "Nguyễn Anh Thoại",
+      "role": "Giảng viên phụ trách - Lý thuyết",
       "avatar": "",
-      "email": ""
+      "email": "nathoai@dthu.edu.vn"
     },
     "chapters": [
       {
@@ -989,6 +989,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:14:23.055Z"
+    "updatedAt": "2026-10-03T02:14:27.844Z"
   }
 }
