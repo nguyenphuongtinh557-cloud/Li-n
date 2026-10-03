@@ -979,10 +979,16 @@
         "title": "Chương 15 BỆNH NHIỄM VÀ GÂY ĐỘC PHÁT SINH TỪ THỰC PHẨM",
         "lessons": [],
         "order": 13
+      },
+      {
+        "id": "chap_1790993661952",
+        "title": "Chương 16 VI SINH VẬT CHỈ THỊ ĐỐI VỚI CÁC TÁC NHÂN GÂY BỆNH",
+        "lessons": [],
+        "order": 14
       }
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:14:06.089Z"
+    "updatedAt": "2026-10-03T02:14:23.055Z"
   }
 }
