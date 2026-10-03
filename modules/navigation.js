@@ -5,7 +5,7 @@
 
 import { SUBJECTS_REGISTRY, getAllSubjects, getSubjectById, KNOWLEDGE_BLOCKS } from './subjects.js?v=20260901c';
 import { DB } from './db.js';
-import { AuthModule, SUPER_ADMIN_EMAILS, getUserRole } from './auth.js';
+import { AuthModule, getActiveAdminEmails, getUserRole } from './auth.js';
 import { ArticlesModule } from './articles.js';
 
 const lazyStyles = new Map();
@@ -212,7 +212,7 @@ export const NavController = {
     // Bảo mật trang Admin: Chỉ 2 Gmail Admin mới truy cập được
     if (pageId === 'admin') {
       const user = this.currentUser;
-      const isSuperAdmin = user && user.email && SUPER_ADMIN_EMAILS.map(e => e.toLowerCase()).includes(user.email.toLowerCase());
+      const isSuperAdmin = user && user.email && getActiveAdminEmails().includes(user.email.toLowerCase());
       if (!isSuperAdmin) {
         if (window.showToast) window.showToast('⛔ Trang Quản Trị Admin chỉ dành riêng cho Quản trị viên hệ thống!', 'error');
         pageId = 'ontap';
@@ -717,9 +717,37 @@ export const NavController = {
   renderUserAuthZone() {
     const container = document.getElementById('user-auth-zone');
     const adminNavBtn = document.getElementById('snav-admin');
+    const mobileUserMenu = document.querySelector('.mobile-user-menu');
+    const mobileUserName = document.querySelector('.mobile-user-name');
+    const mobileUserAvatar = document.getElementById('mobile-user-avatar');
+    const mobileDisplayName = this.currentUser?.name || this.currentUser?.email?.split('@')[0] || '';
+
+    if (mobileUserName) {
+      mobileUserName.textContent = mobileDisplayName || 'Đăng nhập';
+    }
+    if (mobileUserMenu) {
+      mobileUserMenu.setAttribute('aria-label', this.currentUser ? `Mở hồ sơ ${mobileDisplayName}` : 'Đăng nhập với Google');
+    }
+    if (mobileUserAvatar) {
+      mobileUserAvatar.replaceChildren();
+      if (this.currentUser?.avatar) {
+        const avatarImage = document.createElement('img');
+        avatarImage.src = this.currentUser.avatar;
+        avatarImage.alt = '';
+        avatarImage.referrerPolicy = 'no-referrer';
+        mobileUserAvatar.appendChild(avatarImage);
+      } else if (this.currentUser) {
+        mobileUserAvatar.textContent = String(mobileDisplayName).trim().charAt(0).toUpperCase() || 'U';
+      } else {
+        const avatarIcon = document.createElement('i');
+        avatarIcon.className = 'fa-solid fa-user';
+        avatarIcon.setAttribute('aria-hidden', 'true');
+        mobileUserAvatar.appendChild(avatarIcon);
+      }
+    }
 
     // 1. Kiểm tra 2 Gmail Super Admin để ẩn/hiện nút Admin Sidebar
-    const isSuperAdmin = this.currentUser && this.currentUser.email && SUPER_ADMIN_EMAILS.map(e => e.toLowerCase()).includes(this.currentUser.email.toLowerCase());
+    const isSuperAdmin = this.currentUser && this.currentUser.email && getActiveAdminEmails().includes(this.currentUser.email.toLowerCase());
 
     if (adminNavBtn) {
       if (isSuperAdmin) {

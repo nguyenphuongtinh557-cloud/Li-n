@@ -15,11 +15,31 @@ function getConfig() {
   const owner = process.env.GITHUB_OWNER;
   const repo = process.env.GITHUB_REPO;
   const firebaseServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-  if (!token || !owner || !repo || !firebaseServiceAccount) return null;
+
+  const missing = [
+    ['GITHUB_TOKEN', token],
+    ['GITHUB_OWNER', owner],
+    ['GITHUB_REPO', repo],
+    ['FIREBASE_SERVICE_ACCOUNT_JSON', firebaseServiceAccount]
+  ]
+    .filter(([, value]) => !String(value || '').trim())
+    .map(([name]) => name);
+
+  if (missing.length) {
+    return { ok: false, reason: 'missing-required-env', missing };
+  }
+
   try {
-    return { token, owner, repo, firebaseServiceAccount: JSON.parse(firebaseServiceAccount) };
-  } catch {
-    return null;
+    return {
+      ok: true,
+      config: { token, owner, repo, firebaseServiceAccount: JSON.parse(firebaseServiceAccount) }
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      reason: 'invalid-firebase-service-account-json',
+      detail: error instanceof Error ? error.message : String(error)
+    };
   }
 }
 
@@ -87,18 +107,34 @@ export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, max-age=0');
   if (!['GET', 'PUT'].includes(req.method)) return json(res, 405, { ok: false, reason: 'method-not-allowed' });
 
-  const config = getConfig();
-  if (!config) {
+  const configStatus = getConfig();
+  if (!configStatus.ok) {
+    const errorBody = {
+      ok: false,
+      reason: configStatus.reason,
+      ...(configStatus.missing ? { missing: configStatus.missing } : {}),
+      ...(configStatus.detail ? { detail: configStatus.detail } : {})
+    };
+
     if (req.method === 'GET') {
       try {
         const localMap = readLocalSubjectMap();
-        return json(res, 200, { ok: true, subjectDetails: publishedOnly(localMap), source: 'local-fallback' });
+        return json(res, 200, {
+          ok: true,
+          subjectDetails: publishedOnly(localMap),
+          source: 'local-fallback',
+          reason: configStatus.reason,
+          ...(configStatus.missing ? { missing: configStatus.missing } : {}),
+          ...(configStatus.detail ? { detail: configStatus.detail } : {})
+        });
       } catch {
-        return json(res, 503, { ok: false, reason: 'server-not-configured' });
+        return json(res, 503, errorBody);
       }
     }
-    return json(res, 503, { ok: false, reason: 'server-not-configured' });
+    return json(res, 503, errorBody);
   }
+
+  const config = configStatus.config;
 
   try {
     if (req.method === 'GET') {

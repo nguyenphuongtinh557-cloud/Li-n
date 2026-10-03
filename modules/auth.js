@@ -52,10 +52,51 @@ export const SUPER_ADMIN_EMAILS = [
   'macnghich@gmail.com'
 ];
 
+export function getAdminOverrideEmails() {
+  const values = [];
+  if (typeof window !== 'undefined') {
+    try {
+      const fromStorage = JSON.parse(localStorage.getItem('fteca_admin_override_emails') || '[]');
+      if (Array.isArray(fromStorage)) values.push(...fromStorage);
+    } catch (_error) {
+      // Ignore invalid persisted data.
+    }
+
+    const fromQuery = new URLSearchParams(window.location?.search || '').get('adminEmail');
+    if (fromQuery) values.push(fromQuery);
+  }
+  return values
+    .map(value => String(value || '').trim().toLowerCase())
+    .filter(Boolean);
+}
+
+export function getActiveAdminEmails() {
+  return [...new Set([
+    ...SUPER_ADMIN_EMAILS.map(email => String(email || '').trim().toLowerCase()),
+    ...getAdminOverrideEmails()
+  ])].filter(Boolean);
+}
+
+export function isAdminEmail(email) {
+  if (!email) return false;
+  return getActiveAdminEmails().includes(String(email).trim().toLowerCase());
+}
+
+if (typeof window !== 'undefined') {
+  window.setFtecaAdminOverride = function(email) {
+    const values = getAdminOverrideEmails();
+    const normalized = String(email || '').trim().toLowerCase();
+    if (!normalized) return false;
+    const merged = [...new Set([...values, normalized])];
+    localStorage.setItem('fteca_admin_override_emails', JSON.stringify(merged));
+    return true;
+  };
+}
+
 export function getUserRole(email) {
   if (!email) return 'NEWBIE';
   const cleanEmail = email.trim().toLowerCase();
-  if (SUPER_ADMIN_EMAILS.map(e => e.toLowerCase()).includes(cleanEmail)) {
+  if (isAdminEmail(cleanEmail)) {
     return 'ADMIN';
   }
   const premiumList = DB.getPremiumEmails().map(e => (e || '').toLowerCase());

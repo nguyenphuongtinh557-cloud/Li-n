@@ -12,16 +12,16 @@ import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServe
 import { initAdminAuth } from './modules/admin.js';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js?v=20260901c';
 import { NavController } from './modules/navigation.js?v=20260928-neutral-dark';
-import { AuthModule, getUserRole, SUPER_ADMIN_EMAILS } from './modules/auth.js?v=20260920-profile-hero-cleanup';
+import { AuthModule, getUserRole, getActiveAdminEmails } from './modules/auth.js?v=20260920-profile-hero-cleanup';
 import { ArticlesModule } from './modules/articles.js?v=20260921-deep-link-history';
 import { readSummary, writeSummary, clearSessionCache, summaryIsComplete, summaryIsStale } from './modules/firestoreSummary.js';
 import { renderMindmap, renderStructuredMindmap, initMindmapControls } from './modules/mindmap.js';
 import { updateUserRoleInFirestore } from './modules/firestoreUsers.js';
 import { renderMarkdownTables } from './modules/markdownTables.js';
-import { mountRichTextEditor, prepareRichTextDocument, readSummaryText, runSummaryEditorTableCommand, runSummaryEditorTool, sanitizeRichTextHtml } from './modules/richTextEditor.js?v=20260928-summary-study-ribbon-v35';
+import { mountRichTextEditor, prepareRichTextDocument, readSummaryText, runSummaryEditorTableCommand, runSummaryEditorTool, sanitizeRichTextHtml } from './modules/richTextEditor.js?v=20261001-paragraph-dialog-v5';
 import { createSummaryDocumentVersion, readSummaryDocumentHistory } from './modules/summaryDocumentHistory.js?v=20260926-summary-history-v2';
 import { updateThemeMorphIcons } from './vendor/themeMorphIcon.js?v=20260926-morphicons-theme-toggle-v2';
-import { exportSummaryHtmlToDocx } from './vendor/summaryDocx.js?v=20260928-insert-layout-v18';
+import { exportSummaryHtmlToDocx } from './vendor/summaryDocx.js?v=20261001-native-docx-objects-v4';
 
 const _lazyAssets = new Map();
 
@@ -4021,7 +4021,7 @@ window.requireLoggedInForFeature = function(featureName = 'tính năng này') {
 // ── Khoá tính năng đang phát triển với user thường ───────────────────────────
 window._guardDevFeature = function(featureName = 'Tính năng này') {
   const user = NavController?.currentUser;
-  const isAdmin = user && user.email && SUPER_ADMIN_EMAILS.map(e => e.toLowerCase()).includes(user.email.toLowerCase());
+  const isAdmin = user && user.email && getActiveAdminEmails().includes(user.email.toLowerCase());
   if (isAdmin) {
     showToast(`🛠️ [Admin] Đang phát triển: ${featureName}`, 'info');
     return true;
@@ -4110,6 +4110,7 @@ function renderStudySpace() {
   const contentCount = subjects.reduce((total, subject) => total + subject.articles.length, 0);
   const aiTools = [['quiz','fa-file-circle-plus','Tạo đề thi AI','Tạo đề trắc nghiệm theo chương, chủ đề hoặc môn học.','violet'],['summary','fa-wand-magic-sparkles','Tóm tắt giáo trình AI','Chắt lọc nội dung dài thành bản ngắn gọn, dễ hiểu.','green'],['plan','fa-calendar-check','Lên kế hoạch ôn thi','Xây lộ trình phù hợp với mục tiêu của bạn.','blue'],['chat','fa-comments','Hỏi đáp cùng AI','Giải đáp nhanh mọi thắc mắc trong quá trình học.','orange']];
   root.innerHTML = `<div class="study-hub-shell"><main class="study-hub-main"><section class="study-hub-hero"><div class="study-hub-hero-copy"><span class="study-hub-kicker"><i class="fa-solid fa-graduation-cap"></i> KHÔNG GIAN HỌC TẬP</span><h1>Khám phá môn học<br>theo <em>cách của bạn</em></h1><p></p><div class="study-hub-hero-actions"><button onclick="studySpaceAIAction('chat')"><i class="fa-solid fa-sparkles"></i> Hỏi trợ lý AI</button></div></div><div class="study-hub-hero-art" aria-label="Vùng minh họa nhân vật sẽ được bổ sung"><div class="study-hub-art-orb orb-one"></div><div class="study-hub-art-orb orb-two"></div><div class="study-hub-art-dots"></div><img class="study-hub-art-img" src="hero_student_1.webp" alt="Sinh viên CNTP học tập" onerror="this.style.display='none'"></div></section><section class="study-hub-catalog"><div class="study-hub-search"><i class="fa-solid fa-magnifying-glass"></i><input id="study-space-search" type="search" value="${StudySpace.query.replace(/"/g, '&quot;')}" placeholder="Tìm theo tên hoặc mã môn học" oninput="searchStudySpaceSubjects(this.value)"></div><div class="study-hub-filter-row"><div class="study-space-filter-row"><button class="study-space-filter ${StudySpace.blockId === 'ALL' ? 'active' : ''}" onclick="setStudySpaceFilter('ALL')">Tất cả</button>${Object.values(KNOWLEDGE_BLOCKS).map(block => `<button class="study-space-filter ${StudySpace.blockId === block.id ? 'active' : ''}" onclick="setStudySpaceFilter('${block.id}')">${block.icon} ${block.name}</button>`).join('')}</div></div><div class="study-hub-list-meta"><label class="study-space-article-toggle"><input id="study-space-has-articles" type="checkbox" ${StudySpace.hasArticlesOnly ? 'checked' : ''} onchange="setStudySpaceFilter(null, this.checked)"><span>Chỉ hiện môn đã có bài đăng</span></label><span>${subjects.length} môn phù hợp · ${contentCount} tài nguyên</span></div></section><section class="study-hub-subject-grid">${subjects.length ? subjects.map(subject => `<button class="study-hub-subject-card" data-subject-id="${subject.id}" data-has-articles="${subject.articles.length > 0}" onclick="selectStudySpaceSubject('${subject.id}')"><span class="study-hub-subject-icon"><i class="fa-solid ${studySpaceSubjectIcon(subject)}"></i></span><span class="study-hub-subject-top"><b>${subject.code}</b><small>HK ${subject.semester || '—'}</small></span><strong>${subject.name}</strong><span class="study-hub-subject-meta">${KNOWLEDGE_BLOCKS[subject.blockId]?.icon || '📘'} ${KNOWLEDGE_BLOCKS[subject.blockId]?.name || 'Khối kiến thức'} · ${subject.credits || 0} tín chỉ</span><span class="study-hub-subject-foot"><span><i class="fa-solid ${subject.articles.length ? 'fa-file-lines' : 'fa-clock'}"></i> ${subject.articles.length ? `${subject.articles.length} bài đăng` : 'Chưa có bài đăng'}</span><i class="fa-solid fa-arrow-right"></i></span></button>`).join('') : '<div class="study-space-empty">Không tìm thấy môn học phù hợp.</div>'}</section></main><aside class="study-hub-ai-panel"><div class="study-hub-ai-heading"><span>TRUNG TÂM HỌC TẬP AI</span><p>Công cụ đồng hành cùng bạn</p></div>${aiTools.map(([action,icon,title,description,theme]) => `<button class="study-hub-ai-tool ${theme}" onclick="studySpaceAIAction('${action}')"><i class="fa-solid ${icon}"></i><span><b>${title}</b><small>${description}</small></span><em><i class="fa-solid fa-arrow-right"></i></em></button>`).join('')}<div class="study-hub-stats"><span>THỐNG KÊ HỌC TẬP</span><p>Kho tài liệu được cập nhật liên tục theo chương trình đào tạo.</p><button onclick="showToast('Báo cáo học tập đang được chuẩn bị.', 'info')">Xem báo cáo chi tiết <i class="fa-solid fa-arrow-up-right-from-square"></i></button></div></aside></div>`;
+  if (window.innerWidth <= 768) window.injectMobileSections?.();
 }
 
 function setStudySpaceFilter(blockId, hasArticlesOnly) { if (blockId) StudySpace.blockId = blockId; if (typeof hasArticlesOnly === 'boolean') StudySpace.hasArticlesOnly = hasArticlesOnly; renderStudySpace(); }
@@ -4468,7 +4469,7 @@ let _summaryStudySelfExplainAnchor = null;
 let _summaryStudySelectionToolbarPicked = null;
 const SUMMARY_STUDY_SAVED_TERMS_KEY = 'fteca_summary_study_saved_terms_v1';
 const SUMMARY_STUDY_LUMI_PANEL_KEY = 'lumi_panel_open';
-const SUMMARY_STUDY_OUTLINE_PANEL_KEY = 'left_panel_open';
+const SUMMARY_STUDY_OUTLINE_PANEL_KEY = 'left_panel_open_v2';
 let _summaryStudyLumiReturnFocus = null;
 
 function setSummaryStudyLumiPanelOpen(open, { persist = true } = {}) {
@@ -4518,10 +4519,10 @@ function getSummaryStudyOutlinePanelOpen() {
     const savedPreference = localStorage.getItem(SUMMARY_STUDY_OUTLINE_PANEL_KEY);
     if (savedPreference === 'true') return true;
     if (savedPreference === 'false') return false;
-    return getSummaryStudySavedTerms().length > 0;
+    return true;
   } catch (error) {
     console.warn('[SummaryStudy] Không đọc được trạng thái kho thuật ngữ:', error);
-    return false;
+    return true;
   }
 }
 
@@ -6153,7 +6154,7 @@ function saveCurrentSummaryStudyTerm() {
     showToast('Đã lưu thuật ngữ vào kho.', 'success');
   }
   renderSummaryStudySavedTerms();
-  if (terms.length === 0 || existing < 0) setSummaryStudyOutlinePanelOpen(terms.length > 0);
+  if (existing < 0) setSummaryStudyOutlinePanelOpen(true);
 }
 function openSummaryStudyInteraction() {
   const picked = summaryStudySelection();
