@@ -1914,6 +1914,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790994969318",
+            "title": "14.7. Bệnh do Yersinia enterocoutica (yersiniosis)",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 5,
+            "updatedAt": "2026-10-03T02:36:09.323Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 12
@@ -1933,6 +1952,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:35:58.448Z"
+    "updatedAt": "2026-10-03T02:36:10.156Z"
   }
 }
