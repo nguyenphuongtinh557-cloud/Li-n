@@ -1231,6 +1231,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790994314585",
+            "title": "6.3. CÁC VẤN ĐỀ CỦA GIỐNG KHỞI ĐỘNG",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 2,
+            "updatedAt": "2026-10-03T02:25:14.619Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 4
@@ -1298,6 +1317,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:25:02.764Z"
+    "updatedAt": "2026-10-03T02:25:15.484Z"
   }
 }
