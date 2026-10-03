@@ -2102,7 +2102,7 @@
           },
           {
             "id": "les_1790995146273",
-            "title": "16.3. Nhóm Coliform",
+            "title": "16.2. Nhóm Coliform",
             "duration": "10:00",
             "status": "published",
             "type": "editor",
@@ -2144,6 +2144,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:39:27.913Z"
+    "updatedAt": "2026-10-03T02:39:30.312Z"
   }
 }
