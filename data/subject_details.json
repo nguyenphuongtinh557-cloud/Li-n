@@ -943,10 +943,16 @@
         "title": "Chương 9 CÁC CHẤT BẢO QUẢN SINH HỌC CÓ NGUÓN GỐC VI SINH VẬT",
         "lessons": [],
         "order": 7
+      },
+      {
+        "id": "chap_1790993537444",
+        "title": "Chương 10 CÁC HỢP PHẦN THỰC PHẨM VÀ CÁC ENZYM CÓ NGUỒN GỐC VI SINH VẬT",
+        "lessons": [],
+        "order": 8
       }
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:11:55.273Z"
+    "updatedAt": "2026-10-03T02:12:18.571Z"
   }
 }
