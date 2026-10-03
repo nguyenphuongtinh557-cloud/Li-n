@@ -931,10 +931,16 @@
         "title": "Chương 7 VI SINH VẬT HỌC TRONG SẢN XUẤT CÁC SẢN PHẨM LÊN MEN",
         "lessons": [],
         "order": 5
+      },
+      {
+        "id": "chap_1790993489889",
+        "title": "Chương 8 CÁC VI KHUẨN CÓ LỢI CỦA ĐƯỜNG RUỘT",
+        "lessons": [],
+        "order": 6
       }
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:11:04.704Z"
+    "updatedAt": "2026-10-03T02:11:30.770Z"
   }
 }
