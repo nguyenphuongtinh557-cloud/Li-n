@@ -2000,7 +2000,7 @@
         "lessons": [
           {
             "id": "les_1790995065359",
-            "title": "15.2. Bệnh viêm đường ruột-dạ dày do Clostridium perfringens",
+            "title": "15.1. Bệnh viêm đường ruột-dạ dày do Clostridium perfringens",
             "duration": "10:00",
             "status": "published",
             "type": "editor",
@@ -2086,6 +2086,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:38:17.746Z"
+    "updatedAt": "2026-10-03T02:38:30.251Z"
   }
 }
