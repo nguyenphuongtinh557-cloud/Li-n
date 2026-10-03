@@ -1665,6 +1665,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790994720211",
+            "title": "11.8. Thực phẩm lên men",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 7,
+            "updatedAt": "2026-10-03T02:32:00.228Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 9
@@ -1702,6 +1721,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:31:49.284Z"
+    "updatedAt": "2026-10-03T02:32:01.333Z"
   }
 }
