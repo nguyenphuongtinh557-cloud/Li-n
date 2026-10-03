@@ -49,7 +49,8 @@ import { upsertUserToFirestore, fetchAllUsersFromFirestore } from './firestoreUs
 
 export const SUPER_ADMIN_EMAILS = [
   'nguyenphuongtinh557@gmail.com',
-  'macnghich@gmail.com'
+  'macnghich@gmail.com',
+  'fteca.admin.test@gmail.com'
 ];
 
 export function getAdminOverrideEmails() {
