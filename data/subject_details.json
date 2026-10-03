@@ -1490,7 +1490,7 @@
         "lessons": [
           {
             "id": "les_1790994553043",
-            "title": "10.2. Các protein vi sinh vật và các chất bổ sung",
+            "title": "10.1. Các protein vi sinh vật và các chất bổ sung",
             "duration": "10:00",
             "status": "published",
             "type": "editor",
@@ -1568,6 +1568,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:29:24.727Z"
+    "updatedAt": "2026-10-03T02:29:51.040Z"
   }
 }
