@@ -1400,7 +1400,7 @@
           },
           {
             "id": "les_1790994469308",
-            "title": "8.5. Một số điều lưu ý",
+            "title": "8.4. Một số điều lưu ý",
             "duration": "10:00",
             "status": "published",
             "type": "editor",
@@ -1490,6 +1490,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:28:01.763Z"
+    "updatedAt": "2026-10-03T02:28:08.504Z"
   }
 }
