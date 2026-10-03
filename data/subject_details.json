@@ -1748,6 +1748,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790994803370",
+            "title": "12.3. Sự hư hỏng của thực phẩm bởi các enzym vi sinh vật ở nhiệt độ thấp",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 2,
+            "updatedAt": "2026-10-03T02:33:23.390Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 10
@@ -1779,6 +1798,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:33:06.860Z"
+    "updatedAt": "2026-10-03T02:33:24.288Z"
   }
 }
