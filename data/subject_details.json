@@ -1487,7 +1487,27 @@
       {
         "id": "chap_1790993537444",
         "title": "Chương 10 CÁC HỢP PHẦN THỰC PHẨM VÀ CÁC ENZYM CÓ NGUỒN GỐC VI SINH VẬT",
-        "lessons": [],
+        "lessons": [
+          {
+            "id": "les_1790994553043",
+            "title": "10.2. Các protein vi sinh vật và các chất bổ sung",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 0,
+            "updatedAt": "2026-10-03T02:29:13.055Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
         "order": 8
       },
       {
@@ -1529,6 +1549,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:28:47.790Z"
+    "updatedAt": "2026-10-03T02:29:13.939Z"
   }
 }
