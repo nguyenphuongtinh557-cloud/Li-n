@@ -1952,6 +1952,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790994997801",
+            "title": "14.9. Các virus đường ruột",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 7,
+            "updatedAt": "2026-10-03T02:36:37.806Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 12
@@ -1971,6 +1990,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:36:25.152Z"
+    "updatedAt": "2026-10-03T02:36:38.673Z"
   }
 }
