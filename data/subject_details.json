@@ -961,10 +961,16 @@
         "title": "Chương 12 SỰ HƯ HỎNG THỰC PHẨM DO CÁC ENZYME VI SINH VẬT",
         "lessons": [],
         "order": 10
+      },
+      {
+        "id": "chap_1790993595396",
+        "title": "Chương 13 BỆNH NGỘ ĐỘC PHÁT SINH TỪ THỰC PHẨM",
+        "lessons": [],
+        "order": 11
       }
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:12:51.508Z"
+    "updatedAt": "2026-10-03T02:13:16.282Z"
   }
 }
