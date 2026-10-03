@@ -1710,7 +1710,27 @@
       {
         "id": "chap_1790993570608",
         "title": "Chương 12 SỰ HƯ HỎNG THỰC PHẨM DO CÁC ENZYME VI SINH VẬT",
-        "lessons": [],
+        "lessons": [
+          {
+            "id": "les_1790994771019",
+            "title": "12.1. Đặc tính của các enzym bền nhiệt của các vi khuẩn dinh dưỡng lạnh",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 0,
+            "updatedAt": "2026-10-03T02:32:51.025Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
         "order": 10
       },
       {
@@ -1740,6 +1760,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:32:15.433Z"
+    "updatedAt": "2026-10-03T02:32:52.146Z"
   }
 }
