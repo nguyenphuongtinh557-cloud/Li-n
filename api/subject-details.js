@@ -118,7 +118,24 @@ async function readSubjectMap(config) {
   if (response.status === 404) return { map: {}, sha: null };
   if (!response.ok) throw new Error(`github-read-${response.status}`);
   const payload = await response.json();
-  return { map: decodeFile(payload.content), sha: payload.sha };
+  if (payload.content) return { map: decodeFile(payload.content), sha: payload.sha };
+
+  const rawResponse = await githubRequest(config, SUBJECT_DETAILS_FILE, {
+    cache: 'no-store',
+    headers: { Accept: 'application/vnd.github.raw+json' }
+  });
+  if (!rawResponse.ok) throw new Error(`github-raw-read-${rawResponse.status}`);
+
+  let map;
+  try {
+    map = JSON.parse(await rawResponse.text());
+  } catch {
+    throw new Error('github-subject-details-invalid-json');
+  }
+  if (!map || typeof map !== 'object' || Array.isArray(map)) {
+    throw new Error('github-subject-details-invalid-format');
+  }
+  return { map, sha: payload.sha };
 }
 
 async function requireAdmin(req, config) {
