@@ -1397,6 +1397,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790994469308",
+            "title": "8.5. Một số điều lưu ý",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 3,
+            "updatedAt": "2026-10-03T02:27:49.312Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 6
@@ -1452,6 +1471,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:27:34.839Z"
+    "updatedAt": "2026-10-03T02:27:50.355Z"
   }
 }
