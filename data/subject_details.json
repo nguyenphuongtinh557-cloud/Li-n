@@ -925,10 +925,16 @@
         "title": "Chương 6 GIỐNG KHỞI ĐỘNG VÀ CÁC BACTERIOPHAGE",
         "lessons": [],
         "order": 4
+      },
+      {
+        "id": "chap_1790993464074",
+        "title": "Chương 7 VI SINH VẬT HỌC TRONG SẢN XUẤT CÁC SẢN PHẨM LÊN MEN",
+        "lessons": [],
+        "order": 5
       }
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:10:44.029Z"
+    "updatedAt": "2026-10-03T02:11:04.704Z"
   }
 }
