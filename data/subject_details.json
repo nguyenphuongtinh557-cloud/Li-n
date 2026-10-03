@@ -937,6 +937,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790993908758",
+            "title": "2.3. Hình thái và cấu trúc của các vi sinh vật gặp trong thực phẩm",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 2,
+            "updatedAt": "2026-10-03T02:18:28.763Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 0
@@ -1028,6 +1047,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:17:50.779Z"
+    "updatedAt": "2026-10-03T02:18:29.672Z"
   }
 }
