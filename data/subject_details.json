@@ -2016,6 +2016,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790995074923",
+            "title": "15.3. Bệnh viêm đường ruột-dạ dày do Bacillus cereus",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 1,
+            "updatedAt": "2026-10-03T02:37:54.945Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 13
@@ -2029,6 +2048,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:37:46.458Z"
+    "updatedAt": "2026-10-03T02:37:55.799Z"
   }
 }
