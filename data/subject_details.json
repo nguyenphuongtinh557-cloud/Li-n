@@ -1416,6 +1416,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790994480944",
+            "title": "8.6. Sự phát triển hiện nay",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 4,
+            "updatedAt": "2026-10-03T02:28:00.949Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 6
@@ -1471,6 +1490,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:27:50.355Z"
+    "updatedAt": "2026-10-03T02:28:01.763Z"
   }
 }
