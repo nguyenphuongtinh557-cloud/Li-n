@@ -1997,7 +1997,27 @@
       {
         "id": "chap_1790993644852",
         "title": "Chương 15 BỆNH NHIỄM VÀ GÂY ĐỘC PHÁT SINH TỪ THỰC PHẨM",
-        "lessons": [],
+        "lessons": [
+          {
+            "id": "les_1790995065359",
+            "title": "15.2. Bệnh viêm đường ruột-dạ dày do Clostridium perfringens",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 0,
+            "updatedAt": "2026-10-03T02:37:45.376Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
         "order": 13
       },
       {
@@ -2009,6 +2029,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:37:35.043Z"
+    "updatedAt": "2026-10-03T02:37:46.458Z"
   }
 }
