@@ -1729,6 +1729,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1790994785670",
+            "title": "12.2. Sự gây hư hỏng thực phẩm do enzym vi sinh vật bền nhiệt",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 1,
+            "updatedAt": "2026-10-03T02:33:05.695Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 10
@@ -1760,6 +1779,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:32:52.146Z"
+    "updatedAt": "2026-10-03T02:33:06.860Z"
   }
 }
