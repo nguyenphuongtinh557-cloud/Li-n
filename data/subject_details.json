@@ -1340,7 +1340,27 @@
       {
         "id": "chap_1790993489889",
         "title": "Chương 8 CÁC VI KHUẨN CÓ LỢI CỦA ĐƯỜNG RUỘT",
-        "lessons": [],
+        "lessons": [
+          {
+            "id": "les_1790994429103",
+            "title": "8.1. Vi sinh vật học của hệ đường ruột – dạ dày ở người",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 0,
+            "updatedAt": "2026-10-03T02:27:09.109Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
         "order": 6
       },
       {
@@ -1394,6 +1414,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-10-03T02:26:41.581Z"
+    "updatedAt": "2026-10-03T02:27:09.986Z"
   }
 }
