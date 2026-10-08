@@ -10,6 +10,10 @@
     "dev": "node server.js",
     "predev": "npm run build",
     "build": "esbuild modules/themeMorphIcon.js modules/summaryDocx.js --bundle --format=esm --minify --legal-comments=inline --outdir=vendor",
+    "test": "playwright test",
+    "test:mobile": "node test-mobile.js",
+    "test:headed": "playwright test --headed",
+    "test:ui": "playwright test --ui",
     "test:lumi-study": "node test_lumi_study_assistant.js",
     "test:summary-markdown": "node test_summary_markdown.js",
     "test:summary-explanation-ui": "node test_summary_explanation_ui.js",
@@ -28,6 +32,7 @@
     "node": ">=18.0.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.63.0",
     "docx": "^9.7.2",
     "esbuild": "^0.28.2",
     "jszip": "^3.10.2",

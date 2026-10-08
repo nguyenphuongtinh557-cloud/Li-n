@@ -14,9 +14,15 @@ import {
   MathSuperScript,
   Packer,
   Paragraph,
-  TextRun
+  TextRun,
+  WpsShapeRun
 } from 'docx';
 import JSZip from 'jszip';
+import { embedSummaryDocxNativeObjects } from './modules/summaryDocxNative.js';
+import {
+  createSummaryDocumentVersion,
+  readSummaryDocumentHistory
+} from './modules/summaryDocumentHistory.js';
 
 const editorSource = fs.readFileSync('modules/richTextEditor.js', 'utf8');
 const appSource = fs.readFileSync('app.js', 'utf8');
@@ -55,6 +61,238 @@ test('rich-text images allow bounded raster data URLs and HTTP(S)', () => {
   assert.equal(context.safeRichTextUrl(`data:image/png;base64,${'A'.repeat(1_400_001)}`, { image: true }), '');
 });
 
+test('DOCX charts and diagram shapes export as editable Office objects', async () => {
+  const chartTypes = [
+    { type: 'bar', expected: /<c:barDir val="bar"\/>/ },
+    { type: 'column', expected: /<c:barDir val="col"\/>/ },
+    { type: 'line', expected: /<c:lineChart>/ },
+    { type: 'pie', expected: /<c:pieChart>/ }
+  ];
+  const chartObjects = chartTypes.map(({ type }, index) => ({
+    marker: `FTECA_NATIVE_CHART_${index + 1}`,
+    type,
+    palette: 'teal',
+    title: `Kết quả ${type}`,
+    data: [
+      { label: 'Nhóm A & <B>', value: 12 },
+      { label: 'Nhóm B', value: 18 }
+    ]
+  }));
+  const shapeMarker = 'FTECA_NATIVE_SHAPE_1';
+  const source = await Packer.toBlob(new Document({
+    sections: [{
+      children: [
+        ...chartObjects.map(({ marker }) => new Paragraph({ children: [new TextRun(marker)] })),
+        new Paragraph({
+          children: [new WpsShapeRun({
+            type: 'wps',
+            transformation: { width: 120, height: 60 },
+            children: [new Paragraph({ children: [new TextRun('Editable node')] })],
+            solidFill: { type: 'rgb', value: 'DDF4EE' },
+            outline: { width: 12700, type: 'solidFill', solidFillType: 'rgb', value: '168C71' },
+            altText: { title: shapeMarker, description: 'A native shape' }
+          })]
+        })
+      ]
+    }]
+  }));
+  const output = await embedSummaryDocxNativeObjects(source, {
+    charts: chartObjects,
+    shapes: [{ marker: shapeMarker, preset: 'ellipse', title: 'Editable ellipse' }]
+  });
+  const archive = await JSZip.loadAsync(output);
+  const documentXml = await archive.file('word/document.xml').async('string');
+  assert.equal((documentXml.match(/<c:chart\b/g) || []).length, 4);
+  assert.doesNotMatch(documentXml, /FTECA_NATIVE_(?:CHART|SHAPE)_/);
+  assert.match(documentXml, /<a:prstGeom prst="ellipse">/);
+  assert.match(documentXml, /title="Editable ellipse"/);
+  assert.match(documentXml, /<wps:txbx>[\s\S]*Editable node/);
+  const relationships = await archive.file('word/_rels/document.xml.rels').async('string');
+  assert.equal((relationships.match(/relationships\/chart/g) || []).length, 4);
+  const contentTypes = await archive.file('[Content_Types].xml').async('string');
+  assert.match(contentTypes, /Extension="xlsx" ContentType="application\/vnd\.openxmlformats-officedocument\.spreadsheetml\.sheet"/);
+  for (const [index, chartType] of chartTypes.entries()) {
+    const chartXml = await archive.file(`word/charts/chart${index + 1}.xml`).async('string');
+    assert.match(chartXml, chartType.expected);
+    assert.match(chartXml, /<c:externalData r:id="rId1">/);
+    assert.match(chartXml, /Nhóm A &amp; &lt;B&gt;/);
+    const workbookBlob = await archive.file(`word/embeddings/Microsoft_Excel_Worksheet${index + 1}.xlsx`).async('uint8array');
+    const workbook = await JSZip.loadAsync(workbookBlob);
+    const worksheet = await workbook.file('xl/worksheets/sheet1.xml').async('string');
+    assert.match(worksheet, /<v>12<\/v>/);
+    assert.match(worksheet, /Nhóm A &amp; &lt;B&gt;/);
+  }
+  await assert.rejects(
+    embedSummaryDocxNativeObjects(source, {
+      charts: [{ ...chartObjects[0], data: [{ label: 'Thiếu hàng', value: 1 }] }]
+    }),
+    /cần từ 2 đến 12 mục dữ liệu/
+  );
+});
+
+test('paragraph format maps Word-style indentation, spacing, outline, and page-break options', async () => {
+  const normalizeStart = editorSource.indexOf('function normalizeSummaryParagraphFormat(');
+  const normalizeEnd = editorSource.indexOf('\nfunction paragraphElementsForValidation(', normalizeStart);
+  assert.ok(normalizeStart >= 0 && normalizeEnd > normalizeStart);
+  const paragraphContext = {};
+  vm.createContext(paragraphContext);
+  vm.runInContext(
+    `${editorSource.slice(normalizeStart, normalizeEnd)}\nthis.normalize = normalizeSummaryParagraphFormat;`,
+    paragraphContext
+  );
+
+  const format = paragraphContext.normalize({
+    alignment: 'justify',
+    outlineLevel: '2',
+    left: '18',
+    right: '6',
+    specialIndent: 'hanging',
+    indentBy: '12',
+    before: '3',
+    after: '8',
+    lineSpacingMode: 'exactly',
+    lineSpacingValue: '24',
+    tabs: '36, 72, 36',
+    keepNext: true,
+    keepLines: true,
+    pageBreakBefore: false,
+    noSpaceSameStyle: true,
+    widowControl: false
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(format)), {
+    styles: {
+      'margin-top': '3pt',
+      'margin-bottom': '8pt',
+      'margin-left': '18pt',
+      'margin-right': '6pt',
+      'text-indent': '-12pt'
+    },
+    alignment: 'justify',
+    lineHeight: '24pt',
+    lineSpacingMode: 'exactly',
+    lineSpacingValue: '24',
+    outlineLevel: '1',
+    tabs: [36, 72],
+    keepNext: true,
+    keepLines: true,
+    pageBreakBefore: false,
+    noSpaceSameStyle: true,
+    widowControl: false
+  });
+  assert.equal(paragraphContext.normalize({
+    specialIndent: 'first-line',
+    indentBy: '24',
+    lineSpacingMode: 'one-half'
+  }).lineHeight, '1.5');
+  assert.throws(() => paragraphContext.normalize({ lineSpacingMode: 'exactly', lineSpacingValue: '0' }), /0,5–500/);
+  assert.throws(() => paragraphContext.normalize({ specialIndent: 'hanging', indentBy: '-3' }), /0–720/);
+
+  const dialogStart = editorSource.indexOf('function paragraphFormatDialog(editor) {');
+  const dialogEnd = editorSource.indexOf('\nfunction insertSummaryBlankPage(', dialogStart);
+  assert.ok(dialogStart >= 0 && dialogEnd > dialogStart);
+  const dialogSource = editorSource.slice(dialogStart, dialogEnd);
+  assert.match(dialogSource, /type: 'tabpanel'/);
+  assert.match(dialogSource, /title: 'Thụt lề và khoảng cách'/);
+  assert.match(dialogSource, /title: 'Ngắt dòng và trang'/);
+  assert.match(dialogSource, /name: 'saveAsDefault', label: 'Lưu cài đặt này làm mặc định trên thiết bị'/);
+  assert.match(dialogSource, /if \(data\.saveAsDefault\)/);
+  assert.match(dialogSource, /localStorage\.setItem\(SUMMARY_PARAGRAPH_DEFAULTS_KEY/);
+  assert.match(htmlSource, /data-summary-ribbon-tab="home"[\s\S]*?data-editor-tool="paragraph-format" title="Mở cài đặt đoạn văn"/);
+  const docxParagraphSource = fs.readFileSync('modules/summaryDocx.js', 'utf8');
+  assert.match(docxParagraphSource, /contextualSpacing: formatting\.contextualSpacing/);
+  assert.match(docxParagraphSource, /outlineLevel: formatting\.outlineLevel/);
+  assert.match(docxParagraphSource, /lineRule: lineSpacingMode === 'exactly' \? 'exact' : 'atLeast'/);
+  const paragraphStart = docxParagraphSource.indexOf('function cssMeasureToTwips(');
+  const paragraphEnd = docxParagraphSource.indexOf('\nasync function convertTable(', paragraphStart);
+  const docxContext = {};
+  vm.createContext(docxContext);
+  vm.runInContext(
+    `${docxParagraphSource.slice(paragraphStart, paragraphEnd)}\nthis.format = paragraphFormatting;`,
+    docxContext
+  );
+  const attributes = new Map([
+    ['data-summary-line-spacing-mode', 'exactly'],
+    ['data-summary-line-spacing-value', '24'],
+    ['data-summary-outline-level', '2'],
+    ['data-summary-no-space-same-style', 'true'],
+    ['data-summary-widow-control', 'false'],
+    ['data-summary-keep-next', 'true']
+  ]);
+  const exported = docxContext.format({
+    tagName: 'P',
+    style: { marginTop: '3pt', marginBottom: '8pt', textIndent: '-12pt' },
+    getAttribute: name => attributes.get(name) || null
+  });
+  assert.equal(exported.spacing.line, 480);
+  assert.equal(exported.spacing.lineRule, 'exact');
+  assert.equal(exported.outlineLevel, 2);
+  assert.equal(exported.contextualSpacing, true);
+  assert.equal(exported.widowControl, false);
+  assert.equal(exported.keepNext, true);
+  assert.equal(exported.indent.hanging, 240);
+
+  attributes.set('data-summary-line-spacing-mode', 'one-half');
+  attributes.set('data-summary-line-spacing-value', '1.5');
+  const exportedOneHalf = docxContext.format({
+    tagName: 'P',
+    style: { lineHeight: '1.08' },
+    getAttribute: name => attributes.get(name) || null
+  });
+  assert.equal(exportedOneHalf.spacing.line, 360);
+  assert.equal(exportedOneHalf.spacing.lineRule, 'auto');
+
+  const docxBlob = await Packer.toBlob(new Document({
+    sections: [{
+      children: [new Paragraph({
+        children: [new TextRun('Giãn dòng 1,5')],
+        spacing: exportedOneHalf.spacing
+      })]
+    }]
+  }));
+  const docxZip = await JSZip.loadAsync(docxBlob);
+  const documentXml = await docxZip.file('word/document.xml').async('string');
+  assert.match(documentXml, /<w:spacing\b[^>]*w:line="360"[^>]*w:lineRule="auto"[^>]*\/>/);
+});
+
+test('rich-text sanitizer preserves exact paragraph line spacing in points', () => {
+  const sanitizerStart = editorSource.indexOf('function sanitizeRichTextStyle(');
+  const sanitizerEnd = editorSource.indexOf('\nfunction sanitizeElement(', sanitizerStart);
+  assert.ok(sanitizerStart >= 0 && sanitizerEnd > sanitizerStart);
+
+  function createStyleDeclaration() {
+    const properties = new Map();
+    return {
+      set cssText(value) {
+        properties.clear();
+        String(value).split(';').forEach(declaration => {
+          const separator = declaration.indexOf(':');
+          if (separator < 0) return;
+          properties.set(declaration.slice(0, separator).trim().toLowerCase(), declaration.slice(separator + 1).trim());
+        });
+      },
+      getPropertyValue(property) {
+        return properties.get(property) || '';
+      }
+    };
+  }
+  const sanitizerContext = {
+    SAFE_COLOR: /^(?:#[\da-f]{3,8}|(?:rgb|rgba|hsl|hsla)\([\d\s.,%+-]+\)|[a-z]{1,20})$/i,
+    SAFE_TABLE_BORDER: /^(?:0|(?:[1-9]\d?(?:\.\d+)?)(?:px|pt))\s+(?:none|solid|dotted|dashed|double)\s+(?:#[0-9a-f]{3,8}|[a-z]{1,20})$/i,
+    SAFE_IMAGE_TRANSFORM: /^(?:rotate\((?:0|90|180|270)deg\)(?: scaleX\(-1\))?(?: scaleY\(-1\))?|scaleX\(-1\)(?: scaleY\(-1\))?|scaleY\(-1\))$/,
+    document: { createElement: () => ({ style: createStyleDeclaration() }) }
+  };
+  vm.createContext(sanitizerContext);
+  vm.runInContext(
+    `${editorSource.slice(sanitizerStart, sanitizerEnd)}\nthis.sanitize = sanitizeRichTextStyle;`,
+    sanitizerContext
+  );
+
+  assert.equal(sanitizerContext.sanitize('line-height:24pt'), 'line-height:24pt');
+  assert.equal(sanitizerContext.sanitize('line-height:1.5'), 'line-height:1.5');
+  assert.equal(sanitizerContext.sanitize('line-height:500pt'), 'line-height:500pt');
+  assert.equal(sanitizerContext.sanitize('line-height:501pt'), '');
+});
+
 test('image crop percentages produce bounded pixel regions', () => {
   const cropStart = editorSource.indexOf('function imageCropBounds(');
   const cropEnd = editorSource.indexOf('\nfunction imageTransformValues', cropStart);
@@ -86,6 +324,136 @@ test('chart data validation supports bounded labels and non-negative numeric val
   assert.throws(() => chartContext.parseSummaryChartData('Một, -1\nHai, 2'), /giá trị số từ 0/);
   assert.throws(() => chartContext.parseSummaryChartData('Một, 0\nHai, 0'), /phải lớn hơn 0/);
   assert.throws(() => chartContext.parseSummaryChartData('Một, 1'), /từ 2 đến 12/);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(chartContext.normalizeSummaryChartRows([
+      { label: ' Nhóm A ', value: '12' },
+      { label: 'Nhóm B', value: '18' }
+    ]))),
+    [{ label: 'Nhóm A', value: 12 }, { label: 'Nhóm B', value: 18 }]
+  );
+  assert.throws(() => chartContext.normalizeSummaryChartRows([
+    { label: '', value: '12' },
+    { label: 'Nhóm B', value: '18' }
+  ]), /Mỗi dòng cần nhãn/);
+  assert.throws(() => chartContext.normalizeSummaryChartRows([
+    { label: 'Nhóm A', value: '' },
+    { label: 'Nhóm B', value: '18' }
+  ]), /Mỗi dòng cần nhãn/);
+});
+
+test('pie charts draw proportional slices and a value legend for positive data', () => {
+  const constantsStart = editorSource.indexOf('const SUMMARY_CHART_TYPES');
+  const constantsEnd = editorSource.indexOf('\nconst SUMMARY_CHART_MAX_DATA_LENGTH', constantsStart);
+  const drawStart = editorSource.indexOf('function drawSummaryChart(');
+  const drawEnd = editorSource.indexOf('\nasync function summaryChartImage', drawStart);
+  assert.ok(constantsStart >= 0 && constantsEnd > constantsStart && drawStart >= 0 && drawEnd > drawStart);
+
+  const arcs = [];
+  const labels = [];
+  const context = {
+    beginPath() {},
+    moveTo() {},
+    arc(...values) { arcs.push(values); },
+    closePath() {},
+    fill() {},
+    stroke() {},
+    fillRect() {},
+    fillText(text) { labels.push(text); }
+  };
+  const canvas = { width: 0, height: 0, getContext: () => context };
+  const chartContext = { document: { createElement: () => canvas } };
+  vm.createContext(chartContext);
+  vm.runInContext(
+    `${editorSource.slice(constantsStart, constantsEnd)}\n${editorSource.slice(drawStart, drawEnd)}\nthis.draw = drawSummaryChart;`,
+    chartContext
+  );
+
+  const result = chartContext.draw([
+    { label: 'Nhóm A', value: 2 },
+    { label: 'Nhóm B', value: 3 },
+    { label: 'Nhóm C', value: 0 },
+    { label: 'Nhóm D', value: 5 }
+  ], 'pie', 'blue');
+  assert.equal(result, canvas);
+  assert.equal(canvas.width, 960);
+  assert.equal(canvas.height, 540);
+  assert.equal(arcs.length, 3);
+  assert.ok(labels.includes('Nhóm A · 2 (20.0%)'));
+  assert.ok(labels.includes('Nhóm D · 5 (50.0%)'));
+  assert.throws(() => chartContext.draw([{ label: 'A', value: 1 }, { label: 'B', value: 1 }], 'pie', 'bad'), /Loại hoặc bảng màu/);
+});
+
+test('chart dialog edits rows dynamically and preserves values across add/remove actions', () => {
+  const iconsStart = editorSource.indexOf('const SUMMARY_CHART_ICONS =');
+  const dialogEnd = editorSource.indexOf('\nfunction editSelectedSummaryChart', iconsStart);
+  assert.ok(iconsStart >= 0 && dialogEnd > iconsStart);
+  const dialogContext = {
+    figureCaptionDescription: value => value,
+    summaryChartData: () => [
+      { label: 'Nhóm A', value: 12 },
+      { label: 'Nhóm B', value: 18 }
+    ]
+  };
+  vm.createContext(dialogContext);
+  vm.runInContext(`${editorSource.slice(iconsStart, dialogEnd)}\nthis.openSummaryChartDialog = openSummaryChartDialog;`, dialogContext);
+  let dialog;
+  const registeredIcons = [];
+  const editor = {
+    ui: { registry: { addIcon: (name, svg) => registeredIcons.push({ name, svg }) } },
+    selection: { getBookmark: () => ({ id: 'bookmark' }) },
+    windowManager: { open: spec => { dialog = spec; } }
+  };
+  const chart = {
+    dataset: { summaryChartType: 'column', summaryChartPalette: 'teal' },
+    querySelector: () => ({ textContent: 'Biểu đồ thử' })
+  };
+  dialogContext.openSummaryChartDialog(editor, chart);
+  const chartRows = () => dialog.body.items.filter(item =>
+    item.items?.some(control => control.name?.startsWith('chart-label-')));
+  const typeSelector = () => dialog.body.items.find(item =>
+    item.items?.some(control => control.name === 'chart-type-column'));
+  assert.equal(registeredIcons.length, 4);
+  assert.ok(registeredIcons.every(icon => icon.svg.includes('<svg')));
+  assert.equal(chartRows().length, 2);
+  assert.deepEqual(JSON.parse(JSON.stringify(typeSelector().items.map(item => item.icon))), [
+    'summary-chart-column', 'summary-chart-bar', 'summary-chart-line', 'summary-chart-pie'
+  ]);
+  assert.equal(typeSelector().items[0].primary, true);
+  assert.equal(dialog.initialData['chart-label-0'], 'Nhóm A');
+  assert.equal(dialog.initialData['chart-value-1'], '18');
+
+  const api = {
+    getData: () => dialog.initialData,
+    redial: spec => { dialog = spec; },
+    focus: () => {}
+  };
+  dialog.onAction(api, { name: 'chart-type-line' });
+  assert.equal(typeSelector().items[2].primary, true);
+  assert.equal(dialog.initialData.type, 'line');
+  dialog.onAction(api, { name: 'chart-type-pie' });
+  assert.equal(typeSelector().items[3].primary, true);
+  assert.equal(dialog.initialData.type, 'pie');
+
+  dialog.onAction(api, { name: 'chart-add-row' });
+  assert.equal(chartRows().length, 3);
+  assert.equal(dialog.initialData['chart-label-0'], 'Nhóm A');
+  assert.equal(dialog.initialData['chart-value-1'], '18');
+  assert.equal(dialog.initialData['chart-label-2'], '');
+
+  dialog.onAction(api, { name: 'chart-remove-row-1' });
+  assert.equal(chartRows().length, 2);
+  assert.equal(dialog.initialData['chart-label-0'], 'Nhóm A');
+  assert.equal(dialog.initialData['chart-label-1'], '');
+  assert.ok(chartRows().every(row => row.items[2].type === 'button'));
+  assert.ok(chartRows().every(row => row.items[2].enabled === false));
+  assert.ok(chartRows().every(row => row.items[2].text === 'Tối thiểu 2 hàng'));
+  assert.equal(dialog.body.items.find(item => item.name === 'chart-add-row').disabled, false);
+
+  const twelveRows = Array.from({ length: 12 }, (_, index) => ({ label: `Nhãn ${index}`, value: index + 1 }));
+  dialogContext.summaryChartData = () => twelveRows;
+  dialogContext.openSummaryChartDialog(editor, chart);
+  assert.equal(chartRows().length, 12);
+  assert.equal(dialog.body.items.find(item => item.name === 'chart-add-row').disabled, true);
 });
 
 test('process diagrams validate layout, palette, step count, and bounded step text', () => {
@@ -157,9 +525,9 @@ test('process diagrams retain validated editing metadata and export accessibly a
   assert.match(appSource, /summaryStudyRunDiagramTool\('diagram-config'/);
   assert.match(styleSource, /\.summary-study-richtext \.summary-study-diagram img/);
   assert.match(appSource, /summary-study-diagram figcaption/);
-  assert.match(appSource, /richTextEditor\.js\?v=20260928-summary-study-ribbon-v35/);
-  assert.match(htmlSource, /style\.css\?v=20260928-summary-study-ribbon-v25/);
-  assert.match(htmlSource, /app\.js\?v=20260928-summary-study-ribbon-v38/);
+  assert.match(appSource, /richTextEditor\.js\?v=20261001-paragraph-dialog-v5/);
+  assert.match(htmlSource, /style\.css\?v=20261001-compact-edit-ribbon-v5/);
+  assert.match(htmlSource, /app\.js\?v=20261001-native-docx-objects-v3/);
 });
 
 test('find and replace handles literal Unicode matches, casing, and replacement tokens', () => {
@@ -216,8 +584,8 @@ test('find and replace handles literal Unicode matches, casing, and replacement 
   assert.match(editorSource, /'find-replace': \(\) => openSummaryFindReplaceDialog\(editor\)/);
   assert.match(htmlSource, /data-editor-tool="find-replace"/);
   assert.match(htmlSource, /Tìm &amp; thay thế/);
-  assert.match(appSource, /richTextEditor\.js\?v=20260928-summary-study-ribbon-v35/);
-  assert.match(htmlSource, /app\.js\?v=20260928-summary-study-ribbon-v38/);
+  assert.match(appSource, /richTextEditor\.js\?v=20261001-paragraph-dialog-v5/);
+  assert.match(htmlSource, /app\.js\?v=20261001-native-docx-objects-v3/);
 });
 
 test('table formulas validate supported ranges and calculate numeric aggregates', () => {
@@ -340,8 +708,8 @@ test('table formulas validate supported ranges and calculate numeric aggregates'
   assert.match(htmlSource, /data-summary-table-command="insert-formula"/);
   assert.match(htmlSource, /data-summary-table-command="recalculate-formulas"/);
   assert.match(htmlSource, /data-summary-table-command="remove-formula"/);
-  assert.match(appSource, /richTextEditor\.js\?v=20260928-summary-study-ribbon-v35/);
-  assert.match(htmlSource, /app\.js\?v=20260928-summary-study-ribbon-v38/);
+  assert.match(appSource, /richTextEditor\.js\?v=20261001-paragraph-dialog-v5/);
+  assert.match(htmlSource, /app\.js\?v=20261001-native-docx-objects-v3/);
 });
 
 test('text effects replace prior effects, require selected text, and remain undoable', () => {
@@ -421,7 +789,7 @@ test('DOCX text effects use Office 2010 run properties and preserve all four eff
   assert.match(docxSource, /if \(element\.dataset\?\.summaryDocxEffectMarker\) style\.textEffectMarker = element\.dataset\.summaryDocxEffectMarker/);
   assert.match(docxSource, /text: style\.textEffectMarker \? `\$\{style\.textEffectMarker\}\$\{text\}` : text/);
   assert.match(docxSource, /const textEffectMarkers = markSummaryDocxTextEffects\(source\.body\)/);
-  assert.match(docxSource, /preserveSummaryDocxTextEffects\(await Packer\.toBlob\(document\), textEffectMarkers\)/);
+  assert.match(docxSource, /preserveSummaryDocxTextEffects\(nativeDocument, textEffectMarkers\)/);
 
   const effectContext = { JSZip, TextRun };
   vm.createContext(effectContext);
@@ -834,7 +1202,7 @@ test('shape dimensions and rotations are bounded and preserve rotation state', (
   assert.throws(() => shapeContext.transform('', 'flip'), /không hợp lệ/);
 });
 
-test('shape ribbon exposes direct size and rotation controls and DOCX honors shape dimensions', () => {
+test('shape ribbon exposes direct size and rotation controls and DOCX exports native editable shapes', () => {
   assert.match(htmlSource, /data-summary-shape-size="width"/);
   assert.match(htmlSource, /data-summary-shape-size="height"/);
   assert.match(htmlSource, /data-summary-shape-transform="rotate-left"/);
@@ -844,28 +1212,30 @@ test('shape ribbon exposes direct size and rotation controls and DOCX honors sha
   assert.match(editorSource, /'shape-size': \(\) => setSelectedSummaryShapeSize\(editor, options\.dimension, options\.value, options\.shape\)/);
   assert.match(editorSource, /'shape-rotate': \(\) => setSelectedSummaryShapeTransform\(editor, options\.operation, options\.shape\)/);
   const docxSource = fs.readFileSync('modules/summaryDocx.js', 'utf8');
-  assert.match(docxSource, /function summaryShapeDimensions\(element, image\)/);
-  assert.match(docxSource, /const dimensions = summaryShapeDimensions\(element, image\)/);
-  assert.match(docxSource, /const displayWidth = rotated \? dimensions\.height : dimensions\.width/);
+  assert.match(docxSource, /function summaryShapeDimensions\(element\)/);
+  assert.match(docxSource, /const dimensions = summaryShapeDimensions\(image\)/);
+  assert.match(docxSource, /addSummaryNativeShape\(\{[\s\S]*?preset,[\s\S]*?width: dimensions\.width/);
   const dimensionsStart = docxSource.indexOf('function summaryShapeDimensions(');
   const dimensionsEnd = docxSource.indexOf('\nfunction imageOutline', dimensionsStart);
   assert.ok(dimensionsStart >= 0 && dimensionsEnd > dimensionsStart);
   const dimensionContext = {};
   vm.createContext(dimensionContext);
   vm.runInContext(`${docxSource.slice(dimensionsStart, dimensionsEnd)}\nthis.dimensions = summaryShapeDimensions;`, dimensionContext);
-  const shapeElement = { closest: () => true, style: { width: '480px', height: '280px' } };
+  const shapeElement = { style: { width: '480px', height: '280px' } };
   assert.deepEqual(
-    JSON.parse(JSON.stringify(dimensionContext.dimensions(shapeElement, { width: 900, height: 520 }))),
+    JSON.parse(JSON.stringify(dimensionContext.dimensions(shapeElement))),
     { width: 480, height: 280 }
   );
   assert.deepEqual(
-    JSON.parse(JSON.stringify(dimensionContext.dimensions({ closest: () => true, style: { width: '450px' } }, { width: 900, height: 520 }))),
+    JSON.parse(JSON.stringify(dimensionContext.dimensions({ style: { width: '450px' } }))),
     { width: 450, height: 260 }
   );
-  assert.match(appSource, /richTextEditor\.js\?v=20260928-summary-study-ribbon-v35/);
-  assert.match(appSource, /summaryDocx\.js\?v=20260928-insert-layout-v18/);
-  assert.match(htmlSource, /style\.css\?v=20260928-summary-study-ribbon-v25/);
-  assert.match(htmlSource, /app\.js\?v=20260928-summary-study-ribbon-v38/);
+  assert.match(docxSource, /new WpsShapeRun/);
+  assert.match(docxSource, /const nativeDocument = await embedSummaryDocxNativeObjects\(packedDocument, nativeObjects\)/);
+  assert.match(appSource, /richTextEditor\.js\?v=20261001-paragraph-dialog-v5/);
+  assert.match(appSource, /summaryDocx\.js\?v=20261001-native-docx-objects-v4/);
+  assert.match(htmlSource, /style\.css\?v=20261001-compact-edit-ribbon-v5/);
+  assert.match(htmlSource, /app\.js\?v=20261001-native-docx-objects-v3/);
 });
 
 test('shape alignment is validated, selectable in the ribbon, and mapped to DOCX paragraphs', () => {
@@ -978,7 +1348,9 @@ test('editor configuration exposes working formatting, tables, links, and proces
   assert.doesNotMatch(editorSource, /summarystyles|registerSummaryStyleMenu/);
   assert.match(editorSource, /addButton\('summaryparagraphformat'/);
   assert.match(editorSource, /addButton\('summarynavigation'/);
-  assert.match(editorSource, /Giãn dòng \(ví dụ 1\.5\)/);
+  assert.match(editorSource, /name: 'lineSpacingMode'/);
+  assert.match(editorSource, /name: 'lineSpacingValue'/);
+  assert.match(editorSource, /name: 'lineSpacingMode'[\s\S]*?value: 'exactly'/);
   assert.match(editorSource, /Giữ đoạn này cùng đoạn tiếp theo/);
   assert.match(editorSource, /Bắt đầu đoạn ở trang mới/);
   assert.match(editorSource, /data-summary-tabs/);
@@ -1026,13 +1398,28 @@ test('editor configuration exposes working formatting, tables, links, and proces
 });
 
 test('summary editor saves sanitized document HTML separately and supports recoverable editing controls', () => {
-  assert.match(htmlSource, /style\.css\?v=20260928-summary-study-ribbon-v25/);
-  assert.match(htmlSource, /app\.js\?v=20260928-summary-study-ribbon-v38/);
+  assert.match(htmlSource, /style\.css\?v=20261001-compact-edit-ribbon-v5/);
+  assert.match(styleSource, /\.summary-study-ribbon\s*\{\s*display:\s*none;/);
+  assert.match(styleSource, /\.summary-study-shell\.is-editing \.summary-study-ribbon\s*\{\s*display:\s*block;\s*\}/);
+  assert.match(styleSource, /\.summary-study-shell\.is-editing \.summary-study-header-actions > \[data-summary-action="undo"\]/);
+  assert.match(styleSource, /\.summary-study-shell\.is-editing \.summary-study-header-actions > \[data-summary-action="save-version"\]/);
+  assert.match(styleSource, /\.summary-study-document\.is-editing \.summary-study-document-bar\s*\{\s*display:\s*none;\s*\}/);
+  assert.match(htmlSource, /app\.js\?v=20261001-native-docx-objects-v3/);
   assert.match(editorSource, /body\.style\.fontSize = '17px';\s*body\.style\.lineHeight = '1\.8';/);
-  assert.match(appSource, /richTextEditor\.js\?v=20260928-summary-study-ribbon-v35/);
+  assert.match(appSource, /richTextEditor\.js\?v=20261001-paragraph-dialog-v5/);
   assert.match(appSource, /prepareRichTextDocument\(editor\)/);
   assert.match(appSource, /localStorage\.setItem\(summaryStudyDocumentStorageKey\(title\)/);
   assert.match(appSource, /summaryStudyLegacyStorageKey\(title\)/);
+});
+
+test('editing ribbon stays compact and scrolls horizontally instead of wrapping into extra rows', () => {
+  assert.match(styleSource, /\.summary-study-shell\.is-editing \.summary-study-ribbon-tabs\s*\{[^}]*height:\s*32px/s);
+  assert.match(styleSource, /\.summary-study-shell\.is-editing \.summary-study-ribbon-panel\s*\{[^}]*height:\s*60px;[^}]*flex-wrap:\s*nowrap;[^}]*overflow-x:\s*auto/s);
+  assert.match(styleSource, /\.summary-study-shell\.is-editing \.summary-study-ribbon-tools\s*\{[^}]*flex-wrap:\s*nowrap/s);
+  assert.match(styleSource, /@media \(max-width: 720px\)\s*\{[\s\S]*?\.summary-study-shell\.is-editing \.summary-study-header-actions\s*\{[^}]*flex-wrap:\s*nowrap/s);
+  assert.match(styleSource, /@media \(max-width: 720px\)\s*\{[\s\S]*?\.summary-study-shell\.is-editing \.summary-study-header-actions > :is\(\.summary-study-icon-btn, \.summary-study-history-btn/s);
+  assert.match(styleSource, /@media \(max-width: 720px\)\s*\{[\s\S]*?\.summary-study-shell\.is-editing \.summary-study-ribbon-tabs\s*\{[^}]*height:\s*28px/s);
+  assert.match(styleSource, /@media \(max-width: 720px\)\s*\{[\s\S]*?\.summary-study-shell\.is-editing \.summary-study-ribbon-panel\s*\{[^}]*height:\s*42px;[^}]*flex-wrap:\s*nowrap/s);
   assert.match(appSource, /saveSummaryStudyEditorContent\(editor,\s*\{\s*close:\s*false\s*\}\)/);
   assert.match(appSource, /Không thể mở trình soạn thảo\. Bản tóm tắt hiện tại vẫn được giữ nguyên\./);
   assert.match(appSource, /data-summary-editor-action="cancel"/);
@@ -1088,15 +1475,38 @@ test('Lumi is an opt-in overlay with a static avatar and multiple accessible tog
   assert.match(styleSource, /\.lumi-fab\s*\{[^}]*width:\s*52px/s);
 });
 
-test('empty saved-term panel defaults closed and keeps a persisted toggle', () => {
-  assert.match(appSource, /const SUMMARY_STUDY_OUTLINE_PANEL_KEY = 'left_panel_open'/);
-  assert.match(appSource, /return getSummaryStudySavedTerms\(\)\.length > 0/);
+test('saved-term panel defaults open, ignores the legacy preference, and keeps a persisted toggle', () => {
+  assert.match(appSource, /const SUMMARY_STUDY_OUTLINE_PANEL_KEY = 'left_panel_open_v2'/);
+  assert.match(appSource, /function getSummaryStudyOutlinePanelOpen\(\) \{[\s\S]*?return true;[\s\S]*?return true;/);
+  const preferenceStart = appSource.indexOf('function getSummaryStudyOutlinePanelOpen()');
+  const preferenceEnd = appSource.indexOf('\nfunction setSummaryStudyOutlinePanelOpen', preferenceStart);
+  assert.ok(preferenceStart >= 0 && preferenceEnd > preferenceStart);
+  const preferences = { left_panel_open: 'false' };
+  const preferenceContext = {
+    localStorage: {
+      getItem(key) {
+        return Object.hasOwn(preferences, key) ? preferences[key] : null;
+      }
+    },
+    console
+  };
+  vm.createContext(preferenceContext);
+  vm.runInContext(`const SUMMARY_STUDY_OUTLINE_PANEL_KEY = 'left_panel_open_v2';\n${appSource.slice(preferenceStart, preferenceEnd)}\nthis.getOpen = getSummaryStudyOutlinePanelOpen;`, preferenceContext);
+  assert.equal(preferenceContext.getOpen(), true);
+  preferences.left_panel_open_v2 = 'false';
+  assert.equal(preferenceContext.getOpen(), false);
   assert.match(appSource, /localStorage\.setItem\(SUMMARY_STUDY_OUTLINE_PANEL_KEY, String\(isOpen\)\)/);
-  assert.match(appSource, /if \(terms\.length === 0 \|\| existing < 0\) setSummaryStudyOutlinePanelOpen\(terms\.length > 0\)/);
+  assert.match(appSource, /if \(existing < 0\) setSummaryStudyOutlinePanelOpen\(true\)/);
   assert.match(htmlSource, /id="summary-study-outline-panel" class="summary-study-outline"/);
   assert.match(htmlSource, /data-summary-action="outline"[^>]+aria-expanded="false"/);
   assert.match(styleSource, /\.summary-study-shell\.is-outline-hidden \.summary-study-outline\s*\{\s*display:\s*none !important/);
   assert.match(styleSource, /\.summary-study-shell\.is-outline-hidden \.summary-study-workspace\s*\{\s*grid-template-columns:\s*minmax\(0,\s*1fr\)/);
+});
+
+test('document tools stay compact in the lower-left corner at desktop and mobile sizes', () => {
+  assert.match(styleSource, /\.summary-study-document-tools\s*\{[^}]*position:\s*absolute;[^}]*bottom:\s*12px;[^}]*left:\s*12px;[^}]*width:\s*max-content/s);
+  assert.match(styleSource, /\.summary-study-document-tools\s*\{[^}]*max-width:\s*calc\(100% - 24px\);[^}]*flex-wrap:\s*wrap/s);
+  assert.match(styleSource, /@media \(max-width: 720px\)\s*\{[^}]*\.summary-study-document-tools\s*\{[^}]*left:\s*8px;[^}]*max-width:\s*calc\(100% - 16px\)/s);
 });
 
 test('selection toolbar is accessible and reuses document actions and speech synthesis', () => {
@@ -1227,6 +1637,10 @@ test('summary study groups common and specialist editor tools into Word-style ri
   assert.match(editorSource, /function refreshSummaryTableDesign\(table, options\)/);
   assert.match(editorSource, /addStyle\([\s\S]*?summary-study-table-banded-rows tbody tr:nth-child\(even\)/);
   assert.match(styleSource, /\.summary-study-richtext \.summary-study-table-banded-rows tbody tr:nth-child\(even\)/);
+  assert.match(styleSource, /\.study-reader-document-head \{[\s\S]*?display: block !important;[\s\S]*?width: 100%;[\s\S]*?min-width: 0;/);
+  assert.match(styleSource, /\.study-reader-document-head h1\.study-reader-doc-title \{[\s\S]*?width: 100%;[\s\S]*?overflow-wrap: break-word;/);
+  assert.match(styleSource, /\[data-theme="dark"\] #study-reader-content,[\s\S]*?background-color: #000 !important;/);
+  assert.match(htmlSource, /style\.css\?v=20261001-compact-edit-ribbon-v5/);
   assert.match(editorSource, /'insert-table': \(\) => \{/);
   assert.match(editorSource, /'table-dialog': \(\) => openSummaryTableDialog\(editor\)/);
   assert.match(editorSource, /onTableContextChange\?\.\(insideTable, \{\s*options,\s*rowHeightCm:/);
@@ -1240,8 +1654,13 @@ test('summary study groups common and specialist editor tools into Word-style ri
   assert.match(editorSource, /function openSummaryImageCropDialog\(editor\)/);
   assert.match(editorSource, /function cropSelectedSummaryImage\(editor, image, crop, api\)/);
   assert.match(editorSource, /function parseSummaryChartData\(value\)/);
+  assert.match(editorSource, /function normalizeSummaryChartRows\(dataRows\)/);
   assert.match(editorSource, /function drawSummaryChart\(data, type, palette\)/);
   assert.match(editorSource, /function openSummaryChartDialog\(editor, chart = null, overrides = \{\}\)/);
+  assert.match(editorSource, /type: 'grid',\s*columns: 3/);
+  assert.match(editorSource, /name: 'chart-add-row'/);
+  assert.match(editorSource, /api\.redial\(createDialog/);
+  assert.match(editorSource, /SUMMARY_CHART_ICONS = \{/);
   assert.match(editorSource, /data-summary-chart-data/);
   assert.match(editorSource, /SAFE_IMAGE_TRANSFORM/);
   assert.match(editorSource, /'image-alt-text': \(\) => editSelectedSummaryImageAlt\(editor\)/);
@@ -1292,6 +1711,215 @@ test('DOCX import replaces content only after confirmation and sanitizes Mammoth
   assert.match(appSource, /Không thể đọc tệp DOCX\. Nội dung hiện tại vẫn được giữ nguyên/);
 });
 
+test('DOCX import keeps cancellation and failures safe, and undo restores replaced content', async () => {
+  const importStart = appSource.indexOf('async function importSummaryStudyDocx(');
+  const importEnd = appSource.indexOf('\nfunction ensureTinyMCE(', importStart);
+  const handlerStart = appSource.indexOf('async function handleSummaryStudyDocxImport(');
+  const handlerEnd = appSource.indexOf('\nfunction exportCurriculumSummaryPdf(', handlerStart);
+  assert.ok(importStart >= 0 && importEnd > importStart);
+  assert.ok(handlerStart >= 0 && handlerEnd > handlerStart);
+
+  function createHarness({ confirmed = true, conversionResult = { value: '<h1>Imported heading</h1>', messages: [] }, conversionError } = {}) {
+    const initialContent = '<p>Original editable content</p>';
+    const undoEntries = [];
+    const calls = { confirm: 0, convert: [], ensureMammoth: 0, saved: 0, toasts: [], statuses: [] };
+    const editor = {
+      content: initialContent,
+      getContent() { return this.content; },
+      setContent(html) { this.content = html; },
+      nodeChanged() {},
+      undoManager: {
+        transact(callback) {
+          const previous = editor.content;
+          callback();
+          if (editor.content !== previous) undoEntries.push(previous);
+        },
+        undo() {
+          if (undoEntries.length) editor.content = undoEntries.pop();
+        }
+      }
+    };
+    const importButton = { disabled: false };
+    const context = {
+      console: { error() {} },
+      document: { querySelector: () => importButton },
+      window: {
+        confirm() { calls.confirm += 1; return confirmed; },
+        mammoth: {
+          async convertToHtml(input, options) {
+            calls.convert.push({ input, options });
+            if (conversionError) throw conversionError;
+            return conversionResult;
+          }
+        }
+      },
+      ensureMammoth: async () => { calls.ensureMammoth += 1; },
+      sanitizeRichTextHtml: html => html,
+      _summaryStudyRichTextEditor: editor,
+      summaryStudyPushUndo() {},
+      summaryStudySetEditorStatus: (...args) => calls.statuses.push(args),
+      scheduleSummaryStudyEditorSave: () => { calls.saved += 1; },
+      showToast: (...args) => calls.toasts.push(args)
+    };
+    vm.createContext(context);
+    vm.runInContext(
+      `${appSource.slice(importStart, importEnd)}\n${appSource.slice(handlerStart, handlerEnd)}\nthis.importDocx = handleSummaryStudyDocxImport;`,
+      context
+    );
+    return { calls, context, editor, importButton, initialContent };
+  }
+
+  const validFile = () => ({ name: 'lesson.docx', size: 128, async arrayBuffer() { return new ArrayBuffer(8); } });
+  const accepted = createHarness();
+  const acceptedInput = { value: 'lesson.docx' };
+  await accepted.context.importDocx(validFile(), acceptedInput);
+  assert.match(accepted.editor.getContent(), /Imported heading/);
+  assert.equal(accepted.calls.confirm, 1);
+  assert.equal(accepted.calls.ensureMammoth, 1);
+  assert.equal(accepted.calls.convert.length, 1);
+  assert.equal(accepted.calls.saved, 1);
+  assert.equal(accepted.importButton.disabled, false);
+  assert.equal(acceptedInput.value, '');
+  accepted.editor.undoManager.undo();
+  assert.equal(accepted.editor.getContent(), accepted.initialContent);
+
+  const cancelled = createHarness({ confirmed: false });
+  const cancelledInput = { value: 'lesson.docx' };
+  await cancelled.context.importDocx(validFile(), cancelledInput);
+  assert.equal(cancelled.editor.getContent(), cancelled.initialContent);
+  assert.equal(cancelled.calls.ensureMammoth, 0);
+  assert.equal(cancelled.calls.convert.length, 0);
+  assert.equal(cancelledInput.value, '');
+
+  const invalid = createHarness();
+  await invalid.context.importDocx({ name: 'lesson.txt', size: 128 }, { value: 'lesson.txt' });
+  assert.equal(invalid.editor.getContent(), invalid.initialContent);
+  assert.equal(invalid.calls.confirm, 0);
+  assert.equal(invalid.calls.ensureMammoth, 0);
+
+  const failed = createHarness({ conversionError: new Error('DOCX conversion failed') });
+  const failedInput = { value: 'lesson.docx' };
+  await failed.context.importDocx(validFile(), failedInput);
+  assert.equal(failed.editor.getContent(), failed.initialContent);
+  assert.equal(failed.calls.saved, 0);
+  assert.equal(failed.importButton.disabled, false);
+  assert.equal(failedInput.value, '');
+  assert.ok(failed.calls.toasts.some(([message, type]) => /DOCX conversion failed/.test(message) && type === 'error'));
+});
+
+test('named version history previews, restores with a backup, and keeps restore undoable', async () => {
+  const renderStart = appSource.indexOf('function renderSummaryStudyVersionHistory(');
+  const renderEnd = appSource.indexOf('\nfunction createSummaryStudyVersion(', renderStart);
+  const createStart = renderEnd + 1;
+  const createEnd = appSource.indexOf('\nfunction closeSummaryStudyRichTextEditor(', createStart);
+  const historyClickStart = appSource.indexOf("  document.getElementById('summary-study-history-list')?.addEventListener('click', event => {");
+  const historyClickEnd = appSource.indexOf("\n  window.addEventListener('beforeunload'", historyClickStart);
+  assert.ok(renderStart >= 0 && renderEnd > renderStart);
+  assert.ok(createStart > renderEnd && createEnd > createStart);
+  assert.ok(historyClickStart >= 0 && historyClickEnd > historyClickStart);
+
+  class MemoryStorage {
+    constructor() { this.values = new Map(); }
+    getItem(key) { return this.values.get(key) ?? null; }
+    setItem(key, value) { this.values.set(key, value); }
+  }
+  function makeElement() {
+    return {
+      children: [],
+      dataset: {},
+      hidden: false,
+      open: false,
+      addEventListener(name, handler) { this.handlers ||= {}; this.handlers[name] = handler; },
+      append(...items) { this.children.push(...items); },
+      replaceChildren(...items) { this.children = items; },
+      showModal() { this.open = true; },
+      close() { this.open = false; },
+      scrollIntoView() {}
+    };
+  }
+  const ids = [
+    'summary-study-history-list',
+    'summary-study-history-preview',
+    'summary-study-history-preview-title',
+    'summary-study-history-preview-content',
+    'summary-study-history-dialog'
+  ];
+  const elements = new Map(ids.map(id => [id, makeElement()]));
+  const storage = new MemoryStorage();
+  const editor = {
+    content: '<p>Approved draft</p>',
+    getContent() { return this.content; },
+    setContent(html) { this.content = html; },
+    nodeChanged() {},
+    undoManager: {
+      entries: [],
+      transact(callback) {
+        const previous = editor.content;
+        callback();
+        if (editor.content !== previous) this.entries.push(previous);
+      },
+      undo() { if (this.entries.length) editor.content = this.entries.pop(); }
+    }
+  };
+  const calls = { pushedUndo: 0, saved: 0, toasts: [] };
+  class MockElement {
+    constructor(target) { this.target = target; }
+    closest() { return this.target; }
+  }
+  const context = {
+    console: { error() {} },
+    Date,
+    Element: MockElement,
+    document: {
+      createElement: makeElement,
+      getElementById: id => elements.get(id)
+    },
+    localStorage: storage,
+    window: { confirm: () => true },
+    readSummaryDocumentHistory,
+    createSummaryDocumentVersion,
+    summaryStudyHistoryStorageKey: () => 'doc-history',
+    _summaryStudyRichTextEditor: editor,
+    prepareRichTextDocument: activeEditor => activeEditor.getContent(),
+    sanitizeRichTextHtml: html => html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ''),
+    summaryStudyPushUndo: () => { calls.pushedUndo += 1; },
+    scheduleSummaryStudyEditorSave: () => { calls.saved += 1; },
+    showToast: (...args) => calls.toasts.push(args)
+  };
+  vm.createContext(context);
+  vm.runInContext(
+    `${appSource.slice(renderStart, renderEnd)}\n${appSource.slice(createStart, createEnd)}\nthis.renderHistory = renderSummaryStudyVersionHistory; this.createVersion = createSummaryStudyVersion; this.openHistory = openSummaryStudyVersionHistory; this.restoreVersion = restoreSummaryStudyVersion;`,
+    context
+  );
+
+  const first = context.createVersion('Approved draft');
+  assert.equal(first.label, 'Approved draft');
+  context.openHistory();
+  assert.equal(elements.get('summary-study-history-dialog').open, true);
+  const versionList = elements.get('summary-study-history-list');
+  assert.equal(versionList.children.length, 1);
+  assert.equal(versionList.children[0].children[1].children[0].dataset.historyAction, 'preview');
+  assert.equal(versionList.children[0].children[1].children[1].dataset.historyAction, 'restore');
+  vm.runInContext(historyClickStart >= 0 ? appSource.slice(historyClickStart, historyClickEnd) : '', context);
+  versionList.handlers.click({
+    target: new MockElement({ dataset: { historyAction: 'preview', versionId: first.id } })
+  });
+  assert.equal(elements.get('summary-study-history-preview-title').textContent, 'Approved draft');
+  assert.equal(elements.get('summary-study-history-preview-content').innerHTML, '<p>Approved draft</p>');
+  assert.equal(elements.get('summary-study-history-preview').hidden, false);
+
+  editor.content = '<p>Newer document</p>';
+  await context.restoreVersion(first.id);
+  assert.equal(editor.getContent(), '<p>Approved draft</p>');
+  assert.equal(readSummaryDocumentHistory(storage, 'doc-history')[0].label, 'Trước khi khôi phục');
+  assert.equal(calls.pushedUndo, 1);
+  assert.equal(calls.saved, 1);
+  assert.equal(elements.get('summary-study-history-dialog').open, false);
+  assert.ok(calls.toasts.some(([message, type]) => /Đã khôi phục/.test(message) && type === 'success'));
+  editor.undoManager.undo();
+  assert.equal(editor.getContent(), '<p>Newer document</p>');
+});
+
 test('DOCX export exposes the browser action and supports document structure and images', () => {
   assert.match(htmlSource, /data-summary-editor-action="export-docx"/);
   assert.match(appSource, /exportSummaryHtmlToDocx\(activeContent, title\)/);
@@ -1323,7 +1951,7 @@ test('DOCX export exposes the browser action and supports document structure and
   assert.match(docxSource, /PageNumber\.CURRENT/);
   assert.match(docxSource, /PageNumber\.TOTAL_PAGES/);
   assert.match(docxSource, /for \(const child of root\.childNodes\)/);
-  assert.match(docxSource, /blocks\.push\(\.\.\.await blockChildren\(child\)\)/);
+  assert.match(docxSource, /blocks\.push\(\.\.\.await blockChildren\(child, nativeObjects\)\)/);
   assert.match(docxSource, /before: before \?\?/);
   assert.match(docxSource, /line: Math\.round\(lineHeight \* 240\)/);
   assert.match(docxSource, /if \(!hasVisibleContent\(child\)\) continue/);

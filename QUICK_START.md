@@ -30,6 +30,14 @@ Truy cập: **http://localhost:3000**
 
 ---
 
+## Lưu nội dung bài giảng vào Git khi làm local
+
+Để bản nháp và nội dung chỉnh sửa được ghi vào repo thay vì chỉ nằm trong trình duyệt, chạy `node server.js` rồi mở đúng địa chỉ `http://localhost:3000`. Không dùng Python Server hoặc Live Server cho quy trình này.
+
+Khi lưu môn học hoặc bài giảng, Node server cập nhật `data/subject_details.json`. Sau đó kiểm tra thay đổi bằng `git diff -- data/subject_details.json`, rồi commit và push như các thay đổi mã nguồn khác. Endpoint ghi file chỉ chấp nhận request từ chính máy đang chạy server.
+
+---
+
 ## 🐍 Cách 2: Python Server (Không cần Node.js)
 
 ### Bước 1: Mở Terminal/CMD

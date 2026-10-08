@@ -8878,7 +8878,9 @@ async function adminSaveSubjectConfig(status) {
     showToast(`Chưa thể đăng công khai vì đồng bộ dữ liệu thất bại${reason}. Bản lưu cục bộ vẫn còn.`, 'error');
     return result;
   }
-  showToast(details.status === 'published' ? 'Đã đăng công khai và đồng bộ dữ liệu.' : 'Đã lưu nháp trên thiết bị Admin.', 'success');
+  showToast(result.localFileSaved
+    ? `Đã lưu ${details.status === 'published' ? 'bản công khai' : 'bản nháp'} vào data/subject_details.json. Commit/push để cập nhật cho người dùng.`
+    : details.status === 'published' ? 'Đã đăng công khai và đồng bộ dữ liệu.' : 'Đã lưu nháp trên thiết bị Admin.', 'success');
   return result;
 }
 
@@ -9266,8 +9268,15 @@ function adminSaveInteractiveLesson(status) {
   });
   les.content = genHtml; les.type = 'editor';
   var ai = les.aiSummary || (les.aiSummary = { enabled:false, cache:{} }); if (ai.contentHash) ai.status = 'stale';
-  DB.saveSubjectDetails(_interactiveCurrentSubjectId, details);
-  showToast('Da luu bai hoc (' + formStatus + ')!', 'success');
+  DB.saveSubjectDetails(_interactiveCurrentSubjectId, details).then(function(result) {
+    if (!result.ok) {
+      showToast('Không thể lưu bài giảng: ' + (result.sync?.reason || 'lỗi ghi dữ liệu'), 'error');
+    } else if (result.localFileSaved) {
+      showToast('Đã lưu bài giảng vào data/subject_details.json. Commit/push để cập nhật cho người dùng.', 'success');
+    } else {
+      showToast('Da luu bai hoc (' + formStatus + ')!', 'success');
+    }
+  });
   adminRenderInteractiveChaptersTree();
   document.getElementById('admin-lesson-status-select').value = formStatus;
   var badge = document.getElementById('admin-lesson-status-badge');
@@ -9364,7 +9373,7 @@ function startReviewLessonMediaDrag(event,id,resize){var canvas=document.getElem
 function moveReviewLessonMediaDrag(event){var d=_reviewLessonMediaDrag,item=d&&_reviewLessonMediaItems.find(function(x){return x.id===d.id});if(!item)return;var dx=(event.clientX-d.startX)/d.rect.width*100,dy=(event.clientY-d.startY)/d.rect.height*100;if(d.resize){item.width=_reviewClamp(d.width+dx,12,12,100-item.x);item.height=_reviewClamp(d.height+dy,8,8,100-item.y)}else{item.x=_reviewClamp(d.x+dx,0,0,100-item.width);item.y=_reviewClamp(d.y+dy,0,0,100-item.height)}renderReviewLessonMediaCanvas();}
 function endReviewLessonMediaDrag(){var canvas=document.getElementById('review-lesson-media-canvas');if(canvas)canvas.onpointermove=canvas.onpointerup=canvas.onpointercancel=null;_reviewLessonMediaDrag=null;}
 function deleteReviewLessonMedia(id){_reviewLessonMediaItems=_reviewLessonMediaItems.filter(function(x){return x.id!==id});_reviewLessonSelectedMediaId=_reviewLessonMediaItems[0]&&_reviewLessonMediaItems[0].id;renderReviewLessonMediaCanvas();}
-async function saveReviewLesson(status){var a=_reviewActive();if(!a.lesson)return false;syncReviewLessonDocumentContent(true);var publishing=status==='published',idToken=publishing?await AuthModule.getIdToken():'';if(publishing&&!idToken){showToast('Không thể đăng công khai: chưa có phiên Firebase hợp lệ. Hãy đăng nhập Google thật bằng tài khoản được cấp quyền quản trị trên máy chủ.','error');return false;}a.lesson.title=(document.getElementById('review-lesson-title').value||a.lesson.title||'Bài giảng ôn tập').trim();a.lesson.status=publishing?'published':'draft';var doc=_reviewDoc(a.lesson,true),html=getReviewLessonDocumentContent();doc.content=html;a.lesson.blocks=[doc];a.lesson.content=html;a.lesson.type='editor';if(publishing)a.details.status='published';var result=await DB.saveSubjectDetails(_reviewLessonSubjectId,a.details,!publishing,idToken);renderReviewLessonTree();if(publishing&&!result.ok){showToast('Chưa đăng công khai: '+(result.sync&&result.sync.reason||'không thể đồng bộ máy chủ')+'.','error');}else if(publishing){showToast('Đã đăng công khai bài giảng.','success');}else{showToast('Đã lưu nháp trên thiết bị này. Dùng “Đăng công khai” để sinh viên xem.','success');}return result;}
+async function saveReviewLesson(status){var a=_reviewActive();if(!a.lesson)return false;syncReviewLessonDocumentContent(true);var publishing=status==='published',localEditor=DB.isLocalSubjectDetailsEditor(),idToken=publishing&&!localEditor?await AuthModule.getIdToken():'';if(publishing&&!localEditor&&!idToken){showToast('Không thể đăng công khai: chưa có phiên Firebase hợp lệ. Hãy đăng nhập Google thật bằng tài khoản được cấp quyền quản trị trên máy chủ.','error');return false;}a.lesson.title=(document.getElementById('review-lesson-title').value||a.lesson.title||'Bài giảng ôn tập').trim();a.lesson.status=publishing?'published':'draft';var doc=_reviewDoc(a.lesson,true),html=getReviewLessonDocumentContent();doc.content=html;a.lesson.blocks=[doc];a.lesson.content=html;a.lesson.type='editor';if(publishing)a.details.status='published';var result=await DB.saveSubjectDetails(_reviewLessonSubjectId,a.details,!publishing,idToken);renderReviewLessonTree();if(!result.ok){showToast('Chưa thể lưu bài giảng: '+(result.sync&&result.sync.reason||'không thể ghi dữ liệu')+'. Bản cục bộ trên trình duyệt vẫn còn.','error');}else if(result.localFileSaved){showToast('Đã lưu bài giảng vào data/subject_details.json. Commit/push để cập nhật cho người dùng.','success');}else if(publishing){showToast('Đã đăng công khai bài giảng.','success');}else{showToast('Đã lưu nháp trên thiết bị này. Dùng “Đăng công khai” để sinh viên xem.','success');}return result;}
 function previewReviewLesson(){if(!_reviewLessonId)return showToast('Hãy chọn bài giảng để xem trước.','info');saveReviewLesson('draft').then(function(){if(window.renderStudyReader)window.renderStudyReader({subjectId:_reviewLessonSubjectId,chapterId:_reviewLessonChapterId,lessonId:_reviewLessonId,returnPage:'admin'})});}
 Object.assign(window, {
   adminToggleLessonAi,

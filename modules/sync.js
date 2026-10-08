@@ -227,6 +227,29 @@ export async function pushSubjectDetailsToServer(subjectId, details, idToken) {
   }
 }
 
+export function isLocalSubjectDetailsEditor() {
+  return typeof window !== 'undefined'
+    && window.location.protocol === 'http:'
+    && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+}
+
+export async function persistSubjectDetailsLocally(subjectId, details) {
+  if (!isLocalSubjectDetailsEditor()) return { ok: true, skipped: true };
+  try {
+    const response = await fetch('/api/subject-details', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ subjectId, details })
+    });
+    const payload = await response.json().catch(() => ({}));
+    return response.ok && payload.ok
+      ? { ok: true, details: payload.subjectDetails, source: payload.source }
+      : { ok: false, reason: payload.reason || `local-subject-details-${response.status}` };
+  } catch (error) {
+    return { ok: false, reason: 'local-subject-details-unavailable', error: String(error?.message || error) };
+  }
+}
+
 export async function pullSubjectDetailsFromServer() {
   try {
     const response = await fetch(`/api/subject-details?t=${Date.now()}`, { cache: 'no-store' });

@@ -23,9 +23,11 @@ import {
   TableCell,
   TableRow,
   TextRun,
+  WpsShapeRun,
   WidthType
 } from 'docx';
 import JSZip from 'jszip';
+import { embedSummaryDocxNativeObjects } from './summaryDocxNative.js';
 
 const PAGE_WIDTH = 9000;
 const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
@@ -41,6 +43,8 @@ const SUMMARY_DOCX_TEXT_EFFECTS = [
   { className: 'summary-study-text-effect--glow', name: 'glow' }
 ];
 let summaryDocxEffectExportSequence = 0;
+let summaryDocxNativeShapeSequence = 0;
+let summaryDocxNativeChartSequence = 0;
 
 function textRun(text, style = {}) {
   return new TextRun({
@@ -190,18 +194,18 @@ function imageTransform(element) {
   };
 }
 
-function summaryShapeDimensions(element, image) {
-  if (!element.closest?.('figure.summary-study-shape')) return { width: image.width, height: image.height };
+function summaryShapeDimensions(element) {
+  const figure = element.closest?.('figure.summary-study-shape');
   const styledDimension = value => {
     const match = String(value || '').match(/^(\d+(?:\.\d+)?)px$/);
     return match ? Number(match[1]) : 0;
   };
-  const width = styledDimension(element.style?.width);
-  const height = styledDimension(element.style?.height);
+  const width = styledDimension(figure?.style?.width) || styledDimension(element.style?.width);
+  const height = styledDimension(element.style?.height) || styledDimension(figure?.style?.height);
   if (width && height) return { width, height };
-  if (width) return { width, height: width * image.height / image.width };
-  if (height) return { width: height * image.width / image.height, height };
-  return { width: image.width, height: image.height };
+  if (width) return { width, height: width * 520 / 900 };
+  if (height) return { width: height * 900 / 520, height };
+  return { width: 420, height: 243 };
 }
 
 function summaryShapeAlignment(element) {
@@ -216,6 +220,156 @@ function summaryShapeAlignment(element) {
   if (layout?.contains('summary-study-image-layout--float-right')) return AlignmentType.RIGHT;
   if (layout?.contains('summary-study-image-layout--inline')) return AlignmentType.LEFT;
   return AlignmentType.CENTER;
+}
+
+const SUMMARY_NATIVE_SHAPE_GEOMETRIES = {
+  rectangle: 'rect',
+  'rounded-rectangle': 'roundRect',
+  ellipse: 'ellipse',
+  line: 'line',
+  arrow: 'rightArrow',
+  triangle: 'triangle',
+  diamond: 'diamond',
+  star: 'star5',
+  callout: 'wedgeRoundRectCallout'
+};
+const SUMMARY_DIAGRAM_NATIVE_PALETTES = {
+  teal: ['0F766E', '168C71', '70AD47', 'D1FAE5'],
+  blue: ['1D4ED8', '3B82F6', '60A5FA', 'DBEAFE'],
+  orange: ['C2410C', 'EA580C', 'F59E0B', 'FFEDD5']
+};
+
+function createSummaryNativeShape({ marker, preset, title, label, fill, outline, width, height, rotation }) {
+  const safeFill = parseHexColor(String(fill || '#DDF4EE').startsWith('#') ? fill : `#${fill}`) || 'DDF4EE';
+  const safeOutline = parseHexColor(String(outline || '#168C71').startsWith('#') ? outline : `#${outline}`) || '168C71';
+  const text = String(label || '').slice(0, 180);
+  return new WpsShapeRun({
+    type: 'wps',
+    transformation: {
+      width: Math.max(18, Math.min(520, Math.round(width || 220))),
+      height: Math.max(16, Math.min(320, Math.round(height || 48))),
+      rotation
+    },
+    children: [new Paragraph({
+      alignment: AlignmentType.CENTER,
+      children: text ? [new TextRun({ text, font: 'Arial', size: 20, bold: true, color: '16324F' })] : []
+    })],
+    bodyProperties: { verticalAnchor: 'ctr', margins: { top: 2, bottom: 2, left: 5, right: 5 } },
+    solidFill: { type: 'rgb', value: safeFill },
+    outline: { width: 12700, type: 'solidFill', solidFillType: 'rgb', value: safeOutline },
+    altText: { title: marker, description: String(title || '').slice(0, 500) }
+  });
+}
+
+function addSummaryNativeShape(shape, nativeShapes) {
+  const marker = `FTECA_NATIVE_SHAPE_${++summaryDocxNativeShapeSequence}`;
+  nativeShapes.push({ marker, preset: shape.preset, title: shape.title });
+  return createSummaryNativeShape({ ...shape, marker });
+}
+
+function summaryDocxChartData(figure) {
+  const type = figure.getAttribute('data-summary-chart-type') || '';
+  const palette = figure.getAttribute('data-summary-chart-palette') || '';
+  let data;
+  try {
+    data = JSON.parse(figure.getAttribute('data-summary-chart-data') || 'null');
+  } catch {
+    throw new Error('Không thể đọc dữ liệu biểu đồ khi xuất DOCX.');
+  }
+  if (!['bar', 'column', 'line', 'pie'].includes(type)
+    || !Object.hasOwn(SUMMARY_DIAGRAM_NATIVE_PALETTES, palette)
+    || !Array.isArray(data) || data.length < 2 || data.length > 12) {
+    throw new Error('Dữ liệu biểu đồ không hợp lệ khi xuất DOCX.');
+  }
+  const values = data.map(item => ({
+    label: String(item?.label || '').trim(),
+    value: Number(item?.value)
+  }));
+  if (values.some(item => !item.label || item.label.length > 80
+    || !Number.isFinite(item.value) || item.value < 0 || item.value > 1_000_000_000)) {
+    throw new Error('Dữ liệu biểu đồ chứa nhãn hoặc giá trị không hợp lệ khi xuất DOCX.');
+  }
+  const title = String(figure.querySelector(':scope > figcaption')?.textContent || '').trim();
+  if (!title || title.length > 120) throw new Error('Tên biểu đồ không hợp lệ khi xuất DOCX.');
+  return { type, palette, data: values, title };
+}
+
+function addSummaryNativeDiagram(figure, nativeShapes) {
+  let steps;
+  try {
+    steps = JSON.parse(figure.getAttribute('data-summary-diagram-data') || 'null');
+  } catch {
+    throw new Error('Không thể đọc dữ liệu sơ đồ khi xuất DOCX.');
+  }
+  const layout = figure.getAttribute('data-summary-diagram-layout');
+  const palette = figure.getAttribute('data-summary-diagram-palette');
+  const colors = SUMMARY_DIAGRAM_NATIVE_PALETTES[palette];
+  if (!['process', 'cycle', 'hierarchy'].includes(layout) || !colors
+    || !Array.isArray(steps) || steps.length < 2 || steps.length > 8
+    || steps.some(step => typeof step !== 'string' || !step.trim() || step.length > 60)) {
+    throw new Error('Dữ liệu sơ đồ không hợp lệ khi xuất DOCX.');
+  }
+  const blocks = [];
+  const addNode = (text, index, width = 420) => {
+    const fill = colors[(index + 1) % (colors.length - 1)];
+    blocks.push(new Paragraph({
+      alignment: AlignmentType.CENTER,
+      spacing: { before: 35, after: 35 },
+      children: [addSummaryNativeShape({
+        preset: 'roundRect',
+        title: `Bước sơ đồ: ${text}`,
+        label: text,
+        fill,
+        outline: colors[0],
+        width,
+        height: 48
+      }, nativeShapes)]
+    }));
+  };
+  const addConnector = index => blocks.push(new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 0, after: 0 },
+    children: [addSummaryNativeShape({
+      preset: 'downArrow',
+      title: 'Mũi tên nối các bước sơ đồ',
+      fill: colors[0],
+      outline: colors[0],
+      width: 20,
+      height: 22
+    }, nativeShapes)]
+  }));
+
+  if (layout === 'hierarchy') {
+    addNode(steps[0], 0, 360);
+    if (steps.length > 1) addConnector(0);
+    const children = steps.slice(1);
+    for (let index = 0; index < children.length; index += 3) {
+      const row = children.slice(index, index + 3);
+      blocks.push(new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 25, after: 25 },
+        children: row.flatMap((step, rowIndex) => [
+          ...(rowIndex ? [new TextRun({ text: '   ', font: 'Arial', size: 16 })] : []),
+          addSummaryNativeShape({
+            preset: 'roundRect',
+            title: `Nhánh sơ đồ: ${step}`,
+            label: step,
+            fill: colors[(index + rowIndex + 1) % (colors.length - 1)],
+            outline: colors[0],
+            width: Math.min(160, Math.floor(480 / row.length)),
+            height: 54
+          }, nativeShapes)
+        ])
+      }));
+    }
+    return blocks;
+  }
+
+  steps.forEach((step, index) => {
+    addNode(step, index);
+    if (index < steps.length - 1 || layout === 'cycle') addConnector();
+  });
+  return blocks;
 }
 
 function imageOutline(element) {
@@ -367,6 +521,9 @@ function paragraphOptions(block, children, listPrefix = '') {
     alignment: align === 'center' ? AlignmentType.CENTER : align === 'right' ? AlignmentType.RIGHT : align === 'justify' ? AlignmentType.JUSTIFIED : undefined,
     indent: formatting.indent,
     spacing: formatting.spacing,
+    contextualSpacing: formatting.contextualSpacing,
+    outlineLevel: formatting.outlineLevel,
+    widowControl: formatting.widowControl,
     keepNext: formatting.keepNext,
     keepLines: formatting.keepLines,
     pageBreakBefore: formatting.pageBreakBefore,
@@ -393,6 +550,21 @@ function paragraphFormatting(block) {
   const right = cssMeasureToTwips(style.marginRight);
   const firstLine = cssMeasureToTwips(style.textIndent);
   const lineHeight = Number(style.lineHeight);
+  const lineSpacingMode = block.getAttribute('data-summary-line-spacing-mode');
+  const lineSpacingValue = Number(block.getAttribute('data-summary-line-spacing-value'));
+  const standardLineHeights = { single: 1, 'one-half': 1.5, double: 2 };
+  const standardLineHeight = standardLineHeights[lineSpacingMode];
+  const multipleLineHeight = lineSpacingMode === 'multiple'
+    && Number.isFinite(lineSpacingValue)
+    && lineSpacingValue >= 0.5
+    && lineSpacingValue <= 5
+    ? lineSpacingValue
+    : null;
+  const semanticLineHeight = Number.isFinite(standardLineHeight) ? standardLineHeight : multipleLineHeight;
+  const fixedLineSpacing = ['exactly', 'at-least'].includes(lineSpacingMode)
+    && Number.isFinite(lineSpacingValue)
+    && lineSpacingValue >= 0.5
+    && lineSpacingValue <= 500;
   const tabs = (block.getAttribute('data-summary-tabs') || '')
     .split(',')
     .map(value => Number(value.trim()))
@@ -411,10 +583,22 @@ function paragraphFormatting(block) {
     spacing: {
       before: before ?? (block.tagName.match(/^H[1-6]$/) ? 120 : 0),
       after: after ?? (block.tagName.match(/^H[1-6]$/) ? 60 : 80),
-      ...(Number.isFinite(lineHeight) && lineHeight >= 0.5 && lineHeight <= 5
-        ? { line: Math.round(lineHeight * 240), lineRule: 'auto' }
+      ...(fixedLineSpacing
+        ? {
+          line: Math.round(lineSpacingValue * 20),
+          lineRule: lineSpacingMode === 'exactly' ? 'exact' : 'atLeast'
+        }
+        : Number.isFinite(semanticLineHeight)
+          ? { line: Math.round(semanticLineHeight * 240), lineRule: 'auto' }
+          : Number.isFinite(lineHeight) && lineHeight >= 0.5 && lineHeight <= 5
+          ? { line: Math.round(lineHeight * 240), lineRule: 'auto' }
         : { line: 276 })
     },
+    contextualSpacing: block.getAttribute('data-summary-no-space-same-style') === 'true',
+    outlineLevel: /^\d$/.test(block.getAttribute('data-summary-outline-level') || '')
+      ? Number(block.getAttribute('data-summary-outline-level'))
+      : undefined,
+    widowControl: block.getAttribute('data-summary-widow-control') !== 'false',
     keepNext: block.getAttribute('data-summary-keep-next') === 'true',
     keepLines: block.getAttribute('data-summary-keep-lines') === 'true',
     pageBreakBefore: block.getAttribute('data-summary-page-break-before') === 'true',
@@ -422,7 +606,7 @@ function paragraphFormatting(block) {
   };
 }
 
-async function convertTable(element) {
+async function convertTable(element, nativeObjects) {
   const sourceRows = [...element.querySelectorAll('tr')].filter(row => row.closest('table') === element);
   if (!sourceRows.length) return [];
   if (sourceRows.length > 100) throw new Error('Bảng có quá 100 dòng, không thể xuất DOCX an toàn.');
@@ -442,7 +626,7 @@ async function convertTable(element) {
     for (const cell of cells) {
       if (columnIndex >= columnCount) break;
       const columnSpan = Math.max(1, Math.min(Number(cell.colSpan) || 1, columnCount - columnIndex));
-      const children = await blockChildren(cell);
+      const children = await blockChildren(cell, nativeObjects);
       const paragraphs = children.filter(child => child instanceof Paragraph);
       const content = paragraphs.length ? paragraphs : [new Paragraph({ children: [textRun(cell.textContent || '')] })];
       const cellWidth = columnWidths.slice(columnIndex, columnIndex + columnSpan).reduce((sum, width) => sum + width, 0);
@@ -576,7 +760,7 @@ async function preserveSummaryDocxTextEffects(blob, markers) {
   });
 }
 
-async function blockChildren(root) {
+async function blockChildren(root, nativeObjects) {
   const blocks = [];
   let inline = [];
   let inlineHasContent = false;
@@ -609,11 +793,11 @@ async function blockChildren(root) {
       continue;
     }
     if (container) {
-      blocks.push(...await blockChildren(child));
+      blocks.push(...await blockChildren(child, nativeObjects));
       continue;
     }
     if (tag === 'aside' && child.classList.contains('summary-study-text-box')) {
-      const contents = (await blockChildren(child)).filter(item => item instanceof Paragraph);
+      const contents = (await blockChildren(child, nativeObjects)).filter(item => item instanceof Paragraph);
       if (contents.length) {
         blocks.push(new Table({
           rows: [new TableRow({
@@ -651,7 +835,7 @@ async function blockChildren(root) {
       continue;
     }
     if (tag === 'table') {
-      blocks.push(...await convertTable(child));
+      blocks.push(...await convertTable(child, nativeObjects));
     } else if (tag === 'ul' || tag === 'ol') {
       const items = [...child.children].filter(item => item.tagName === 'LI');
       for (let index = 0; index < items.length; index += 1) {
@@ -670,6 +854,44 @@ async function blockChildren(root) {
       }
     } else if (tag === 'figure') {
       if (!hasVisibleContent(child)) continue;
+      const chart = child.classList.contains('summary-study-chart');
+      const diagram = child.classList.contains('summary-study-diagram');
+      const shape = child.classList.contains('summary-study-shape');
+      if (chart) {
+        const marker = `FTECA_NATIVE_CHART_${++summaryDocxNativeChartSequence}`;
+        nativeObjects.charts.push({ ...summaryDocxChartData(child), marker });
+        blocks.push(new Paragraph({
+          children: [new TextRun({ text: marker, font: 'Arial', size: 1 })],
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 60 }
+        }));
+      } else if (diagram) {
+        blocks.push(...addSummaryNativeDiagram(child, nativeObjects.shapes));
+      } else if (shape) {
+        const image = child.querySelector(':scope > img');
+        const type = child.getAttribute('data-summary-shape-type') || '';
+        const preset = SUMMARY_NATIVE_SHAPE_GEOMETRIES[type];
+        if (!image || !preset) throw new Error('Không thể đọc hình dạng để xuất DOCX.');
+        const dimensions = summaryShapeDimensions(image);
+        const fill = child.getAttribute('data-summary-shape-fill') || '#DDF4EE';
+        const outline = child.getAttribute('data-summary-shape-outline') || '#168C71';
+        const label = child.getAttribute('data-summary-shape-label') || '';
+        const rotation = imageTransform(image).rotation;
+        blocks.push(new Paragraph({
+          children: [addSummaryNativeShape({
+            preset,
+            title: `Hình dạng ${type}${label ? `: ${label}` : ''}`,
+            label,
+            fill,
+            outline,
+            width: dimensions.width,
+            height: dimensions.height,
+            rotation
+          }, nativeObjects.shapes)],
+          alignment: summaryShapeAlignment(child),
+          spacing: { after: 60 }
+        }));
+      } else {
       const figureContent = [];
       for (const node of child.childNodes) {
         if (node.nodeType === Node.ELEMENT_NODE && node.tagName === 'FIGCAPTION') continue;
@@ -684,6 +906,7 @@ async function blockChildren(root) {
             : AlignmentType.CENTER,
           spacing: { after: 60 }
         }));
+      }
       }
       const caption = child.querySelector(':scope > figcaption');
       if (caption) blocks.push(new Paragraph({
@@ -700,6 +923,7 @@ async function blockChildren(root) {
 export async function exportSummaryHtmlToDocx(html, title) {
   const source = new DOMParser().parseFromString(String(html || ''), 'text/html');
   const textEffectMarkers = markSummaryDocxTextEffects(source.body);
+  const nativeObjects = { charts: [], shapes: [] };
   const page = source.body.querySelector(':scope > .summary-study-page');
   const pageSize = DOCX_PAGE_SIZES[page?.dataset.summaryPageSize] || DOCX_PAGE_SIZES.A4;
   const landscape = page?.dataset.summaryPageOrientation === 'landscape';
@@ -718,9 +942,9 @@ export async function exportSummaryHtmlToDocx(html, title) {
     : Math.round(10 * 1440 / 25.4);
   const headerElement = page?.querySelector(':scope > header.summary-study-document-header');
   const footerElement = page?.querySelector(':scope > footer.summary-study-document-footer');
-  const headerChildren = headerElement ? await blockChildren(headerElement) : [];
-  const footerChildren = footerElement ? await blockChildren(footerElement) : [];
-  const children = await blockChildren(source.body);
+  const headerChildren = headerElement ? await blockChildren(headerElement, nativeObjects) : [];
+  const footerChildren = footerElement ? await blockChildren(footerElement, nativeObjects) : [];
+  const children = await blockChildren(source.body, nativeObjects);
   const document = new Document({
     creator: 'QLCL',
     title: String(title || 'Tài liệu ôn tập'),
@@ -746,5 +970,7 @@ export async function exportSummaryHtmlToDocx(html, title) {
       children
     }]
   });
-  return preserveSummaryDocxTextEffects(await Packer.toBlob(document), textEffectMarkers);
+  const packedDocument = await Packer.toBlob(document);
+  const nativeDocument = await embedSummaryDocxNativeObjects(packedDocument, nativeObjects);
+  return preserveSummaryDocxTextEffects(nativeDocument, textEffectMarkers);
 }

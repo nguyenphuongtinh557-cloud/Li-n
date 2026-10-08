@@ -3,7 +3,7 @@
  * Quản lý toàn bộ dữ liệu qua localStorage + Gọi module Sync để đẩy lên GitHub
  */
 
-import { pushToGitHub, pushUserRolesToServer, pushCustomSubjectsToServer, pushAnnouncementsToServer, pushArticlesToServer, pushResourcesToServer, pushFeedbacksToServer, pushSubjectDetailsToServer } from './sync.js?v=20260908subject-details-api1';
+import { pushToGitHub, pushUserRolesToServer, pushCustomSubjectsToServer, pushAnnouncementsToServer, pushArticlesToServer, pushResourcesToServer, pushFeedbacksToServer, pushSubjectDetailsToServer, isLocalSubjectDetailsEditor, persistSubjectDetailsLocally } from './sync.js?v=20261003-local-subject-file-save';
 
 const KEYS = {
   BANK: 'qlcl_question_bank',
@@ -49,6 +49,10 @@ export function normalizeInteractiveSubjectDetails(details = {}) {
 }
 
 export const DB = {
+  isLocalSubjectDetailsEditor() {
+    return isLocalSubjectDetailsEditor();
+  },
+
   /** Danh sách Email Premium */
   getPremiumEmails() {
     try {
@@ -500,8 +504,21 @@ export const DB = {
     normalized.updatedAt = new Date().toISOString();
     map[subjectId] = normalized;
     localStorage.setItem(KEYS.SUBJECT_DETAILS, JSON.stringify(map));
-    const syncResult = skipSync ? { ok: true, skipped: true } : await pushSubjectDetailsToServer(subjectId, normalized, idToken);
-    return { ok: Boolean(syncResult?.ok), localOnly: !syncResult?.ok, sync: syncResult, details: normalized };
+    const localMode = isLocalSubjectDetailsEditor();
+    const localResult = localMode ? await persistSubjectDetailsLocally(subjectId, normalized) : { ok: true, skipped: true };
+    const syncResult = localMode
+      ? localResult
+      : skipSync
+        ? { ok: true, skipped: true }
+        : await pushSubjectDetailsToServer(subjectId, normalized, idToken);
+    return {
+      ok: Boolean(syncResult?.ok),
+      localOnly: localMode || !syncResult?.ok,
+      localFileSaved: localMode && Boolean(localResult?.ok),
+      cloudSynced: !localMode && !skipSync && Boolean(syncResult?.ok),
+      sync: syncResult,
+      details: normalized
+    };
   },
 
   /** Trộn dữ liệu chi tiết môn học từ Server Cloud */

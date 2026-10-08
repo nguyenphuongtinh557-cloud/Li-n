@@ -14,11 +14,14 @@ import { fileURLToPath } from 'url';
 import { networkInterfaces } from 'os';
 import { compress } from 'headroom-ai';
 import summaryShareHandler from './api/summary-share.js';
+import { isLocalSubjectDetailsWriteRequest, writeLocalSubjectDetails } from './modules/localSubjectDetailsStore.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const PORT = process.env.PORT || 3000;
+const LOCAL_SUBJECT_DETAILS_FILE = process.env.FTECA_LOCAL_SUBJECT_DETAILS_FILE
+  || path.join(__dirname, 'data', 'subject_details.json');
 
 // MIME types mapping
 const mimeTypes = {
@@ -142,6 +145,72 @@ async function handleSummaryShare(req, res) {
   }
 }
 
+async function handleLocalSubjectDetailsWrite(req, res) {
+  if (req.method !== 'PUT') {
+    res.writeHead(405, { 'Content-Type': 'application/json; charset=utf-8', Allow: 'GET, PUT' });
+    res.end(JSON.stringify({ ok: false, reason: 'method-not-allowed' }));
+    return;
+  }
+  if (!isLocalSubjectDetailsWriteRequest(req)) {
+    res.writeHead(403, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ ok: false, reason: 'local-write-only' }));
+    return;
+  }
+
+  try {
+    const { subjectId, details } = await readJsonBody(req, 10_000_000);
+    const subjectDetails = writeLocalSubjectDetails(
+      LOCAL_SUBJECT_DETAILS_FILE,
+      subjectId,
+      details
+    );
+    res.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ ok: true, subjectDetails, source: 'local-file' }));
+  } catch (error) {
+    const status = Number(error?.statusCode) || 400;
+    res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ ok: false, reason: error.message || 'local-subject-details-write-failed' }));
+  }
+}
+
+async function handleTtsProxy(req, res) {
+  if (req.method !== 'POST') {
+    res.writeHead(405, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ ok: false, reason: 'method-not-allowed' }));
+    return;
+  }
+  try {
+    const payload = await readJsonBody(req, 20_000);
+    const text = String(payload.text || '').trim();
+    if (!text) {
+      res.writeHead(400, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, reason: 'empty-text' }));
+      return;
+    }
+    const upstream = await fetch('http://127.0.0.1:5050/synthesize', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text, length_scale: Number(payload.length_scale) || 1.0 }),
+      signal: AbortSignal.timeout(30_000)
+    });
+    if (!upstream.ok) {
+      res.writeHead(502, { 'Content-Type': 'application/json; charset=utf-8' });
+      res.end(JSON.stringify({ ok: false, reason: 'tts-engine-error' }));
+      return;
+    }
+    const wav = Buffer.from(await upstream.arrayBuffer());
+    res.writeHead(200, {
+      'Content-Type': 'audio/wav',
+      'Content-Length': String(wav.length),
+      'Cache-Control': 'public, max-age=86400'
+    });
+    res.end(wav);
+  } catch {
+    res.writeHead(503, { 'Content-Type': 'application/json; charset=utf-8' });
+    res.end(JSON.stringify({ ok: false, reason: 'tts-unavailable' }));
+  }
+}
+
 const server = http.createServer(async (req, res) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
 
@@ -157,8 +226,21 @@ const server = http.createServer(async (req, res) => {
     await handleHeadroomCompression(req, res);
     return;
   }
+  if (cleanUrl === '/api/tts') {
+    await handleTtsProxy(req, res);
+    return;
+  }
   if (cleanUrl === '/api/summary-share') {
     await handleSummaryShare(req, res);
+    return;
+  }
+  if (cleanUrl === '/api/subject-details' && req.method === 'PUT') {
+    await handleLocalSubjectDetailsWrite(req, res);
+    return;
+  }
+  if (cleanUrl === '/api/subject-details' && req.method !== 'GET') {
+    res.writeHead(405, { 'Content-Type': 'application/json; charset=utf-8', Allow: 'GET, PUT' });
+    res.end(JSON.stringify({ ok: false, reason: 'method-not-allowed' }));
     return;
   }
 

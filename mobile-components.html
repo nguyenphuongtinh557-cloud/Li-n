@@ -1,0 +1,301 @@
+<!-- ════════════════════════════════════════════════════════════
+     MOBILE COMPONENTS
+     Thêm vào index.html ngay sau <body>
+     ════════════════════════════════════════════════════════════ -->
+
+<!-- Mobile Header -->
+<div class="mobile-header mobile-only" style="display: none;">
+  <div class="mobile-header-left">
+    <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+    <img src="fteca.webp" alt="FTECA Logo" class="mobile-logo">
+  </div>
+  
+  <div class="mobile-header-right">
+    <button class="mobile-notification-btn">
+      <i class="fa-regular fa-bell"></i>
+      <span class="notification-dot"></span>
+    </button>
+    
+    <div class="mobile-user-menu" onclick="toggleUserMenu()">
+      <img src="https://i.pravatar.cc/150?img=1" alt="User" class="mobile-user-avatar">
+      <span class="mobile-user-name">Hanah Ahga</span>
+      <i class="fa-solid fa-chevron-down mobile-user-dropdown-icon"></i>
+    </div>
+  </div>
+</div>
+
+<!-- Mobile Search Bar -->
+<div class="mobile-search-bar mobile-only" style="display: none;">
+  <div class="mobile-search-input-wrapper">
+    <i class="fa-solid fa-magnifying-glass mobile-search-icon"></i>
+    <input 
+      type="text" 
+      class="mobile-search-input" 
+      placeholder="Tìm kiếm khóa học, bài giảng..."
+      autocomplete="off"
+    >
+    <button class="mobile-search-filter-btn">
+      <i class="fa-solid fa-sliders"></i>
+    </button>
+  </div>
+</div>
+
+<!-- Mobile Bottom Navigation -->
+<nav class="mobile-bottom-nav mobile-only" style="display: none;">
+  <a href="#" class="bottom-nav-item active">
+    <div class="bottom-nav-icon">
+      <i class="fa-solid fa-house"></i>
+    </div>
+    <span class="bottom-nav-label">Trang chủ</span>
+  </a>
+  
+  <a href="#" class="bottom-nav-item">
+    <div class="bottom-nav-icon">
+      <i class="fa-solid fa-book-open"></i>
+    </div>
+    <span class="bottom-nav-label">Học tập</span>
+  </a>
+  
+  <a href="#" class="bottom-nav-item">
+    <div class="bottom-nav-icon">
+      <i class="fa-solid fa-file-lines"></i>
+    </div>
+    <span class="bottom-nav-label">Tài liệu</span>
+  </a>
+  
+  <a href="#" class="bottom-nav-item">
+    <div class="bottom-nav-icon">
+      <i class="fa-solid fa-graduation-cap"></i>
+    </div>
+    <span class="bottom-nav-label">Cá nhân</span>
+  </a>
+  
+  <a href="#" class="bottom-nav-item">
+    <div class="bottom-nav-icon">
+      <i class="fa-solid fa-ellipsis"></i>
+    </div>
+    <span class="bottom-nav-label">Khác</span>
+  </a>
+</nav>
+
+<!-- Mobile Overlay (when sidebar open) -->
+<div class="mobile-overlay" onclick="toggleMobileSidebar()"></div>
+
+<!-- ════════════════════════════════════════════════════════════
+     MOBILE HERO SECTION (Replace existing hero)
+     ════════════════════════════════════════════════════════════ -->
+<section class="study-hub-hero mobile-only" style="display: none;">
+  <!-- Tag -->
+  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+    <span style="width: 8px; height: 8px; background: #10b981; border-radius: 50%;"></span>
+    <i class="fa-solid fa-graduation-cap" style="color: #10b981; font-size: 14px;"></i>
+    <span style="font-size: 13px; font-weight: 600; color: #10b981;">
+      Ngành Công Nghệ Thực Phẩm - FTECA 24
+    </span>
+  </div>
+  
+  <!-- Hero Content -->
+  <div class="study-hub-hero-content">
+    <h1>
+      Xin chào!<br>
+      Chúng tôi là<br>
+      <span style="color: #10b981;">FTECA 24</span>
+    </h1>
+    
+    <p>
+      Đây là nơi mà tụi mình chia sẻ, đặng tài và lưu trữ những thông tin, 
+      tài liệu, đề thi, trải nghiệm và phương pháp tiếp cận theo góc nhìn 
+      của riêng chúng ta. <strong>Một lần nữa, chào mừng các bạn đến với đại gia đình này!</strong>
+    </p>
+    
+    <button class="study-hub-cta-btn">
+      <i class="fa-solid fa-play"></i>
+      Vào Khu Vực Ôn Tập
+    </button>
+  </div>
+  
+  <!-- Hero Art -->
+  <div class="study-hub-hero-art">
+    <div class="study-hub-art-placeholder">
+      <i class="fa-solid fa-user-graduate"></i>
+    </div>
+    
+    <div class="study-hub-hero-stat">
+      <i class="fa-solid fa-book" style="font-size: 14px; color: #10b981; margin-bottom: 4px;"></i>
+      <div>
+        <b>65+</b><br>
+        <small style="font-size: 11px;">Môn học CNTP</small>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Thi Thử Badge -->
+  <div class="study-hub-quiz-badge">
+    <div class="quiz-badge-avatar">
+      <i class="fa-solid fa-flask"></i>
+    </div>
+    <div class="quiz-badge-content">
+      <div class="quiz-badge-title">Thi Thử Môn QLCL</div>
+      <div class="quiz-badge-meta">Ngay bây giờ · Miễn phí</div>
+    </div>
+    <button class="quiz-badge-btn">Vào thi</button>
+  </div>
+</section>
+
+<!-- ════════════════════════════════════════════════════════════
+     STATS CARDS - 2x2 GRID
+     ════════════════════════════════════════════════════════════ -->
+<div class="study-hub-stats mobile-only" style="display: none;">
+  <div class="stat-card">
+    <div class="stat-card-icon green">
+      <i class="fa-solid fa-book"></i>
+    </div>
+    <div class="stat-card-value">65+</div>
+    <div class="stat-card-label">Môn học hỗ trợ</div>
+  </div>
+  
+  <div class="stat-card">
+    <div class="stat-card-icon blue">
+      <i class="fa-solid fa-question-circle"></i>
+    </div>
+    <div class="stat-card-value">1.5K+</div>
+    <div class="stat-card-label">Câu hỏi ngân hàng đề</div>
+  </div>
+  
+  <div class="stat-card">
+    <div class="stat-card-icon purple">
+      <i class="fa-solid fa-robot"></i>
+    </div>
+    <div class="stat-card-value">AI</div>
+    <div class="stat-card-label">Trợ lý thông minh 24/7</div>
+  </div>
+  
+  <div class="stat-card">
+    <div class="stat-card-icon orange">
+      <i class="fa-solid fa-trophy"></i>
+    </div>
+    <div class="stat-card-value">9+</div>
+    <div class="stat-card-label">Sinh viên đang học</div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     KHÁM PHÁ THÊM - COLLAPSIBLE SECTION
+     ════════════════════════════════════════════════════════════ -->
+<div class="explore-more-section mobile-only" style="display: none;">
+  <div class="explore-more-header" onclick="toggleExploreMore()">
+    <h3 class="explore-more-title">Khám phá thêm</h3>
+    <div class="explore-more-toggle" id="explore-toggle">
+      <i class="fa-solid fa-chevron-down"></i>
+    </div>
+  </div>
+  
+  <div class="explore-more-content" id="explore-content">
+    <div class="explore-grid">
+      <!-- Card 1: Thi Thử Trực Tuyến -->
+      <div class="explore-card" style="background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%);">
+        <div class="explore-card-icon" style="background: white; color: #059669;">
+          <i class="fa-solid fa-flask"></i>
+        </div>
+        <div class="explore-card-title">Thi Thử Trực Tuyến</div>
+        <div class="explore-card-arrow">
+          <i class="fa-solid fa-arrow-right"></i>
+        </div>
+      </div>
+      
+      <!-- Card 2: Luyện Tập Theo Chủ Đề -->
+      <div class="explore-card" style="background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);">
+        <div class="explore-card-icon" style="background: white; color: #3b82f6;">
+          <i class="fa-solid fa-book-open"></i>
+        </div>
+        <div class="explore-card-title">Luyện Tập Theo Chủ Đề</div>
+        <div class="explore-card-arrow">
+          <i class="fa-solid fa-arrow-right"></i>
+        </div>
+      </div>
+      
+      <!-- Card 3: AI Tạo Câu Hỏi -->
+      <div class="explore-card" style="background: linear-gradient(135deg, #e9d5ff 0%, #d8b4fe 100%);">
+        <div class="explore-card-icon" style="background: white; color: #9333ea;">
+          <i class="fa-solid fa-wand-magic-sparkles"></i>
+        </div>
+        <div class="explore-card-title">AI Tạo Câu Hỏi</div>
+        <div class="explore-card-arrow">
+          <i class="fa-solid fa-arrow-right"></i>
+        </div>
+      </div>
+      
+      <!-- Card 4: Ngân Hàng Đề Thi -->
+      <div class="explore-card" style="background: linear-gradient(135deg, #fed7aa 0%, #fdba74 100%);">
+        <div class="explore-card-icon" style="background: white; color: #ea580c;">
+          <i class="fa-solid fa-database"></i>
+        </div>
+        <div class="explore-card-title">Ngân Hàng Đề Thi</div>
+        <div class="explore-card-arrow">
+          <i class="fa-solid fa-arrow-right"></i>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════════════════════════════════════
+     MOBILE JAVASCRIPT
+     ════════════════════════════════════════════════════════════ -->
+<script>
+// Toggle mobile sidebar
+function toggleMobileSidebar() {
+  const sidebar = document.getElementById('app-sidebar');
+  const body = document.body;
+  
+  if (sidebar.classList.contains('sidebar-open')) {
+    sidebar.classList.remove('sidebar-open');
+    body.classList.remove('sidebar-open');
+  } else {
+    sidebar.classList.add('sidebar-open');
+    body.classList.add('sidebar-open');
+  }
+}
+
+// Toggle explore more section
+function toggleExploreMore() {
+  const content = document.getElementById('explore-content');
+  const toggle = document.getElementById('explore-toggle');
+  
+  if (content.classList.contains('expanded')) {
+    content.classList.remove('expanded');
+    toggle.classList.remove('expanded');
+  } else {
+    content.classList.add('expanded');
+    toggle.classList.add('expanded');
+  }
+}
+
+// Toggle user menu (placeholder)
+function toggleUserMenu() {
+  alert('User menu - Sẽ implement dropdown sau');
+}
+
+// Show mobile components on load
+document.addEventListener('DOMContentLoaded', function() {
+  if (window.innerWidth <= 768) {
+    document.querySelectorAll('.mobile-only').forEach(el => {
+      el.style.display = '';
+    });
+  }
+});
+
+// Update active bottom nav on scroll/click
+document.querySelectorAll('.bottom-nav-item').forEach(item => {
+  item.addEventListener('click', function(e) {
+    // Remove active from all
+    document.querySelectorAll('.bottom-nav-item').forEach(nav => {
+      nav.classList.remove('active');
+    });
+    // Add active to clicked
+    this.classList.add('active');
+  });
+});
+</script>

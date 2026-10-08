@@ -1,3 +1,5 @@
+import './tts.js?v=20261001-piper-tts-v1';
+
 const ALLOWED_TAGS = new Set([
   'A', 'ARTICLE', 'ASIDE', 'B', 'BLOCKQUOTE', 'BR', 'CAPTION', 'CODE', 'DD', 'DIV', 'DL', 'DT', 'EM', 'FOOTER', 'HEADER',
   'FIGCAPTION', 'FIGURE', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'HR', 'I', 'IMG', 'LI', 'MARK',
@@ -16,8 +18,14 @@ const PARAGRAPH_DATA_ATTRIBUTES = new Set([
   'data-summary-keep-next',
   'data-summary-keep-lines',
   'data-summary-page-break-before',
-  'data-summary-tabs'
+  'data-summary-tabs',
+  'data-summary-outline-level',
+  'data-summary-no-space-same-style',
+  'data-summary-widow-control',
+  'data-summary-line-spacing-mode',
+  'data-summary-line-spacing-value'
 ]);
+const SUMMARY_PARAGRAPH_DEFAULTS_KEY = 'fteca_summary_editor_paragraph_defaults_v1';
 const PAGE_SIZE_MM = {
   A4: { width: 210, height: 297 },
   Letter: { width: 216, height: 279 },
@@ -43,7 +51,7 @@ const CITATION_FORMATS = {
 const SUMMARY_TABLE_OPTIONS = new Set([
   'header-row', 'total-row', 'banded-rows', 'first-column', 'last-column', 'banded-columns'
 ]);
-const SUMMARY_CHART_TYPES = new Set(['bar', 'column', 'line']);
+const SUMMARY_CHART_TYPES = new Set(['bar', 'column', 'line', 'pie']);
 const SUMMARY_CHART_PALETTES = {
   teal: '#168c71',
   blue: '#2563eb',
@@ -127,7 +135,11 @@ function sanitizeRichTextStyle(value) {
   const columnCount = declaration.getPropertyValue('column-count').trim();
   if (/^[1-3]$/.test(columnCount)) result.push(`column-count:${columnCount}`);
   const lineHeight = declaration.getPropertyValue('line-height').trim().toLowerCase();
-  if (/^(?:0?\.\d+|[1-5](?:\.\d+)?)$/.test(lineHeight) && Number(lineHeight) >= 0.5 && Number(lineHeight) <= 5) {
+  const multipleLineHeight = /^(?:0?\.\d+|[1-5](?:\.\d+)?)$/.test(lineHeight)
+    && Number(lineHeight) >= 0.5
+    && Number(lineHeight) <= 5;
+  const pointLineHeight = /^(\d+(?:\.\d+)?)pt$/.exec(lineHeight);
+  if (multipleLineHeight || (pointLineHeight && Number(pointLineHeight[1]) >= 0.5 && Number(pointLineHeight[1]) <= 500)) {
     result.push(`line-height:${lineHeight}`);
   }
   return result.join(';');
@@ -305,6 +317,22 @@ function sanitizeElement(element) {
         } else {
           element.removeAttribute(name);
         }
+      } else if (name === 'data-summary-outline-level') {
+        if (/^[0-9]$/.test(value)) element.setAttribute(name, value);
+        else element.removeAttribute(name);
+      } else if (name === 'data-summary-line-spacing-mode') {
+        if (['single', 'one-half', 'double', 'multiple', 'exactly', 'at-least'].includes(value)) {
+          element.setAttribute(name, value);
+        } else {
+          element.removeAttribute(name);
+        }
+      } else if (name === 'data-summary-line-spacing-value') {
+        const amount = Number(value);
+        if (Number.isFinite(amount) && amount >= 0.5 && amount <= 500) element.setAttribute(name, String(amount));
+        else element.removeAttribute(name);
+      } else if (name === 'data-summary-widow-control') {
+        if (value === 'true' || value === 'false') element.setAttribute(name, value);
+        else element.removeAttribute(name);
       } else if (value === 'true') {
         element.setAttribute(name, 'true');
       } else {
@@ -1100,14 +1128,22 @@ function parseSummaryChartData(value) {
     && rows[0]?.[1]?.trim().toLowerCase() === 'value'
     ? rows.slice(1)
     : rows;
+  return normalizeSummaryChartRows(dataRows);
+}
+
+function normalizeSummaryChartRows(dataRows) {
   if (dataRows.length < 2 || dataRows.length > 12) {
     throw new Error('Biểu đồ cần từ 2 đến 12 dòng dữ liệu.');
   }
-  const data = dataRows.map(([label = '', rawValue = '', ...extra]) => {
-    const name = label.trim();
-    const number = Number(rawValue.trim());
-    if (!name || name.length > 40 || extra.some(item => item.trim())
-      || !rawValue.trim() || !Number.isFinite(number) || number < 0 || number > 1_000_000_000) {
+  const data = dataRows.map(row => {
+    const [label, rawValue, ...extra] = Array.isArray(row)
+      ? row
+      : [row?.label, row?.value];
+    const name = String(label ?? '').trim();
+    const rawNumber = String(rawValue ?? '').trim();
+    const number = Number(rawNumber);
+    if (!name || name.length > 40 || extra.some(item => String(item ?? '').trim())
+      || !rawNumber || !Number.isFinite(number) || number < 0 || number > 1_000_000_000) {
       throw new Error('Mỗi dòng cần nhãn tối đa 40 ký tự và một giá trị số từ 0 đến 1.000.000.000.');
     }
     return { label: name, value: number };
@@ -1154,6 +1190,43 @@ function drawSummaryChart(data, type, palette) {
       context.fillStyle = '#334155';
       context.textAlign = 'left';
       context.fillText(String(item.value), left + (canvas.width - left - 90) * item.value / max + 12, y + 19, 76);
+    });
+    return canvas;
+  }
+
+  if (type === 'pie') {
+    const series = {
+      teal: ['#168c71', '#22a982', '#43b88d', '#70c79e', '#9bd6ae', '#187f8d', '#269caf', '#56b5c5', '#80cbd4', '#4d996f', '#7bb485', '#b8d9bd'],
+      blue: ['#1d4ed8', '#2563eb', '#3b82f6', '#60a5fa', '#93c5fd', '#1e40af', '#4f46e5', '#6366f1', '#818cf8', '#0e7490', '#0891b2', '#67e8f9'],
+      orange: ['#c2410c', '#ea580c', '#f97316', '#fb923c', '#fdba74', '#b45309', '#d97706', '#eab308', '#facc15', '#be123c', '#e11d48', '#fb7185']
+    }[palette];
+    const total = data.reduce((sum, item) => sum + item.value, 0);
+    const centerX = 270;
+    const centerY = 270;
+    const radius = 190;
+    let angle = -Math.PI / 2;
+    context.font = '18px Arial, sans-serif';
+    data.forEach((item, index) => {
+      const slice = Math.PI * 2 * item.value / total;
+      if (slice > 0) {
+        context.beginPath();
+        context.moveTo(centerX, centerY);
+        context.arc(centerX, centerY, radius, angle, angle + slice);
+        context.closePath();
+        context.fillStyle = series[index % series.length];
+        context.fill();
+        context.strokeStyle = '#ffffff';
+        context.lineWidth = 3;
+        context.stroke();
+      }
+      angle += slice;
+
+      const legendY = 91 + index * 34;
+      context.fillStyle = series[index % series.length];
+      context.fillRect(530, legendY - 14, 18, 18);
+      context.fillStyle = '#334155';
+      context.textAlign = 'left';
+      context.fillText(`${item.label} · ${item.value} (${(item.value / total * 100).toFixed(1)}%)`, 562, legendY, 360);
     });
     return canvas;
   }
@@ -1217,20 +1290,38 @@ async function summaryChartImage(data, type, palette) {
   return imageBlobToDataUrl(blob);
 }
 
-function chartDataText(data) {
-  return ['Label, Value', ...data.map(item => `"${item.label.replace(/"/g, '""')}", ${item.value}`)].join('\n');
+const SUMMARY_CHART_ICONS = {
+  column: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M4 19h16v2H2V3h2v16Zm2-2V9h4v8H6Zm6 0V4h4v13h-4Zm6 0v-6h4v6h-4Z"/></svg>',
+  bar: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M3 4h2v16H3V4Zm4 2h5v3H7V6Zm0 5h11v3H7v-3Zm0 5h14v3H7v-3Z"/></svg>',
+  line: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="m3 17 5-6 4 3 7-9 2 1-8 11-4-3-4 5-2-2Z"/><circle cx="8" cy="11" r="1.5" fill="currentColor"/><circle cx="12" cy="14" r="1.5" fill="currentColor"/><circle cx="19" cy="5" r="1.5" fill="currentColor"/></svg>',
+  pie: '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"><path fill="currentColor" d="M11 2a10 10 0 1 0 11 11H11V2Zm2 0v9h9A10 10 0 0 0 13 2Z"/></svg>'
+};
+const SUMMARY_CHART_ICON_EDITORS = new WeakSet();
+
+function registerSummaryChartIcons(editor) {
+  if (!editor.ui?.registry?.addIcon || SUMMARY_CHART_ICON_EDITORS.has(editor)) return;
+  Object.entries(SUMMARY_CHART_ICONS).forEach(([name, svg]) => {
+    editor.ui.registry.addIcon(`summary-chart-${name}`, svg);
+  });
+  SUMMARY_CHART_ICON_EDITORS.add(editor);
 }
 
 async function applySummaryChart(editor, { chart, bookmark, title, type, palette, data }, api) {
   try {
-    const values = parseSummaryChartData(data);
+    const values = normalizeSummaryChartRows(data);
     const chartTitle = String(title || '').trim().slice(0, 120);
     if (!chartTitle) throw new Error('Nhập tên biểu đồ.');
     if (chart && !editor.getBody().contains(chart)) {
       throw new Error('Biểu đồ đã bị xóa khỏi tài liệu trước khi cập nhật.');
     }
     const src = await summaryChartImage(values, type, palette);
-    const alt = `${type === 'line' ? 'Biểu đồ đường' : type === 'bar' ? 'Biểu đồ thanh' : 'Biểu đồ cột'}: ${chartTitle}. ${values.map(item => `${item.label}: ${item.value}`).join('; ')}`.slice(0, 500);
+    const chartTypeLabel = {
+      bar: 'Biểu đồ thanh',
+      column: 'Biểu đồ cột',
+      line: 'Biểu đồ đường',
+      pie: 'Biểu đồ tròn'
+    }[type];
+    const alt = `${chartTypeLabel}: ${chartTitle}. ${values.map(item => `${item.label}: ${item.value}`).join('; ')}`.slice(0, 500);
     if (chart) {
       const image = chart.querySelector(':scope > img');
       const caption = chart.querySelector(':scope > figcaption');
@@ -1272,6 +1363,7 @@ async function applySummaryChart(editor, { chart, bookmark, title, type, palette
 }
 
 function openSummaryChartDialog(editor, chart = null, overrides = {}) {
+  registerSummaryChartIcons(editor);
   const bookmark = chart ? null : editor.selection.getBookmark(2, true);
   const data = chart ? summaryChartData(chart) : [
     { label: 'Nhóm A', value: 12 },
@@ -1282,7 +1374,21 @@ function openSummaryChartDialog(editor, chart = null, overrides = {}) {
     editor.notificationManager.open({ text: 'Không đọc được dữ liệu biểu đồ để chỉnh sửa.', type: 'error', timeout: 4000 });
     return;
   }
-  editor.windowManager.open({
+  let chartType = overrides.type || chart?.dataset.summaryChartType || 'column';
+  let rowCount = data.length;
+  const getRowsFromForm = formData => Array.from({ length: rowCount }, (_, index) => ({
+    label: String(formData[`chart-label-${index}`] || ''),
+    value: String(formData[`chart-value-${index}`] ?? '')
+  }));
+  const getFormData = (formData, rows) => ({
+    ...formData,
+    ...rows.reduce((fields, row, index) => ({
+      ...fields,
+      [`chart-label-${index}`]: row.label,
+      [`chart-value-${index}`]: String(row.value)
+    }), {})
+  });
+  const createDialog = initialData => ({
     title: chart ? 'Sửa dữ liệu biểu đồ' : 'Chèn biểu đồ',
     size: 'normal',
     body: {
@@ -1290,13 +1396,13 @@ function openSummaryChartDialog(editor, chart = null, overrides = {}) {
       items: [
         { type: 'input', name: 'title', label: 'Tên biểu đồ', inputMode: 'text' },
         {
-          type: 'selectbox',
-          name: 'type',
-          label: 'Loại biểu đồ',
+          type: 'grid',
+          columns: 3,
           items: [
-            { text: 'Biểu đồ cột', value: 'column' },
-            { text: 'Biểu đồ thanh', value: 'bar' },
-            { text: 'Biểu đồ đường', value: 'line' }
+            { type: 'button', name: 'chart-type-column', text: 'Cột', icon: 'summary-chart-column', primary: chartType === 'column' },
+            { type: 'button', name: 'chart-type-bar', text: 'Thanh', icon: 'summary-chart-bar', primary: chartType === 'bar' },
+            { type: 'button', name: 'chart-type-line', text: 'Đường', icon: 'summary-chart-line', primary: chartType === 'line' },
+            { type: 'button', name: 'chart-type-pie', text: 'Tròn', icon: 'summary-chart-pie', primary: chartType === 'pie' }
           ]
         },
         {
@@ -1309,31 +1415,74 @@ function openSummaryChartDialog(editor, chart = null, overrides = {}) {
             { text: 'Cam', value: 'orange' }
           ]
         },
-        { type: 'textarea', name: 'data', label: 'Dữ liệu (mỗi dòng: nhãn, giá trị)' }
+        ...Array.from({ length: rowCount }, (_, index) => ({
+          type: 'grid',
+          columns: 3,
+          items: [
+            { type: 'input', name: `chart-label-${index}`, label: index === 0 ? 'Nhãn' : `Nhãn ${index + 1}`, inputMode: 'text' },
+            { type: 'input', name: `chart-value-${index}`, label: index === 0 ? 'Giá trị' : `Giá trị ${index + 1}`, inputMode: 'decimal' },
+            rowCount <= 2
+              ? { type: 'button', name: `chart-minimum-${index}`, text: 'Tối thiểu 2 hàng', enabled: false }
+              : { type: 'button', name: `chart-remove-row-${index}`, text: 'Xóa' }
+          ]
+        })),
+        {
+          type: 'button',
+          name: 'chart-add-row',
+          text: rowCount >= 12 ? 'Đã đủ 12 hàng' : '+ Thêm hàng',
+          disabled: rowCount >= 12
+        }
       ]
     },
-    initialData: {
-      title: figureCaptionDescription(chart?.querySelector(':scope > figcaption')?.textContent || '') || 'Biểu đồ mới',
-      type: overrides.type || chart?.dataset.summaryChartType || 'column',
-      palette: overrides.palette || chart?.dataset.summaryChartPalette || 'teal',
-      data: chartDataText(data)
-    },
+    initialData,
     buttons: [
       { type: 'cancel', text: 'Hủy' },
       { type: 'submit', text: chart ? 'Cập nhật biểu đồ' : 'Chèn biểu đồ', primary: true }
     ],
+    onAction(api, details) {
+      const name = details.name || '';
+      const typeAction = /^chart-type-(column|bar|line|pie)$/.exec(name);
+      if (typeAction) {
+        const current = api.getData();
+        chartType = typeAction[1];
+        api.redial(createDialog({ ...current, type: chartType }));
+      } else if (name === 'chart-add-row' && rowCount < 12) {
+        const current = api.getData();
+        rowCount += 1;
+        api.redial(createDialog(getFormData(current, [...getRowsFromForm(current), { label: '', value: '' }])));
+        api.focus(`chart-label-${rowCount - 1}`);
+      } else if (name.startsWith('chart-remove-row-') && rowCount > 2) {
+        const removeIndex = Number(name.slice('chart-remove-row-'.length));
+        if (!Number.isInteger(removeIndex) || removeIndex < 0 || removeIndex >= rowCount) return;
+        const current = api.getData();
+        const rows = getRowsFromForm(current).filter((_, index) => index !== removeIndex);
+        rowCount = rows.length;
+        api.redial(createDialog(getFormData(current, rows)));
+        api.focus(`chart-label-${Math.min(removeIndex, rowCount - 1)}`);
+      }
+    },
     onSubmit(api) {
       const values = api.getData();
       void applySummaryChart(editor, {
         chart,
         bookmark,
         title: values.title,
-        type: values.type,
+        type: chartType,
         palette: values.palette,
-        data: values.data
+        data: getRowsFromForm(values)
       }, api);
     }
   });
+  editor.windowManager.open(createDialog({
+      title: figureCaptionDescription(chart?.querySelector(':scope > figcaption')?.textContent || '') || 'Biểu đồ mới',
+      type: chartType,
+      palette: overrides.palette || chart?.dataset.summaryChartPalette || 'teal',
+      ...data.reduce((fields, row, index) => ({
+        ...fields,
+        [`chart-label-${index}`]: row.label,
+        [`chart-value-${index}`]: String(row.value)
+      }), {})
+  }));
 }
 
 function editSelectedSummaryChart(editor, overrides = {}) {
@@ -2508,6 +2657,106 @@ function paragraphTabsValue(block) {
     .join(', ');
 }
 
+function readSummaryParagraphDefaults() {
+  const stored = localStorage.getItem(SUMMARY_PARAGRAPH_DEFAULTS_KEY);
+  if (!stored) return null;
+  try {
+    const parsed = JSON.parse(stored);
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
+      throw new Error('Dữ liệu cài đặt mặc định không hợp lệ.');
+    }
+    normalizeSummaryParagraphFormat(parsed);
+    return parsed;
+  } catch (error) {
+    throw new Error('Cài đặt đoạn văn mặc định bị lỗi, không thể đọc an toàn.', { cause: error });
+  }
+}
+
+function normalizeSummaryParagraphFormat(data) {
+  const measurements = [
+    ['before', 'margin-top', false],
+    ['after', 'margin-bottom', false],
+    ['left', 'margin-left', false],
+    ['right', 'margin-right', false]
+  ];
+  const styles = {};
+  for (const [field, property] of measurements) {
+    const raw = String(data[field] || '').trim();
+    if (!raw) {
+      styles[property] = '';
+      continue;
+    }
+    if (!/^\d+(?:\.\d+)?$/.test(raw) || Number(raw) > 720) {
+      throw new Error('Khoảng cách phải là số đo từ 0 đến 720 pt.');
+    }
+    styles[property] = `${Number(raw)}pt`;
+  }
+
+  const indentBy = String(data.indentBy || '').trim();
+  if (data.specialIndent && data.specialIndent !== 'none'
+    && (!/^\d+(?:\.\d+)?$/.test(indentBy) || Number(indentBy) > 720)) {
+    throw new Error('Thụt dòng đặc biệt phải nằm trong khoảng 0–720 pt.');
+  }
+  styles['text-indent'] = !data.specialIndent || data.specialIndent === 'none'
+    ? ''
+    : `${data.specialIndent === 'hanging' ? '-' : ''}${Number(indentBy)}pt`;
+
+  const alignment = String(data.alignment || '');
+  if (alignment && !['left', 'center', 'right', 'justify'].includes(alignment)) {
+    throw new Error('Kiểu căn lề không hợp lệ.');
+  }
+
+  const outlineLevel = String(data.outlineLevel || 'body');
+  if (outlineLevel !== 'body' && !/^[1-9]$/.test(outlineLevel)) {
+    throw new Error('Cấp độ dàn ý phải là Văn bản nội dung hoặc cấp 1–9.');
+  }
+
+  const lineSpacingMode = String(data.lineSpacingMode || 'multiple');
+  if (!['single', 'one-half', 'double', 'multiple', 'exactly', 'at-least'].includes(lineSpacingMode)) {
+    throw new Error('Kiểu giãn dòng không hợp lệ.');
+  }
+  const lineSpacingValue = String(data.lineSpacingValue || (lineSpacingMode === 'exactly' || lineSpacingMode === 'at-least' ? '' : '1.08')).trim();
+  const pointSpacing = lineSpacingMode === 'exactly' || lineSpacingMode === 'at-least';
+  const maxLineSpacing = pointSpacing ? 500 : 5;
+  if (lineSpacingMode === 'multiple' || pointSpacing) {
+    if (!/^(?:\d+(?:\.\d+)?|\.\d+)$/.test(lineSpacingValue)
+      || Number(lineSpacingValue) < 0.5
+      || Number(lineSpacingValue) > maxLineSpacing) {
+      throw new Error(pointSpacing
+        ? 'Khoảng cách dòng phải nằm trong khoảng 0,5–500 pt.'
+        : 'Giãn dòng phải nằm trong khoảng 0,5–5.');
+    }
+  }
+  const lineMultipliers = { single: 1, 'one-half': 1.5, double: 2 };
+  const lineHeight = pointSpacing
+    ? `${Number(lineSpacingValue)}pt`
+    : String(lineMultipliers[lineSpacingMode] || Number(lineSpacingValue));
+
+  const tabs = String(data.tabs || '').trim()
+    ? String(data.tabs).split(',').map(value => Number(value.trim()))
+    : [];
+  if (tabs.length > 10 || tabs.some(value => !Number.isFinite(value) || value <= 0 || value > 500)) {
+    throw new Error('Nhập tối đa 10 điểm dừng tab, mỗi điểm từ trên 0 đến 500 pt.');
+  }
+
+  return {
+    styles,
+    alignment,
+    lineHeight,
+    lineSpacingMode,
+    lineSpacingValue: lineSpacingMode === 'single' || lineSpacingMode === 'one-half' || lineSpacingMode === 'double'
+      ? String(lineMultipliers[lineSpacingMode])
+      : String(Number(lineSpacingValue)),
+    outlineLevel: outlineLevel === 'body' ? '9' : String(Number(outlineLevel) - 1),
+    tabs: [...new Set(tabs)].sort((a, b) => a - b),
+    keepNext: Boolean(data.keepNext),
+    keepLines: Boolean(data.keepLines),
+    pageBreakBefore: Boolean(data.pageBreakBefore),
+    noSpaceSameStyle: Boolean(data.noSpaceSameStyle),
+    widowControl: data.widowControl !== false
+  };
+}
+
 function paragraphElementsForValidation() {
   const attributes = ['style', ...PARAGRAPH_DATA_ATTRIBUTES].join('|');
   return [...PARAGRAPH_TAGS].map(tag => `${tag.toLowerCase()}[${attributes}]`).join(',');
@@ -3590,6 +3839,16 @@ function readSummarySelectedText(editor) {
     editor.notificationManager.open({ text: 'Bôi đen đoạn văn bản cần đọc trước.', type: 'info', timeout: 3000 });
     return;
   }
+  const engine = typeof window !== 'undefined' ? window.QLCLTTS : null;
+  if (engine) {
+    engine.stop();
+    engine.speak(text).then(ok => {
+      if (!ok) {
+        editor.notificationManager.open({ text: 'Trình duyệt này chưa hỗ trợ đọc văn bản.', type: 'error', timeout: 4000 });
+      }
+    });
+    return;
+  }
   if (!readSummaryText(text)) {
     editor.notificationManager.open({ text: 'Trình duyệt này chưa hỗ trợ đọc văn bản.', type: 'error', timeout: 4000 });
   }
@@ -3624,54 +3883,131 @@ function paragraphFormatDialog(editor) {
 
   const block = blocks[0];
   const style = block.style;
-  const initialData = {
+  const blockData = {
     alignment: style.textAlign || '',
     before: cssPointValue(style.marginTop),
     after: cssPointValue(style.marginBottom),
     left: cssPointValue(style.marginLeft),
     right: cssPointValue(style.marginRight),
-    firstLine: cssPointValue(style.textIndent),
-    lineSpacing: style.lineHeight || '',
+    specialIndent: style.textIndent
+      ? (Number.parseFloat(style.textIndent) < 0 ? 'hanging' : 'first-line')
+      : 'none',
+    indentBy: style.textIndent ? String(Math.abs(Number.parseFloat(cssPointValue(style.textIndent) || 0))) : '',
+    lineSpacingMode: block.getAttribute('data-summary-line-spacing-mode') || 'multiple',
+    lineSpacingValue: block.getAttribute('data-summary-line-spacing-value')
+      || (Number.parseFloat(style.lineHeight) ? String(Number.parseFloat(style.lineHeight)) : '1.08'),
     tabs: paragraphTabsValue(block),
+    outlineLevel: block.hasAttribute('data-summary-outline-level')
+      ? (block.getAttribute('data-summary-outline-level') === '9'
+        ? 'body'
+        : String(Number(block.getAttribute('data-summary-outline-level')) + 1))
+      : 'body',
     keepNext: block.getAttribute('data-summary-keep-next') === 'true',
     keepLines: block.getAttribute('data-summary-keep-lines') === 'true',
-    pageBreakBefore: block.getAttribute('data-summary-page-break-before') === 'true'
+    pageBreakBefore: block.getAttribute('data-summary-page-break-before') === 'true',
+    noSpaceSameStyle: block.getAttribute('data-summary-no-space-same-style') === 'true',
+    widowControl: block.getAttribute('data-summary-widow-control') !== 'false'
   };
+  const hasBlockFormatting = Boolean(
+    style.textAlign || style.marginTop || style.marginBottom || style.marginLeft
+      || style.marginRight || style.textIndent || style.lineHeight
+  )
+    || [...PARAGRAPH_DATA_ATTRIBUTES].some(attribute => block.hasAttribute(attribute));
+  let initialData = blockData;
+  try {
+    const defaults = readSummaryParagraphDefaults();
+    if (!hasBlockFormatting && defaults) initialData = { ...blockData, ...defaults };
+  } catch (error) {
+    editor.notificationManager.open({ text: error.message, type: 'error', timeout: 5000 });
+    return;
+  }
 
   editor.windowManager.open({
-    title: `Định dạng đoạn${blocks.length > 1 ? ` (${blocks.length} đoạn)` : ''}`,
-    size: 'medium',
+    title: `Đoạn văn${blocks.length > 1 ? ` (${blocks.length} đoạn)` : ''}`,
+    size: 'large',
     body: {
-      type: 'panel',
-      items: [
+      type: 'tabpanel',
+      tabs: [
         {
-          type: 'selectbox',
-          name: 'alignment',
-          label: 'Căn lề',
+          name: 'indents-spacing',
+          title: 'Thụt lề và khoảng cách',
           items: [
-            { text: 'Không đổi', value: '' },
-            { text: 'Trái', value: 'left' },
-            { text: 'Giữa', value: 'center' },
-            { text: 'Phải', value: 'right' },
-            { text: 'Căn đều', value: 'justify' }
+            {
+              type: 'grid',
+              columns: 2,
+              items: [
+                {
+                  type: 'selectbox',
+                  name: 'alignment',
+                  label: 'Căn lề',
+                  items: [
+                    { text: 'Không đổi', value: '' },
+                    { text: 'Trái', value: 'left' },
+                    { text: 'Giữa', value: 'center' },
+                    { text: 'Phải', value: 'right' },
+                    { text: 'Căn đều', value: 'justify' }
+                  ]
+                },
+                {
+                  type: 'selectbox',
+                  name: 'outlineLevel',
+                  label: 'Cấp độ dàn ý',
+                  items: [
+                    { text: 'Văn bản nội dung', value: 'body' },
+                    ...Array.from({ length: 9 }, (_, index) => ({ text: `Cấp ${index + 1}`, value: String(index + 1) }))
+                  ]
+                },
+                { type: 'input', name: 'left', label: 'Thụt lề trái (pt)' },
+                { type: 'input', name: 'right', label: 'Thụt lề phải (pt)' },
+                {
+                  type: 'selectbox',
+                  name: 'specialIndent',
+                  label: 'Thụt lề đặc biệt',
+                  items: [
+                    { text: '(Không)', value: 'none' },
+                    { text: 'Dòng đầu', value: 'first-line' },
+                    { text: 'Treo', value: 'hanging' }
+                  ]
+                },
+                { type: 'input', name: 'indentBy', label: 'Mức thụt (pt)' },
+                { type: 'input', name: 'before', label: 'Khoảng cách trước (pt)' },
+                { type: 'input', name: 'after', label: 'Khoảng cách sau (pt)' },
+                {
+                  type: 'selectbox',
+                  name: 'lineSpacingMode',
+                  label: 'Giãn dòng',
+                  items: [
+                    { text: 'Đơn', value: 'single' },
+                    { text: '1,5 dòng', value: 'one-half' },
+                    { text: 'Kép', value: 'double' },
+                    { text: 'Nhiều lần', value: 'multiple' },
+                    { text: 'Chính xác', value: 'exactly' },
+                    { text: 'Ít nhất', value: 'at-least' }
+                  ]
+                },
+                { type: 'input', name: 'lineSpacingValue', label: 'Giá trị (hệ số hoặc pt)' },
+                { type: 'input', name: 'tabs', label: 'Điểm dừng tab (pt, cách nhau bằng dấu phẩy)' }
+              ]
+            },
+            { type: 'checkbox', name: 'saveAsDefault', label: 'Lưu cài đặt này làm mặc định trên thiết bị' },
+            { type: 'checkbox', name: 'noSpaceSameStyle', label: 'Không thêm khoảng cách giữa các đoạn cùng kiểu' },
+            {
+              type: 'htmlpanel',
+              name: 'paragraphPreview',
+              html: '<div class="summary-paragraph-preview" aria-label="Xem trước định dạng đoạn"><strong>Xem trước</strong><div class="summary-paragraph-preview-sample"><span>Đoạn trước · Nội dung minh họa để xem cách các đoạn văn được trình bày.</span><p>Nội dung đoạn văn · Thụt lề, căn chỉnh và giãn dòng được áp dụng cho đoạn đang chọn.</p><span>Đoạn sau · Khoảng cách giữa các đoạn được thể hiện trong bản xem trước.</span></div></div>'
+            }
           ]
         },
         {
-          type: 'grid',
-          columns: 2,
+          name: 'line-page-breaks',
+          title: 'Ngắt dòng và trang',
           items: [
-            { type: 'input', name: 'before', label: 'Khoảng cách trước (pt)' },
-            { type: 'input', name: 'after', label: 'Khoảng cách sau (pt)' },
-            { type: 'input', name: 'left', label: 'Thụt lề trái (pt)' },
-            { type: 'input', name: 'right', label: 'Thụt lề phải (pt)' },
-            { type: 'input', name: 'firstLine', label: 'Thụt dòng đầu (pt)' },
-            { type: 'input', name: 'lineSpacing', label: 'Giãn dòng (ví dụ 1.5)' },
-            { type: 'input', name: 'tabs', label: 'Điểm dừng tab (pt, cách nhau bằng dấu phẩy)' }
+            { type: 'checkbox', name: 'widowControl', label: 'Kiểm soát dòng mồ côi và dòng đơn' },
+            { type: 'checkbox', name: 'keepNext', label: 'Giữ đoạn này cùng đoạn tiếp theo' },
+            { type: 'checkbox', name: 'keepLines', label: 'Không tách đoạn giữa hai trang' },
+            { type: 'checkbox', name: 'pageBreakBefore', label: 'Bắt đầu đoạn ở trang mới' }
           ]
-        },
-        { type: 'checkbox', name: 'keepNext', label: 'Giữ đoạn này cùng đoạn tiếp theo' },
-        { type: 'checkbox', name: 'keepLines', label: 'Không tách đoạn giữa hai trang' },
-        { type: 'checkbox', name: 'pageBreakBefore', label: 'Bắt đầu đoạn ở trang mới' }
+        }
       ]
     },
     initialData,
@@ -3681,60 +4017,43 @@ function paragraphFormatDialog(editor) {
     ],
     onSubmit(api) {
       const data = api.getData();
-      const measurements = [
-        ['before', 'margin-top', false],
-        ['after', 'margin-bottom', false],
-        ['left', 'margin-left', false],
-        ['right', 'margin-right', false],
-        ['firstLine', 'text-indent', true]
-      ];
-      const styles = {};
-      for (const [field, property, signed] of measurements) {
-        const raw = String(data[field] || '').trim();
-        if (!raw) {
-          styles[property] = '';
-          continue;
-        }
-        if (!/^-?\d+(?:\.\d+)?$/.test(raw)) {
-          editor.notificationManager.open({ text: 'Khoảng cách phải là số đo bằng điểm (pt).', type: 'error', timeout: 4000 });
-          return;
-        }
-        const amount = Number(raw);
-        if ((!signed && amount < 0) || Math.abs(amount) > 720) {
-          editor.notificationManager.open({ text: 'Khoảng cách phải nằm trong phạm vi 0–720 pt.', type: 'error', timeout: 4000 });
-          return;
-        }
-        styles[property] = `${amount}pt`;
-      }
-
-      const lineSpacing = String(data.lineSpacing || '').trim();
-      if (lineSpacing && (!/^(?:0?\.\d+|[1-5](?:\.\d+)?)$/.test(lineSpacing) || Number(lineSpacing) < 0.5 || Number(lineSpacing) > 5)) {
-        editor.notificationManager.open({ text: 'Giãn dòng phải nằm trong khoảng 0,5 đến 5.', type: 'error', timeout: 4000 });
+      let format;
+      try {
+        format = normalizeSummaryParagraphFormat(data);
+      } catch (error) {
+        editor.notificationManager.open({ text: error.message, type: 'error', timeout: 4000 });
         return;
       }
-      const tabs = String(data.tabs || '').trim()
-        ? String(data.tabs).split(',').map(value => Number(value.trim()))
-        : [];
-      if (tabs.length > 10 || tabs.some(value => !Number.isFinite(value) || value <= 0 || value > 500)) {
-        editor.notificationManager.open({ text: 'Nhập tối đa 10 điểm dừng tab, mỗi điểm từ trên 0 đến 500 pt.', type: 'error', timeout: 4000 });
-        return;
+      if (data.saveAsDefault) {
+        try {
+          const { saveAsDefault, ...defaults } = data;
+          localStorage.setItem(SUMMARY_PARAGRAPH_DEFAULTS_KEY, JSON.stringify(defaults));
+        } catch (error) {
+          editor.notificationManager.open({ text: 'Không thể lưu cài đặt mặc định trên thiết bị này.', type: 'error', timeout: 5000 });
+          return;
+        }
       }
 
       editor.undoManager.transact(() => {
         blocks.forEach(target => {
-          Object.entries(styles).forEach(([property, value]) => editor.dom.setStyle(target, property, value));
-          editor.dom.setStyle(target, 'line-height', lineSpacing);
-          editor.dom.setStyle(target, 'text-align', data.alignment || '');
+          Object.entries(format.styles).forEach(([property, value]) => editor.dom.setStyle(target, property, value));
+          editor.dom.setStyle(target, 'line-height', format.lineHeight);
+          editor.dom.setStyle(target, 'text-align', format.alignment);
           [
-            ['data-summary-keep-next', data.keepNext],
-            ['data-summary-keep-lines', data.keepLines],
-            ['data-summary-page-break-before', data.pageBreakBefore]
+            ['data-summary-keep-next', format.keepNext],
+            ['data-summary-keep-lines', format.keepLines],
+            ['data-summary-page-break-before', format.pageBreakBefore],
+            ['data-summary-no-space-same-style', format.noSpaceSameStyle]
           ].forEach(([attribute, enabled]) => {
             if (enabled) target.setAttribute(attribute, 'true');
             else target.removeAttribute(attribute);
           });
-          if (tabs.length) {
-            target.setAttribute('data-summary-tabs', [...new Set(tabs)].sort((a, b) => a - b).join(','));
+          target.setAttribute('data-summary-outline-level', format.outlineLevel);
+          target.setAttribute('data-summary-widow-control', String(format.widowControl));
+          target.setAttribute('data-summary-line-spacing-mode', format.lineSpacingMode);
+          target.setAttribute('data-summary-line-spacing-value', format.lineSpacingValue);
+          if (format.tabs.length) {
+            target.setAttribute('data-summary-tabs', format.tabs.join(','));
           } else {
             target.removeAttribute('data-summary-tabs');
           }
@@ -3742,7 +4061,25 @@ function paragraphFormatDialog(editor) {
       });
       editor.nodeChanged();
       editor.fire('change');
+      if (data.saveAsDefault) {
+        editor.notificationManager.open({ text: 'Đã lưu cài đặt đoạn văn mặc định trên thiết bị này.', type: 'success', timeout: 3500 });
+      }
       api.close();
+    },
+    onChange(api) {
+      const sample = document.querySelector('.tox-dialog .summary-paragraph-preview-sample p');
+      if (!sample) return;
+      let format;
+      try {
+        format = normalizeSummaryParagraphFormat(api.getData());
+      } catch {
+        return;
+      }
+      Object.entries(format.styles).forEach(([property, value]) => {
+        sample.style.setProperty(property, value);
+      });
+      sample.style.lineHeight = format.lineHeight;
+      sample.style.textAlign = format.alignment;
     }
   });
 }
