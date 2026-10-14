@@ -9,7 +9,7 @@
     "prestart": "npm run build",
     "dev": "node server.js",
     "predev": "npm run build",
-    "build": "esbuild modules/themeMorphIcon.js modules/summaryDocx.js --bundle --format=esm --minify --legal-comments=inline --outdir=vendor",
+    "build": "esbuild modules/themeMorphIcon.js modules/summaryDocx.js modules/studySpaceAssistantAnimation.js --bundle --format=esm --minify --legal-comments=inline --outdir=vendor",
     "test": "playwright test",
     "test:mobile": "node test-mobile.js",
     "test:headed": "playwright test --headed",
@@ -25,6 +25,7 @@
   },
   "dependencies": {
     "firebase-admin": "^13.0.2",
+    "gsap": "^3.15.0",
     "headroom-ai": "^0.38.0",
     "page-mascot": "^0.1.0"
   },

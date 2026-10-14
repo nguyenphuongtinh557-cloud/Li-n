@@ -22,6 +22,7 @@ import { mountRichTextEditor, prepareRichTextDocument, readSummaryText, runSumma
 import { createSummaryDocumentVersion, readSummaryDocumentHistory } from './modules/summaryDocumentHistory.js?v=20260926-summary-history-v2';
 import { updateThemeMorphIcons } from './vendor/themeMorphIcon.js?v=20260926-morphicons-theme-toggle-v2';
 import { exportSummaryHtmlToDocx } from './vendor/summaryDocx.js?v=20261001-native-docx-objects-v4';
+import { animateStudySpaceHeroAccents, mountStudySpaceAssistantButton } from './vendor/studySpaceAssistantAnimation.js?v=20261012-layered-assistant-button';
 
 const _lazyAssets = new Map();
 
@@ -3927,6 +3928,8 @@ window.renderAdminArticleList = renderAdminArticleList;
    STUDY SPACE
    ═══════════════════════════════════════════════════════════════════ */
 const StudySpace = { query: '', blockId: 'ALL', hasArticlesOnly: false, selectedId: null };
+let studySpaceAssistantCleanup = null;
+let studySpaceHeroDecorationCleanup = null;
 
 function normalizeStudySpaceValue(value) {
   return String(value ?? '')
@@ -3990,12 +3993,26 @@ function getStudySpaceSubjects() {
     .filter(subject => !query || `${subject.code} ${subject.name}`.toLocaleLowerCase('vi-VN').includes(query));
 }
 
-function studySpaceSubjectIcon(subject) {
+function studySpaceSubjectGroup(subject) {
   const name = normalizeStudySpaceValue(subject.name);
+  if (subject.blockId === 'GDQP' || /quoc phong|quan su|chien dau/.test(name)) return 'defense';
+  if (/an toan|chat luong|kiem soat|doc to/.test(name)) return 'safety';
+  if (/vi sinh|sinh hoc|enzyme/.test(name)) return 'microbiology';
+  if (/hoa|phu gia|phong thi nghiem/.test(name)) return 'chemistry';
+  if (/che bien|bao quan|cong nghe|ky thuat|thiet bi|san xuat|tu dong hoa/.test(name)) return 'processing';
+  if (subject.blockId === 'DC_CHUNG' || subject.blockId === 'DC_TUCHON') return 'general';
+  return 'food';
+}
+
+function studySpaceSubjectIcon(subject) {
+  const group = studySpaceSubjectGroup(subject);
+  const name = normalizeStudySpaceValue(subject.name);
+  if (group === 'defense') return 'fa-shield-halved';
+  if (group === 'safety') return 'fa-shield-heart';
+  if (group === 'chemistry') return 'fa-flask';
+  if (group === 'microbiology') return 'fa-bacteria';
+  if (group === 'processing') return 'fa-gears';
   if (/vat ly|xac suat|thong ke|dien/.test(name)) return 'fa-atom';
-  if (/hoa|phu gia|doc to/.test(name)) return 'fa-flask';
-  if (/sinh|vi sinh|enzyme|dinh duong/.test(name)) return 'fa-dna';
-  if (/quoc phong|quan su|chien dau/.test(name)) return 'fa-shield-halved';
   if (/quan ly|marketing|kinh te/.test(name)) return 'fa-chart-line';
   return 'fa-book-open';
 }
@@ -4102,18 +4119,100 @@ function studySpaceAIAction(action) {
   showToast(messages[action] || 'Tính năng AI đang được chuẩn bị.', 'info');
 }
 
+function renderStudySpaceSubjectCard(subject) {
+  const group = studySpaceSubjectGroup(subject);
+  const articleCount = subject.articles.filter(item => item.contentType === 'article').length;
+  const resourceCount = subject.articles.filter(item => item.contentType === 'resource').length;
+  const isSelected = StudySpace.selectedId === subject.id;
+  const subjectBlock = KNOWLEDGE_BLOCKS[subject.blockId];
+  const resourceDetails = [
+    articleCount ? `<span><i class="fa-solid fa-file-lines"></i> ${articleCount} bài đăng</span>` : '',
+    resourceCount ? `<span><i class="fa-solid fa-folder-open"></i> ${resourceCount} tài liệu</span>` : ''
+  ].filter(Boolean).join('');
+
+  return `<button class="study-space-subject-card" data-subject-id="${subject.id}" data-subject-group="${group}" data-has-articles="${subject.articles.length > 0}" data-selected="${isSelected}" onclick="selectStudySpaceSubject('${subject.id}')">
+    <span class="study-space-subject-art">
+      <span class="study-space-subject-icon"><i class="fa-solid ${studySpaceSubjectIcon(subject)}"></i></span>
+      <span class="study-space-subject-top"><b>${subject.code}</b>${subject.semester ? `<small>HK ${subject.semester}</small>` : ''}</span>
+    </span>
+    <strong>${subject.name}</strong>
+    <span class="study-space-subject-meta">${subjectBlock ? `<span class="study-space-subject-block">${subjectBlock.name}</span>` : ''}${subject.credits ? `<span>${subject.credits} tín chỉ</span>` : ''}</span>
+    <span class="study-space-subject-foot">${resourceDetails ? `<span>${resourceDetails}</span>` : ''}<i class="fa-solid fa-arrow-right" aria-hidden="true"></i></span>
+  </button>`;
+}
+
+function mountStudySpaceHeroDecoration(hero) {
+  if (!hero) return;
+
+  const svgNamespace = 'http://www.w3.org/2000/svg';
+  const decoration = document.createElementNS(svgNamespace, 'svg');
+  decoration.classList.add('study-hub-hero-flow');
+  decoration.setAttribute('viewBox', '0 0 760 268');
+  decoration.setAttribute('preserveAspectRatio', 'none');
+  decoration.setAttribute('aria-hidden', 'true');
+
+  const appendShape = (name, attributes) => {
+    const shape = document.createElementNS(svgNamespace, name);
+    Object.entries(attributes).forEach(([key, value]) => shape.setAttribute(key, value));
+    decoration.append(shape);
+  };
+
+  appendShape('path', { class: 'study-hub-flow-bottom-curve', d: 'M185 207 C204 207 221 207 237 207 C250 207 258 218 268 220 C281 223 310 188 334 190 S385 203 420 174 C448 151 468 152 490 174 S535 199 555 180 S580 166 590 171' });
+  appendShape('path', { class: 'study-hub-flow-bottom-curve study-hub-flow-bottom-parallel', d: 'M185 210 C204 210 221 210 237 210 C250 210 258 221 268 223 C281 226 310 191 334 193 S385 206 420 177 C448 154 468 155 490 177 S535 202 555 183 S580 169 590 174' });
+  appendShape('path', { class: 'study-hub-flow-bottom-curve study-hub-flow-bottom-parallel', d: 'M185 213 C204 213 221 213 237 213 C250 213 258 224 268 226 C281 229 310 194 334 196 S385 209 420 180 C448 157 468 158 490 180 S535 205 555 186 S580 172 590 177' });
+  appendShape('path', { class: 'study-hub-flow-bottom-curve study-hub-flow-bottom-parallel', d: 'M185 216 C204 216 221 216 237 216 C250 216 258 227 268 229 C281 232 310 197 334 199 S385 212 420 183 C448 160 468 161 490 183 S535 208 555 189 S580 175 590 180' });
+  [2.2, 1.6, 2].forEach((radius, index) => appendShape('circle', {
+    class: `study-hub-flow-particle${index === 1 ? ' study-hub-flow-particle-small' : ''}`,
+    cx: '0',
+    cy: '0',
+    r: String(radius)
+  }));
+  appendShape('circle', { class: 'study-hub-flow-static-particle', cx: '247', cy: '190', r: '1.7' });
+  appendShape('circle', { class: 'study-hub-flow-static-particle study-hub-flow-static-particle-small', cx: '430', cy: '188', r: '1.3' });
+  appendShape('circle', { class: 'study-hub-flow-static-particle', cx: '442', cy: '166', r: '1.5' });
+  appendShape('path', { class: 'study-hub-flow-spark', d: 'M263 164 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z' });
+  appendShape('circle', { class: 'study-hub-flow-spark-dot', cx: '278', cy: '170', r: '1.5' });
+  appendShape('circle', { class: 'study-hub-flow-spark-dot study-hub-flow-spark-dot-small', cx: '284', cy: '176', r: '1' });
+
+  hero.prepend(decoration);
+}
+
 function renderStudySpace() {
   const root = document.getElementById('study-space-root');
   if (!root) return;
+  studySpaceAssistantCleanup?.();
+  studySpaceAssistantCleanup = null;
+  studySpaceHeroDecorationCleanup?.();
+  studySpaceHeroDecorationCleanup = null;
   const subjects = getStudySpaceSubjects();
   const allSubjects = getAllSubjects();
   const contentCount = subjects.reduce((total, subject) => total + subject.articles.length, 0);
   const aiTools = [['quiz','fa-file-circle-plus','Tạo đề thi AI','Tạo đề trắc nghiệm theo chương, chủ đề hoặc môn học.','violet'],['summary','fa-wand-magic-sparkles','Tóm tắt giáo trình AI','Chắt lọc nội dung dài thành bản ngắn gọn, dễ hiểu.','green'],['plan','fa-calendar-check','Lên kế hoạch ôn thi','Xây lộ trình phù hợp với mục tiêu của bạn.','blue'],['chat','fa-comments','Hỏi đáp cùng AI','Giải đáp nhanh mọi thắc mắc trong quá trình học.','orange']];
-  root.innerHTML = `<div class="study-hub-shell"><main class="study-hub-main"><section class="study-hub-hero"><div class="study-hub-hero-copy"><span class="study-hub-kicker"><i class="fa-solid fa-graduation-cap"></i> KHÔNG GIAN HỌC TẬP</span><h1>Khám phá môn học<br>theo <em>cách của bạn</em></h1><p></p><div class="study-hub-hero-actions"><button onclick="studySpaceAIAction('chat')"><i class="fa-solid fa-sparkles"></i> Hỏi trợ lý AI</button></div></div><div class="study-hub-hero-art" aria-label="Vùng minh họa nhân vật sẽ được bổ sung"><div class="study-hub-art-orb orb-one"></div><div class="study-hub-art-orb orb-two"></div><div class="study-hub-art-dots"></div><img class="study-hub-art-img" src="hero_student_1.webp" alt="Sinh viên CNTP học tập" onerror="this.style.display='none'"></div></section><section class="study-hub-catalog"><div class="study-hub-search"><i class="fa-solid fa-magnifying-glass"></i><input id="study-space-search" type="search" value="${StudySpace.query.replace(/"/g, '&quot;')}" placeholder="Tìm theo tên hoặc mã môn học" oninput="searchStudySpaceSubjects(this.value)"></div><div class="study-hub-filter-row"><div class="study-space-filter-row"><button class="study-space-filter ${StudySpace.blockId === 'ALL' ? 'active' : ''}" onclick="setStudySpaceFilter('ALL')">Tất cả</button>${Object.values(KNOWLEDGE_BLOCKS).map(block => `<button class="study-space-filter ${StudySpace.blockId === block.id ? 'active' : ''}" onclick="setStudySpaceFilter('${block.id}')">${block.icon} ${block.name}</button>`).join('')}</div></div><div class="study-hub-list-meta"><label class="study-space-article-toggle"><input id="study-space-has-articles" type="checkbox" ${StudySpace.hasArticlesOnly ? 'checked' : ''} onchange="setStudySpaceFilter(null, this.checked)"><span>Chỉ hiện môn đã có bài đăng</span></label><span>${subjects.length} môn phù hợp · ${contentCount} tài nguyên</span></div></section><section class="study-hub-subject-grid">${subjects.length ? subjects.map(subject => `<button class="study-hub-subject-card" data-subject-id="${subject.id}" data-has-articles="${subject.articles.length > 0}" onclick="selectStudySpaceSubject('${subject.id}')"><span class="study-hub-subject-icon"><i class="fa-solid ${studySpaceSubjectIcon(subject)}"></i></span><span class="study-hub-subject-top"><b>${subject.code}</b><small>HK ${subject.semester || '—'}</small></span><strong>${subject.name}</strong><span class="study-hub-subject-meta">${KNOWLEDGE_BLOCKS[subject.blockId]?.icon || '📘'} ${KNOWLEDGE_BLOCKS[subject.blockId]?.name || 'Khối kiến thức'} · ${subject.credits || 0} tín chỉ</span><span class="study-hub-subject-foot"><span><i class="fa-solid ${subject.articles.length ? 'fa-file-lines' : 'fa-clock'}"></i> ${subject.articles.length ? `${subject.articles.length} bài đăng` : 'Chưa có bài đăng'}</span><i class="fa-solid fa-arrow-right"></i></span></button>`).join('') : '<div class="study-space-empty">Không tìm thấy môn học phù hợp.</div>'}</section></main><aside class="study-hub-ai-panel"><div class="study-hub-ai-heading"><span>TRUNG TÂM HỌC TẬP AI</span><p>Công cụ đồng hành cùng bạn</p></div>${aiTools.map(([action,icon,title,description,theme]) => `<button class="study-hub-ai-tool ${theme}" onclick="studySpaceAIAction('${action}')"><i class="fa-solid ${icon}"></i><span><b>${title}</b><small>${description}</small></span><em><i class="fa-solid fa-arrow-right"></i></em></button>`).join('')}<div class="study-hub-stats"><span>THỐNG KÊ HỌC TẬP</span><p>Kho tài liệu được cập nhật liên tục theo chương trình đào tạo.</p><button onclick="showToast('Báo cáo học tập đang được chuẩn bị.', 'info')">Xem báo cáo chi tiết <i class="fa-solid fa-arrow-up-right-from-square"></i></button></div></aside></div>`;
+  root.innerHTML = `<div class="study-hub-shell"><main class="study-hub-main"><section class="study-hub-hero"><div class="study-hub-hero-copy"><span class="study-hub-kicker"><i class="fa-solid fa-graduation-cap"></i> KHÔNG GIAN HỌC TẬP</span><h1>Khám phá môn học<br>theo <em>cách của bạn</em></h1><p></p><div class="study-hub-hero-actions"><button onclick="studySpaceAIAction('chat')"><i class="fa-solid fa-sparkles"></i> Hỏi trợ lý AI</button></div></div><div class="study-hub-hero-art" aria-label="Vùng minh họa nhân vật sẽ được bổ sung"><div class="study-hub-art-orb orb-one"></div><div class="study-hub-art-orb orb-two"></div><div class="study-hub-art-dots"></div><img class="study-hub-art-img" src="hero_student_1.webp" alt="Sinh viên CNTP học tập" onerror="this.style.display='none'"></div></section><section class="study-space-catalog"><div class="study-space-search"><i class="fa-solid fa-magnifying-glass"></i><input id="study-space-search" type="search" value="${StudySpace.query.replace(/"/g, '&quot;')}" placeholder="Tìm theo tên hoặc mã môn học" oninput="searchStudySpaceSubjects(this.value)"></div><div class="study-space-list-meta"><label class="study-space-article-toggle"><input id="study-space-has-articles" type="checkbox" ${StudySpace.hasArticlesOnly ? 'checked' : ''} onchange="setStudySpaceFilter(null, this.checked)"><span>Chỉ hiện môn đã có bài đăng</span></label><span>${subjects.length} môn phù hợp · ${contentCount} tài nguyên</span></div></section><section class="study-space-subject-grid">${subjects.length ? subjects.map(renderStudySpaceSubjectCard).join('') : '<div class="study-space-empty">Không tìm thấy môn học phù hợp.</div>'}</section></main><aside class="study-space-ai-panel"><div class="study-space-ai-heading"><span>TRUNG TÂM HỌC TẬP AI</span><p>Công cụ đồng hành cùng bạn</p></div>${aiTools.map(([action,icon,title,description,theme]) => `<button class="study-space-ai-tool ${theme}" onclick="studySpaceAIAction('${action}')"><i class="fa-solid ${icon}"></i><span><b>${title}</b><small>${description}</small></span><em><i class="fa-solid fa-arrow-right"></i></em></button>`).join('')}<div class="study-space-stats"><span>THỐNG KÊ HỌC TẬP</span><p>Kho tài liệu được cập nhật liên tục theo chương trình đào tạo.</p><button onclick="showToast('Báo cáo học tập đang được chuẩn bị.', 'info')">Xem báo cáo chi tiết <i class="fa-solid fa-arrow-up-right-from-square"></i></button></div></aside></div>`;
+  const hero = root.querySelector('.study-hub-hero');
+  if (hero) {
+    const emphasis = hero.querySelector('h1 em');
+    const leadText = emphasis?.previousSibling;
+    if (leadText?.textContent?.trim() === 'theo') {
+      emphasis.prepend(`${leadText.textContent.trim()} `);
+      leadText.textContent = '';
+    }
+    const heroFrame = document.createElement('div');
+    heroFrame.className = 'study-hub-hero-frame';
+    hero.replaceWith(heroFrame);
+    heroFrame.append(hero);
+  }
+  mountStudySpaceHeroDecoration(root.querySelector('.study-hub-hero'));
+  studySpaceHeroDecorationCleanup = animateStudySpaceHeroAccents(root.querySelector('.study-hub-hero-flow'));
+  studySpaceAssistantCleanup = mountStudySpaceAssistantButton(root.querySelector('.study-hub-hero-actions button'));
   if (window.innerWidth <= 768) window.injectMobileSections?.();
 }
 
-function setStudySpaceFilter(blockId, hasArticlesOnly) { if (blockId) StudySpace.blockId = blockId; if (typeof hasArticlesOnly === 'boolean') StudySpace.hasArticlesOnly = hasArticlesOnly; renderStudySpace(); }
+function setStudySpaceFilter(blockId, hasArticlesOnly) {
+  if (blockId) StudySpace.blockId = blockId;
+  if (typeof hasArticlesOnly === 'boolean') StudySpace.hasArticlesOnly = hasArticlesOnly;
+  renderStudySpace();
+}
 function searchStudySpaceSubjects(query) {
   const source = document.getElementById('study-space-search');
   const selectionStart = source?.selectionStart ?? String(query || '').length;
