@@ -62,6 +62,7 @@ export const POOL_MODELS = {
 
   // 3. Khu vực Premium (Dành cho nội dung nâng cao, suy luận logic phức tạp)
   PREMIUM_ZONE: [
+    { id: 'gemma-4-26b', name: 'Gemma 4 26B (Google - Tiếng Việt tốt)', provider: 'gemini', model: 'gemma-4-26b-preview' },
     { id: 'deepseek-r1', name: 'DeepSeek R1 (Tư duy & Giải toán nâng cao)', provider: 'openrouter', model: 'deepseek/deepseek-r1' },
     { id: 'claude-3-5', name: 'Claude 3.5 Sonnet (Chuyên gia Phân tích)', provider: 'openrouter', model: 'anthropic/claude-3.5-sonnet' },
     { id: 'sambanova-llama', name: 'SambaNova Llama 3.3 70B (Siêu Tốc)', provider: 'sambanova', model: 'Meta-Llama-3.3-70B-Instruct' },
@@ -148,6 +149,70 @@ function parseJsonObject(value) {
     throw new Error('Groq returned an invalid routing response');
   }
 }
+
+async function callGeminiChat(model, messages) {
+  const keyCount = RAW_KEYS.gemini.length;
+  let lastError = null;
+
+  for (let attempt = 0; attempt < keyCount; attempt++) {
+    const key = rotator.getKey('gemini');
+    try {
+      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
+      
+      // Convert OpenAI format to Gemini format
+      const systemInstruction = messages.find(m => m.role === 'system')?.content || '';
+      const contents = messages
+        .filter(m => m.role !== 'system')
+        .map(m => ({
+          role: m.role === 'assistant' ? 'model' : 'user',
+          parts: [{ text: m.content }]
+        }));
+
+      const payload = {
+        contents,
+        generationConfig: {
+          temperature: 0.7,
+          maxOutputTokens: 3000,
+        }
+      };
+
+      if (systemInstruction) {
+        payload.systemInstruction = {
+          parts: [{ text: systemInstruction }]
+        };
+      }
+
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+        signal: AbortSignal.timeout(60000)
+      });
+
+      if (!response.ok) {
+        lastError = new Error(`Gemini request failed with status ${response.status}`);
+        if (response.status < 500 && response.status !== 429) break;
+        continue;
+      }
+
+      const data = await response.json();
+      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+      
+      if (typeof text !== 'string' || !text.trim()) {
+        throw new Error('Gemini returned an empty response');
+      }
+      
+      console.log(`[AIPool] ✅ Gemini ${model} thành công`);
+      return text.trim();
+    } catch (error) {
+      lastError = error;
+      console.warn(`[AIPool] Gemini ${model} attempt ${attempt + 1} failed:`, error.message);
+    }
+  }
+
+  throw lastError || new Error('Gemini request failed');
+}
+
 
 function collectDuckDuckGoResults(payload) {
   const results = [];
@@ -464,6 +529,12 @@ Không bịa số liệu cụ thể. Nếu thuật ngữ không đủ rõ, hãy 
     messages.push({ role: 'user', content: userPrompt });
 
     try {
+      // ✅ Nếu là Gemini provider, gọi Gemini API
+      if (item.provider === 'gemini') {
+        return await this.callGeminiChat(item.model, messages);
+      }
+      
+      // ✅ Các provider khác dùng OpenRouter
       return await this.callOpenRouter({
         model: item.model,
         messages,
