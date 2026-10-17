@@ -2120,7 +2120,31 @@ function onStudyToolbarCountChange(value) {
 }
 
 function onStudyToolbarDifficultyChange(value) {
-  State.practice.selectedDifficulty = Number(value) || 0;
+  // Nếu chọn preset (easy/medium/hard), cập nhật diffRatio
+  if (value === 'custom' || value === '1' || value === '2' || value === '3') {
+    const settings = DB.getSettings();
+    
+    // Map preset to difficulty ratio
+    const presets = {
+      'custom': null, // Giữ nguyên tỷ lệ hiện tại (user tự kéo)
+      '1': { easy: 0.6, medium: 0.3, hard: 0.1 },    // Dễ: 60% dễ, 30% TB, 10% khó
+      '2': { easy: 0.4, medium: 0.4, hard: 0.2 },    // TB: 40% dễ, 40% TB, 20% khó
+      '3': { easy: 0.2, medium: 0.3, hard: 0.5 }     // Khó: 20% dễ, 30% TB, 50% khó
+    };
+    
+    if (value !== 'custom' && presets[value]) {
+      settings.diffRatio = presets[value];
+      DB.saveSettings(settings);
+      
+      // Cập nhật UI
+      const easy = Math.round(presets[value].easy * 100);
+      const medium = Math.round(presets[value].medium * 100);
+      const hard = Math.round(presets[value].hard * 100);
+      updateDifficultyUI(easy, medium, hard);
+    }
+  }
+  
+  State.practice.selectedDifficulty = value === 'custom' ? 0 : Number(value);
   const bankDifficulty = document.getElementById('bank-filter-diff');
   if (bankDifficulty) bankDifficulty.value = String(State.practice.selectedDifficulty);
   State.bank.filterDiff = State.practice.selectedDifficulty;
@@ -2248,6 +2272,10 @@ function initDraggableDifficultyBar() {
         hard: hard / 100
       };
       DB.saveSettings(settings);
+      
+      // Chuyển dropdown về "Tùy chọn" khi user kéo tay
+      const diffSelect = document.getElementById('study-difficulty-select');
+      if (diffSelect) diffSelect.value = 'custom';
     }
   });
 }

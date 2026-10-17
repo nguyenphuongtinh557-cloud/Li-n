@@ -197,7 +197,7 @@
             <label class="study-toolbar-control study-toolbar-difficulty" title="Lọc theo độ khó">
               <i class="fa-solid fa-chart-simple" aria-hidden="true"></i>
               <select id="study-difficulty-select" class="study-toolbar-select" aria-label="Lọc theo độ khó" onchange="onStudyToolbarDifficultyChange(this.value)">
-                <option value="0">Độ khó · Tất cả</option>
+                <option value="custom">Độ khó · Tùy chọn</option>
                 <option value="1">Độ khó · Dễ</option>
                 <option value="2">Độ khó · Trung bình</option>
                 <option value="3">Độ khó · Khó</option>
@@ -408,10 +408,8 @@
               <section class="exam-config-panel" aria-labelledby="exam-config-title">
                 <div class="exam-config-heading">
                   <div>
-                    <span class="exam-config-eyebrow">SẴN SÀNG BẮT ĐẦU</span>
                     <h2 id="exam-config-title">Cấu hình bài thi</h2>
                   </div>
-                  <span class="exam-standard-badge"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Đề thi chuẩn hóa</span>
                 </div>
 
                 <div class="exam-start-grid">
@@ -431,6 +429,15 @@
                   <div class="exam-info-tile exam-info-pass">
                     <div class="exam-info-heading"><i class="fa-solid fa-bullseye" aria-hidden="true"></i><label>Điểm đạt</label></div>
                     <span>≥ 7.0 / 10</span>
+                  </div>
+                  <div class="exam-info-tile exam-info-difficulty">
+                    <div class="exam-info-heading"><i class="fa-solid fa-chart-simple" aria-hidden="true"></i><label for="exam-difficulty-preset">Độ khó</label></div>
+                    <select id="exam-difficulty-preset" onchange="onExamDifficultyPresetChange(this.value)">
+                      <option value="custom">Tùy chọn</option>
+                      <option value="easy">Dễ</option>
+                      <option value="medium">Trung bình</option>
+                      <option value="hard">Khó</option>
+                    </select>
                   </div>
                 </div>
 
