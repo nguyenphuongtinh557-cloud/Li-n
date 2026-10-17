@@ -42,6 +42,25 @@ export function setCurrentQuestion(question) {
   _currentContext = question;
 }
 
+function formatCurrentQuestionContext() {
+  const question = _currentContext;
+  if (!question) return '';
+
+  const labels = ['A', 'B', 'C', 'D'];
+  const options = (question.options || []).map((option, index) => `${labels[index]}. ${option}`).join('\n');
+  const selected = Number.isInteger(question.userAns)
+    ? `${labels[question.userAns]}. ${question.options?.[question.userAns] || ''}`
+    : 'Bỏ trống';
+  const correct = `${labels[question.correct] || 'Đáp án đúng'}. ${question.options?.[question.correct] || ''}`;
+  const reviewGuidance = question.isExamReview
+    ? Number.isInteger(question.userAns)
+      ? `Hãy nói rõ vì sao lựa chọn ${labels[question.userAns]} chưa đúng, vì sao đáp án ${labels[question.correct]} đúng, và điểm phân biệt giữa hai lựa chọn.`
+      : 'Người học bỏ trống câu này; hãy nêu đáp án đúng và giải thích kiến thức trọng tâm, không giả định họ đã chọn phương án sai.'
+    : '';
+
+  return `[Ngữ cảnh câu hỏi đang ôn:\nMôn học: ${question.subjectName || question.subjectId || 'Chưa xác định'}\nChương: ${question.chapterName || question.chapter || 'Chưa xác định'}\nCâu hỏi: ${question.q || ''}\nCác phương án:\n${options}\nNgười học chọn: ${selected}\nĐáp án đúng: ${correct}\nLời giải hiện có: ${question.exp || 'Chưa có lời giải.'}${reviewGuidance ? `\nYêu cầu giải thích: ${reviewGuidance}` : ''}]`;
+}
+
 // ─── Gọi Groq AI (PRIMARY ENGINE - Siêu nhanh & FREE) ────────────────────────────
 async function callGroq(userMessage, systemPrompt) {
   // ✅ Ưu tiên model tốt nhất: openai/gpt-oss-120b (120B params, Tiếng Việt xuất sắc)
@@ -406,14 +425,19 @@ export async function ceraAnalyzeImage(base64Data, userText = '', history = []) 
 export async function ceraChat(userText, history = [], options = {}) {
   const text = userText.trim().toLowerCase();
   const compactHistory = await compressChatHistory(history);
-  const knowledgeContext = formatKnowledgeContext(searchSubjectKnowledge(userText));
+  const context = formatCurrentQuestionContext();
+  const knowledgeQuery = _currentContext
+    ? [userText, _currentContext.q, _currentContext.options?.[_currentContext.correct], _currentContext.exp].filter(Boolean).join(' ')
+    : userText;
+  const knowledgeContext = formatKnowledgeContext(searchSubjectKnowledge(
+    knowledgeQuery,
+    _currentContext?.subjectId || DB.getActiveSubject()
+  ));
 
   // ── 0. Kiểm tra nếu là Chế độ Premium ─────────────────────────────────────
   if (options.isPremium || options.premiumModelId) {
     let contextPrompt = CERA_SYSTEM + '\n\n';
-    if (_currentContext) {
-      contextPrompt += `[Bối cảnh: Sinh viên đang làm câu hỏi: "${_currentContext.q}"]\n\n`;
-    }
+    if (context) contextPrompt += `${context}\n\n`;
     if (knowledgeContext) contextPrompt += `${knowledgeContext}\n\n`;
     const modelId = options.premiumModelId || 'deepseek-r1';
     const resp = await AIPool.askPremium({
@@ -427,7 +451,7 @@ export async function ceraChat(userText, history = [], options = {}) {
 
   // ── 1. Phát hiện báo câu sai → BẮT BUỘC gọi AI xác minh live ────────────
   const reportWrongPattern = /câu\s*(này|đó|trên|số\s*\d+|#?\d+)?\s*(bị\s*)?(sai|lỗi|nhầm|không\s*đúng|không\s*chính\s*xác)/;
-  if (reportWrongPattern.test(text) && _currentContext) {
+  if (reportWrongPattern.test(text) && _currentContext && !_currentContext.isExamReview) {
     return verifyAndFixQuestion(_currentContext);
   }
 
@@ -435,11 +459,7 @@ export async function ceraChat(userText, history = [], options = {}) {
   const actionPattern = /(dịch|translate|nghĩa\s*là|nghĩa\s*của|tóm\s*tắt|sâu\s*hơn|ví\s*dụ|tại\s*sao|phân\s*tích|so\s*sánh|cho\s*biết|như\s*thế\s*nào|hướng\s*dẫn)/i;
   if (actionPattern.test(userText)) {
     let contextPrompt = CERA_SYSTEM + '\n\n';
-    if (_currentContext) {
-      const q = _currentContext;
-      const opts = q.options ? q.options.map((o, i) => `${['A','B','C','D'][i]}. ${o}`).join('\n') : '';
-      contextPrompt += `[Bối cảnh: Sinh viên đang xem câu hỏi: "${q.q}"\nCác đáp án:\n${opts}\nĐáp án đúng: ${['A','B','C','D'][q.correct]}]\n\n`;
-    }
+    if (context) contextPrompt += `${context}\n\n`;
     if (compactHistory.length > 0) {
       contextPrompt += 'Lịch sử trò chuyện:\n';
       compactHistory.slice(-4).forEach(m => {
@@ -468,7 +488,7 @@ export async function ceraChat(userText, history = [], options = {}) {
 
   // ── 4. Hỏi về câu đang hiển thị (VD: "câu này", "câu hiện tại") ─────────────
   const currentKeywords = ['câu này', 'câu trên', 'câu đó', 'câu hiện tại'];
-  if (currentKeywords.some(k => text === k || text.includes(k)) && _currentContext) {
+  if (currentKeywords.some(k => text === k || text.includes(k)) && _currentContext && !_currentContext.isExamReview) {
     return buildLocalExplanation(_currentContext);
   }
 
@@ -476,9 +496,7 @@ export async function ceraChat(userText, history = [], options = {}) {
 
   // ── 7. Không có dữ liệu → Gọi CERA AI ────────────────────────────────────
   let contextPrompt = CERA_SYSTEM + '\n\n';
-  if (_currentContext) {
-    contextPrompt += `[Sinh viên đang xem câu hỏi: "${_currentContext.q}"]\n\n`;
-  }
+  if (context) contextPrompt += `${context}\n\n`;
   if (knowledgeContext) contextPrompt += `${knowledgeContext}\n\n`;
   if (compactHistory.length > 0) {
     contextPrompt += 'Lịch sử trò chuyện:\n';

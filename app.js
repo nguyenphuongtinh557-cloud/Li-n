@@ -2175,77 +2175,94 @@ function updateDifficultyBar(id, ratioActual) {
 }
 
 /**
- * Điều chỉnh tỷ lệ độ khó khi user kéo slider
- * Tự động normalize để tổng = 100%
+ * Kéo thanh màu để điều chỉnh độ khó
  */
-function adjustDifficultyRatio(type, value) {
-  const easy = parseInt(document.getElementById('diff-slider-easy').value);
-  const medium = parseInt(document.getElementById('diff-slider-medium').value);
-  const hard = parseInt(document.getElementById('diff-slider-hard').value);
-  
-  let ratios = { easy, medium, hard };
-  let total = easy + medium + hard;
-  
-  // Nếu tổng > 100, giảm các loại khác tỷ lệ
-  if (total > 100) {
-    const excess = total - 100;
-    const others = ['easy', 'medium', 'hard'].filter(t => t !== type);
-    
-    // Ưu tiên giảm loại có % cao nhất (không phải loại đang kéo)
-    others.sort((a, b) => ratios[b] - ratios[a]);
-    
-    let remaining = excess;
-    for (const other of others) {
-      if (remaining <= 0) break;
-      const canReduce = Math.min(ratios[other], remaining);
-      ratios[other] -= canReduce;
-      remaining -= canReduce;
-    }
-  }
-  
-  // Nếu tổng < 100, tăng các loại khác tỷ lệ
-  if (total < 100) {
-    const shortage = 100 - total;
-    const others = ['easy', 'medium', 'hard'].filter(t => t !== type);
-    
-    // Ưu tiên tăng loại có % thấp nhất (không phải loại đang kéo)
-    others.sort((a, b) => ratios[a] - ratios[b]);
-    
-    let remaining = shortage;
-    for (const other of others) {
-      if (remaining <= 0) break;
-      const canIncrease = Math.min(100 - ratios[other], remaining);
-      ratios[other] += canIncrease;
-      remaining -= canIncrease;
-    }
-  }
-  
-  // Cập nhật UI
-  document.getElementById('diff-slider-easy').value = ratios.easy;
-  document.getElementById('diff-slider-medium').value = ratios.medium;
-  document.getElementById('diff-slider-hard').value = ratios.hard;
-  
-  document.getElementById('diff-easy-pct').textContent = ratios.easy;
-  document.getElementById('diff-medium-pct').textContent = ratios.medium;
-  document.getElementById('diff-hard-pct').textContent = ratios.hard;
-  
-  // Cập nhật visual bar
+function initDraggableDifficultyBar() {
   const bar = document.getElementById('exam-start-diff-bar');
-  if (bar) {
-    bar.innerHTML = `
-      <div class="diff-bar-easy" style="flex:${ratios.easy};" title="Dễ: ${ratios.easy}%"></div>
-      <div class="diff-bar-medium" style="flex:${ratios.medium};" title="Trung bình: ${ratios.medium}%"></div>
-      <div class="diff-bar-hard" style="flex:${ratios.hard};" title="Khó: ${ratios.hard}%"></div>`;
-  }
+  if (!bar) return;
+
+  let isDragging = false;
+  let dragTarget = null;
+
+  bar.addEventListener('mousedown', (e) => {
+    const handle = e.target.closest('.diff-bar-handle');
+    if (!handle) return;
+    
+    isDragging = true;
+    dragTarget = handle.parentElement;
+    e.preventDefault();
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!isDragging || !dragTarget) return;
+    
+    const barRect = bar.getBoundingClientRect();
+    const barWidth = barRect.width;
+    const mouseX = e.clientX - barRect.left;
+    const percentage = Math.max(0, Math.min(100, (mouseX / barWidth) * 100));
+    
+    const difficulty = dragTarget.dataset.difficulty;
+    
+    // Get current flex values
+    const easy = parseFloat(bar.querySelector('.diff-bar-easy').style.flex) || 50;
+    const medium = parseFloat(bar.querySelector('.diff-bar-medium').style.flex) || 30;
+    const hard = parseFloat(bar.querySelector('.diff-bar-hard').style.flex) || 20;
+    
+    let newEasy = easy, newMedium = medium, newHard = hard;
+    
+    if (difficulty === 'easy') {
+      const newEasyValue = Math.max(10, Math.min(80, percentage));
+      const remaining = 100 - newEasyValue;
+      const ratio = remaining / (medium + hard);
+      newEasy = newEasyValue;
+      newMedium = Math.round(medium * ratio);
+      newHard = 100 - newEasy - newMedium;
+    } else if (difficulty === 'medium') {
+      const easyWidth = (easy / 100) * barWidth;
+      const newMediumValue = Math.max(10, Math.min(80, percentage - (easy)));
+      newMedium = newMediumValue;
+      newHard = 100 - easy - newMedium;
+      if (newHard < 10) {
+        newHard = 10;
+        newMedium = 100 - easy - newHard;
+      }
+    }
+    
+    updateDifficultyUI(Math.round(newEasy), Math.round(newMedium), Math.round(newHard));
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      dragTarget = null;
+      
+      // Save to settings
+      const easy = parseFloat(bar.querySelector('.diff-bar-easy').style.flex) || 50;
+      const medium = parseFloat(bar.querySelector('.diff-bar-medium').style.flex) || 30;
+      const hard = parseFloat(bar.querySelector('.diff-bar-hard').style.flex) || 20;
+      
+      const settings = DB.getSettings();
+      settings.diffRatio = {
+        easy: easy / 100,
+        medium: medium / 100,
+        hard: hard / 100
+      };
+      DB.saveSettings(settings);
+    }
+  });
+}
+
+function updateDifficultyUI(easy, medium, hard) {
+  const bar = document.getElementById('exam-start-diff-bar');
+  if (!bar) return;
   
-  // Lưu vào settings
-  const settings = DB.getSettings();
-  settings.diffRatio = {
-    easy: ratios.easy / 100,
-    medium: ratios.medium / 100,
-    hard: ratios.hard / 100
-  };
-  DB.saveSettings(settings);
+  bar.querySelector('.diff-bar-easy').style.flex = easy;
+  bar.querySelector('.diff-bar-medium').style.flex = medium;
+  bar.querySelector('.diff-bar-hard').style.flex = hard;
+  
+  document.getElementById('diff-easy-pct').textContent = easy;
+  document.getElementById('diff-medium-pct').textContent = medium;
+  document.getElementById('diff-hard-pct').textContent = hard;
 }
 
 /**
@@ -2259,38 +2276,14 @@ function loadDifficultyRatioUI() {
   const medium = Math.round(ratio.medium * 100);
   const hard = Math.round(ratio.hard * 100);
   
-  // Set sliders
-  const easySlider = document.getElementById('diff-slider-easy');
-  const mediumSlider = document.getElementById('diff-slider-medium');
-  const hardSlider = document.getElementById('diff-slider-hard');
-  
-  if (easySlider) easySlider.value = easy;
-  if (mediumSlider) mediumSlider.value = medium;
-  if (hardSlider) hardSlider.value = hard;
-  
-  // Set labels
-  const easyPct = document.getElementById('diff-easy-pct');
-  const mediumPct = document.getElementById('diff-medium-pct');
-  const hardPct = document.getElementById('diff-hard-pct');
-  
-  if (easyPct) easyPct.textContent = easy;
-  if (mediumPct) mediumPct.textContent = medium;
-  if (hardPct) hardPct.textContent = hard;
-  
-  // Set visual bar
-  const bar = document.getElementById('exam-start-diff-bar');
-  if (bar) {
-    bar.innerHTML = `
-      <div class="diff-bar-easy" style="flex:${easy};" title="Dễ: ${easy}%"></div>
-      <div class="diff-bar-medium" style="flex:${medium};" title="Trung bình: ${medium}%"></div>
-      <div class="diff-bar-hard" style="flex:${hard};" title="Khó: ${hard}%"></div>`;
-  }
+  updateDifficultyUI(easy, medium, hard);
 }
 
-// Load difficulty ratio khi trang load
+// Init khi trang load
 if (typeof window !== 'undefined') {
   window.addEventListener('load', () => {
     loadDifficultyRatioUI();
+    initDraggableDifficultyBar();
   });
 }
 

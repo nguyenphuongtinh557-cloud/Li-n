@@ -443,27 +443,15 @@
                       <span class="exam-diff-hard"><i></i>Khó <strong id="diff-hard-pct">20</strong>%</span>
                     </div>
                   </div>
-                  
-                  <!-- Difficulty Sliders -->
-                  <div class="difficulty-sliders">
-                    <div class="diff-slider-row">
-                      <label><i class="fa-solid fa-circle" style="color: var(--success);"></i> Dễ</label>
-                      <input type="range" id="diff-slider-easy" min="0" max="100" value="50" step="5" oninput="adjustDifficultyRatio('easy', this.value)">
-                    </div>
-                    <div class="diff-slider-row">
-                      <label><i class="fa-solid fa-circle" style="color: #f59e0b;"></i> TB</label>
-                      <input type="range" id="diff-slider-medium" min="0" max="100" value="30" step="5" oninput="adjustDifficultyRatio('medium', this.value)">
-                    </div>
-                    <div class="diff-slider-row">
-                      <label><i class="fa-solid fa-circle" style="color: #ef4444;"></i> Khó</label>
-                      <input type="range" id="diff-slider-hard" min="0" max="100" value="20" step="5" oninput="adjustDifficultyRatio('hard', this.value)">
-                    </div>
-                  </div>
 
-                  <div class="difficulty-bar exam-start-difficulty-bar" id="exam-start-diff-bar" aria-label="Dễ 50 phần trăm, trung bình 30 phần trăm, khó 20 phần trăm">
-                    <div class="diff-bar-easy" style="flex:50;"></div>
-                    <div class="diff-bar-medium" style="flex:30;"></div>
-                    <div class="diff-bar-hard" style="flex:20;"></div>
+                  <div class="difficulty-bar exam-start-difficulty-bar draggable-bar" id="exam-start-diff-bar" aria-label="Kéo để điều chỉnh tỷ lệ độ khó">
+                    <div class="diff-bar-easy" style="flex:50;" data-difficulty="easy">
+                      <div class="diff-bar-handle"></div>
+                    </div>
+                    <div class="diff-bar-medium" style="flex:30;" data-difficulty="medium">
+                      <div class="diff-bar-handle"></div>
+                    </div>
+                    <div class="diff-bar-hard" style="flex:20;" data-difficulty="hard"></div>
                   </div>
                 </div>
 

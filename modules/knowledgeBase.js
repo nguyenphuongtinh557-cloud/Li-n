@@ -27,9 +27,9 @@ function tokenize(value) {
 
 function collectSources(details, subjectId) {
   const sources = [];
-  const add = (id, title, content) => {
+  const add = (id, title, content, kind = 'reference', readerContext = null) => {
     const text = plainText(content);
-    if (text) sources.push({ id, title: plainText(title) || id, text });
+    if (text) sources.push({ id, title: plainText(title) || id, text, kind, readerContext });
   };
 
   add(`${subjectId}:intro`, `${details.name || subjectId} — Giới thiệu`, details.intro);
@@ -38,22 +38,24 @@ function collectSources(details, subjectId) {
   });
   (Array.isArray(details.chapters) ? details.chapters : []).forEach((chapter, chapterIndex) => {
     const chapterTitle = chapter.title || `Chương ${chapterIndex + 1}`;
-    add(`${subjectId}:chapter:${chapter.id || chapterIndex}`, chapterTitle, chapter.description);
-    (Array.isArray(chapter.lessons) ? chapter.lessons : [])
-      .filter(lesson => lesson.status !== 'draft')
-      .forEach((lesson, lessonIndex) => {
-        const lessonTitle = lesson.title || `Bài ${lessonIndex + 1}`;
-        const content = [
-          lesson.description,
-          lesson.content,
-          ...(Array.isArray(lesson.blocks) ? lesson.blocks.map(block => block.content) : [])
-        ].join(' ');
-        add(
-          `${subjectId}:lesson:${lesson.id || `${chapterIndex}-${lessonIndex}`}`,
-          `${chapterTitle} — ${lessonTitle}`,
-          content
-        );
-      });
+    const lessons = (Array.isArray(chapter.lessons) ? chapter.lessons : [])
+      .filter(lesson => lesson.status !== 'draft');
+    add(`${subjectId}:chapter:${chapter.id || chapterIndex}`, chapterTitle, chapter.description, 'chapter');
+    lessons.forEach((lesson, lessonIndex) => {
+      const lessonTitle = lesson.title || `Bài ${lessonIndex + 1}`;
+      const content = [
+        lesson.description,
+        lesson.content,
+        ...(Array.isArray(lesson.blocks) ? lesson.blocks.map(block => block.content) : [])
+      ].join(' ');
+      add(
+        `${subjectId}:lesson:${lesson.id || `${chapterIndex}-${lessonIndex}`}`,
+        `${chapterTitle} — ${lessonTitle}`,
+        content,
+        'lesson',
+        lesson.id ? { subjectId, ...(chapter.id ? { chapterId: chapter.id } : {}), lessonId: lesson.id } : null
+      );
+    });
   });
   return sources;
 }

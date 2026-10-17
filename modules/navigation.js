@@ -237,6 +237,7 @@ export const NavController = {
     }
 
     this.activePage = pageId;
+    document.body.classList.toggle('study-review-active', pageId === 'ontap');
     this.syncUrl(pageId, { ...(subTabId ? { tab: subTabId } : {}), ...routeParams });
 
     // 1. Highlight active sidebar item

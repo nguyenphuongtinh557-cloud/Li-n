@@ -9,6 +9,7 @@ const KEYS = {
   BANK: 'qlcl_question_bank',
   SOURCES: 'qlcl_sources',
   HISTORY: 'qlcl_exam_history',
+  SPACED_REVIEW: 'qlcl_spaced_review_v1',
   SETTINGS: 'qlcl_settings',
   SEED_LOADED: 'qlcl_seed_loaded_v7',
   ACTIVE_SUBJECT: 'qlcl_active_subject',
@@ -669,6 +670,112 @@ export const DB = {
     localStorage.setItem(KEYS.HISTORY, JSON.stringify(history.slice(0, 50)));
   },
 
+  getSpacedReviewMap() {
+    try {
+      const map = JSON.parse(localStorage.getItem(KEYS.SPACED_REVIEW) || '{}');
+      return map && typeof map === 'object' && !Array.isArray(map) ? map : {};
+    } catch {
+      return {};
+    }
+  },
+
+  addQuestionsToSpacedReview(userId, questions, now = Date.now()) {
+    const ownerId = String(userId || 'guest');
+    const map = this.getSpacedReviewMap();
+    let added = 0;
+
+    (Array.isArray(questions) ? questions : []).forEach(question => {
+      if (!question?.q || !Array.isArray(question.options)) return;
+      const subjectId = String(question.subjectId || 'FT4468');
+      const questionKey = _spacedReviewQuestionKey(question);
+      const storageKey = JSON.stringify([ownerId, subjectId, questionKey]);
+      const fingerprint = _spacedReviewFingerprint(question);
+      const existing = map[storageKey];
+      if (existing) {
+        if (existing.fingerprint !== fingerprint) {
+          map[storageKey] = {
+            ...existing,
+            questionId: question.id === undefined || question.id === null ? '' : String(question.id),
+            fingerprint,
+            stage: 0,
+            dueAt: new Date(now).toISOString(),
+            reviewedAt: null,
+          };
+          added++;
+        }
+        return;
+      }
+
+      map[storageKey] = {
+        userId: ownerId,
+        subjectId,
+        questionId: question.id === undefined || question.id === null ? '' : String(question.id),
+        questionKey,
+        fingerprint,
+        stage: 0,
+        dueAt: new Date(now).toISOString(),
+        createdAt: new Date(now).toISOString(),
+        reviewedAt: null,
+      };
+      added++;
+    });
+
+    if (added) localStorage.setItem(KEYS.SPACED_REVIEW, JSON.stringify(map));
+    return added;
+  },
+
+  getDueSpacedReviewItems(userId, subjectId = null, now = Date.now()) {
+    const ownerId = String(userId || 'guest');
+    const map = this.getSpacedReviewMap();
+    const bank = this.getBank();
+    const dueItems = [];
+    let changed = false;
+
+    Object.entries(map).forEach(([storageKey, item]) => {
+      if (!item || item.userId !== ownerId) return;
+      const question = bank.find(candidate =>
+        String(candidate.subjectId || 'FT4468') === String(item.subjectId) &&
+        (item.questionId
+          ? String(candidate.id) === item.questionId
+          : _spacedReviewQuestionKey(candidate) === item.questionKey) &&
+        (!item.fingerprint || _spacedReviewFingerprint(candidate) === item.fingerprint)
+      );
+
+      if (!question) {
+        delete map[storageKey];
+        changed = true;
+        return;
+      }
+
+      if (subjectId && subjectId !== 'ALL' && String(item.subjectId) !== String(subjectId)) return;
+
+      const dueTime = Date.parse(item.dueAt);
+      if (!Number.isFinite(dueTime) || dueTime <= now) {
+        dueItems.push({ ...item, storageKey, question });
+      }
+    });
+
+    if (changed) localStorage.setItem(KEYS.SPACED_REVIEW, JSON.stringify(map));
+    return dueItems.sort((a, b) => Date.parse(a.dueAt) - Date.parse(b.dueAt));
+  },
+
+  recordSpacedReviewAnswer(userId, storageKey, isCorrect, now = Date.now()) {
+    const ownerId = String(userId || 'guest');
+    const map = this.getSpacedReviewMap();
+    const item = map[storageKey];
+    if (!item || item.userId !== ownerId) return null;
+
+    const intervals = [1, 3, 7];
+    const stage = Math.max(0, Math.min(Number(item.stage) || 0, intervals.length - 1));
+    const intervalDays = isCorrect ? intervals[stage] : intervals[0];
+    item.stage = isCorrect ? Math.min(stage + 1, intervals.length) : 0;
+    item.dueAt = new Date(now + intervalDays * 24 * 60 * 60 * 1000).toISOString();
+    item.reviewedAt = new Date(now).toISOString();
+    map[storageKey] = item;
+    localStorage.setItem(KEYS.SPACED_REVIEW, JSON.stringify(map));
+    return { ...item, intervalDays };
+  },
+
   /** Lấy settings */
   getSettings() {
     const defaults = {
@@ -846,4 +953,23 @@ export const DB = {
 /** Tạo hash đơn giản từ text câu hỏi (loại trùng) */
 function _hashQ(text) {
   return (text || '').trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+function _spacedReviewQuestionKey(question) {
+  if (question.id !== undefined && question.id !== null && String(question.id).trim()) {
+    return `id:${String(question.id)}`;
+  }
+  return `text:${_spacedReviewFingerprint(question)}`;
+}
+
+function _spacedReviewFingerprint(question = {}) {
+  const options = Array.isArray(question.options) ? question.options.map(_hashQ).sort() : [];
+  const correctOption = Number.isInteger(question.correct) ? _hashQ(question.options?.[question.correct]) : '';
+  const content = [_hashQ(question.q), correctOption, ...options].join('\u001f');
+  let hash = 2166136261;
+  for (let index = 0; index < content.length; index++) {
+    hash ^= content.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
 }

@@ -13,14 +13,15 @@ export const ExamEngine = {
    * @param {number} chapterFilter - 0 = tất cả
    * @returns {{ questions: Array, meta: object } | null}
    */
-  buildBalancedPaper(totalCount = 50, ratio = null, chapterFilter = 0) {
+  buildBalancedPaper(totalCount = 50, ratio = null, chapterFilter = 0, difficultyFilter = 0) {
     const settings = DB.getSettings();
     const r = ratio || settings.diffRatio || { easy: 0.5, medium: 0.3, hard: 0.2 };
 
     // Lọc bank theo môn học đang chọn
     const activeSubjectId = DB.getActiveSubject();
     const bank = (activeSubjectId === 'ALL' ? DB.getBank() : DB.getBankBySubject(activeSubjectId))
-      .filter(q => chapterFilter === 0 || q.chapter === chapterFilter);
+      .filter(q => (chapterFilter === 0 || q.chapter === chapterFilter)
+        && (difficultyFilter === 0 || (q.difficulty || 1) === difficultyFilter));
 
     // Nhóm theo độ khó
     const byDiff = {
@@ -74,14 +75,19 @@ export const ExamEngine = {
     };
   },
 
-  /** Tạo bộ đề luyện tập (không cân bằng độ khó) */
-  buildPracticePaper(count, chapterFilter = 0) {
-    // Lọc bank theo môn học đang chọn
-    const activeSubjectId = DB.getActiveSubject();
-    const bank = (activeSubjectId === 'ALL' ? DB.getBank() : DB.getBankBySubject(activeSubjectId))
-      .filter(q => chapterFilter === 0 || q.chapter === chapterFilter);
-    const shuffled = _shuffle(bank).slice(0, count);
-    return shuffled.map(q => _shuffleOptions(q));
+  /** Tạo bộ đề luyện tập, có thể giới hạn môn và ưu tiên câu chưa gặp */
+  buildPracticePaper(count, chapterFilter = 0, options = {}) {
+    const subjectId = options.subjectId || DB.getActiveSubject();
+    const bank = (subjectId === 'ALL' ? DB.getBank() : DB.getBankBySubject(subjectId))
+      .filter(q => (chapterFilter === 0 || String(q.chapter) === String(chapterFilter))
+        && (!options.difficulty || (q.difficulty || 1) === options.difficulty));
+    const uniqueBank = [...new Map(bank.map(question => [_practiceQuestionKey(question), question])).values()];
+    const excluded = new Set((options.excludeQuestions || []).map(_practiceQuestionKey));
+    const selectedNew = _shuffle(uniqueBank.filter(q => !excluded.has(_practiceQuestionKey(q)))).slice(0, count);
+    const selectedKeys = new Set(selectedNew.map(_practiceQuestionKey));
+    const fallback = _shuffle(uniqueBank.filter(q => !selectedKeys.has(_practiceQuestionKey(q))))
+      .slice(0, Math.max(0, count - selectedNew.length));
+    return _shuffle([...selectedNew, ...fallback]).map(q => _shuffleOptions(q));
   },
 
   /**
@@ -210,6 +216,11 @@ function _shuffleOptions(q) {
     options: shuffled.map(o => o.text),
     correct: shuffled.findIndex(o => o.isCorrect),
   };
+}
+
+function _practiceQuestionKey(question = {}) {
+  if (question.id !== undefined && question.id !== null) return `id:${question.id}`;
+  return `text:${String(question.q || '').trim().toLowerCase().replace(/\s+/g, ' ')}`;
 }
 
 /** Điều chỉnh số câu theo mức khi không đủ trong một nhóm */

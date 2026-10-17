@@ -1921,53 +1921,23 @@ body {
 .exam-difficulty-legend span { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
 .exam-difficulty-legend strong { color: var(--text-primary); font-weight: 800; }
 
-/* Difficulty Sliders */
-.difficulty-sliders { display: grid; gap: 10px; margin: 14px 0 12px; }
-.diff-slider-row { display: grid; grid-template-columns: 48px 1fr; align-items: center; gap: 12px; }
-.diff-slider-row label { display: flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; color: var(--text-secondary); margin: 0; }
-.diff-slider-row label i { font-size: 8px; }
-.diff-slider-row input[type="range"] { 
-  width: 100%; 
-  height: 6px; 
-  border-radius: 3px;
-  background: color-mix(in srgb, var(--border) 40%, transparent);
-  outline: none;
-  -webkit-appearance: none;
-  appearance: none;
+/* Draggable Difficulty Bar */
+.draggable-bar { cursor: ew-resize; user-select: none; position: relative; }
+.draggable-bar > div { position: relative; transition: flex 0.2s ease; }
+.diff-bar-handle { 
+  position: absolute; 
+  right: -2px; 
+  top: 0; 
+  bottom: 0; 
+  width: 4px; 
+  background: rgba(255,255,255,0.5); 
+  cursor: ew-resize; 
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 10;
 }
-.diff-slider-row input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: var(--primary);
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-  transition: transform 0.15s ease;
-}
-.diff-slider-row input[type="range"]::-webkit-slider-thumb:hover {
-  transform: scale(1.15);
-}
-.diff-slider-row input[type="range"]::-moz-range-thumb {
-  width: 18px;
-  height: 18px;
-  border: 0;
-  border-radius: 50%;
-  background: var(--primary);
-  cursor: pointer;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-  transition: transform 0.15s ease;
-}
-.diff-slider-row input[type="range"]::-moz-range-thumb:hover {
-  transform: scale(1.15);
-}
-#diff-slider-easy::-webkit-slider-thumb { background: var(--success); }
-#diff-slider-easy::-moz-range-thumb { background: var(--success); }
-#diff-slider-medium::-webkit-slider-thumb { background: #f59e0b; }
-#diff-slider-medium::-moz-range-thumb { background: #f59e0b; }
-#diff-slider-hard::-webkit-slider-thumb { background: #ef4444; }
-#diff-slider-hard::-moz-range-thumb { background: #ef4444; }
+.draggable-bar:hover .diff-bar-handle { opacity: 1; }
+.diff-bar-handle:hover { background: rgba(255,255,255,0.9); }
 
 .exam-difficulty-legend i { width: 8px; height: 8px; border-radius: 50%; background: currentColor; }
 .exam-diff-easy { color: var(--diff-easy); }
