@@ -178,6 +178,36 @@
               </div>
             </div>
           </div>
+
+          <div class="study-utility-toolbar" id="study-utility-toolbar" aria-label="Tiện ích ôn tập">
+            <label class="study-toolbar-control study-toolbar-subject" title="Chọn học phần">
+              <span class="study-toolbar-subject-icon" aria-hidden="true">🎓</span>
+              <select id="global-subject-select" class="study-toolbar-select" aria-label="Chọn học phần ôn tập"></select>
+            </label>
+            <label class="study-toolbar-control study-toolbar-mode" title="Chế độ ôn tập">
+              <i class="fa-solid fa-bullseye" aria-hidden="true"></i>
+              <select id="study-mode-select" class="study-toolbar-select" aria-label="Chế độ ôn tập" onchange="switchTab(this.value)">
+                <option value="exam-tab">Thi thử</option>
+                <option value="practice-tab">Luyện tập</option>
+                <option value="bank-tab">Ngân hàng</option>
+                <option value="source-tab">AI sinh câu</option>
+                <option value="history-tab">Lịch sử</option>
+              </select>
+            </label>
+            <label class="study-toolbar-control study-toolbar-difficulty" title="Lọc theo độ khó">
+              <i class="fa-solid fa-chart-simple" aria-hidden="true"></i>
+              <select id="study-difficulty-select" class="study-toolbar-select" aria-label="Lọc theo độ khó" onchange="onStudyToolbarDifficultyChange(this.value)">
+                <option value="0">Độ khó · Tất cả</option>
+                <option value="1">Độ khó · Dễ</option>
+                <option value="2">Độ khó · Trung bình</option>
+                <option value="3">Độ khó · Khó</option>
+              </select>
+            </label>
+            <label class="study-toolbar-control study-toolbar-count" title="Số lượng câu hỏi">
+              <i class="fa-regular fa-clock" aria-hidden="true"></i>
+              <select id="study-count-select" class="study-toolbar-select" aria-label="Số lượng câu hỏi" onchange="onStudyToolbarCountChange(this.value)"></select>
+            </label>
+          </div>
         </div>
 
         <div class="top-header-right">
@@ -359,104 +389,96 @@
         <!-- ══════ PAGE 3: ÔN TẬP & KIỂM TRA (CHÍNH) ══════ -->
         <section id="page-ontap" class="page-container">
 
-          <!-- Ontap Sub-tabs Bar (Thi Thử, Luyện Tập, Ngân Hàng, AI Sinh Câu, Lịch Sử) -->
-          <div class="ontap-nav-wrapper">
-            <div class="ontap-nav-tabs">
-              <button id="nav-exam" class="tab-pill-btn active" onclick="switchTab('exam-tab')" title="Thi thử">
-                <i class="fa-solid fa-stopwatch"></i> <span>Thi Thử</span>
-              </button>
-              <button id="nav-practice" class="tab-pill-btn" onclick="switchTab('practice-tab')" title="Luyện tập">
-                <i class="fa-solid fa-book-open"></i> <span>Luyện Tập</span>
-              </button>
-              <button id="nav-bank" class="tab-pill-btn" onclick="switchTab('bank-tab')" title="Ngân hàng đề">
-                <i class="fa-solid fa-database"></i> <span>Ngân Hàng</span>
-              </button>
-              <button id="nav-source" class="tab-pill-btn" onclick="switchTab('source-tab')" title="AI Sinh Câu">
-                <i class="fa-solid fa-wand-magic-sparkles"></i> <span>AI Sinh Câu</span>
-              </button>
-              <button id="nav-history" class="tab-pill-btn" onclick="switchTab('history-tab')" title="Lịch sử">
-                <i class="fa-solid fa-chart-line"></i> <span>Lịch Sử</span>
-              </button>
-            </div>
-
-            <!-- Subject Select Dropdown -->
-            <div class="subject-pill-wrapper">
-              <select id="global-subject-select" class="subject-pill-select" title="Chọn Học Phần Ôn Tập">
-                <!-- Populated dynamically from subjects.js -->
-              </select>
-            </div>
-          </div>
-
-          <!-- Active Subject Banner Bar -->
-          <div id="subject-banner-bar" class="subject-banner-bar">
-            <div class="subject-banner-info">
-              <span class="subject-banner-badge" id="active-subject-code">FT4468</span>
-              <span class="subject-banner-name" id="active-subject-name">Quản lý chất lượng và luật thực phẩm</span>
-              <span class="subject-banner-credits" id="active-subject-credits">(3 Tín chỉ)</span>
-            </div>
-            <div class="subject-banner-filter">
-              <label for="block-filter-select" style="font-weight:600;font-size:13px;color:var(--text-secondary);">Khối kiến thức:</label>
-              <select id="block-filter-select" class="block-filter-select" onchange="onBlockFilterChange(this.value)">
-                <option value="ALL">🌟 Tất cả Khối kiến thức (35 Môn)</option>
-                <option value="CS_NGANH">🧪 Cơ sở ngành (17 Môn)</option>
-                <option value="DC_CHUNG">📚 Đại cương bắt buộc (12 Môn)</option>
-                <option value="DC_TUCHON">💡 Đại cương tự chọn (3 Môn)</option>
-                <option value="GDQP">🎖️ Quốc phòng & An ninh (4 Môn)</option>
-              </select>
-            </div>
-          </div>
-
           <!-- ══════ TAB 1: THI THỬ ══════ -->
           <section id="exam-tab" class="tab-content" role="main" aria-label="Thi thử">
 
             <!-- Start Screen -->
-            <div id="exam-start-card" class="card" style="max-width:640px;margin:0 auto;">
-              <div class="text-center" style="margin-bottom:24px;">
-                <div style="width:72px;height:72px;background:var(--primary-light);border-radius:var(--radius-xl);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;font-size:32px;">🎓</div>
-                <h1 style="font-size:22px;font-weight:800;margin-bottom:6px;">Đề Thi Thử Kết Thúc Học Phần</h1>
-                <p class="text-secondary text-sm">Hệ thống tự động tạo đề cân bằng độ khó từ ngân hàng câu hỏi đã chuẩn hóa.</p>
-              </div>
+            <div id="exam-start-card" class="card exam-start-screen">
+              <section class="exam-start-hero">
+                <div class="exam-start-hero-copy">
+                  <span class="exam-start-kicker"><i class="fa-solid fa-stopwatch" aria-hidden="true"></i> MÔ PHỎNG KỲ THI HỌC PHẦN</span>
+                  <h1 class="exam-start-title">Đề thi thử kết thúc học phần</h1>
+                  <p class="exam-start-description">Hệ thống tự động tạo đề cân bằng từ ngân hàng câu hỏi đã chuẩn hóa, giúp bạn làm quen cấu trúc đề và tự tin đánh giá kiến thức.</p>
+                </div>
+                <div class="exam-start-art" aria-hidden="true">
+                  <img src="/public/chibi.webp" alt="" fetchpriority="high">
+                </div>
+              </section>
 
-              <div class="exam-start-grid">
-                <div class="exam-info-tile">
-                  <label for="exam-question-count">Số câu hỏi</label>
-                  <select id="exam-question-count" onchange="updateExamDuration()">
-                    <option value="50">50 Câu (Tiêu chuẩn)</option>
-                    <option value="60">60 Câu</option>
-                    <option value="40">40 Câu</option>
-                    <option value="30">30 Câu</option>
-                  </select>
+              <section class="exam-config-panel" aria-labelledby="exam-config-title">
+                <div class="exam-config-heading">
+                  <div>
+                    <span class="exam-config-eyebrow">SẴN SÀNG BẮT ĐẦU</span>
+                    <h2 id="exam-config-title">Cấu hình bài thi</h2>
+                  </div>
+                  <span class="exam-standard-badge"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Đề thi chuẩn hóa</span>
                 </div>
-                <div class="exam-info-tile">
-                  <label>Thời gian</label>
-                  <span id="exam-duration-text" style="display:block;font-size:15px;font-weight:700;">50 phút</span>
-                </div>
-                <div class="exam-info-tile">
-                  <label>Điểm đạt</label>
-                  <span style="display:block;font-size:15px;font-weight:700;color:var(--success);">≥ 7.0 / 10</span>
-                </div>
-              </div>
 
-              <!-- Difficulty ratio visual -->
-              <div style="margin:16px 0;">
-                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-                  <span class="text-xs text-muted font-semibold" style="text-transform:uppercase;letter-spacing:.05em;">Phân bố độ khó bộ đề</span>
-                  <div style="display:flex;gap:12px;font-size:11px;">
-                    <span style="color:var(--diff-easy);">● Dễ 50%</span>
-                    <span style="color:var(--diff-medium);">● TB 30%</span>
-                    <span style="color:var(--diff-hard);">● Khó 20%</span>
+                <div class="exam-start-grid">
+                  <div class="exam-info-tile exam-info-count">
+                    <div class="exam-info-heading"><i class="fa-solid fa-list-ol" aria-hidden="true"></i><label for="exam-question-count">Số câu hỏi</label></div>
+                    <select id="exam-question-count" onchange="updateExamDuration()">
+                      <option value="50">50 câu (Tiêu chuẩn)</option>
+                      <option value="60">60 câu</option>
+                      <option value="40">40 câu</option>
+                      <option value="30">30 câu</option>
+                    </select>
+                  </div>
+                  <div class="exam-info-tile exam-info-duration">
+                    <div class="exam-info-heading"><i class="fa-regular fa-clock" aria-hidden="true"></i><label for="exam-duration-text">Thời gian</label></div>
+                    <span id="exam-duration-text">50 phút</span>
+                  </div>
+                  <div class="exam-info-tile exam-info-pass">
+                    <div class="exam-info-heading"><i class="fa-solid fa-bullseye" aria-hidden="true"></i><label>Điểm đạt</label></div>
+                    <span>≥ 7.0 / 10</span>
                   </div>
                 </div>
-                <div class="difficulty-bar" style="height:10px;">
-                  <div class="diff-bar-easy" style="flex:50;"></div>
-                  <div class="diff-bar-medium" style="flex:30;"></div>
-                  <div class="diff-bar-hard" style="flex:20;"></div>
-                </div>
-              </div>
 
-              <button class="btn btn-primary btn-lg btn-full" onclick="initiateExam()" id="btn-start-exam" style="margin-top:8px;">
-                <i class="fa-solid fa-play"></i> Bắt Đầu Làm Bài Thi
-              </button>
+                <div class="exam-start-difficulty">
+                  <div class="exam-difficulty-heading">
+                    <div><i class="fa-solid fa-chart-simple" aria-hidden="true"></i><span>Phân bố độ khó bộ đề</span></div>
+                    <div class="exam-difficulty-legend">
+                      <span class="exam-diff-easy"><i></i>Dễ <strong id="diff-easy-pct">50</strong>%</span>
+                      <span class="exam-diff-medium"><i></i>Trung bình <strong id="diff-medium-pct">30</strong>%</span>
+                      <span class="exam-diff-hard"><i></i>Khó <strong id="diff-hard-pct">20</strong>%</span>
+                    </div>
+                  </div>
+                  
+                  <!-- Difficulty Sliders -->
+                  <div class="difficulty-sliders">
+                    <div class="diff-slider-row">
+                      <label><i class="fa-solid fa-circle" style="color: var(--success);"></i> Dễ</label>
+                      <input type="range" id="diff-slider-easy" min="0" max="100" value="50" step="5" oninput="adjustDifficultyRatio('easy', this.value)">
+                    </div>
+                    <div class="diff-slider-row">
+                      <label><i class="fa-solid fa-circle" style="color: #f59e0b;"></i> TB</label>
+                      <input type="range" id="diff-slider-medium" min="0" max="100" value="30" step="5" oninput="adjustDifficultyRatio('medium', this.value)">
+                    </div>
+                    <div class="diff-slider-row">
+                      <label><i class="fa-solid fa-circle" style="color: #ef4444;"></i> Khó</label>
+                      <input type="range" id="diff-slider-hard" min="0" max="100" value="20" step="5" oninput="adjustDifficultyRatio('hard', this.value)">
+                    </div>
+                  </div>
+
+                  <div class="difficulty-bar exam-start-difficulty-bar" id="exam-start-diff-bar" aria-label="Dễ 50 phần trăm, trung bình 30 phần trăm, khó 20 phần trăm">
+                    <div class="diff-bar-easy" style="flex:50;"></div>
+                    <div class="diff-bar-medium" style="flex:30;"></div>
+                    <div class="diff-bar-hard" style="flex:20;"></div>
+                  </div>
+                </div>
+
+                <button class="btn btn-primary btn-lg btn-full exam-start-submit" onclick="initiateExam()" id="btn-start-exam">
+                  <i class="fa-solid fa-play" aria-hidden="true"></i> Bắt đầu làm bài thi
+                  <i class="fa-solid fa-arrow-right exam-start-submit-arrow" aria-hidden="true"></i>
+                </button>
+
+                <div class="exam-start-footer">
+                  <span><i class="fa-regular fa-clock" aria-hidden="true"></i><strong id="exam-duration-footer">50 phút làm bài</strong></span>
+                  <span class="exam-footer-divider"></span>
+                  <span><i class="fa-solid fa-rectangle-list" aria-hidden="true"></i><strong id="exam-count-footer">50 câu hỏi</strong></span>
+                  <span class="exam-start-footer-note">Làm bài nghiêm túc, kết quả sẽ đến!</span>
+                </div>
+              </section>
             </div>
 
             <!-- Active Exam View -->
@@ -531,7 +553,7 @@
 
             <!-- Exam Result Card -->
             <div id="exam-result-card" class="hidden" style="max-width:820px;margin:0 auto;">
-              <div class="card" style="margin-bottom:16px;">
+              <div id="exam-result-summary" class="card" style="margin-bottom:16px;">
                 <div class="text-center" style="margin-bottom:20px;">
                   <span id="result-status-badge" class="badge badge-success" style="font-size:13px;padding:6px 16px;">ĐẠT YÊU CẦU</span>
                   <h2 style="font-size:24px;font-weight:800;margin-top:12px;">Kết Quả Bài Thi</h2>
@@ -585,6 +607,9 @@
                   <button class="btn btn-primary" onclick="initiateExam()">
                     <i class="fa-solid fa-rotate-right"></i> Thi Lại Đề Khác
                   </button>
+                  <button id="btn-practice-wrong" class="btn btn-secondary hidden" onclick="startWrongQuestionPractice()">
+                    <i class="fa-solid fa-repeat"></i> Luyện lại câu sai
+                  </button>
                   <button class="btn btn-secondary" onclick="toggleReviewDetails()">
                     <i class="fa-solid fa-list-check"></i> Xem Chi Tiết Đáp Án
                   </button>
@@ -592,6 +617,29 @@
                     <i class="fa-solid fa-chart-line"></i> Xem Lịch Sử
                   </button>
                 </div>
+              </div>
+
+              <div id="exam-chapter-practice-container" class="hidden" style="margin-bottom:16px;">
+                <div class="flex justify-between items-center flex-wrap gap-3" style="margin-bottom:16px;">
+                  <div>
+                    <h3 id="exam-chapter-practice-title" style="font-size:16px;font-weight:700;"></h3>
+                    <p id="exam-chapter-practice-count" class="text-xs text-muted" style="margin-top:4px;"></p>
+                  </div>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="returnFromExamChapterPractice()">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại kết quả
+                  </button>
+                </div>
+                <div id="exam-chapter-practice-list"></div>
+              </div>
+
+              <div id="exam-wrong-practice-container" class="hidden" style="margin-bottom:16px;">
+                <div class="flex justify-between items-center flex-wrap gap-3" style="margin-bottom:16px;">
+                  <h3 style="font-size:16px;font-weight:700;">Luyện lại câu sai và câu bỏ trống</h3>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="returnToExamResult()">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại kết quả
+                  </button>
+                </div>
+                <div id="exam-wrong-practice-list"></div>
               </div>
 
               <!-- Detailed Review Section -->
@@ -604,6 +652,32 @@
 
           <!-- ══════ TAB 2: LUYỆN TẬP ══════ -->
           <section id="practice-tab" class="tab-content" role="main" aria-label="Luyện tập">
+            <div id="spaced-review-section" class="card hidden" style="max-width:720px;margin:0 auto 24px;">
+              <div class="flex justify-between items-center flex-wrap gap-3">
+                <div>
+                  <h2 style="font-size:18px;font-weight:700;">Câu cần ôn hôm nay</h2>
+                  <p class="text-sm text-muted" style="margin-top:4px;">Lịch khởi đầu 1, 3, 7 ngày; tài khoản đăng nhập có lịch riêng, còn khách lưu lịch theo tab trình duyệt hiện tại. Dữ liệu chưa đồng bộ giữa các thiết bị.</p>
+                </div>
+                <span class="badge badge-primary"><span id="spaced-review-due-count">0</span> câu đến hạn</span>
+              </div>
+              <button id="spaced-review-start" type="button" class="btn btn-primary btn-sm" style="margin-top:12px;" onclick="startSpacedReviewSession()">
+                <i class="fa-solid fa-book-open"></i> Bắt đầu ôn
+              </button>
+              <div id="spaced-review-session" class="hidden" style="margin-top:16px;">
+                <div class="flex justify-between items-center flex-wrap gap-3" style="margin-bottom:12px;">
+                  <p class="text-sm" aria-live="polite">
+                    Đến hạn: <strong id="spaced-review-session-total">0</strong> ·
+                    Đã làm: <strong id="spaced-review-session-done">0</strong> ·
+                    Còn lại: <strong id="spaced-review-session-remaining">0</strong>
+                  </p>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="leaveSpacedReviewSession()">
+                    <i class="fa-solid fa-arrow-right-from-bracket"></i> Rời phiên ôn
+                  </button>
+                </div>
+                <div id="spaced-review-question-list"></div>
+              </div>
+            </div>
+
             <div class="card" style="max-width:680px;margin:0 auto 24px;">
               <h2 style="font-size:18px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:10px;">
                 <i class="fa-solid fa-sliders" style="color:var(--primary);"></i> Cấu Hình Bài Luyện Tập
@@ -3047,6 +3121,8 @@
     function updateExamDuration() {
       const count = parseInt(document.getElementById('exam-question-count').value) || 50;
       document.getElementById('exam-duration-text').textContent = count + ' phút';
+      document.getElementById('exam-duration-footer').textContent = count + ' phút làm bài';
+      document.getElementById('exam-count-footer').textContent = count + ' câu hỏi';
     }
 
     // 🤖 Official page-mascot Component Engine (Ported to Vanilla JS)

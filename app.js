@@ -8,6 +8,7 @@ import { AIPool } from './modules/aiPool.js?v=20260926-approved-study-tools';
 import { Generator } from './modules/generator.js';
 import { ExamEngine, ExamTimer } from './modules/exam.js';
 import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion } from './modules/cera.js';
+import { searchSubjectKnowledge } from './modules/knowledgeBase.js';
 import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer, pullFeedbacksFromServer, pullSubjectDetailsFromServer } from './modules/sync.js?v=20260908subject-details-api1';
 import { initAdminAuth } from './modules/admin.js';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js?v=20260901c';
@@ -124,7 +125,11 @@ const State = {
   },
   practice: {
     selectedCount: 10,
+    selectedDifficulty: 0,
     selectedChapter: 0,
+    returnToReview: false,
+    spacedReviewSession: null,
+    examChapterSession: null,
   },
   bank: {
     page: 1,
@@ -341,6 +346,10 @@ async function init() {
    TAB NAVIGATION
 ════════════════════════════════════════════════════ */
 function switchTab(tabId) {
+  if (State.practice.examChapterSession && tabId !== 'exam-tab') {
+    returnFromExamChapterPractice();
+  }
+
   document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
   document.querySelectorAll('.tab-pill-btn').forEach(btn => btn.classList.remove('active'));
 
@@ -366,21 +375,28 @@ function switchTab(tabId) {
   if (snavEl) snavEl.classList.add('active');
 
   State.currentTab = tabId;
+  syncStudyToolbar();
 
   if (tabId === 'bank-tab') renderBankTab();
   if (tabId === 'source-tab') renderSourceTab();
   if (tabId === 'history-tab') renderHistoryTab();
+  if (tabId === 'practice-tab') renderSpacedReviewOverview();
 }
 
 /* ════════════════════════════════════════════════════
    EXAM MODE
 ════════════════════════════════════════════════════ */
 function initiateExam() {
+  if (document.getElementById('cera-send-btn')?.disabled) {
+    showToast('Vui lòng chờ Cera trả lời xong trước khi bắt đầu thi thử.', 'warning');
+    return;
+  }
+
   const count = parseInt(document.getElementById('exam-question-count').value) || 50;
   const chFilter = parseInt(document.getElementById('exam-chapter-filter')?.value || 0);
   const settings = DB.getSettings();
 
-  const result = ExamEngine.buildBalancedPaper(count, settings.diffRatio, chFilter);
+  const result = ExamEngine.buildBalancedPaper(count, settings.diffRatio, chFilter, State.practice.selectedDifficulty);
 
   if (!result || result.questions.length === 0) {
     showToast('Ngân hàng câu hỏi chưa đủ! Vui lòng thêm câu hỏi trước.', 'error');
@@ -404,6 +420,13 @@ function initiateExam() {
   hide('exam-start-card');
   hide('exam-result-card');
   show('exam-active-card');
+
+  const ceraPanel = document.getElementById('cera-panel');
+  if (ceraPanel?.classList.contains('is-open')) {
+    ceraPanel.classList.remove('is-open');
+    ceraPanel.setAttribute('aria-hidden', 'true');
+    document.getElementById('cera-fab')?.classList.remove('is-open');
+  }
 
   renderExamQuestion();
   renderPalette();
@@ -535,6 +558,47 @@ function confirmSubmitExam() {
   openModal('modal-confirm-submit');
 }
 
+let _spacedReviewGuestId = null;
+function getSpacedReviewUserId() {
+  const user = AuthModule.user || NavController.currentUser || {};
+  if (user.uid) return String(user.uid);
+  if (user.email) return String(user.email).trim().toLowerCase();
+
+  if (_spacedReviewGuestId) return _spacedReviewGuestId;
+  const guestStorageKey = 'qlcl_spaced_review_guest_id';
+  try {
+    _spacedReviewGuestId = sessionStorage.getItem(guestStorageKey);
+  } catch { /* Dùng ID trong bộ nhớ nếu trình duyệt chặn sessionStorage. */ }
+  if (!_spacedReviewGuestId) {
+    const randomId = window.crypto?.randomUUID?.() || `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    _spacedReviewGuestId = `guest:${randomId}`;
+    try { sessionStorage.setItem(guestStorageKey, _spacedReviewGuestId); } catch { /* ID vẫn ổn định trong tab hiện tại. */ }
+  }
+  return _spacedReviewGuestId;
+}
+
+function queueExamReviewQuestions(result) {
+  const missed = result.questionResults
+    .filter(question => !question.isCorrect)
+    .map(questionResult => {
+      const question = State.exam.questions[questionResult.idx] || questionResult;
+      return { ...question, subjectId: question.subjectId || DB.getActiveSubject() };
+    });
+
+  if (!missed.length) return { missed: 0, added: 0 };
+
+  try {
+    return {
+      missed: missed.length,
+      added: DB.addQuestionsToSpacedReview(getSpacedReviewUserId(), missed),
+    };
+  } catch (error) {
+    console.warn('[Spaced Review] Không thể lưu hàng đợi ôn tập:', error);
+    showToast('Không thể lưu câu cần ôn trên thiết bị này.', 'warning');
+    return { missed: missed.length, added: 0 };
+  }
+}
+
 function finishExam() {
   State.exam.timer?.stop();
   closeModal('modal-confirm-submit');
@@ -560,6 +624,13 @@ function finishExam() {
     meta: State.exam.meta,
   });
 
+  const reviewQueue = queueExamReviewQuestions(result);
+  if (reviewQueue.added > 0) {
+    showToast(`Đã thêm ${reviewQueue.added} câu vào danh sách Câu cần ôn hôm nay.`, 'success');
+  } else if (reviewQueue.missed > 0) {
+    showToast('Các câu sai/bỏ trống đã có trong lịch ôn; lịch hiện tại được giữ nguyên.', 'info');
+  }
+
   hide('exam-active-card');
   show('exam-result-card');
   renderExamResult(result);
@@ -568,6 +639,10 @@ function finishExam() {
 function renderExamResult(result) {
   const score10 = result.score10;
   const pct = result.pct;
+  const practiceWrongButton = document.getElementById('btn-practice-wrong');
+  if (practiceWrongButton) {
+    practiceWrongButton.classList.toggle('hidden', !result.questionResults.some(question => !question.isCorrect));
+  }
 
   // Vòng điểm conic gradient
   const ring = document.getElementById('result-score-ring');
@@ -606,6 +681,35 @@ function renderExamResult(result) {
       <div class="chapter-bar-track">
         <div class="chapter-bar-fill" style="width:${chPct}%;background:${chColors[ch] || '#6366f1'}"></div>
       </div>`;
+
+    const wrongBySubject = new Map();
+    result.questionResults.forEach(questionResult => {
+      if (String(questionResult.chapter) !== String(ch) || questionResult.isCorrect) return;
+      const examQuestion = State.exam.questions[questionResult.idx] || questionResult;
+      const subjectId = String(examQuestion.subjectId || DB.getActiveSubject());
+      const current = wrongBySubject.get(subjectId) || 0;
+      wrongBySubject.set(subjectId, current + 1);
+    });
+
+    if (wrongBySubject.size) {
+      const actions = document.createElement('div');
+      actions.className = 'flex gap-2 flex-wrap';
+      actions.style.marginTop = '8px';
+      wrongBySubject.forEach((wrongCount, subjectId) => {
+        const subject = getSubjectById(subjectId);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn btn-secondary btn-sm';
+        button.textContent = wrongBySubject.size > 1 && subject?.name
+          ? `Luyện chương này · ${subject.name}`
+          : 'Luyện chương này';
+        button.title = `${subject?.name || subjectId}: ${wrongCount} câu sai hoặc bỏ trống`;
+        button.addEventListener('click', () => startExamChapterPractice(Number(ch), subjectId));
+        actions.appendChild(button);
+      });
+      row.appendChild(actions);
+    }
+
     barsEl.appendChild(row);
   });
 
@@ -650,6 +754,90 @@ function renderExamResult(result) {
   document.getElementById('exam-review-container').classList.add('hidden');
 }
 
+function startExamChapterPractice(chapterId, subjectId) {
+  const result = State.exam.result;
+  if (!result) return;
+
+  const examQuestions = State.exam.questions.filter(question =>
+    String(question.chapter) === String(chapterId) &&
+    String(question.subjectId || DB.getActiveSubject()) === String(subjectId)
+  );
+  if (!examQuestions.length) {
+    showToast('Không còn câu thi thuộc môn và chương này để xác định phạm vi ôn.', 'warning');
+    return;
+  }
+
+  const questions = ExamEngine.buildPracticePaper(10, chapterId, {
+    subjectId,
+    excludeQuestions: examQuestions,
+  });
+  if (!questions.length) {
+    const subject = getSubjectById(subjectId);
+    showToast(`Không có câu hợp lệ trong ${CHAPTERS[chapterId] || `Chương ${chapterId}`} · ${subject?.name || subjectId}.`, 'info');
+    return;
+  }
+
+  const review = document.getElementById('exam-review-container');
+  State.practice.examChapterSession = {
+    chapterId,
+    subjectId,
+    questions,
+    returnToReview: Boolean(review && !review.classList.contains('hidden')),
+  };
+  hide('exam-result-summary');
+  hide('exam-review-container');
+  hide('exam-wrong-practice-container');
+  show('exam-chapter-practice-container');
+
+  const subject = getSubjectById(subjectId);
+  document.getElementById('exam-chapter-practice-title').textContent =
+    `${subject?.name || subjectId} · ${CHAPTERS[chapterId] || `Chương ${chapterId}`}`;
+  document.getElementById('exam-chapter-practice-count').textContent = `Lượt luyện ngắn · ${questions.length} câu`;
+  renderPracticeQuestions(
+    questions,
+    document.getElementById('exam-chapter-practice-list'),
+    'exam-chapter-practice',
+    (question, selectedOption, card) => showChapterPracticeCeraAction(question, selectedOption, subjectId, card)
+  );
+  document.getElementById('exam-chapter-practice-container').scrollIntoView({ behavior: 'smooth' });
+}
+
+function showChapterPracticeCeraAction(question, selectedOption, subjectId, card) {
+  const subject = getSubjectById(subjectId);
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'btn btn-primary btn-sm';
+  button.style.marginTop = '10px';
+  button.textContent = 'Hỏi Cera về câu này';
+  button.addEventListener('click', () => openCeraForExamQuestion({
+    ...question,
+    subjectId,
+    subjectName: subject?.name || subjectId,
+    chapterName: CHAPTERS[question.chapter] || `Chương ${question.chapter}`,
+    userAns: selectedOption,
+    isExamReview: true,
+  }));
+  card.appendChild(button);
+}
+
+function returnFromExamChapterPractice() {
+  const session = State.practice.examChapterSession;
+  if (!session) return;
+
+  hide('exam-chapter-practice-container');
+  show('exam-result-summary');
+  if (session.returnToReview) show('exam-review-container');
+  State.practice.examChapterSession = null;
+  document.getElementById('exam-result-card')?.scrollIntoView({ behavior: 'smooth' });
+}
+
+function closeChapterPracticeForScopeChange(nextSubjectId) {
+  const session = State.practice.examChapterSession;
+  if (!session || String(nextSubjectId) === String(session.subjectId)) return;
+  returnFromExamChapterPractice();
+  showToast('Đã đóng lượt luyện vì môn học được thay đổi. Kết quả thi vẫn được giữ.', 'info');
+}
+
 function toggleReviewDetails() {
   const container = document.getElementById('exam-review-container');
   const isHidden = container.classList.contains('hidden');
@@ -675,8 +863,11 @@ function renderExamReviewList() {
       if (oi === qr.correct) style += 'background:var(--success-light);border:1px solid #a7f3d0;color:#065f46;font-weight:600;';
       else if (oi === qr.userAns && !qr.isCorrect) style += 'background:var(--danger-light);border:1px solid #fca5a5;color:#991b1b;font-weight:600;';
       else style += 'background:var(--bg-subtle);border:1px solid var(--border);color:var(--text-muted);';
-      return `<div style="${style}"><b>${labels[oi]}.</b> ${opt}</div>`;
+      return `<div style="${style}"><b>${labels[oi]}.</b> ${escapeHtml(opt)}</div>`;
     }).join('');
+    const answerSummary = Number.isInteger(qr.userAns)
+      ? `Bạn đã chọn ${labels[qr.userAns]}. ${escapeHtml(qr.options[qr.userAns] || '')}`
+      : 'Bạn chưa trả lời câu này.';
 
     card.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -685,13 +876,139 @@ function renderExamReviewList() {
         </span>
         <span class="badge badge-${getDiffClass(qr.difficulty)}">${getDiffLabel(qr.difficulty)}</span>
       </div>
-      <p style="font-weight:600;font-size:14px;margin-bottom:10px;">${qr.q}</p>
+      <p style="font-weight:600;font-size:14px;margin-bottom:10px;">${escapeHtml(qr.q)}</p>
+      <p style="font-size:12px;color:var(--text-secondary);margin-bottom:8px;">${answerSummary}</p>
       ${optsHtml}
       <div style="margin-top:10px;padding:10px 12px;background:var(--bg-card);border-radius:var(--radius-sm);border-left:3px solid var(--primary);font-size:12px;color:var(--text-secondary);">
-        <strong style="color:var(--primary);">Giải thích:</strong> ${qr.exp}
+        <strong style="color:var(--primary);">Giải thích:</strong> ${escapeHtml(qr.exp || 'Chưa có lời giải cho câu hỏi này.')}
       </div>`;
+
+    if (!qr.isCorrect) {
+      const sourceQuestion = State.exam.questions[qr.idx] || qr;
+      const activeSubjectId = DB.getActiveSubject();
+      const subjectId = sourceQuestion.subjectId || (activeSubjectId !== 'ALL' ? activeSubjectId : null);
+      const subject = getSubjectById(subjectId);
+      const questionContext = {
+        ...sourceQuestion,
+        ...qr,
+        subjectId,
+        subjectName: subject?.name || subjectId || 'Chưa xác định',
+        chapterName: CHAPTERS[qr.chapter] || (qr.chapter ? `Chương ${qr.chapter}` : 'Chưa xác định'),
+        isExamReview: true,
+      };
+
+      const actions = document.createElement('div');
+      actions.style.cssText = 'display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;';
+      const ceraButton = document.createElement('button');
+      ceraButton.type = 'button';
+      ceraButton.className = 'btn btn-primary btn-sm';
+      ceraButton.textContent = 'Hỏi Cera về câu này';
+      ceraButton.addEventListener('click', () => openCeraForExamQuestion(questionContext));
+      actions.appendChild(ceraButton);
+
+      const sourceButton = document.createElement('button');
+      sourceButton.type = 'button';
+      sourceButton.className = 'btn btn-secondary btn-sm';
+      sourceButton.textContent = 'Tìm kiến thức liên quan';
+      const sourceStatus = document.createElement('div');
+      sourceStatus.setAttribute('aria-live', 'polite');
+      sourceStatus.style.cssText = 'flex-basis:100%;font-size:12px;color:var(--text-muted);';
+      sourceButton.addEventListener('click', () => findExamReviewSources(questionContext, sourceButton, sourceStatus));
+      actions.append(sourceButton, sourceStatus);
+      card.appendChild(actions);
+    }
+
     list.appendChild(card);
   });
+}
+
+function openCeraForExamQuestion(question) {
+  const panel = document.getElementById('cera-panel');
+  const input = document.getElementById('cera-input');
+  if (!panel || !input || typeof setCurrentQuestion !== 'function') {
+    showToast('Chưa thể mở Cera cho câu hỏi này.', 'error');
+    return;
+  }
+
+  _ceraReviewContext = question;
+  setCurrentQuestion(question);
+  const opened = panel.classList.contains('is-open') || toggleCeraChat();
+  if (!panel.classList.contains('is-open')) {
+    _ceraReviewContext = null;
+    setCurrentQuestion(null);
+    if (opened !== false) showToast('Không thể mở Cera lúc này. Vui lòng thử lại sau.', 'error');
+    return;
+  }
+
+  updateCeraContextUI(question);
+  const labels = ['A', 'B', 'C', 'D'];
+  const correctLabel = labels[question.correct] || 'đáp án đúng';
+  const selectedLabel = Number.isInteger(question.userAns) ? labels[question.userAns] : null;
+  input.value = `Giải thích giúp mình câu này, vì sao đáp án ${correctLabel} đúng${selectedLabel ? ` và vì sao lựa chọn ${selectedLabel} của mình chưa đúng` : '. Mình đã bỏ trống câu này'}.`;
+  input.style.height = 'auto';
+  input.style.height = `${Math.min(input.scrollHeight, 120)}px`;
+  input.focus();
+}
+
+function findExamReviewSources(question, button, status) {
+  if (button.disabled) return;
+  button.disabled = true;
+  button.textContent = 'Đang tìm tài liệu...';
+  status.textContent = 'Đang tìm trong tài liệu đã xuất bản...';
+
+  window.setTimeout(() => {
+    try {
+      const query = [question.q, question.options?.[question.correct], question.exp].filter(Boolean).join(' ');
+      const sources = searchSubjectKnowledge(query, question.subjectId, 20)
+        .filter(source => source.score >= 3)
+        .sort((a, b) => Number(b.kind === 'lesson') - Number(a.kind === 'lesson') || b.score - a.score)
+        .slice(0, 3);
+
+      status.replaceChildren();
+      if (!sources.length) {
+        status.textContent = 'Chưa tìm thấy nguồn đủ sát trong môn học này. Lời giải câu hỏi vẫn được giữ ở trên.';
+        button.textContent = 'Tìm lại tài liệu';
+        button.disabled = false;
+        return;
+      }
+
+      const heading = document.createElement('p');
+      heading.textContent = 'Nguồn có từ khóa liên quan; hãy đối chiếu tiêu đề và trích đoạn:';
+      status.appendChild(heading);
+      sources.forEach(source => {
+        const item = document.createElement('div');
+        item.style.cssText = 'margin-top:8px;padding-top:8px;border-top:1px solid var(--border);';
+        const title = document.createElement('strong');
+        const kindLabel = source.kind === 'lesson' ? 'Bài học' : source.kind === 'chapter' ? 'Gợi ý chương' : 'Tài liệu tham khảo';
+        title.textContent = `${kindLabel}: ${source.title}`;
+        const excerpt = document.createElement('p');
+        excerpt.textContent = source.excerpt;
+        excerpt.style.cssText = 'margin:4px 0 8px;color:var(--text-secondary);';
+        item.append(title, excerpt);
+
+        if (source.kind === 'lesson' && source.readerContext?.subjectId && source.readerContext?.lessonId) {
+          const link = document.createElement('button');
+          link.type = 'button';
+          link.className = 'btn btn-secondary btn-sm';
+          link.textContent = 'Mở bài học';
+          link.addEventListener('click', () => NavController.openStudyReader(source.readerContext));
+          item.appendChild(link);
+        } else if (source.kind === 'chapter') {
+          const note = document.createElement('p');
+          note.textContent = 'Mới khớp mô tả chung của chương; chưa xác định được bài học cụ thể.';
+          note.style.cssText = 'margin:0;color:var(--text-muted);';
+          item.appendChild(note);
+        }
+        status.appendChild(item);
+      });
+      button.remove();
+    } catch (error) {
+      console.error('[Exam Review] Không thể tìm tài liệu liên quan:', error);
+      status.textContent = 'Chưa thể tìm tài liệu lúc này. Lời giải câu hỏi vẫn được giữ ở trên.';
+      button.textContent = 'Thử tìm lại';
+      button.disabled = false;
+    }
+  }, 0);
 }
 
 /* ════════════════════════════════════════════════════
@@ -703,7 +1020,7 @@ function startPracticeMode() {
     ? DB.getBank().length
     : parseInt(State.practice.selectedCount);
 
-  const questions = ExamEngine.buildPracticePaper(count, chVal);
+  const questions = ExamEngine.buildPracticePaper(count, chVal, { difficulty: State.practice.selectedDifficulty });
 
   if (!questions.length) {
     showToast('Không có câu hỏi phù hợp!', 'error');
@@ -711,61 +1028,306 @@ function startPracticeMode() {
   }
 
   const wrapper = document.getElementById('practice-questions-wrapper');
-  wrapper.innerHTML = '';
   show('practice-session-container');
-
-  const labels = ['A', 'B', 'C', 'D'];
-  questions.forEach((q, idx) => {
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.style.marginBottom = '16px';
-
-    card.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <span class="badge badge-primary">${CHAPTERS[q.chapter] || 'Chương ' + q.chapter}</span>
-        <div style="display:flex;gap:6px;align-items:center;">
-          <span class="badge badge-${getDiffClass(q.difficulty)}">${getDiffLabel(q.difficulty)}</span>
-          <span class="text-xs text-muted">Câu ${idx + 1}/${questions.length}</span>
-        </div>
-      </div>
-      <h3 style="font-weight:600;font-size:14px;margin-bottom:14px;line-height:1.6;">${q.q}</h3>
-      <div id="prac-opts-${idx}" class="space-y-3">
-        ${q.options.map((opt, oi) => `
-          <button type="button" class="option-btn" onclick="checkPracticeAnswer(${idx}, ${oi}, ${q.correct})">
-            <span class="option-label">${labels[oi]}</span>
-            <span>${opt}</span>
-          </button>`).join('')}
-      </div>
-      <div id="prac-exp-${idx}" class="hidden" style="margin-top:12px;padding:12px;background:var(--primary-light);border-radius:var(--radius-md);border-left:3px solid var(--primary);font-size:12px;color:var(--text-primary);">
-        <strong style="color:var(--primary);">Giải thích:</strong> ${q.exp}
-      </div>`;
-
-    wrapper.appendChild(card);
-  });
+  renderPracticeQuestions(questions, wrapper, 'prac');
 
   // Scroll to practice session
   document.getElementById('practice-session-container').scrollIntoView({ behavior: 'smooth' });
 }
 
-function checkPracticeAnswer(qIdx, selectedOpt, correctOpt) {
-  const container = document.getElementById(`prac-opts-${qIdx}`);
+function startWrongQuestionPractice() {
+  const result = State.exam.result;
+  const questions = result?.questionResults?.filter(question => !question.isCorrect) || [];
+  if (!questions.length) return;
+
+  const review = document.getElementById('exam-review-container');
+  State.practice.returnToReview = Boolean(review && !review.classList.contains('hidden'));
+  hide('exam-result-summary');
+  hide('exam-review-container');
+  show('exam-wrong-practice-container');
+  renderPracticeQuestions(questions, document.getElementById('exam-wrong-practice-list'), 'exam-review');
+  document.getElementById('exam-wrong-practice-container').scrollIntoView({ behavior: 'smooth' });
+}
+
+function returnToExamResult() {
+  hide('exam-wrong-practice-container');
+  show('exam-result-summary');
+  if (State.practice.returnToReview) show('exam-review-container');
+  State.practice.returnToReview = false;
+  document.getElementById('exam-result-card')?.scrollIntoView({ behavior: 'smooth' });
+}
+
+function renderPracticeQuestions(questions, wrapper, idPrefix, onAnswered = null) {
+  if (!wrapper) return;
+  wrapper.replaceChildren();
+  const labels = ['A', 'B', 'C', 'D'];
+
+  questions.forEach((question, idx) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.marginBottom = '16px';
+    card.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <span class="badge badge-primary">${escapeHtml(CHAPTERS[question.chapter] || `Chương ${question.chapter ?? ''}`)}</span>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <span class="badge badge-${getDiffClass(question.difficulty)}">${getDiffLabel(question.difficulty)}</span>
+          <span class="text-xs text-muted">Câu ${idx + 1}/${questions.length}</span>
+        </div>
+      </div>
+      <h3 style="font-weight:600;font-size:14px;margin-bottom:14px;line-height:1.6;">${escapeHtml(question.q || '')}</h3>
+      <div id="${idPrefix}-opts-${idx}" class="space-y-3"></div>
+      <div id="${idPrefix}-exp-${idx}" class="hidden" style="margin-top:12px;padding:12px;background:var(--primary-light);border-radius:var(--radius-md);border-left:3px solid var(--primary);font-size:12px;color:var(--text-primary);">
+        <strong style="color:var(--primary);">Giải thích:</strong> ${escapeHtml(question.exp || 'Chưa có lời giải cho câu hỏi này.')}
+      </div>`;
+
+    const options = card.querySelector(`#${idPrefix}-opts-${idx}`);
+    question.options.forEach((option, optionIndex) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'option-btn';
+      const label = document.createElement('span');
+      label.className = 'option-label';
+      label.textContent = labels[optionIndex];
+      const text = document.createElement('span');
+      text.textContent = option;
+      button.append(label, text);
+      button.addEventListener('click', () => {
+        checkPracticeAnswer(idx, optionIndex, question.correct, idPrefix);
+        onAnswered?.(question, optionIndex, card);
+      });
+      options.appendChild(button);
+    });
+
+    wrapper.appendChild(card);
+  });
+}
+
+function checkPracticeAnswer(qIdx, selectedOpt, correctOpt, idPrefix = 'prac') {
+  const container = document.getElementById(`${idPrefix}-opts-${qIdx}`);
   if (!container) return;
+  if (container.dataset.answered === 'true') return;
+  container.dataset.answered = 'true';
   const buttons = container.querySelectorAll('.option-btn');
 
   buttons.forEach((btn, idx) => {
+    btn.disabled = true;
     btn.classList.add('disabled');
     if (idx === correctOpt) btn.classList.add('correct');
     else if (idx === selectedOpt && selectedOpt !== correctOpt) btn.classList.add('wrong');
     else btn.style.opacity = '0.5';
   });
 
-  document.getElementById(`prac-exp-${qIdx}`).classList.remove('hidden');
+  document.getElementById(`${idPrefix}-exp-${qIdx}`)?.classList.remove('hidden');
+}
+
+async function renderSpacedReviewOverview() {
+  const section = document.getElementById('spaced-review-section');
+  if (!section) return;
+
+  let dueItems = [];
+
+  try {
+    await window.ensureStudySeed?.();
+    const userId = getSpacedReviewUserId();
+    const activeSubject = DB.getActiveSubject();
+    const subjectFilter = activeSubject === 'ALL' ? null : activeSubject;
+    const session = State.practice.spacedReviewSession;
+    if (session && (session.userId !== userId || session.subjectFilter !== subjectFilter)) {
+      State.practice.spacedReviewSession = null;
+    }
+    const currentSession = State.practice.spacedReviewSession;
+    dueItems = DB.getDueSpacedReviewItems(userId, subjectFilter);
+
+    section.classList.toggle('hidden', !currentSession && dueItems.length === 0);
+    document.getElementById('spaced-review-due-count').textContent = String(currentSession?.items.length || dueItems.length);
+    if (currentSession) {
+      hide('spaced-review-start');
+      show('spaced-review-session');
+      updateSpacedReviewProgress(currentSession);
+    } else {
+      show('spaced-review-start');
+      hide('spaced-review-session');
+    }
+  } catch (error) {
+    console.warn('[Spaced Review] Không thể đọc danh sách ôn tập:', error);
+    showToast('Không thể tải ngân hàng câu hỏi để kiểm tra lịch ôn.', 'warning');
+  }
+}
+
+async function startSpacedReviewSession() {
+  const startButton = document.getElementById('spaced-review-start');
+  if (startButton?.disabled) return;
+  if (startButton) startButton.disabled = true;
+
+  let items = [];
+  let userId = '';
+
+  try {
+    await window.ensureStudySeed?.();
+    userId = getSpacedReviewUserId();
+    const activeSubject = DB.getActiveSubject();
+    const subjectFilter = activeSubject === 'ALL' ? null : activeSubject;
+    items = DB.getDueSpacedReviewItems(userId, subjectFilter);
+  } catch (error) {
+    console.warn('[Spaced Review] Không thể mở phiên ôn tập:', error);
+    showToast('Không thể tải câu cần ôn trên thiết bị này.', 'error');
+    return;
+  } finally {
+    if (startButton) startButton.disabled = false;
+  }
+
+  if (!items.length) {
+    renderSpacedReviewOverview();
+    showToast('Hiện không có câu nào đến hạn ôn.', 'info');
+    return;
+  }
+
+  State.practice.spacedReviewSession = {
+    userId,
+    subjectFilter: DB.getActiveSubject() === 'ALL' ? null : DB.getActiveSubject(),
+    items: items.map(item => ({ ...item, answered: false, isCorrect: null })),
+  };
+  renderSpacedReviewOverview();
+  renderSpacedReviewQuestions();
+  document.getElementById('spaced-review-session')?.scrollIntoView({ behavior: 'smooth' });
+}
+
+function renderSpacedReviewQuestions() {
+  const wrapper = document.getElementById('spaced-review-question-list');
+  const session = State.practice.spacedReviewSession;
+  if (!wrapper || !session) return;
+  wrapper.replaceChildren();
+
+  const labels = ['A', 'B', 'C', 'D'];
+  session.items.forEach((item, index) => {
+    const question = item.question;
+    const card = document.createElement('article');
+    card.className = 'card';
+    card.style.marginBottom = '12px';
+
+    const heading = document.createElement('div');
+    heading.style.cssText = 'display:flex;justify-content:space-between;gap:12px;margin-bottom:10px;';
+    const chapter = document.createElement('span');
+    chapter.className = 'badge badge-primary';
+    chapter.textContent = CHAPTERS[question.chapter] || `Chương ${question.chapter ?? ''}`;
+    const subject = getSubjectById(item.subjectId);
+    const subjectLabel = document.createElement('span');
+    subjectLabel.className = 'text-xs text-muted';
+    subjectLabel.textContent = subject ? `${subject.code} · ${subject.name}` : item.subjectId;
+    const count = document.createElement('span');
+    count.className = 'text-xs text-muted';
+    count.textContent = `Câu ${index + 1}/${session.items.length}`;
+    heading.append(chapter, subjectLabel, count);
+
+    const title = document.createElement('h3');
+    title.style.cssText = 'font-size:14px;font-weight:600;line-height:1.6;margin-bottom:12px;';
+    title.textContent = question.q || '';
+
+    const options = document.createElement('div');
+    options.className = 'space-y-3';
+    const feedback = document.createElement('p');
+    feedback.className = 'hidden text-sm spaced-review-feedback';
+    feedback.style.marginTop = '10px';
+    const explanation = document.createElement('div');
+    explanation.className = 'hidden spaced-review-explanation';
+    explanation.style.cssText = 'margin-top:8px;padding:12px;background:var(--primary-light);border-radius:var(--radius-md);border-left:3px solid var(--primary);font-size:12px;color:var(--text-primary);';
+    const explanationLabel = document.createElement('strong');
+    explanationLabel.style.color = 'var(--primary)';
+    explanationLabel.textContent = 'Giải thích: ';
+    explanation.append(explanationLabel, document.createTextNode(question.exp || 'Chưa có lời giải cho câu hỏi này.'));
+
+    question.options.forEach((option, optionIndex) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'option-btn';
+      const label = document.createElement('span');
+      label.className = 'option-label';
+      label.textContent = labels[optionIndex];
+      const text = document.createElement('span');
+      text.textContent = option;
+      button.append(label, text);
+      button.addEventListener('click', () => answerSpacedReviewQuestion(item, optionIndex, card));
+      options.appendChild(button);
+    });
+
+    card.append(heading, title, options, feedback, explanation);
+    wrapper.appendChild(card);
+  });
+}
+
+function updateSpacedReviewProgress(session) {
+  const done = session.items.filter(item => item.answered).length;
+  document.getElementById('spaced-review-session-total').textContent = String(session.items.length);
+  document.getElementById('spaced-review-session-done').textContent = String(done);
+  document.getElementById('spaced-review-session-remaining').textContent = String(session.items.length - done);
+}
+
+function answerSpacedReviewQuestion(item, selectedOption, card) {
+  const session = State.practice.spacedReviewSession;
+  if (!session || item.answered) return;
+  if (session.userId !== getSpacedReviewUserId()) {
+    leaveSpacedReviewSession();
+    showToast('Tài khoản đã thay đổi. Hãy mở lại danh sách ôn của tài khoản hiện tại.', 'info');
+    return;
+  }
+
+  const isCorrect = selectedOption === item.question.correct;
+  let schedule;
+  try {
+    schedule = DB.recordSpacedReviewAnswer(session.userId, item.storageKey, isCorrect);
+  } catch (error) {
+    console.warn('[Spaced Review] Không thể cập nhật lịch ôn:', error);
+    showToast('Không thể lưu lượt ôn. Hãy thử lại lựa chọn.', 'error');
+    return;
+  }
+  if (!schedule) return;
+
+  item.answered = true;
+  item.isCorrect = isCorrect;
+  card.querySelectorAll('.option-btn').forEach((button, index) => {
+    button.disabled = true;
+    button.classList.add('disabled');
+    if (index === item.question.correct) button.classList.add('correct');
+    else if (index === selectedOption) button.classList.add('wrong');
+    else button.style.opacity = '0.5';
+  });
+
+  const feedback = card.querySelector('.spaced-review-feedback');
+  feedback.textContent = isCorrect
+    ? `Chính xác. Câu này được hẹn ôn lại sau ${schedule.intervalDays} ngày.`
+    : `Chưa chính xác. Câu này sẽ quay lại sau ${schedule.intervalDays} ngày.`;
+  feedback.style.color = isCorrect ? 'var(--success)' : 'var(--danger)';
+  feedback.classList.remove('hidden');
+  card.querySelector('.spaced-review-explanation')?.classList.remove('hidden');
+  const subject = getSubjectById(item.subjectId);
+  const ceraButton = document.createElement('button');
+  ceraButton.type = 'button';
+  ceraButton.className = 'btn btn-primary btn-sm';
+  ceraButton.style.marginTop = '10px';
+  ceraButton.textContent = 'Hỏi Cera về câu này';
+  ceraButton.addEventListener('click', () => openCeraForExamQuestion({
+    ...item.question,
+    subjectId: item.subjectId,
+    subjectName: subject?.name || item.subjectId,
+    chapterName: CHAPTERS[item.question.chapter] || `Chương ${item.question.chapter ?? ''}`,
+    userAns: selectedOption,
+    isExamReview: true,
+  }));
+  card.appendChild(ceraButton);
+  updateSpacedReviewProgress(session);
+}
+
+function leaveSpacedReviewSession() {
+  State.practice.spacedReviewSession = null;
+  renderSpacedReviewOverview();
 }
 
 function selectPracticeCount(val) {
   State.practice.selectedCount = val;
   document.querySelectorAll('.count-btn').forEach(btn => btn.classList.remove('selected'));
-  event.currentTarget.classList.add('selected');
+  const countButtonId = val === 'all' ? 'cnt-all' : `cnt-${val}`;
+  document.getElementById(countButtonId)?.classList.add('selected');
+  syncStudyToolbar();
 }
 
 /* ════════════════════════════════════════════════════
@@ -1499,15 +2061,70 @@ function initSubjectSelector() {
   // On change
   select.addEventListener('change', () => {
     const subjectId = select.value;
+    closeChapterPracticeForScopeChange(subjectId);
     DB.setActiveSubject(subjectId);
     updateSubjectBanner(subjectId);
     updateBankCount();
     // Re-render active tab if needed
     if (State.currentTab === 'bank-tab') renderBank();
+    if (State.currentTab === 'practice-tab') void renderSpacedReviewOverview();
   });
 
   // Init banner
   updateSubjectBanner(saved);
+  syncStudyToolbar();
+}
+
+function syncStudyToolbar() {
+  const modeSelect = document.getElementById('study-mode-select');
+  const difficultySelect = document.getElementById('study-difficulty-select');
+  const countSelect = document.getElementById('study-count-select');
+  const countControl = countSelect?.closest('.study-toolbar-control');
+  const bankDifficulty = document.getElementById('bank-filter-diff');
+
+  if (modeSelect) modeSelect.value = State.currentTab;
+  if (difficultySelect) difficultySelect.value = String(State.practice.selectedDifficulty);
+  if (bankDifficulty) {
+    bankDifficulty.value = String(State.practice.selectedDifficulty);
+    State.bank.filterDiff = State.practice.selectedDifficulty;
+  }
+  if (!countSelect || !countControl) return;
+
+  const isPractice = State.currentTab === 'practice-tab';
+  const counts = isPractice
+    ? [['10', '10 câu'], ['20', '20 câu'], ['50', '50 câu'], ['100', '100 câu'], ['all', 'Tất cả']]
+    : [['50', '50 câu'], ['60', '60 câu'], ['40', '40 câu'], ['30', '30 câu']];
+  const currentCount = isPractice
+    ? String(State.practice.selectedCount)
+    : document.getElementById('exam-question-count')?.value || '50';
+
+  countSelect.replaceChildren(...counts.map(([value, label]) => {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    return option;
+  }));
+  countSelect.value = currentCount;
+  countControl.classList.toggle('is-disabled', !isPractice && State.currentTab !== 'exam-tab');
+  countSelect.disabled = State.currentTab !== 'practice-tab' && State.currentTab !== 'exam-tab';
+}
+
+function onStudyToolbarCountChange(value) {
+  if (State.currentTab === 'practice-tab') {
+    selectPracticeCount(value === 'all' ? 'all' : Number(value));
+    return;
+  }
+  const examCount = document.getElementById('exam-question-count');
+  if (examCount) examCount.value = value;
+  if (typeof updateExamDuration === 'function') updateExamDuration();
+}
+
+function onStudyToolbarDifficultyChange(value) {
+  State.practice.selectedDifficulty = Number(value) || 0;
+  const bankDifficulty = document.getElementById('bank-filter-diff');
+  if (bankDifficulty) bankDifficulty.value = String(State.practice.selectedDifficulty);
+  State.bank.filterDiff = State.practice.selectedDifficulty;
+  if (State.currentTab === 'bank-tab') onBankFilter();
 }
 
 function updateSubjectBanner(subjectId) {
@@ -1533,10 +2150,12 @@ function onBlockFilterChange(blockId) {
   // Select first subject of the block and apply
   const firstId = subjects[0].id;
   select.value = firstId;
+  closeChapterPracticeForScopeChange(firstId);
   DB.setActiveSubject(firstId);
   updateSubjectBanner(firstId);
   updateBankCount();
   if (State.currentTab === 'bank-tab') renderBank();
+  if (State.currentTab === 'practice-tab') void renderSpacedReviewOverview();
 }
 
 function updateBankCount() {
@@ -1553,6 +2172,126 @@ function updateDifficultyBar(id, ratioActual) {
     <div class="diff-bar-easy" style="flex:${ratioActual.easy};" title="Dễ: ${ratioActual.easy}%"></div>
     <div class="diff-bar-medium" style="flex:${ratioActual.medium};" title="Trung bình: ${ratioActual.medium}%"></div>
     <div class="diff-bar-hard" style="flex:${ratioActual.hard};" title="Khó: ${ratioActual.hard}%"></div>`;
+}
+
+/**
+ * Điều chỉnh tỷ lệ độ khó khi user kéo slider
+ * Tự động normalize để tổng = 100%
+ */
+function adjustDifficultyRatio(type, value) {
+  const easy = parseInt(document.getElementById('diff-slider-easy').value);
+  const medium = parseInt(document.getElementById('diff-slider-medium').value);
+  const hard = parseInt(document.getElementById('diff-slider-hard').value);
+  
+  let ratios = { easy, medium, hard };
+  let total = easy + medium + hard;
+  
+  // Nếu tổng > 100, giảm các loại khác tỷ lệ
+  if (total > 100) {
+    const excess = total - 100;
+    const others = ['easy', 'medium', 'hard'].filter(t => t !== type);
+    
+    // Ưu tiên giảm loại có % cao nhất (không phải loại đang kéo)
+    others.sort((a, b) => ratios[b] - ratios[a]);
+    
+    let remaining = excess;
+    for (const other of others) {
+      if (remaining <= 0) break;
+      const canReduce = Math.min(ratios[other], remaining);
+      ratios[other] -= canReduce;
+      remaining -= canReduce;
+    }
+  }
+  
+  // Nếu tổng < 100, tăng các loại khác tỷ lệ
+  if (total < 100) {
+    const shortage = 100 - total;
+    const others = ['easy', 'medium', 'hard'].filter(t => t !== type);
+    
+    // Ưu tiên tăng loại có % thấp nhất (không phải loại đang kéo)
+    others.sort((a, b) => ratios[a] - ratios[b]);
+    
+    let remaining = shortage;
+    for (const other of others) {
+      if (remaining <= 0) break;
+      const canIncrease = Math.min(100 - ratios[other], remaining);
+      ratios[other] += canIncrease;
+      remaining -= canIncrease;
+    }
+  }
+  
+  // Cập nhật UI
+  document.getElementById('diff-slider-easy').value = ratios.easy;
+  document.getElementById('diff-slider-medium').value = ratios.medium;
+  document.getElementById('diff-slider-hard').value = ratios.hard;
+  
+  document.getElementById('diff-easy-pct').textContent = ratios.easy;
+  document.getElementById('diff-medium-pct').textContent = ratios.medium;
+  document.getElementById('diff-hard-pct').textContent = ratios.hard;
+  
+  // Cập nhật visual bar
+  const bar = document.getElementById('exam-start-diff-bar');
+  if (bar) {
+    bar.innerHTML = `
+      <div class="diff-bar-easy" style="flex:${ratios.easy};" title="Dễ: ${ratios.easy}%"></div>
+      <div class="diff-bar-medium" style="flex:${ratios.medium};" title="Trung bình: ${ratios.medium}%"></div>
+      <div class="diff-bar-hard" style="flex:${ratios.hard};" title="Khó: ${ratios.hard}%"></div>`;
+  }
+  
+  // Lưu vào settings
+  const settings = DB.getSettings();
+  settings.diffRatio = {
+    easy: ratios.easy / 100,
+    medium: ratios.medium / 100,
+    hard: ratios.hard / 100
+  };
+  DB.saveSettings(settings);
+}
+
+/**
+ * Load difficulty ratio từ settings vào UI
+ */
+function loadDifficultyRatioUI() {
+  const settings = DB.getSettings();
+  const ratio = settings.diffRatio || { easy: 0.5, medium: 0.3, hard: 0.2 };
+  
+  const easy = Math.round(ratio.easy * 100);
+  const medium = Math.round(ratio.medium * 100);
+  const hard = Math.round(ratio.hard * 100);
+  
+  // Set sliders
+  const easySlider = document.getElementById('diff-slider-easy');
+  const mediumSlider = document.getElementById('diff-slider-medium');
+  const hardSlider = document.getElementById('diff-slider-hard');
+  
+  if (easySlider) easySlider.value = easy;
+  if (mediumSlider) mediumSlider.value = medium;
+  if (hardSlider) hardSlider.value = hard;
+  
+  // Set labels
+  const easyPct = document.getElementById('diff-easy-pct');
+  const mediumPct = document.getElementById('diff-medium-pct');
+  const hardPct = document.getElementById('diff-hard-pct');
+  
+  if (easyPct) easyPct.textContent = easy;
+  if (mediumPct) mediumPct.textContent = medium;
+  if (hardPct) hardPct.textContent = hard;
+  
+  // Set visual bar
+  const bar = document.getElementById('exam-start-diff-bar');
+  if (bar) {
+    bar.innerHTML = `
+      <div class="diff-bar-easy" style="flex:${easy};" title="Dễ: ${easy}%"></div>
+      <div class="diff-bar-medium" style="flex:${medium};" title="Trung bình: ${medium}%"></div>
+      <div class="diff-bar-hard" style="flex:${hard};" title="Khó: ${hard}%"></div>`;
+  }
+}
+
+// Load difficulty ratio khi trang load
+if (typeof window !== 'undefined') {
+  window.addEventListener('load', () => {
+    loadDifficultyRatioUI();
+  });
 }
 
 function getDiffLabel(diff) {
@@ -1620,7 +2359,7 @@ function _generateMistakeHints(wrongQuestions) {
   // Gợi ý theo chương (nếu sai > 2 câu trong 1 chương)
   for (const [ch, count] of Object.entries(chapterMistakes)) {
     if (count >= 2) {
-      results.push(`<strong>Chương ${ch}:</strong> Bạn đã sai ${count} câu. Cần ôn tập lại toàn bộ kiến thức nền tảng của ${CHAPTERS[ch] || 'Chương ' + ch}.`);
+      results.push(`<strong>Chương ${escapeHtml(ch)}:</strong> Bạn đã sai ${count} câu. Cần ôn tập lại toàn bộ kiến thức nền tảng của ${CHAPTERS[ch] || 'Chương ' + escapeHtml(ch)}.`);
     }
   }
   
@@ -1642,19 +2381,25 @@ function _generateMistakeHints(wrongQuestions) {
    CERA CHATBOT UI CONTROLLER
 ════════════════════════════════════════════════════ */
 let _ceraHistory = [];
+let _ceraReviewContext = null;
 
 function toggleCeraChat() {
   const panel = document.getElementById('cera-panel');
   const fab = document.getElementById('cera-fab');
   const badge = document.getElementById('cera-badge');
-  if (!panel || !fab) return;
+  if (!panel || !fab) return false;
+
+  if (!document.getElementById('exam-active-card')?.classList.contains('hidden')) {
+    showToast('Cera sẽ khả dụng sau khi bạn nộp bài thi thử.', 'info');
+    return false;
+  }
 
   if (!window.requireLoggedInForFeature || !window.requireLoggedInForFeature('trợ lý AI')) {
-    return;
+    return false;
   }
 
   // Nếu người dùng vừa thực hiện hành động Kéo-Thả (Drag) FAB thì không toggle mở panel
-  if (fab.dataset.dragged === 'true') return;
+  if (fab.dataset.dragged === 'true') return false;
 
   const isOpen = panel.classList.toggle('is-open');
   fab.classList.toggle('is-open', isOpen);
@@ -1665,6 +2410,7 @@ function toggleCeraChat() {
     document.getElementById('cera-input')?.focus();
     updateCeraContextUI();
   }
+  return true;
 }
 
 function toggleCeraMenu(e) {
@@ -1809,14 +2555,18 @@ function clearCeraChat() {
 }
 
 function updateCeraContextUI(q = null) {
-  if (q) setCurrentQuestion(q);
+  if (q) {
+    setCurrentQuestion(q);
+    _ceraReviewContext = q.isExamReview ? q : null;
+  }
   const contextEl = document.getElementById('cera-context');
   const contextTextEl = document.getElementById('cera-context-text');
   if (!contextEl || !contextTextEl) return;
 
-  const currentQ = q || (State.exam.questions[State.exam.currentIndex]);
-  if (currentQ && (State.currentTab === 'exam-tab' || State.currentTab === 'practice-tab')) {
-    contextTextEl.textContent = `Đang xem: "${currentQ.q.slice(0, 36)}..."`;
+  const currentQ = q || _ceraReviewContext || State.exam.questions[State.exam.currentIndex];
+  if (currentQ && (q || _ceraReviewContext || State.currentTab === 'exam-tab' || State.currentTab === 'practice-tab')) {
+    const location = [currentQ.subjectName, currentQ.chapterName].filter(Boolean).join(' · ');
+    contextTextEl.textContent = `${location ? `${location} · ` : ''}Đang xem: "${String(currentQ.q || '').slice(0, 36)}..."`;
     contextEl.style.display = 'flex';
   } else {
     contextEl.style.display = 'none';
@@ -1874,6 +2624,12 @@ async function ceraSend() {
   const statusText = document.getElementById('cera-status-text');
   const modelSelect = document.getElementById('cera-model-select');
   if (!input || !sendBtn || !messages) return;
+
+  if (!document.getElementById('exam-active-card')?.classList.contains('hidden')) {
+    showToast('Cera sẽ khả dụng sau khi bạn nộp bài thi thử.', 'info');
+    return;
+  }
+  if (sendBtn.disabled) return;
 
   if (!window.requireLoggedInForFeature || !window.requireLoggedInForFeature('trợ lý AI')) {
     return;
@@ -1996,8 +2752,15 @@ Object.assign(window, {
   finishExam,
   toggleReviewDetails,
   startPracticeMode,
+  startWrongQuestionPractice,
+  returnToExamResult,
+  returnFromExamChapterPractice,
+  startSpacedReviewSession,
+  leaveSpacedReviewSession,
   checkPracticeAnswer,
   selectPracticeCount,
+  onStudyToolbarCountChange,
+  onStudyToolbarDifficultyChange,
   onBankFilter,
   changeBankPage,
   handleGenerateQuestions,
