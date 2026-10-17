@@ -781,7 +781,7 @@ export const DB = {
     const defaults = {
       apiKey: '',
       theme: 'light',
-      diffRatio: { easy: 0.5, medium: 0.3, hard: 0.2 },
+      diffRatio: { easy: 0.4, medium: 0.4, hard: 0.2 }, // Default: Trung bình
       defaultExamCount: 50,
     };
     try {

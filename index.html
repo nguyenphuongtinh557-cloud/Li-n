@@ -199,7 +199,7 @@
               <select id="study-difficulty-select" class="study-toolbar-select" aria-label="Lọc theo độ khó" onchange="onStudyToolbarDifficultyChange(this.value)">
                 <option value="custom">Độ khó · Tùy chọn</option>
                 <option value="1">Độ khó · Dễ</option>
-                <option value="2">Độ khó · Trung bình</option>
+                <option value="2" selected>Độ khó · Trung bình</option>
                 <option value="3">Độ khó · Khó</option>
               </select>
             </label>
@@ -430,32 +430,23 @@
                     <div class="exam-info-heading"><i class="fa-solid fa-bullseye" aria-hidden="true"></i><label>Điểm đạt</label></div>
                     <span>≥ 7.0 / 10</span>
                   </div>
-                  <div class="exam-info-tile exam-info-difficulty">
-                    <div class="exam-info-heading"><i class="fa-solid fa-chart-simple" aria-hidden="true"></i><label for="exam-difficulty-preset">Độ khó</label></div>
-                    <select id="exam-difficulty-preset" onchange="onExamDifficultyPresetChange(this.value)">
-                      <option value="custom">Tùy chọn</option>
-                      <option value="easy">Dễ</option>
-                      <option value="medium">Trung bình</option>
-                      <option value="hard">Khó</option>
-                    </select>
-                  </div>
                 </div>
 
                 <div class="exam-start-difficulty">
                   <div class="exam-difficulty-heading">
                     <div><i class="fa-solid fa-chart-simple" aria-hidden="true"></i><span>Phân bố độ khó bộ đề</span></div>
                     <div class="exam-difficulty-legend">
-                      <span class="exam-diff-easy"><i></i>Dễ <strong id="diff-easy-pct">50</strong>%</span>
-                      <span class="exam-diff-medium"><i></i>Trung bình <strong id="diff-medium-pct">30</strong>%</span>
+                      <span class="exam-diff-easy"><i></i>Dễ <strong id="diff-easy-pct">40</strong>%</span>
+                      <span class="exam-diff-medium"><i></i>Trung bình <strong id="diff-medium-pct">40</strong>%</span>
                       <span class="exam-diff-hard"><i></i>Khó <strong id="diff-hard-pct">20</strong>%</span>
                     </div>
                   </div>
 
                   <div class="difficulty-bar exam-start-difficulty-bar draggable-bar" id="exam-start-diff-bar" aria-label="Kéo để điều chỉnh tỷ lệ độ khó">
-                    <div class="diff-bar-easy" style="flex:50;" data-difficulty="easy">
+                    <div class="diff-bar-easy" style="flex:40;" data-difficulty="easy">
                       <div class="diff-bar-handle"></div>
                     </div>
-                    <div class="diff-bar-medium" style="flex:30;" data-difficulty="medium">
+                    <div class="diff-bar-medium" style="flex:40;" data-difficulty="medium">
                       <div class="diff-bar-handle"></div>
                     </div>
                     <div class="diff-bar-hard" style="flex:20;" data-difficulty="hard"></div>
