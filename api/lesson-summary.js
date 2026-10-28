@@ -11,10 +11,19 @@ function getConfig() {
   const token = process.env.GITHUB_TOKEN;
   const owner = process.env.GITHUB_OWNER;
   const repo = process.env.GITHUB_REPO;
-  const apiKey = process.env.GEMINI_API_KEY;
-  const model = process.env.GEMINI_SUMMARY_MODEL;
-  if (!token || !owner || !repo || !apiKey || !model) return null;
-  return { token, owner, repo, apiKey, model, branch: process.env.GITHUB_BRANCH || 'main' };
+  const gatewayUrl = process.env.AI_GATEWAY_URL;
+  const gatewayKey = process.env.AI_GATEWAY_KEY;
+  const model = process.env.GATEWAY_SUMMARY_ALIAS || 'gemini-3.5-flash-lite';
+  if (!token || !owner || !repo || !gatewayUrl || !gatewayKey) return null;
+  return {
+    token,
+    owner,
+    repo,
+    gatewayUrl: String(gatewayUrl).trim().replace(/\/+$/, ''),
+    gatewayKey: String(gatewayKey).trim(),
+    model,
+    branch: process.env.GITHUB_BRANCH || 'main'
+  };
 }
 
 async function githubRequest(config, path, options = {}) {
@@ -74,14 +83,23 @@ function summaryPrompt({ mode, chapterTitle, lessonTitle, source, instruction })
 }
 
 async function generateSummary(config, request) {
-  const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.model)}:generateContent?key=${encodeURIComponent(config.apiKey)}`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contents: [{ parts: [{ text: summaryPrompt(request) }] }], generationConfig: { temperature: 0.2, responseMimeType: 'application/json' } })
+  const response = await fetch(`${config.gatewayUrl}/v1/internal/ai/generate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${config.gatewayKey}`
+    },
+    body: JSON.stringify({
+      feature: 'qlcl-ai',
+      modelAlias: config.model,
+      input: { messages: [{ role: 'user', content: summaryPrompt(request) }] },
+      options: { temperature: 0.2, maxTokens: 4096, timeoutMs: 120_000 }
+    })
   });
-  if (!response.ok) throw new Error(`gemini-${response.status}`);
+  if (!response.ok) throw new Error(`gateway-${response.status}`);
   const payload = await response.json();
-  const text = payload.candidates?.[0]?.content?.parts?.map(part => part.text || '').join('') || '';
-  const parsed = JSON.parse(text);
+  const text = String(payload.content || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
+  const parsed = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || text);
   return {
     mainPoints: Array.isArray(parsed.mainPoints) ? parsed.mainPoints.slice(0, 8) : [],
     keywords: Array.isArray(parsed.keywords) ? parsed.keywords.slice(0, 12) : [],

@@ -63,101 +63,47 @@ function formatCurrentQuestionContext() {
 
 // ─── Gọi Groq AI (PRIMARY ENGINE - Siêu nhanh & FREE) ────────────────────────────
 async function callGroq(userMessage, systemPrompt) {
-  // ✅ Ưu tiên model tốt nhất: openai/gpt-oss-120b (120B params, Tiếng Việt xuất sắc)
-  const models = ['openai/gpt-oss-120b', 'groq/compound-mini'];
-  
-  for (const model of models) {
-    for (let attempt = 0; attempt < 3; attempt++) {
-      const key = AIPool.getKey('groq');
-      try {
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${key}`
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userMessage },
-            ],
-            temperature: 0.7,
-            max_tokens: 1500,
-          }),
-        });
-        
-        if (!res.ok) {
-          console.warn(`[Groq] Model ${model} attempt ${attempt + 1} failed: ${res.status}`);
-          continue;
-        }
-        
-        const data = await res.json();
-        const output = data.choices?.[0]?.message?.content;
-        if (output) {
-          console.log(`[Groq] ✅ Thành công với model ${model}`);
-          return output;
-        }
-      } catch (err) {
-        console.warn(`[Groq] Error with ${model}:`, err.message);
-        continue;
-      }
-    }
+  try {
+    return await AIPool.callChat({
+      provider: 'groq',
+      model: 'openai/gpt-oss-120b',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userMessage }
+      ],
+      temperature: 0.7,
+      maxTokens: 1500
+    });
+  } catch (err) {
+    console.warn('[Groq] Gateway call failed:', err.message);
+    throw new Error('Groq AI Failed');
   }
-  
-  throw new Error('Groq AI Failed');
 }
 
 // ─── Gọi AI (Groq làm PRIMARY ENGINE) ──────────────────────────────────────
 async function askAI(userMessage, systemPrompt = CERA_SYSTEM) {
-  // ✅ GROQ LÀM ENGINE CHÍNH - Siêu nhanh, FREE, Unlimited quota
   console.log('[CERA] 🚀 Sử dụng Groq AI (Primary Engine)');
-  
+
   try {
     return await callGroq(userMessage, systemPrompt);
   } catch (groqError) {
-    console.warn('[CERA] ⚠️ Groq lỗi, thử Cerebras backup...', groqError);
-    
-    // Fallback sang Cerebras (nếu có credits)
-    const models = ['gpt-oss-120b'];
-    for (const model of models) {
-      const key = AIPool.getKey('cerebras');
-      try {
-        const res = await fetch('https://api.cerebras.ai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${key}`
-          },
-          body: JSON.stringify({
-            model,
-            messages: [
-              { role: 'system', content: systemPrompt },
-              { role: 'user', content: userMessage },
-            ],
-            temperature: 0.7,
-            max_tokens: 1500,
-          }),
-        });
-        
-        if (res.status === 402) {
-          console.warn('[CERA] Cerebras hết quota (402)');
-          continue;
-        }
+    console.warn('[CERA] ⚠️ Groq lỗi, thử backup qua gateway...', groqError);
 
-        if (!res.ok) continue;
-        const data = await res.json();
-        const output = data.choices?.[0]?.message?.content;
-        if (output) {
-          console.log('[CERA] ✅ Cerebras backup thành công');
-          return output;
-        }
-      } catch {
-        continue;
-      }
+    try {
+      return await AIPool.callChat({
+        provider: 'cerebras',
+        model: 'gpt-oss-120b',
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage }
+        ],
+        temperature: 0.7,
+        maxTokens: 1500
+      });
+    } catch (backupError) {
+      console.warn('[CERA] Backup cũng thất bại:', backupError.message);
+      throw new Error('⚠️ FTECA đang hơi bận tí xíu nè! Cậu thử lại sau vài giây nha~ 🪷');
     }
-    
-    throw new Error('⚠️ FTECA đang hơi bận tí xíu nè! Cậu thử lại sau vài giây nha~ 🪷');
   }
 }
 

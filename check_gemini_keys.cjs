@@ -3,12 +3,13 @@
  * Run: node check_gemini_keys.cjs
  */
 
+// Key chỉ đọc từ biến môi trường; không lưu key trong mã nguồn.
 const GEMINI_KEYS = [
-  { label: 'Key 1 (AIPool)', key: 'AIzaSyA_YW64oHktvXQALBKurI67x1tdu3LNQ6M' },
-  { label: 'Key 2 (AIPool)', key: 'AIzaSyACGSiU_pf21ssY_gqymwGd-_jLqK6qtN8' },
-  { label: 'Key 3 (AQ.)', key: 'AQ.' + 'Ab8RN6IrLLZUG9YcOoveslvcA15NLePcQi78ZfLzd3zbs2lBHw' },
-  { label: 'Key 4 (document-summary)', key: 'AIzaSyB4rSYnaBvBl4QWPyefSc_rODRZQ6eTrk8' }
-];
+  { label: 'Key 1', key: process.env.GEMINI_API_KEY_1 || '' },
+  { label: 'Key 2', key: process.env.GEMINI_API_KEY_2 || '' },
+  { label: 'Key 3', key: process.env.GEMINI_API_KEY_3 || '' },
+  { label: 'Key 4', key: process.env.GEMINI_API_KEY_4 || '' }
+].filter(entry => entry.key);
 
 const MODELS = [
   'gemini-3.5-flash-lite',     // model đang dùng trong production

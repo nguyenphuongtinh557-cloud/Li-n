@@ -3,19 +3,13 @@
  * Run: node check_api_quota.js
  */
 
+// Key chỉ đọc từ biến môi trường; không lưu key trong mã nguồn.
+const envList = (...names) => names.map(name => process.env[name]).filter(Boolean);
+
 const RAW_KEYS = {
-  gemini: [
-    'AIzaSy' + 'A_YW64oHktvXQALBKurI67x1tdu3LNQ6M',
-    'AIzaSy' + 'ACGSiU_pf21ssY_gqymwGd-_jLqK6qtN8'
-  ],
-  groq: [
-    'gsk_' + '3tflPbwbzb6gaOY6oV85WGdyb3FYBdZ02jP3gpwQTWYuVVTxxi4r',
-    'gsk_' + 'CZnyt64cTM680y3zTuH6WGdyb3FY2Q1b2tLt8JVO3ZC0H47vuQCr',
-    'gsk_' + 'D6W4iEm9lDp6B8XV9PDBWGdyb3FYArXtSZF235AzfsU1zuYiBOZs'
-  ],
-  openrouter: [
-    'sk-or-v1-' + 'fc62ec203093fc832fae79333a82c7595f1925994974dd99a53f0bad49c34b43'
-  ]
+  gemini: envList('GEMINI_API_KEY_1', 'GEMINI_API_KEY_2'),
+  groq: envList('GROQ_API_KEY_1', 'GROQ_API_KEY_2', 'GROQ_API_KEY_3'),
+  openrouter: envList('OPENROUTER_API_KEY_1', 'OPENROUTER_API_KEY_2')
 };
 
 const GEMINI_MODELS = [

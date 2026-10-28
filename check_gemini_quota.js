@@ -3,11 +3,10 @@
  * Run: node check_gemini_quota.js
  */
 
+// Key chỉ đọc từ biến môi trường; không lưu key trong mã nguồn.
+const envList = (...names) => names.map(name => process.env[name]).filter(Boolean);
 const RAW_KEYS = {
-  gemini: [
-    'AIzaSy' + 'A_YW64oHktvXQALBKurI67x1tdu3LNQ6M',
-    'AIzaSy' + 'ACGSiU_pf21ssY_gqymwGd-_jLqK6qtN8'
-  ]
+  gemini: envList('GEMINI_API_KEY_1', 'GEMINI_API_KEY_2')
 };
 
 // Tất cả Gemini models có sẵn (theo docs 2026)

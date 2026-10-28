@@ -7,7 +7,7 @@
  */
 
 const CLOUDFLARE_TOKEN = process.env.CLOUDFLARE_TOKEN || 'YOUR_CLOUDFLARE_TOKEN';
-const CLOUDFLARE_ACCOUNT = 'a50d5c567df596509ba1d9bfa41a0bdd';
+const CLOUDFLARE_ACCOUNT = process.env.CLOUDFLARE_ACCOUNT_ID || '';
 
 const GEMINI_KEY = process.env.GEMINI_KEY || 'YOUR_GEMINI_KEY';
 const GROQ_KEY = process.env.GROQ_KEY || 'YOUR_GROQ_KEY';

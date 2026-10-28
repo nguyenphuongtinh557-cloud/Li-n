@@ -3,7 +3,7 @@
  */
 
 const API_TOKEN = process.env.CLOUDFLARE_TOKEN || 'YOUR_CLOUDFLARE_TOKEN';
-const ACCOUNT_ID = 'a50d5c567df596509ba1d9bfa41a0bdd';
+const ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID || '';
 
 async function testModel(modelName, modelId) {
   console.log(`\n🔥 Testing: ${modelName}`);

@@ -11,14 +11,33 @@
  * Response: Full hierarchical summary structure
  */
 
-// Inline Gemini Keys for serverless
-const GEMINI_KEYS = [
-  'AIzaSyB4rSYnaBvBl4QWPyefSc_rODRZQ6eTrk8',
-  'AIzaSyA_YW64oHktvXQALBKurI67x1tdu3LNQ6M',
-  'AIzaSyACGSiU_pf21ssY_gqymwGd-_jLqK6qtN8'
-];
+const GATEWAY_MODEL_ALIAS = 'gemini-3.5-flash-lite';
 
-let keyIndex = 0;
+async function callGeminiJson(prompt, { temperature = 0.2, maxTokens = 4096 } = {}) {
+  const baseUrl = String(process.env.AI_GATEWAY_URL || '').trim().replace(/\/+$/, '');
+  const apiKey = String(process.env.AI_GATEWAY_KEY || '').trim();
+  if (!baseUrl || !apiKey) throw new Error('AI gateway is not configured');
+
+  const response = await fetch(`${baseUrl}/v1/internal/ai/generate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${apiKey}`
+    },
+    body: JSON.stringify({
+      feature: 'qlcl-ai',
+      modelAlias: GATEWAY_MODEL_ALIAS,
+      input: { messages: [{ role: 'user', content: prompt }] },
+      options: { temperature, maxTokens, timeoutMs: 120_000 }
+    })
+  });
+
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data?.error?.message || `Gateway error ${response.status}`);
+
+  const text = String(data.content || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
+  return JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || text);
+}
 
 async function callGeminiSummary({ mode, chapterTitle, lessonTitle, source }) {
   const prompts = {
@@ -74,43 +93,15 @@ Trả về JSON hợp lệ duy nhất:
 
   const prompt = prompts[mode] || prompts.quick;
 
-  for (let i = 0; i < GEMINI_KEYS.length; i++) {
-    const key = GEMINI_KEYS[(keyIndex++) % GEMINI_KEYS.length];
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`;
+  const parsed = await callGeminiJson(prompt, { temperature: 0.2, maxTokens: 4096 });
 
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: prompt }] }],
-          generationConfig: {
-            temperature: 0.2,
-            responseMimeType: 'application/json'
-          }
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) {
-          const parsed = JSON.parse(text);
-          return {
-            mainPoints: Array.isArray(parsed.mainPoints) ? parsed.mainPoints.slice(0, 8) : [],
-            keywords: Array.isArray(parsed.keywords) ? parsed.keywords.slice(0, 12) : [],
-            pitfalls: Array.isArray(parsed.pitfalls) ? parsed.pitfalls.slice(0, 6) : [],
-            quickQuestions: Array.isArray(parsed.quickQuestions) ? parsed.quickQuestions.slice(0, 3) : [],
-            source: String(parsed.source || `${chapterTitle} — ${lessonTitle}`)
-          };
-        }
-      }
-    } catch (err) {
-      console.warn(`[DocSummary] Gemini key ${i+1} failed:`, err);
-    }
-  }
-
-  throw new Error('All Gemini keys failed');
+  return {
+    mainPoints: Array.isArray(parsed.mainPoints) ? parsed.mainPoints.slice(0, 8) : [],
+    keywords: Array.isArray(parsed.keywords) ? parsed.keywords.slice(0, 12) : [],
+    pitfalls: Array.isArray(parsed.pitfalls) ? parsed.pitfalls.slice(0, 6) : [],
+    quickQuestions: Array.isArray(parsed.quickQuestions) ? parsed.quickQuestions.slice(0, 3) : [],
+    source: String(parsed.source || `${chapterTitle} — ${lessonTitle}`)
+  };
 }
 
 function json(res, status, body) {
@@ -179,29 +170,11 @@ async function detectDocumentStructure(text, title) {
 Tài liệu mẫu (${text.length} chars):
 ${text.slice(0, 6000)}`;
 
-  for (let i = 0; i < GEMINI_KEYS.length; i++) {
-    const key = GEMINI_KEYS[(keyIndex++) % GEMINI_KEYS.length];
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: { temperature: 0.1, responseMimeType: 'application/json' }
-          })
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        const result = JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text || '{}');
-        if (result.segments?.length > 0) return result;
-      }
-    } catch (err) {
-      console.warn(`[Structure AI] Key ${i+1} failed:`, err);
-    }
+  try {
+    const result = await callGeminiJson(prompt, { temperature: 0.1, maxTokens: 4096 });
+    if (result.segments?.length > 0) return result;
+  } catch (err) {
+    console.warn('[Structure AI] failed:', err.message);
   }
 
   return createFallbackStructure(text, title);
@@ -630,35 +603,7 @@ QUY TẮC QUAN TRỌNG:
 
 // Helper: Call Gemini for batch
 async function callGeminiBatch(prompt) {
-  for (let i = 0; i < GEMINI_KEYS.length; i++) {
-    const key = GEMINI_KEYS[(keyIndex++) % GEMINI_KEYS.length];
-    try {
-      const response = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`,
-        {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: 0.2,
-              maxOutputTokens: 4096,
-              responseMimeType: 'application/json'
-            }
-          })
-        }
-      );
-
-      if (response.ok) {
-        const data = await response.json();
-        const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-        if (text) return JSON.parse(text);
-      }
-    } catch (err) {
-      console.warn(`[Batch API] Key ${i+1} failed:`, err);
-    }
-  }
-  throw new Error('Batch API failed');
+  return callGeminiJson(prompt, { temperature: 0.2, maxTokens: 4096 });
 }
 
 // ✅ CALL 3: Aggregate chapter + global (1 API thay vì 2)

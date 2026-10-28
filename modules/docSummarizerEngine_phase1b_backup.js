@@ -14,7 +14,7 @@
  *   - TXT:  native FileReader UTF-8
  */
 
-import { RAW_KEYS } from './aiPool.js';
+import { AIPool } from './aiPool.js';
 
 // ─── CONSTANTS ────────────────────────────────────────────────────────────────
 const MAX_CHUNKS = 8;
@@ -23,16 +23,6 @@ const OVERLAP_RATIO = 0.10;     // 10% overlap
 const OVERLAP_CHARS = Math.floor(CHUNK_CHARS * OVERLAP_RATIO);
 const CACHE_TTL_MS = 14 * 24 * 60 * 60 * 1000; // 14 ngày
 const CACHE_KEY_PREFIX = 'fteca_doc_summary_v3_';
-
-// ─── KEY ROTATION ─────────────────────────────────────────────────────────────
-let _geminiKeyIdx = 0;
-function getGeminiKey() {
-  const keys = RAW_KEYS.gemini || [];
-  if (!keys.length) throw new Error('Không có Gemini key trong pool');
-  const key = keys[_geminiKeyIdx % keys.length];
-  _geminiKeyIdx++;
-  return key;
-}
 
 // ─── SHA-256 HASH (Web Crypto API) ────────────────────────────────────────────
 async function sha256(text) {
@@ -374,133 +364,20 @@ function cleanAndParseJSON(rawText) {
   return JSON.parse(cleaned);
 }
 
-// ─── AI API CALL (Multi-Model Native + Multi-Provider Fallback) ───────────────
-// Danh sách model đã được kiểm tra trực tiếp thành công HTTP 200 OK trên Google API Server
-const CANDIDATE_GEMINI_MODELS = [
-  'gemini-3.5-flash-lite', // ✅ PRIMARY: 500 RPD
-  'gemini-3.1-flash-lite', // ✅ BACKUP: 500 RPD
-  'gemini-2.5-flash'       // Fallback cuối: 20 RPD
-];
-
-async function callGeminiJSON(prompt, { timeoutMs = 35000, maxTokens = 4096 } = {}) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), timeoutMs);
-  const errors = [];
-
-  // 1. Thử Native Google Gemini API (Ưu tiên gemini-3.5-flash-lite: 500 RPD)
-  const keys = RAW_KEYS.gemini || [];
-  for (let kIdx = 0; kIdx < keys.length; kIdx++) {
-    const key = getGeminiKey();
-    for (const model of CANDIDATE_GEMINI_MODELS) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-      try {
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: prompt }] }],
-            generationConfig: {
-              temperature: 0.15,
-              maxOutputTokens: maxTokens,
-              responseMimeType: 'application/json'
-            }
-          }),
-          signal: controller.signal
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          const text = data.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
-          if (text) {
-            clearTimeout(timer);
-            return cleanAndParseJSON(text);
-          }
-        } else if (res.status === 429) {
-          errors.push(`Gemini ${model}: 429 rate-limited`);
-        } else {
-          errors.push(`Gemini ${model}: HTTP ${res.status}`);
-        }
-      } catch (err) {
-        if (err.name === 'AbortError') throw new Error('timeout');
-        errors.push(`Gemini ${model}: ${err.message}`);
-      }
-    }
-  }
-
-  // 2. Thử Groq AI (Cực nhanh & Ổn định)
-  const groqKeys = RAW_KEYS.groq || [];
-  for (const key of groqKeys) {
-    try {
-      const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${key}`
-        },
-        body: JSON.stringify({
-          model: 'llama-3.3-70b-versatile',
-          messages: [
-            { role: 'system', content: 'You are an expert Vietnamese academic summarizer. Always respond in valid JSON format.' },
-            { role: 'user', content: prompt }
-          ],
-          temperature: 0.15,
-          max_tokens: maxTokens
-        }),
-        signal: controller.signal
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.choices?.[0]?.message?.content || '';
-        if (text) {
-          clearTimeout(timer);
-          return cleanAndParseJSON(text);
-        }
-      } else {
-        errors.push(`Groq: HTTP ${res.status}`);
-      }
-    } catch (err) {
-      if (err.name === 'AbortError') throw new Error('timeout');
-      errors.push(`Groq error: ${err.message}`);
-    }
-  }
-
-  // 3. Thử OpenRouter AI (Dự phòng cuối cùng)
-  const openrouterKeys = RAW_KEYS.openrouter || [];
-  if (openrouterKeys.length > 0) {
-    try {
-      const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openrouterKeys[0]}`
-        },
-        body: JSON.stringify({
-          model: 'meta-llama/llama-3.3-70b-instruct',
-          messages: [{ role: 'user', content: prompt }],
-          temperature: 0.15,
-          max_tokens: maxTokens
-        }),
-        signal: controller.signal
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.choices?.[0]?.message?.content || '';
-        if (text) {
-          clearTimeout(timer);
-          return cleanAndParseJSON(text);
-        }
-      } else {
-        errors.push(`OpenRouter: HTTP ${res.status}`);
-      }
-    } catch (err) {
-      errors.push(`OpenRouter error: ${err.message}`);
-    }
-  }
-
-  clearTimeout(timer);
-  throw new Error(`Không thể kết nối đến AI. Chi tiết: ${errors.join('; ')}`);
+// ─── AI API CALL (qua AI Gateway) ─────────────────────────────────────────────
+async function callGeminiJSON(prompt, { maxTokens = 4096 } = {}) {
+  const text = await AIPool.callChat({
+    provider: 'gemini',
+    model: 'gemini-3.5-flash-lite',
+    messages: [
+      { role: 'system', content: 'You are an expert Vietnamese academic summarizer. Always respond in valid JSON format.' },
+      { role: 'user', content: prompt }
+    ],
+    temperature: 0.15,
+    maxTokens
+  });
+  if (!text) throw new Error('AI trả về nội dung rỗng');
+  return cleanAndParseJSON(text);
 }
 
 // ─── DEEP STUDY ENGINE (mode 'study' - KẾ THỪA TỪ 'exam' CŨ) ───────────────────

@@ -1,8 +1,8 @@
 <!DOCTYPE html>
-<html>
+<html lang="vi">
 <head>
   <meta charset="UTF-8">
-  <title>Test API Keys Status</title>
+  <title>Kiểm tra AI Gateway</title>
   <style>
     body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #fff; }
     .test { margin: 10px 0; padding: 10px; border: 1px solid #444; }
@@ -13,108 +13,50 @@
   </style>
 </head>
 <body>
-  <h1>🔍 Test API Keys Status</h1>
-  <button onclick="testAllKeys()">Test All Keys</button>
+  <h1>Kiểm tra AI Gateway</h1>
+  <p>Trang này chỉ kiểm tra kết nối tới <code>/api/ai-proxy</code>. Key nhà cung cấp nằm trong gateway.</p>
+  <button onclick="testAll()">Kiểm tra tất cả model</button>
   <div id="results"></div>
 
   <script type="module">
-    import { RAW_KEYS } from './modules/aiPool.js';
+    import { AuthModule } from './modules/auth.js';
 
-    window.RAW_KEYS = RAW_KEYS;
+    const CASES = [
+      { id: 'gemini', label: 'Gemini 3.5 Flash-Lite', payload: { provider: 'gemini', model: 'gemini-3.5-flash-lite', messages: [{ role: 'user', content: 'Trả lời 1 từ: OK' }] } },
+      { id: 'groq', label: 'Groq GPT OSS 120B', payload: { provider: 'groq', model: 'openai/gpt-oss-120b', messages: [{ role: 'user', content: 'Trả lời 1 từ: OK' }] } },
+      { id: 'openrouter', label: 'OpenRouter GPT-4o mini', payload: { provider: 'openrouter', model: 'openai/gpt-4o-mini', messages: [{ role: 'user', content: 'Trả lời 1 từ: OK' }] } }
+    ];
 
-    async function testGeminiKey(key, index) {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`;
-      
-      try {
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            contents: [{ parts: [{ text: 'Test' }] }]
-          })
-        });
-        
-        const data = await res.json();
-        
-        if (res.ok) {
-          return { ok: true, status: res.status, msg: 'Working ✅' };
-        } else if (res.status === 429) {
-          return { ok: false, status: 429, msg: 'Rate Limited 🚫', detail: data.error?.message };
-        } else if (res.status === 503) {
-          return { ok: false, status: 503, msg: 'Service Unavailable ⚠️', detail: data.error?.message };
-        } else {
-          return { ok: false, status: res.status, msg: 'Error ❌', detail: data.error?.message };
-        }
-      } catch (err) {
-        return { ok: false, status: 0, msg: 'Network Error 🔌', detail: err.message };
-      }
+    async function callProxy(payload) {
+      const token = await AuthModule.getIdToken();
+      if (!token) throw new Error('Chưa đăng nhập');
+      const response = await fetch('/api/ai-proxy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify(payload)
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || !data.ok) throw new Error(data.message || `HTTP ${response.status}`);
+      return data;
     }
 
-    async function testGroqKey(key, index) {
-      try {
-        const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${key}`
-          },
-          body: JSON.stringify({
-            model: 'openai/gpt-oss-120b',
-            messages: [{ role: 'user', content: 'test' }],
-            max_tokens: 5
-          })
-        });
-        
-        if (res.ok) {
-          return { ok: true, status: res.status, msg: 'Working ✅' };
-        } else if (res.status === 429) {
-          return { ok: false, status: 429, msg: 'Rate Limited 🚫' };
-        } else {
-          const data = await res.json().catch(() => ({}));
-          return { ok: false, status: res.status, msg: 'Error ❌', detail: data.error?.message };
-        }
-      } catch (err) {
-        return { ok: false, status: 0, msg: 'Network Error 🔌', detail: err.message };
-      }
-    }
-
-    window.testAllKeys = async function() {
+    window.testAll = async function () {
       const results = document.getElementById('results');
-      results.innerHTML = '<h2>Testing...</h2>';
-      
-      let html = '<h2>Gemini Keys (3.5-flash-lite: 500 RPD/key)</h2>';
-      
-      for (let i = 0; i < RAW_KEYS.gemini.length; i++) {
-        const key = RAW_KEYS.gemini[i];
-        const masked = key.slice(0, 10) + '...' + key.slice(-4);
-        
-        html += `<div class="test testing" id="gemini-${i}">Testing Gemini Key ${i+1}: ${masked}...</div>`;
-        results.innerHTML = html;
-        
-        const result = await testGeminiKey(key, i);
-        const className = result.ok ? 'pass' : 'fail';
-        document.getElementById(`gemini-${i}`).className = `test ${className}`;
-        document.getElementById(`gemini-${i}`).innerHTML = 
-          `Gemini Key ${i+1}: ${masked} → ${result.msg} (${result.status})${result.detail ? '<br>Detail: ' + result.detail : ''}`;
+      results.innerHTML = '';
+      for (const item of CASES) {
+        const el = document.createElement('div');
+        el.className = 'test testing';
+        el.textContent = `${item.label}: đang kiểm tra...`;
+        results.appendChild(el);
+        try {
+          const data = await callProxy(item.payload);
+          el.className = 'test pass';
+          el.textContent = `${item.label}: OK — model ${data.model || '?'} — "${String(data.content || '').trim().slice(0, 60)}"`;
+        } catch (error) {
+          el.className = 'test fail';
+          el.textContent = `${item.label}: LỖI — ${error.message}`;
+        }
       }
-      
-      html = results.innerHTML + '<h2>Groq Keys</h2>';
-      
-      for (let i = 0; i < RAW_KEYS.groq.length; i++) {
-        const key = RAW_KEYS.groq[i];
-        const masked = key.slice(0, 8) + '...' + key.slice(-4);
-        
-        html += `<div class="test testing" id="groq-${i}">Testing Groq Key ${i+1}: ${masked}...</div>`;
-        results.innerHTML = html;
-        
-        const result = await testGroqKey(key, i);
-        const className = result.ok ? 'pass' : 'fail';
-        document.getElementById(`groq-${i}`).className = `test ${className}`;
-        document.getElementById(`groq-${i}`).innerHTML = 
-          `Groq Key ${i+1}: ${masked} → ${result.msg} (${result.status})${result.detail ? '<br>Detail: ' + result.detail : ''}`;
-      }
-      
-      results.innerHTML = html;
     };
   </script>
 </body>

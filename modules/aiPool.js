@@ -6,40 +6,31 @@
  * 3. PREMIUM_ZONE (Khu vực AI Cao Cấp - Claude 3.5, DeepSeek R1, GPT-4o)
  */
 
-// ─── DANH SÁCH BỘ KEY HỆ THỐNG ────────────────────────────────────────────────
-// ─── DANH SÁCH BỘ KEY HỆ THỐNG ────────────────────────────────────────────────
-const decKey = (part1, part2) => part1 + part2;
+import { AuthModule } from './auth.js';
 
-export const RAW_KEYS = {
-  openrouter: [
-    'sk-or-v1-' + 'fc62ec203093fc832fae79333a82c7595f1925994974dd99a53f0bad49c34b43',
-    decKey('sk-or-v1-', '9e3f5cf0248664f93fdaa470e9f53eab412315aeaae1df48a17a2bed1f7da57a')
-  ],
-  sambanova: [
-    'fc503675-a3a6-4bdc-96da-f53dce1b168e' // SambaNova Cloud API Key (Ultra-Fast Llama 3.3 / DeepSeek R1)
-  ],
-  mistral: [
-    'ctQLRhxYqlTwgJ1Cmsp8eW803O532cpR' // Mistral AI API Key (Mistral Large / Pixtral Vision)
-  ],
-  cloudflare: [
-    'a50d5c567df596509ba1d9bfa41a0bdd' // Cloudflare Workers AI API Token
-  ],
-  cerebras: [
-    'csk-' + 'wr4c85jkpjy2v8c3f6vftcj2j4nekrkm4ye8kpej856yrtwk',
-    'csk-' + 'hcvp52we6htpcyjefe26yj5wmtfk2et2ehv4tw6ptk8cmhep'
-  ],
-  gemini: [
-    'AIzaSy' + 'A_YW64oHktvXQALBKurI67x1tdu3LNQ6M',
-    'AIzaSy' + 'ACGSiU_pf21ssY_gqymwGd-_jLqK6qtN8',
-    decKey('AQ.', 'Ab8RN6IrLLZUG9YcOoveslvcA15NLePcQi78ZfLzd3zbs2lBHw')
-  ],
-  groq: [
-    'gsk_' + '3tflPbwbzb6gaOY6oV85WGdyb3FYBdZ02jP3gpwQTWYuVVTxxi4r',
-    'gsk_' + 'CZnyt64cTM680y3zTuH6WGdyb3FY2Q1b2tLt8JVO3ZC0H47vuQCr',
-    'gsk_' + 'D6W4iEm9lDp6B8XV9PDBWGdyb3FYArXtSZF235AzfsU1zuYiBOZs',
-    decKey('gsk_', 'DuF4S9C0SddSroqCZo0cWGdyb3FYXZ0jl8t8RnUPt7kWVZwKcnkP')
-  ]
-};
+const PROXY_URL = '/api/ai-proxy';
+
+async function callProxy(payload) {
+  const token = await AuthModule.getIdToken();
+  if (!token) throw new Error('missing-auth-token');
+
+  const response = await fetch(PROXY_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify(payload)
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || !data.ok) {
+    throw new Error(data.message || `AI proxy error ${response.status}`);
+  }
+  return data.content || '';
+}
+
+function parseJsonLoose(text) {
+  const raw = String(text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
+  const candidate = raw.match(/\{[\s\S]*\}/)?.[0] || raw;
+  return JSON.parse(candidate);
+}
 
 // ─── ĐỊNH NGHĨA MODEL THEO TÁC VỤ ──────────────────────────────────────────────
 export const POOL_MODELS = {
@@ -72,72 +63,6 @@ export const POOL_MODELS = {
   ]
 };
 
-class KeyRotator {
-  constructor() {
-    this.counters = {
-      openrouter: 0,
-      sambanova: 0,
-      mistral: 0,
-      cloudflare: 0,
-      cerebras: 0,
-      gemini: 0,
-      groq: 0
-    };
-  }
-
-  getKey(provider) {
-    const list = RAW_KEYS[provider];
-    if (!list || list.length === 0) return '';
-    const key = list[this.counters[provider] % list.length];
-    this.counters[provider]++;
-    return key;
-  }
-}
-
-const rotator = new KeyRotator();
-
-async function callGroqChat(messages, { temperature = 0.2, max_tokens = 1200, response_format = null } = {}) {
-  const keyCount = RAW_KEYS.groq.length;
-  let lastError = null;
-
-  for (let attempt = 0; attempt < keyCount; attempt++) {
-    const key = rotator.getKey('groq');
-    try {
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${key}`
-        },
-        body: JSON.stringify({
-          model: 'openai/gpt-oss-120b',
-          messages,
-          temperature,
-          max_tokens,
-          ...(response_format ? { response_format } : {})
-        }),
-        signal: AbortSignal.timeout(30000)
-      });
-
-      if (!response.ok) {
-        lastError = new Error(`Groq request failed with status ${response.status}`);
-        if (response.status < 500 && response.status !== 429) break;
-        continue;
-      }
-
-      const payload = await response.json();
-      const content = payload.choices?.[0]?.message?.content;
-      if (typeof content !== 'string' || !content.trim()) {
-        throw new Error('Groq returned an empty response');
-      }
-      return content.trim();
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw lastError || new Error('Groq request failed');
-}
 
 function parseJsonObject(value) {
   const text = String(value || '').trim();
@@ -150,67 +75,24 @@ function parseJsonObject(value) {
   }
 }
 
+async function callGroqChat(messages, { temperature = 0.2, max_tokens = 1200 } = {}) {
+  return callProxy({
+    provider: 'groq',
+    model: 'openai/gpt-oss-120b',
+    messages,
+    temperature,
+    max_tokens
+  });
+}
+
 async function callGeminiChat(model, messages) {
-  const keyCount = RAW_KEYS.gemini.length;
-  let lastError = null;
-
-  for (let attempt = 0; attempt < keyCount; attempt++) {
-    const key = rotator.getKey('gemini');
-    try {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`;
-      
-      // Convert OpenAI format to Gemini format
-      const systemInstruction = messages.find(m => m.role === 'system')?.content || '';
-      const contents = messages
-        .filter(m => m.role !== 'system')
-        .map(m => ({
-          role: m.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: m.content }]
-        }));
-
-      const payload = {
-        contents,
-        generationConfig: {
-          temperature: 0.7,
-          maxOutputTokens: 3000,
-        }
-      };
-
-      if (systemInstruction) {
-        payload.systemInstruction = {
-          parts: [{ text: systemInstruction }]
-        };
-      }
-
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-        signal: AbortSignal.timeout(60000)
-      });
-
-      if (!response.ok) {
-        lastError = new Error(`Gemini request failed with status ${response.status}`);
-        if (response.status < 500 && response.status !== 429) break;
-        continue;
-      }
-
-      const data = await response.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      
-      if (typeof text !== 'string' || !text.trim()) {
-        throw new Error('Gemini returned an empty response');
-      }
-      
-      console.log(`[AIPool] ✅ Gemini ${model} thành công`);
-      return text.trim();
-    } catch (error) {
-      lastError = error;
-      console.warn(`[AIPool] Gemini ${model} attempt ${attempt + 1} failed:`, error.message);
-    }
-  }
-
-  throw lastError || new Error('Gemini request failed');
+  return callProxy({
+    provider: 'gemini',
+    model,
+    messages,
+    temperature: 0.7,
+    max_tokens: 3000
+  });
 }
 
 
@@ -245,8 +127,8 @@ function collectDuckDuckGoResults(payload) {
 }
 
 export const AIPool = {
-  getKey(provider) {
-    return rotator.getKey(provider);
+  async callChat({ provider, model, messages, temperature = 0.7, maxTokens }) {
+    return callProxy({ provider, model, messages, temperature, max_tokens: maxTokens });
   },
 
   async answerSummaryStudyQuestion({ question, documentTitle = '', summary = '', history = [], selectedText = '' }) {
@@ -364,38 +246,14 @@ ${String(summary || '').trim().slice(0, 10000) || '(không có)'}`
   /**
    * Gọi API OpenRouter linh hoạt cho Premium & Vision models
    */
-  async callOpenRouter({ model, messages, temperature = 0.7, max_tokens = 2000, response_format = null }) {
-    const key = rotator.getKey('openrouter');
-    if (!key) throw new Error('Không tìm thấy OpenRouter Key');
-
-    const payload = {
+  async callOpenRouter({ model, messages, temperature = 0.7, max_tokens = 2000 }) {
+    return callProxy({
+      provider: 'openrouter',
       model,
       messages,
       temperature,
-      max_tokens,
-    };
-    if (response_format) {
-      payload.response_format = response_format;
-    }
-
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${key}`,
-        'HTTP-Referer': window.location.origin || 'https://qlcl-attp.edu.vn',
-        'X-Title': 'QLCL & ATTP Education System'
-      },
-      body: JSON.stringify(payload)
+      max_tokens
     });
-
-    if (!res.ok) {
-      const errText = await res.text().catch(() => '');
-      throw new Error(`OpenRouter (${model}) error ${res.status}: ${errText}`);
-    }
-
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content || '';
   },
 
   async explainFoodTechnologyTerm(term) {
@@ -443,67 +301,15 @@ Không bịa số liệu cụ thể. Nếu thuật ngữ không đủ rõ, hãy 
    * Nhận nhận ảnh dạng Base64 và prompt của người dùng
    */
   async analyzeImage({ base64Data, mimeType = 'image/jpeg', userPrompt, systemPrompt = '' }) {
-    // Thử Gemini Native trước (hỗ trợ multimodal cực nhanh & chính xác)
-    for (let i = 0; i < RAW_KEYS.gemini.length; i++) {
-      const key = rotator.getKey('gemini');
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`;
-      
-      const payload = {
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              { text: (systemPrompt ? systemPrompt + '\n\n' : '') + userPrompt },
-              {
-                inlineData: {
-                  mimeType: mimeType,
-                  data: base64Data.replace(/^data:image\/\w+;base64,/, '')
-                }
-              }
-            ]
-          }
-        ]
-      };
-
-      try {
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-          if (text) return text;
-        }
-      } catch (e) {
-        console.warn(`[AIPool Vision] Gemini key ${i+1} lỗi, chuyển tiếp...`, e);
-      }
-    }
-
-    // Fallback sang OpenRouter Vision Models (GPT-4o Mini hoặc Qwen)
-    const openrouterVisionModels = ['openai/gpt-4o-mini', 'qwen/qwen-2.5-vl-72b-instruct']; // ✅ Ưu tiên gpt-4o-mini (free)
-    for (const visModel of openrouterVisionModels) {
-      try {
-        const cleanBase64 = base64Data.startsWith('data:') ? base64Data : `data:${mimeType};base64,${base64Data}`;
-        const messages = [];
-        if (systemPrompt) messages.push({ role: 'system', content: systemPrompt });
-        messages.push({
-          role: 'user',
-          content: [
-            { type: 'text', text: userPrompt },
-            { type: 'image_url', image_url: { url: cleanBase64 } }
-          ]
-        });
-
-        const reply = await this.callOpenRouter({ model: visModel, messages, max_tokens: 2000 });
-        if (reply) return reply;
-      } catch (err) {
-        console.warn(`[AIPool Vision] OpenRouter ${visModel} lỗi:`, err);
-      }
-    }
-
-    throw new Error('Tất cả dịch vụ phân tích hình ảnh AI đang bận. Vui lòng thử lại sau giây lát!');
+    return callProxy({
+      mode: 'vision',
+      model: 'qwen/qwen-2.5-vl-72b-instruct',
+      prompt: (systemPrompt ? systemPrompt + '\n\n' : '') + userPrompt,
+      images: [{
+        mimeType,
+        data: String(base64Data || '').replace(/^data:[^;]+;base64,/, '')
+      }]
+    });
   },
 
   /**
@@ -529,9 +335,14 @@ Không bịa số liệu cụ thể. Nếu thuật ngữ không đủ rõ, hãy 
     messages.push({ role: 'user', content: userPrompt });
 
     try {
-      // ✅ Nếu là Gemini provider, gọi Gemini API
       if (item.provider === 'gemini') {
-        return await this.callGeminiChat(item.model, messages);
+        return await callProxy({
+          provider: 'gemini',
+          model: item.model,
+          messages,
+          temperature: 0.7,
+          max_tokens: 3000
+        });
       }
       
       // ✅ Các provider khác dùng OpenRouter
@@ -631,66 +442,32 @@ Trả về JSON hợp lệ duy nhất:
 
     const prompt = prompts[mode] || prompts.quick;
 
-    // 1. Thử gọi trực tiếp các Gemini Keys trong pool
-    for (let i = 0; i < RAW_KEYS.gemini.length; i++) {
-      const key = rotator.getKey('gemini');
-      if (!key) continue;
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`;
+    const normalize = (parsed) => ({
+      mainPoints: Array.isArray(parsed.mainPoints) ? parsed.mainPoints.slice(0, 8) : [],
+      keywords: Array.isArray(parsed.keywords) ? parsed.keywords.slice(0, 12) : [],
+      pitfalls: Array.isArray(parsed.pitfalls) ? parsed.pitfalls.slice(0, 6) : [],
+      quickQuestions: Array.isArray(parsed.quickQuestions) ? parsed.quickQuestions.slice(0, 3) : [],
+      source: String(parsed.source || `${chapterTitle} — ${lessonTitle}`)
+    });
 
-      const payload = {
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.2,
-          responseMimeType: 'application/json'
-        }
-      };
-
-      try {
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        });
-
-        if (res.ok) {
-          const data = await res.json();
-          const text = data.candidates?.[0]?.content?.parts?.map(p => p.text || '').join('') || '';
-          if (text) {
-            const parsed = JSON.parse(text);
-            return {
-              mainPoints: Array.isArray(parsed.mainPoints) ? parsed.mainPoints.slice(0, 8) : [],
-              keywords: Array.isArray(parsed.keywords) ? parsed.keywords.slice(0, 12) : [],
-              pitfalls: Array.isArray(parsed.pitfalls) ? parsed.pitfalls.slice(0, 6) : [],
-              quickQuestions: Array.isArray(parsed.quickQuestions) ? parsed.quickQuestions.slice(0, 3) : [],
-              source: String(parsed.source || `${chapterTitle} — ${lessonTitle}`)
-            };
-          }
-        }
-      } catch (e) {
-        console.warn(`[AIPool Summary] Gemini Key ${i + 1} lỗi, thử key tiếp theo...`, e);
-      }
+    try {
+      const text = await callGeminiChat('gemini-3.5-flash-lite', [{ role: 'user', content: prompt }]);
+      return normalize(parseJsonLoose(text));
+    } catch (err) {
+      console.warn('[AIPool Summary] Gemini lỗi, chuyển OpenRouter...', err);
     }
 
-    // 2. Fallback sang OpenRouter (dùng gpt-4o-mini hoặc llama-3.3-70b)
     try {
-      const openRouterReply = await this.callOpenRouter({
+      const reply = await callProxy({
+        provider: 'openrouter',
         model: 'openai/gpt-4o-mini',
         messages: [{ role: 'user', content: prompt }],
-        response_format: { type: 'json_object' }
+        temperature: 0.2,
+        max_tokens: 3000
       });
-      if (openRouterReply) {
-        const jsonMatch = openRouterReply.match(/\{[\s\S]*\}/);
-        const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : openRouterReply);
-        return {
-          mainPoints: Array.isArray(parsed.mainPoints) ? parsed.mainPoints.slice(0, 8) : [],
-          keywords: Array.isArray(parsed.keywords) ? parsed.keywords.slice(0, 12) : [],
-          pitfalls: Array.isArray(parsed.pitfalls) ? parsed.pitfalls.slice(0, 6) : [],
-          quickQuestions: Array.isArray(parsed.quickQuestions) ? parsed.quickQuestions.slice(0, 3) : [],
-          source: String(parsed.source || `${chapterTitle} — ${lessonTitle}`)
-        };
-      }
+      return normalize(parseJsonLoose(reply));
     } catch (err) {
-      console.warn('[AIPool Summary] OpenRouter Fallback lỗi:', err);
+      console.warn('[AIPool Summary] OpenRouter fallback lỗi:', err);
     }
 
     throw new Error('Không thể kết nối dịch vụ AI tóm tắt lúc này. Vui lòng thử lại sau!');

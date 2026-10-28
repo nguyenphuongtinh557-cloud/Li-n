@@ -3904,24 +3904,13 @@ ${sourceText.slice(0, 12000)}
 
 Sinh đúng ${count} câu. Chỉ trả về JSON array, không có bình luận nào khác.`;
 
-    const settings = DB.getSettings();
-    const apiKey = settings.apiKey || '';
-    if (!apiKey) { showToast('Chưa cài đặt API Key! Vào Cài đặt tài khoản để thêm.', 'error'); return; }
-
-    const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'HTTP-Referer': location.href },
-      body: JSON.stringify({
-        model,
-        messages: [{ role: 'user', content: prompt }],
-        temperature: 0.7,
-        max_tokens: 16000,
-      }),
+    const rawText = await AIPool.callChat({
+      provider: 'openrouter',
+      model,
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.7,
+      maxTokens: 16000
     });
-
-    if (!res.ok) throw new Error(`API lỗi ${res.status}`);
-    const data = await res.json();
-    let rawText = data.choices?.[0]?.message?.content || '';
 
     // Parse JSON từ response
     const match = rawText.match(/\[[\s\S]*\]/);

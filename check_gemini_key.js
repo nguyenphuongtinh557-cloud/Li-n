@@ -1,6 +1,7 @@
 import https from 'https';
 
-const GEMINI_KEY = 'AIzaAQ.Ab8RN6IrLLZUG9YcOoveslvcA15NLePcQi78ZfLzd3zbs2lBHw';
+// Key chỉ đọc từ biến môi trường; không lưu key trong mã nguồn.
+const GEMINI_KEY = process.env.GEMINI_API_KEY_1 || '';
 const MODEL = 'gemini-flash-latest';
 
 console.log('🔍 Kiểm tra Gemini API Key...\n');

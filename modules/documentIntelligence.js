@@ -13,6 +13,21 @@
 
 import { AIPool } from './aiPool.js';
 
+async function callGemini(prompt, { temperature = 0.3, maxTokens = 2048 } = {}) {
+  return AIPool.callChat({
+    provider: 'gemini',
+    model: 'gemini-3.5-flash-lite',
+    messages: [{ role: 'user', content: prompt }],
+    temperature,
+    maxTokens
+  });
+}
+
+function parseJsonLoose(text) {
+  const raw = String(text || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
+  return JSON.parse(raw.match(/\{[\s\S]*\}/)?.[0] || raw);
+}
+
 /**
  * [1] Structure Detection
  * Phát hiện cấu trúc CHƯƠNG/BÀI từ text
@@ -158,24 +173,8 @@ Chỉ trả về tiêu đề, không giải thích.`;
 
   try {
     // Use Gemini for fast title generation
-    const key = AIPool.getKey('gemini');
-    if (!key) throw new Error('No Gemini key available');
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.3, maxOutputTokens: 50 }
-      })
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const title = data.candidates?.[0]?.content?.parts?.[0]?.text?.trim();
-      if (title) return title;
-    }
+    const title = String(await callGemini(prompt, { temperature: 0.3, maxTokens: 80 })).trim().split('\n')[0];
+    if (title) return title;
   } catch (err) {
     console.warn('[DocIntel] Auto title generation failed:', err);
   }
@@ -207,33 +206,11 @@ Trả về JSON:
 }`;
 
   try {
-    const key = AIPool.getKey('gemini');
-    if (!key) throw new Error('No Gemini key available');
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { 
-          temperature: 0.2,
-          responseMimeType: 'application/json'
-        }
-      })
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (text) {
-        const parsed = JSON.parse(text);
-        return {
-          mainPoints: parsed.chapterMainPoints || [],
-          keywords: parsed.chapterKeywords || allKeywords.slice(0, 15)
-        };
-      }
-    }
+    const parsed = parseJsonLoose(await callGemini(prompt, { temperature: 0.2 }));
+    return {
+      mainPoints: parsed.chapterMainPoints || [],
+      keywords: parsed.chapterKeywords || allKeywords.slice(0, 15)
+    };
   } catch (err) {
     console.warn('[DocIntel] Chapter aggregation failed:', err);
   }
@@ -273,33 +250,11 @@ Trả về JSON:
 }`;
 
   try {
-    const key = AIPool.getKey('gemini');
-    if (!key) throw new Error('No Gemini key available');
-
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3.5-flash-lite:generateContent?key=${key}`;
-    const response = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: {
-          temperature: 0.3,
-          responseMimeType: 'application/json'
-        }
-      })
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (text) {
-        const parsed = JSON.parse(text);
-        return {
-          insights: parsed.globalInsights || [],
-          keywords: parsed.coreKeywords || allKeywords.slice(0, 20)
-        };
-      }
-    }
+    const parsed = parseJsonLoose(await callGemini(prompt, { temperature: 0.3 }));
+    return {
+      insights: parsed.globalInsights || [],
+      keywords: parsed.coreKeywords || allKeywords.slice(0, 20)
+    };
   } catch (err) {
     console.warn('[DocIntel] Global summary failed:', err);
   }
