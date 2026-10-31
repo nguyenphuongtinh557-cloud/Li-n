@@ -5,8 +5,9 @@
  * Ghi: GitHub Contents API (cần PAT token)
  *
  * Flow:
- *   Khi user thêm câu hỏi/tài liệu → pushToGitHub()
+ *   Khi admin thêm câu hỏi/tài liệu → pushToGitHub()
  *   Khi load trang → pullFromGitHub()
+ *   Câu hỏi người dùng lưu từ AI chỉ lưu trên máy, không đẩy lên kho chung.
  */
 
 // ─── Config ───────────────────────────────────────────────────────────────────
@@ -252,7 +253,7 @@ export async function persistSubjectDetailsLocally(subjectId, details) {
 
 export async function pullSubjectDetailsFromServer() {
   try {
-    const response = await fetch(`/api/subject-details?t=${Date.now()}`, { cache: 'no-store' });
+    const response = await fetch('/api/subject-details', { cache: 'no-cache' });
     const payload = await response.json().catch(() => ({}));
     if (response.ok && payload.ok && payload.subjectDetails && typeof payload.subjectDetails === 'object') return payload.subjectDetails;
     if (response.status === 503 || payload.reason === 'server-not-configured') {

@@ -4,6 +4,7 @@
  */
 
 import { DB } from './db.js';
+import { sanitizeDisplayHtml } from './sanitizeHtml.js';
 
 export const DEFAULT_ARTICLES = [
   {
@@ -323,7 +324,7 @@ export const ArticlesModule = {
                 <!-- Large Hero Featured Card (Left) -->
                 <div class="article-hero-card card-hover-lift" onclick="ArticlesModule.openDetail('${heroArticle.id}')">
                   <div class="hero-img-wrap">
-                    <img src="${heroArticle.cover}" alt="${heroArticle.title}" class="hero-card-img" referrerpolicy="no-referrer" onerror="this.src='https://placehold.co/800x600/e3f2fd/1976d2?text=No+Image'">
+                    <img src="${heroArticle.cover}" alt="${heroArticle.title}" class="hero-card-img" referrerpolicy="no-referrer" onerror="this.src='no-image.svg?v=news1'">
                   </div>
                   <div class="hero-card-body">
                     <span class="article-cat-badge badge-green">${heroArticle.category}</span>
@@ -359,6 +360,7 @@ export const ArticlesModule = {
             <!-- Latest Articles Section Title -->
             <div class="articles-section-header margin-top-24">
               <h3><i class="fa-solid fa-layer-group text-primary"></i> Bài viết mới nhất</h3>
+              <button type="button" class="articles-section-link" onclick="ArticlesModule.setCategory('Tất cả')">Xem tất cả <i class="fa-solid fa-arrow-right"></i></button>
             </div>
 
             <!-- Articles List (Horizontal Cards) -->
@@ -371,7 +373,7 @@ export const ArticlesModule = {
                 </div>
               ` : filtered.map(art => `
                 <div class="article-horizontal-card card-hover-lift" onclick="ArticlesModule.openDetail('${art.id}')">
-                  <img src="${art.cover}" alt="${art.title}" class="h-card-img" referrerpolicy="no-referrer" onerror="this.src='https://placehold.co/400x300/e3f2fd/1976d2?text=No+Image'">
+                  <img src="${art.cover}" alt="${art.title}" class="h-card-img" referrerpolicy="no-referrer" onerror="this.src='no-image.svg?v=news1'">
                   <div class="h-card-body">
                     <div class="flex justify-between items-center gap-2">
                       <span class="article-cat-badge badge-subtle-green">${art.category}</span>
@@ -395,9 +397,12 @@ export const ArticlesModule = {
             
             <!-- Box 1: 🔥 Chủ đề nổi bật -->
             <div class="articles-sidebar-box card">
-              <h3 class="sidebar-box-title">
-                <i class="fa-solid fa-fire text-amber"></i> Chủ đề nổi bật
-              </h3>
+              <div class="articles-sidebar-head">
+                <h3 class="sidebar-box-title">
+                  <i class="fa-solid fa-fire text-amber"></i> Chủ đề nổi bật
+                </h3>
+                <button type="button" class="articles-section-link" onclick="ArticlesModule.setCategory('Tất cả')">Xem tất cả <i class="fa-solid fa-arrow-right"></i></button>
+              </div>
               <div class="sidebar-categories-list margin-top-12">
                 ${CATEGORIES.filter(c => c !== 'Tất cả').map(c => `
                   <div class="sidebar-cat-item ${this.currentCategory === c ? 'active' : ''}" onclick="ArticlesModule.setCategory('${c}')">
@@ -482,7 +487,7 @@ export const ArticlesModule = {
 
             <!-- Article Body Content -->
             <div class="reader-article-body article-prose margin-top-24" id="reader-body-content">
-              ${article.content || '<p>Nội dung đang được cập nhật...</p>'}
+              ${sanitizeDisplayHtml(article.content || '<p>Nội dung đang được cập nhật...</p>')}
             </div>
           </div>
 
@@ -580,10 +585,7 @@ export const ArticlesModule = {
   openDetail(articleId) {
     this.activeArticleId = articleId;
     if (!window.NavController?.restoringRoute) {
-      const params = new URLSearchParams(window.location.search);
-      params.set('page', 'about');
-      params.set('article', articleId);
-      window.history.pushState({ page: 'about', article: articleId }, '', `${window.location.pathname}?${params.toString()}${window.location.hash}`);
+      window.NavController?.syncUrl('about', { article: articleId });
     }
 
     // Real view counter increment & save to persistent DB
@@ -599,21 +601,14 @@ export const ArticlesModule = {
   },
 
   async shareCurrentArticle() {
-    const url = new URL(window.location.href);
-    url.search = '';
-    url.searchParams.set('page', 'about');
-    url.searchParams.set('article', this.activeArticleId);
+    const url = window.NavController?.buildUrl('about', { article: this.activeArticleId }) || new URL(window.location.href);
     await window.shareUrl(url.href, 'Chia sẻ bài viết');
   },
 
   closeDetail() {
     this.activeArticleId = null;
     if (!window.NavController?.restoringRoute) {
-      const params = new URLSearchParams(window.location.search);
-      params.delete('article');
-      params.set('page', 'about');
-      const query = params.toString();
-      window.history.pushState({ page: 'about' }, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+      window.NavController?.syncUrl('about');
     }
     this.renderArticlesView();
     window.scrollTo({ top: 0, behavior: 'smooth' });

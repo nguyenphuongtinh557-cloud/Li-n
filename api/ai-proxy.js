@@ -12,6 +12,7 @@
  */
 
 import admin from 'firebase-admin';
+import { isAdminEmail } from '../lib/adminAccess.js';
 
 const GATEWAY_FEATURE = 'qlcl-ai';
 const GATEWAY_VISION_FEATURE = 'qlcl-vision';
@@ -75,28 +76,47 @@ function json(res, status, body) {
   return res.end(JSON.stringify(body));
 }
 
-function getFirebaseConfig() {
-  const firebaseServiceAccount = process.env.FIREBASE_SERVICE_ACCOUNT_JSON;
-
-  if (!firebaseServiceAccount || !firebaseServiceAccount.trim()) {
-    return { ok: false, reason: 'missing-firebase-config' };
-  }
-
-  try {
-    return { ok: true, serviceAccount: JSON.parse(firebaseServiceAccount) };
-  } catch (error) {
-    return { ok: false, reason: 'invalid-firebase-config', detail: error.message };
-  }
+/**
+ * Pass through 429 (student over budget) and 503/504 (gateway unavailable or
+ * provider timeout) so the UI can tell "chờ chút" apart from a generic 502.
+ */
+function gatewayError(status, data) {
+  const error = new Error(data?.error?.message || `Gateway error ${status}`);
+  error.status = [429, 503, 504].includes(status) ? status : 502;
+  return error;
 }
 
-function getFirebaseApp(serviceAccount) {
+const DEFAULT_FIREBASE_PROJECT_ID = 'fifth-chalice-507108-c5';
+
+function getFirebaseConfig() {
+  const firebaseServiceAccount = String(process.env.FIREBASE_SERVICE_ACCOUNT_JSON || '').trim();
+
+  if (firebaseServiceAccount) {
+    try {
+      return { ok: true, serviceAccount: JSON.parse(firebaseServiceAccount) };
+    } catch (error) {
+      return { ok: false, reason: 'invalid-firebase-config', detail: error.message };
+    }
+  }
+
+  // verifyIdToken chỉ cần projectId (thông tin công khai) để kiểm tra audience;
+  // không cần service account cho việc xác thực token.
+  return {
+    ok: true,
+    projectId: String(process.env.FIREBASE_PROJECT_ID || DEFAULT_FIREBASE_PROJECT_ID).trim()
+  };
+}
+
+function getFirebaseApp(firebaseConfig) {
   if (!admin.apps.length) {
-    admin.initializeApp({ credential: admin.credential.cert(serviceAccount) });
+    admin.initializeApp(firebaseConfig.serviceAccount
+      ? { credential: admin.credential.cert(firebaseConfig.serviceAccount) }
+      : { projectId: firebaseConfig.projectId });
   }
   return admin.app();
 }
 
-async function verifyUser(req, serviceAccount) {
+async function verifyUser(req, firebaseConfig) {
   const authHeader = String(req.headers.authorization || '');
   const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
 
@@ -104,7 +124,7 @@ async function verifyUser(req, serviceAccount) {
     throw Object.assign(new Error('missing-auth-token'), { status: 401 });
   }
 
-  getFirebaseApp(serviceAccount);
+  getFirebaseApp(firebaseConfig);
 
   try {
     const decoded = await admin.auth().verifyIdToken(token);
@@ -134,6 +154,54 @@ function resolveGatewayAlias(provider, model) {
   return DEFAULT_ALIASES[key] || null;
 }
 
+// Model trả phí chỉ dành cho tài khoản Premium. UI chỉ ẩn lựa chọn; server
+// phải chặn vì sinh viên có thể gọi thẳng API bằng token Firebase của mình.
+const PREMIUM_ALIASES = new Set([
+  'or-deepseek-r1',
+  'or-claude-3.5',
+  'or-mistral-large',
+  'or-gpt-4o'
+]);
+const MAX_TOKENS_LIMIT = 4096;
+const ROLE_CACHE_TTL_MS = 60_000;
+const roleCache = new Map();
+
+function emailToDocId(email) {
+  return String(email || '').trim().toLowerCase().replace(/[^a-z0-9_@.-]/g, '_');
+}
+
+function normalizeMaxTokens(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return undefined;
+  return Math.min(Math.max(Math.trunc(parsed), 1), MAX_TOKENS_LIMIT);
+}
+
+function normalizeTemperature(value) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) return undefined;
+  return Math.min(Math.max(parsed, 0), 2);
+}
+
+async function getUserRole(firebaseConfig, email) {
+  if (isAdminEmail(email)) return 'ADMIN';
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  if (!cleanEmail) return 'NEWBIE';
+
+  const cached = roleCache.get(cleanEmail);
+  if (cached && cached.expiresAt > Date.now()) return cached.role;
+
+  // verifyIdToken chỉ cần projectId, nhưng đọc Firestore cần service account.
+  // Không có credentials thì không xác minh được quyền → coi là NEWBIE.
+  if (!firebaseConfig.serviceAccount) return 'NEWBIE';
+
+  getFirebaseApp(firebaseConfig);
+  const snapshot = await admin.firestore().collection('users').doc(emailToDocId(cleanEmail)).get();
+  const rawRole = snapshot.exists ? String(snapshot.get('role') || '').trim().toUpperCase() : '';
+  const role = rawRole === 'PREMIUM' || rawRole === 'ADMIN' ? rawRole : 'NEWBIE';
+  roleCache.set(cleanEmail, { role, expiresAt: Date.now() + ROLE_CACHE_TTL_MS });
+  return role;
+}
+
 function sanitizeMessages(messages) {
   if (!Array.isArray(messages)) return null;
   const cleaned = messages
@@ -144,8 +212,24 @@ function sanitizeMessages(messages) {
   return cleaned.length > 0 ? cleaned : null;
 }
 
-async function callGateway(gateway, { messages, modelAlias, temperature, maxTokens }) {
-  const response = await fetch(`${gateway.baseUrl}/v1/internal/ai/generate`, {
+const GATEWAY_TIMEOUT_MS = 125_000;
+
+// Gateway tự cắt provider ở 120s; đợi thêm 5s rồi trả 504 để function không
+// bị treo vô hạn khi gateway còn sống nhưng không bao giờ trả lời.
+async function fetchGateway(url, init) {
+  try {
+    return await fetch(url, { ...init, signal: AbortSignal.timeout(GATEWAY_TIMEOUT_MS) });
+  } catch (error) {
+    if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
+      throw Object.assign(new Error('AI gateway không phản hồi trong 125 giây'), { status: 504 });
+    }
+    const reason = error?.cause?.code || error?.message || 'fetch failed';
+    throw Object.assign(new Error(`Không kết nối được AI gateway (${reason})`), { status: 503 });
+  }
+}
+
+async function callGateway(gateway, { messages, modelAlias, temperature, maxTokens, userId }) {
+  const response = await fetchGateway(`${gateway.baseUrl}/v1/internal/ai/generate`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -154,6 +238,9 @@ async function callGateway(gateway, { messages, modelAlias, temperature, maxToke
     body: JSON.stringify({
       feature: GATEWAY_FEATURE,
       modelAlias,
+      // uid đã xác minh bằng Firebase ID token — gateway dùng nó để giới hạn
+      // số request mỗi phút cho từng học viên thay vì cho cả lớp.
+      userId,
       input: { messages },
       options: {
         temperature: typeof temperature === 'number' ? temperature : undefined,
@@ -166,7 +253,7 @@ async function callGateway(gateway, { messages, modelAlias, temperature, maxToke
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data?.error?.message || `Gateway error ${response.status}`);
+    throw gatewayError(response.status, data);
   }
   if (!data?.content) {
     throw new Error('Gateway returned an empty response');
@@ -175,8 +262,8 @@ async function callGateway(gateway, { messages, modelAlias, temperature, maxToke
   return { content: data.content, model: data.model || modelAlias, usage: data.usage };
 }
 
-async function callGatewayVision(gateway, { prompt, images }) {
-  const response = await fetch(`${gateway.baseUrl}/v1/internal/ai/vision`, {
+async function callGatewayVision(gateway, { prompt, images, userId }) {
+  const response = await fetchGateway(`${gateway.baseUrl}/v1/internal/ai/vision`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -184,6 +271,7 @@ async function callGatewayVision(gateway, { prompt, images }) {
     },
     body: JSON.stringify({
       feature: GATEWAY_VISION_FEATURE,
+      userId,
       images,
       prompt,
       options: { temperature: 0.2, maxTokens: 4_000, timeoutMs: 120_000 }
@@ -192,7 +280,7 @@ async function callGatewayVision(gateway, { prompt, images }) {
 
   const data = await response.json().catch(() => ({}));
   if (!response.ok) {
-    throw new Error(data?.error?.message || `Gateway error ${response.status}`);
+    throw gatewayError(response.status, data);
   }
   if (!data?.content) {
     throw new Error('Gateway returned an empty response');
@@ -230,7 +318,7 @@ export default async function handler(req, res) {
 
     let user;
     try {
-      user = await verifyUser(req, configResult.serviceAccount);
+      user = await verifyUser(req, configResult);
     } catch (error) {
       return json(res, error.status || 401, {
         ok: false,
@@ -277,7 +365,7 @@ export default async function handler(req, res) {
         });
       }
 
-      const result = await callGatewayVision(gateway, { prompt, images });
+      const result = await callGatewayVision(gateway, { prompt, images, userId: user.uid });
       return json(res, 200, {
         ok: true,
         content: result.content,
@@ -307,11 +395,40 @@ export default async function handler(req, res) {
       });
     }
 
+    if (PREMIUM_ALIASES.has(gatewayAlias)) {
+      if (user.emailVerified !== true) {
+        return json(res, 403, {
+          ok: false,
+          error: 'email-verification-required',
+          message: 'Vui lòng xác minh email trước khi dùng model Premium.'
+        });
+      }
+      let role;
+      try {
+        role = await getUserRole(configResult, user.email);
+      } catch (error) {
+        console.error('[AI Proxy] Không đọc được role từ Firestore:', error.message);
+        return json(res, 503, {
+          ok: false,
+          error: 'role-check-unavailable',
+          message: 'Không xác minh được quyền Premium, vui lòng thử lại sau.'
+        });
+      }
+      if (role === 'NEWBIE') {
+        return json(res, 403, {
+          ok: false,
+          error: 'premium-required',
+          message: 'Model này chỉ dành cho tài khoản Premium.'
+        });
+      }
+    }
+
     const result = await callGateway(gateway, {
       messages,
       modelAlias: gatewayAlias,
-      temperature,
-      maxTokens
+      temperature: normalizeTemperature(temperature),
+      maxTokens: normalizeMaxTokens(maxTokens),
+      userId: user.uid
     });
 
     console.log(`[AI Proxy] ${user.uid} → ${provider}/${model || 'default'} ⇒ ${gatewayAlias}`);
@@ -325,9 +442,13 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('[AI Proxy] Error:', error.message);
-    return json(res, 502, {
+    const errorCode = error.status === 429 ? 'rate-limited'
+      : error.status === 503 ? 'gateway-unavailable'
+      : error.status === 504 ? 'gateway-timeout'
+      : 'ai-gateway-error';
+    return json(res, error.status || 502, {
       ok: false,
-      error: 'ai-gateway-error',
+      error: errorCode,
       message: error.message || 'AI service temporarily unavailable'
     });
   }

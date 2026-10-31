@@ -11,9 +11,11 @@
  * Response: Full hierarchical summary structure
  */
 
+import { verifyFirebaseUser } from '../lib/firebaseAuth.js';
+
 const GATEWAY_MODEL_ALIAS = 'gemini-3.5-flash-lite';
 
-async function callGeminiJson(prompt, { temperature = 0.2, maxTokens = 4096 } = {}) {
+async function callGeminiJson(prompt, { temperature = 0.2, maxTokens = 4096, userId } = {}) {
   const baseUrl = String(process.env.AI_GATEWAY_URL || '').trim().replace(/\/+$/, '');
   const apiKey = String(process.env.AI_GATEWAY_KEY || '').trim();
   if (!baseUrl || !apiKey) throw new Error('AI gateway is not configured');
@@ -27,13 +29,18 @@ async function callGeminiJson(prompt, { temperature = 0.2, maxTokens = 4096 } = 
     body: JSON.stringify({
       feature: 'qlcl-ai',
       modelAlias: GATEWAY_MODEL_ALIAS,
+      userId,
       input: { messages: [{ role: 'user', content: prompt }] },
       options: { temperature, maxTokens, timeoutMs: 120_000 }
     })
   });
 
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw new Error(data?.error?.message || `Gateway error ${response.status}`);
+  if (!response.ok) {
+    const error = new Error(data?.error?.message || `Gateway error ${response.status}`);
+    error.status = response.status === 429 ? 429 : 502;
+    throw error;
+  }
 
   const text = String(data.content || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
   return JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || text);
@@ -112,8 +119,10 @@ function json(res, status, body) {
 // Rate limiting
 const rateBuckets = new Map();
 
-function allowedRequest(req) {
-  const key = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'anonymous').split(',')[0].trim();
+// Đếm theo học viên đã xác thực, không theo IP: một trường dùng chung NAT
+// sẽ làm 199 học viên cùng rơi vào một bucket nếu chốt theo IP.
+function allowedRequest(userId) {
+  const key = String(userId || 'anonymous');
   const now = Date.now();
   const active = (rateBuckets.get(key) || []).filter(time => now - time < 300_000); // 5 min window
   if (active.length >= 3) return false; // Max 3 document summaries per 5 min
@@ -126,16 +135,17 @@ function allowedRequest(req) {
 // ORCHESTRATED BATCH REASONING ENGINE (3-Call Architecture)
 // ═══════════════════════════════════════════════════════════════════
 
-async function processDocumentOptimized({ text, documentTitle, mode }) {
+async function processDocumentOptimized({ text, documentTitle, mode, userId }) {
   // ─── CALL 1: Structure Detection + Planning ───────────────────────
-  const structureMap = await detectDocumentStructure(text, documentTitle);
+  const structureMap = await detectDocumentStructure(text, documentTitle, userId);
   
   // ─── CALL 2: Batch Hierarchical Summarization ────────────────────
   const batchResult = await batchSummarizeDocument({
     text,
     documentTitle,
     mode,
-    structureMap
+    structureMap,
+    userId
   });
 
   return {
@@ -149,7 +159,7 @@ async function processDocumentOptimized({ text, documentTitle, mode }) {
 }
 
 // ─── CALL 1: Structure Detection (REGEX FIRST, AI FALLBACK) ────────
-async function detectDocumentStructure(text, title) {
+async function detectDocumentStructure(text, title, userId) {
   // ✅ REGEX TRƯỚC (zero API cost)
   const regexResult = detectStructureByRegex(text);
   
@@ -171,7 +181,7 @@ Tài liệu mẫu (${text.length} chars):
 ${text.slice(0, 6000)}`;
 
   try {
-    const result = await callGeminiJson(prompt, { temperature: 0.1, maxTokens: 4096 });
+    const result = await callGeminiJson(prompt, { temperature: 0.1, maxTokens: 4096, userId });
     if (result.segments?.length > 0) return result;
   } catch (err) {
     console.warn('[Structure AI] failed:', err.message);
@@ -444,7 +454,7 @@ function formatSegments(segments, title) {
 }
 
 // ✅ ADAPTIVE BATCH SIZE (2-5 chunks based on complexity)
-async function batchSummarizeDocument({ text, documentTitle, mode, structureMap }) {
+async function batchSummarizeDocument({ text, documentTitle, mode, structureMap, userId }) {
   const modeInstructions = {
     quick: 'Tóm tắt NHANH: 3-5 ý chính, mỗi ý <20 từ',
     study: 'Tóm tắt CHI TIẾT: Phân tích khái niệm + ví dụ',
@@ -555,7 +565,7 @@ QUY TẮC QUAN TRỌNG:
 - Mỗi đoạn độc lập, không tham chiếu đoạn khác`;
 
     try {
-      const batchResult = await callGeminiBatch(prompt);
+      const batchResult = await callGeminiBatch(prompt, userId);
       
       // ✅ VALIDATE with ID matching
       if (Array.isArray(batchResult) && batchResult.length === batch.length) {
@@ -589,7 +599,7 @@ QUY TẮC QUAN TRỌNG:
   }
 
   // ✅ CALL 3: GLOBAL + CHAPTER AGGREGATION (1 gọi duy nhất)
-  const aggregationResult = await aggregateAllSummaries(allLessons, documentTitle, mode);
+  const aggregationResult = await aggregateAllSummaries(allLessons, documentTitle, mode, userId);
 
   return {
     chapters: [{
@@ -602,12 +612,12 @@ QUY TẮC QUAN TRỌNG:
 }
 
 // Helper: Call Gemini for batch
-async function callGeminiBatch(prompt) {
-  return callGeminiJson(prompt, { temperature: 0.2, maxTokens: 4096 });
+async function callGeminiBatch(prompt, userId) {
+  return callGeminiJson(prompt, { temperature: 0.2, maxTokens: 4096, userId });
 }
 
 // ✅ CALL 3: Aggregate chapter + global (1 API thay vì 2)
-async function aggregateAllSummaries(lessons, documentTitle, mode) {
+async function aggregateAllSummaries(lessons, documentTitle, mode, userId) {
   const allPoints = lessons.flatMap(l => l.summary?.mainPoints || []);
   const allKeywords = [...new Set(lessons.flatMap(l => l.summary?.keywords || []))];
 
@@ -637,7 +647,7 @@ YÊU CẦU:
 - KHÔNG thêm kiến thức ngoài`;
 
   try {
-    const result = await callGeminiBatch(prompt);
+    const result = await callGeminiBatch(prompt, userId);
     return {
       chapterSummary: result.chapterSummary || { mainPoints: [], keywords: allKeywords.slice(0, 15) },
       globalSummary: result.globalSummary || { insights: [], keywords: allKeywords.slice(0, 20) }
@@ -664,7 +674,14 @@ export default async function handler(req, res) {
     return json(res, 405, { ok: false, reason: 'method-not-allowed' });
   }
 
-  if (!allowedRequest(req)) {
+  let user;
+  try {
+    user = await verifyFirebaseUser(req);
+  } catch (error) {
+    return json(res, error.status || 401, { ok: false, reason: error.message || 'unauthorized' });
+  }
+
+  if (!allowedRequest(user.uid)) {
     return json(res, 429, { ok: false, reason: 'rate-limited', message: 'Tối đa 3 tài liệu mỗi 5 phút' });
   }
 
@@ -691,7 +708,8 @@ export default async function handler(req, res) {
     const result = await processDocumentOptimized({
       text,
       documentTitle,
-      mode
+      mode,
+      userId: user.uid
     });
 
     return json(res, 200, {
@@ -700,9 +718,10 @@ export default async function handler(req, res) {
     });
   } catch (error) {
     console.error('[Document Summary API] Error:', error);
-    return json(res, 500, {
+    const status = error.status === 429 ? 429 : 500;
+    return json(res, status, {
       ok: false,
-      reason: 'processing-failed',
+      reason: status === 429 ? 'rate-limited' : 'processing-failed',
       message: error.message || 'Lỗi xử lý tài liệu'
     });
   }

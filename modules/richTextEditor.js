@@ -1,4 +1,4 @@
-import './tts.js?v=20261001-piper-tts-v1';
+import './tts.js';
 
 const ALLOWED_TAGS = new Set([
   'A', 'ARTICLE', 'ASIDE', 'B', 'BLOCKQUOTE', 'BR', 'CAPTION', 'CODE', 'DD', 'DIV', 'DL', 'DT', 'EM', 'FOOTER', 'HEADER',

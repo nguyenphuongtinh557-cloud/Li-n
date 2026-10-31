@@ -6,7 +6,7 @@
  */
 
 import { initializeApp, getApps } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
-import { getFirestore, doc, setDoc, getDoc, collection, getDocs, query, orderBy, limit } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
+import { getFirestore, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js';
 
 const FIREBASE_CONFIG = {
   apiKey: 'AIzaSyCcwxsxREppsp3KbCDnQ4ixvz3VC5lxqM4',
@@ -38,6 +38,40 @@ function emailToDocId(email) {
   return String(email).trim().toLowerCase().replace(/[^a-z0-9_@.-]/g, '_');
 }
 
+function isLocalDevHost() {
+  return typeof window !== 'undefined'
+    && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+}
+
+async function getIdToken() {
+  try {
+    if (window.AuthModule?.getIdToken) return await window.AuthModule.getIdToken();
+    const { AuthModule } = await import('./auth.js');
+    return await AuthModule.getIdToken();
+  } catch {
+    return '';
+  }
+}
+
+async function requestAdminUsers(method, body, path = '/api/admin-users') {
+  const token = await getIdToken();
+  if (!token) throw new Error('missing-auth-token');
+
+  const response = await fetch(path, {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`
+    },
+    ...(body ? { body: JSON.stringify(body) } : {})
+  });
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok || !payload.ok) {
+    throw new Error(payload.reason || `admin-users-${response.status}`);
+  }
+  return payload;
+}
+
 /**
  * Đẩy/Cập nhật học viên lên Firestore collection 'users'
  * @param {object} user - Object thông tin học viên { name, email, avatar, provider, ... }
@@ -63,11 +97,11 @@ export async function upsertUserToFirestore(user) {
       email: cleanEmail,
       avatar: user.avatar || existingData.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(cleanEmail)}`,
       provider: user.provider || existingData.provider || 'google.com',
-      role: user.role || existingData.role || 'NEWBIE',
       lastLogin: now,
       firstSeen: existingData.firstSeen || user.firstSeen || user.signedInAt || now,
       updatedAt: now
     };
+    if (!existingData.role) userData.role = 'NEWBIE';
 
     await setDoc(ref, userData, { merge: true });
     console.log('[FirestoreUsers] ✅ Đã lưu học viên lên Cloud:', cleanEmail);
@@ -85,48 +119,65 @@ export async function upsertUserToFirestore(user) {
  */
 export async function updateUserRoleInFirestore(email, role) {
   if (!email) return { ok: false, reason: 'no-email' };
-  const db = getDb();
-  if (!db) return { ok: false, reason: 'no-db' };
-
   const cleanEmail = String(email).trim().toLowerCase();
-  const docId = emailToDocId(cleanEmail);
-  const ref = doc(db, COLLECTION_NAME, docId);
 
   try {
-    await setDoc(ref, { role, email: cleanEmail, updatedAt: new Date().toISOString() }, { merge: true });
-    console.log(`[FirestoreUsers] ✅ Đã cập nhật quyền [${role}] cho [${cleanEmail}] trên Cloud`);
+    await requestAdminUsers('PATCH', { email: cleanEmail, role });
+    console.log(`[FirestoreUsers] ✅ Đã cập nhật quyền [${role}] cho [${cleanEmail}] qua API admin`);
     return { ok: true };
   } catch (e) {
+    if (isLocalDevHost()) {
+      const db = getDb();
+      if (db) {
+        try {
+          await setDoc(doc(db, COLLECTION_NAME, emailToDocId(cleanEmail)), {
+            role,
+            email: cleanEmail,
+            updatedAt: new Date().toISOString()
+          }, { merge: true });
+          console.warn('[FirestoreUsers] API admin chưa chạy local — đã ghi trực tiếp Firestore.');
+          return { ok: true, localFallback: true };
+        } catch (fallbackError) {
+          return { ok: false, reason: fallbackError.message || 'write-error' };
+        }
+      }
+    }
     console.warn('[FirestoreUsers] Lỗi cập nhật role:', e);
-    return { ok: false, reason: e.message };
+    return { ok: false, reason: e.message || 'admin-api-unavailable' };
   }
 }
 
 /**
- * Lấy danh sách tất cả học viên từ Firestore collection 'users'
+ * Lấy toàn bộ học viên qua API admin, đọc hết từng trang.
  * @returns {Array} Mảng các object user
  */
 export async function fetchAllUsersFromFirestore() {
-  const db = getDb();
-  if (!db) return [];
+  const users = [];
+  const seen = new Set();
+  const pageSize = 200;
+  const maxPages = 25; // trần tự vệ: 5.000 hồ sơ
 
   try {
-    const colRef = collection(db, COLLECTION_NAME);
-    const q = query(colRef, orderBy('lastLogin', 'desc'), limit(100));
-    const snap = await getDocs(q);
-
-    const users = [];
-    snap.forEach((docSnap) => {
-      const data = docSnap.data();
-      if (data && data.email) {
-        users.push(data);
+    let cursor = '';
+    for (let page = 0; page < maxPages; page += 1) {
+      const path = `/api/admin-users?pageSize=${pageSize}${cursor ? `&cursor=${encodeURIComponent(cursor)}` : ''}`;
+      const payload = await requestAdminUsers('GET', undefined, path);
+      for (const user of Array.isArray(payload.users) ? payload.users : []) {
+        const key = String(user?.email || user?.id || '');
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        users.push(user);
       }
-    });
-
-    console.log(`[FirestoreUsers] ✅ Đã tải ${users.length} học viên từ Cloud`);
+      if (!payload.hasMore || !payload.nextCursor) {
+        console.log(`[FirestoreUsers] ✅ Đã tải ${users.length} học viên qua API admin (${page + 1} trang)`);
+        return users;
+      }
+      cursor = payload.nextCursor;
+    }
+    console.warn(`[FirestoreUsers] Danh sách vượt ${maxPages} trang — dừng ở ${users.length} học viên`);
     return users;
   } catch (e) {
-    console.warn('[FirestoreUsers] Lỗi lấy danh sách học viên từ Firestore:', e);
-    return [];
+    console.warn('[FirestoreUsers] Không thể lấy hết danh sách học viên:', e.message || e);
+    return users;
   }
 }

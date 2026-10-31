@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" role="img" aria-label="No Image">
+  <rect x="132" y="102" width="136" height="102" rx="18" fill="none" stroke="#9fb3aa" stroke-width="7"/>
+  <circle cx="169" cy="134" r="11" fill="#9fb3aa"/>
+  <path d="M143 189l35-39 26 29 18-18 25 28" fill="none" stroke="#9fb3aa" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="200" y="244" text-anchor="middle" font-family="Inter, Arial, sans-serif" font-size="22" font-weight="600" fill="#9fb3aa">No Image</text>
+</svg>

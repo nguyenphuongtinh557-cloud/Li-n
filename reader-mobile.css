@@ -1,0 +1,489 @@
+/* ══════════════════════════════════════════════════════════════════════
+   STUDY READER — GIAO DIỆN MOBILE (≤760px)
+   Hai màn: Mục lục (sr-mobile-toc) và Bài giảng. Desktop không nhận rule nào.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* Phần tử chỉ dành cho mobile — ẩn tuyệt đối ở desktop */
+.study-reader-mobile-only,
+.study-reader-lesson-nav,
+.study-reader-m-close {
+  display: none;
+}
+
+.study-reader-m-hidden {
+  display: none !important;
+}
+
+@media (max-width: 760px) {
+  .app-layout.study-reader-active #cera-fab,
+  body:has(.app-layout.study-reader-active) #cera-fab { display: none !important; }
+
+  /* ── 1. Header: Quay lại + chip mã môn ───────────────────────────── */
+  #page-study-reader .study-reader-header {
+    height: 54px !important;
+    padding: 0 12px !important;
+    gap: 9px;
+    background: #fff !important;
+    border-bottom: 1px solid #e9f2ee !important;
+  }
+
+  #page-study-reader .study-reader-brand { gap: 9px; }
+
+  #page-study-reader .study-reader-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 0 !important;
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #0f9e6e !important;
+    font-size: 13.5px;
+    font-weight: 800;
+  }
+
+  #page-study-reader .study-reader-back span { display: inline; }
+  #page-study-reader:not(.sr-mobile-toc) .study-reader-back span { display: none; }
+
+  #page-study-reader .study-reader-crumb {
+    display: block !important;
+    flex: 1;
+    min-width: 0;
+    padding: 6px 11px;
+    border-radius: 999px;
+    background: #f2f6f4;
+    color: #5c7168 !important;
+    font-size: 11.5px !important;
+    font-weight: 700;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  #page-study-reader .study-reader-header-actions #study-reader-toc-toggle,
+  #page-study-reader .study-reader-header-actions #study-reader-panel-toggle,
+  #page-study-reader .study-reader-header-actions .btn-focus-mode { display: none !important; }
+
+  #page-study-reader .study-reader-resource-link {
+    padding: 7px 11px;
+    border-radius: 999px;
+    font-size: 11px;
+  }
+
+  /* ── 2. Khung lưới ───────────────────────────────────────────────── */
+  #page-study-reader .study-reader-grid {
+    display: block !important;
+    padding: 0 !important;
+    min-height: 0 !important;
+  }
+
+  #page-study-reader .study-reader-main {
+    min-height: calc(100dvh - 54px) !important;
+    padding-bottom: 78px;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+  }
+
+  /* ── 3. Màn Mục lục ─────────────────────────────────────────────── */
+  #page-study-reader .study-reader-toc { display: none !important; }
+
+  #page-study-reader.sr-mobile-toc .study-reader-toc {
+    display: block !important;
+    position: static !important;
+    transform: none !important;
+    inset: auto !important;
+    width: auto !important;
+    padding: 14px 14px 34px !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    overflow: visible;
+  }
+
+  #page-study-reader.sr-mobile-toc .study-reader-main { display: none !important; }
+  #page-study-reader.sr-mobile-toc .study-reader-resource-link { display: none; }
+
+  #page-study-reader .study-reader-course-card { padding: 12px !important; margin-bottom: 16px !important; }
+  #page-study-reader .study-reader-toc-head { margin: 0 2px 8px !important; font-size: 13px !important; }
+  #page-study-reader .study-reader-progress-track { margin-bottom: 16px !important; }
+  #page-study-reader .study-reader-find-wrap { height: 44px !important; border-radius: 14px !important; }
+  #page-study-reader .study-reader-toc-list { margin: 16px 0 0 9px !important; }
+
+  #page-study-reader .study-reader-toc-chapter {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin: 18px 0 6px !important;
+    padding: 0 0 0 4px !important;
+    color: #12332c !important;
+    font-size: 14.5px !important;
+    font-weight: 800 !important;
+    line-height: 1.35;
+    text-transform: none !important;
+    cursor: pointer;
+  }
+
+  #page-study-reader .study-reader-m-chevron {
+    margin-left: auto;
+    flex: 0 0 auto;
+    padding-top: 3px;
+    color: #8aa39a;
+    font-size: 12px;
+    transition: transform 0.2s ease;
+  }
+
+  #page-study-reader .study-reader-toc-chapter.is-collapsed .study-reader-m-chevron { transform: rotate(180deg); }
+
+  #page-study-reader .study-reader-toc-list button {
+    position: relative;
+    padding: 11px 12px 11px 34px !important;
+    color: #4a6b62 !important;
+    font-size: 13px !important;
+    line-height: 1.4;
+  }
+
+  #page-study-reader .study-reader-m-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #9bb3ab;
+    font-size: 14px;
+  }
+
+  #page-study-reader .study-reader-toc-list button.active .study-reader-m-icon { color: #12b077; }
+  #page-study-reader .study-reader-toc-list button:before { display: none; }
+
+  #page-study-reader .study-reader-toc-list button.active:before {
+    display: block;
+    top: 50%;
+    bottom: auto;
+    transform: translateY(-50%);
+  }
+
+  /* ── 4. Hàng công cụ dạng ô icon ────────────────────────────────── */
+  #page-study-reader .study-reader-toolbar {
+    display: flex !important;
+    order: 1;
+    flex-wrap: wrap;
+    gap: 2px;
+    align-items: flex-start;
+    padding: 10px 10px !important;
+    background: #fff !important;
+    border-bottom: 1px solid #eef4f1 !important;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #page-study-reader .study-reader-toolbar button.study-reader-tool-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    display: flex !important;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 2px !important;
+    border: 0 !important;
+    border-radius: 12px !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #5f7469 !important;
+    font-size: 9.5px !important;
+    font-weight: 700 !important;
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  #page-study-reader .study-reader-toolbar button.study-reader-tool-btn i {
+    display: grid;
+    place-items: center;
+    width: 38px;
+    height: 34px;
+    border-radius: 11px;
+    background: #f2f6f4;
+    color: #4f6d61;
+    font-size: 14px;
+  }
+
+  #page-study-reader .study-reader-toolbar button.study-reader-tool-btn:hover,
+  #page-study-reader .study-reader-toolbar button.study-reader-tool-btn.active {
+    background: transparent !important;
+    color: #0b8a5a !important;
+  }
+
+  #page-study-reader .study-reader-toolbar button.study-reader-tool-btn:hover i,
+  #page-study-reader .study-reader-toolbar button.study-reader-tool-btn.active i {
+    background: #0f9e6e;
+    color: #fff;
+  }
+
+  #page-study-reader .study-reader-color-palette {
+    order: 9;
+    flex: 1 1 100%;
+    margin: 4px 0 0 !important;
+    padding: 9px 2px 0 !important;
+    border-left: 0;
+    border-top: 1px dashed #e2eee9;
+  }
+
+  /* ── 5. Dòng nhãn bài giảng + số trang ──────────────────────────── */
+  #page-study-reader .study-reader-main-top {
+    order: 2;
+    min-height: 48px !important;
+    padding: 0 14px !important;
+    gap: 9px;
+    border-bottom: 1px solid #f1f6f3;
+    background: #fff;
+  }
+
+  #page-study-reader #study-reader-location {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 11px;
+    border-radius: 999px;
+    background: #e7fbf1;
+    color: #0b8a5a !important;
+    font-size: 10px !important;
+    font-weight: 900 !important;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  #page-study-reader #study-reader-location i { display: none; }
+
+  #page-study-reader .study-reader-page-count {
+    margin-left: auto;
+    padding: 0;
+    background: transparent;
+    font-size: 0;
+  }
+
+  #page-study-reader .study-reader-page-count b { color: #33564c; font-size: 12px; font-weight: 800; }
+
+  #page-study-reader .study-reader-expand {
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    width: 32px;
+    height: 32px;
+    border: 0;
+    border-radius: 9px;
+    background: #f2f6f4;
+    color: #41614f;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  /* ── 6. Nội dung bài đọc ────────────────────────────────────────── */
+  #page-study-reader .study-reader-content {
+    order: 3;
+    min-height: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+
+  #page-study-reader .study-reader-document-head {
+    min-height: 0 !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 18px 16px 14px !important;
+    border-bottom: 0 !important;
+    background: #fff !important;
+  }
+
+  #page-study-reader .study-reader-kicker { display: none !important; }
+
+  #page-study-reader .study-reader-doc-title,
+  #page-study-reader .study-reader-document-head h1.study-reader-doc-title {
+    font-size: 22px !important;
+    line-height: 1.28 !important;
+  }
+
+  #page-study-reader .study-reader-content .student-reader-body {
+    max-width: none !important;
+    padding: 0 16px 30px !important;
+    font-size: 15.5px !important;
+    line-height: 1.7 !important;
+  }
+
+  #page-study-reader .study-reader-content .student-reader-body h2 { font-size: 17.5px !important; margin: 24px 0 10px !important; }
+  #page-study-reader .study-reader-content .student-reader-body h3 { font-size: 15.5px !important; margin: 20px 0 8px !important; }
+  #page-study-reader .study-reader-content .student-reader-body p { margin-bottom: 12px !important; }
+  #page-study-reader .study-reader-content .student-reader-body ul,
+  #page-study-reader .study-reader-content .student-reader-body ol { padding-left: 18px !important; margin-bottom: 14px !important; }
+  #page-study-reader .study-reader-content .student-reader-body blockquote { margin: 16px 0 !important; padding: 12px 14px !important; font-size: 14.5px !important; }
+
+  /* Bài dán từ Word: bỏ Times New Roman + canh đều trên cột hẹp (desktop giữ nguyên) */
+  #page-study-reader .study-reader-content .student-reader-body p,
+  #page-study-reader .study-reader-content .student-reader-body li,
+  #page-study-reader .study-reader-content .student-reader-body p *,
+  #page-study-reader .study-reader-content .student-reader-body li * {
+    font-family: 'Inter', 'Segoe UI', sans-serif !important;
+    line-height: 1.68 !important;
+  }
+
+  #page-study-reader .study-reader-content .student-reader-body p[style*="font-size"],
+  #page-study-reader .study-reader-content .student-reader-body li[style*="font-size"],
+  #page-study-reader .study-reader-content .student-reader-body p [style*="font-size"],
+  #page-study-reader .study-reader-content .student-reader-body li [style*="font-size"] {
+    font-size: 15.5px !important;
+  }
+
+  #page-study-reader .study-reader-content .student-reader-body [style*="justify"] { text-align: left !important; }
+  #page-study-reader .study-reader-content .student-reader-body p { margin-bottom: 10px !important; }
+
+  #page-study-reader .study-reader-empty { min-height: 320px !important; padding: 18px !important; }
+  #page-study-reader .study-reader-empty > div { min-height: 260px; }
+  #page-study-reader .study-reader-document-footer { display: none !important; }
+
+  /* ── 7. Thanh Bài trước / Bài tiếp ──────────────────────────────── */
+  #page-study-reader .study-reader-lesson-nav {
+    display: flex;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 520;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 14px calc(9px + env(safe-area-inset-bottom, 0px));
+    background: rgba(255, 255, 255, 0.97);
+    backdrop-filter: blur(10px);
+    border-top: 1px solid #e6efea;
+  }
+
+  #page-study-reader .study-reader-lesson-nav-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    height: 42px;
+    padding: 0 15px;
+    border-radius: 12px;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 800;
+    cursor: pointer;
+  }
+
+  #page-study-reader .study-reader-lesson-nav-btn.is-prev {
+    border: 1px solid #d8e8e0;
+    background: #fff;
+    color: #3d6154;
+  }
+
+  #page-study-reader .study-reader-lesson-nav-btn.is-next {
+    flex: 1;
+    border: 0;
+    background: #0f9e6e;
+    color: #fff;
+    box-shadow: 0 8px 18px rgba(15, 158, 110, 0.22);
+  }
+
+  #page-study-reader .study-reader-lesson-nav-btn:disabled { opacity: 0.42; box-shadow: none; cursor: default; }
+  #page-study-reader .study-reader-lesson-nav-count { color: #6d857c; font-size: 11.5px; font-weight: 700; white-space: nowrap; }
+  #page-study-reader.sr-mobile-toc .study-reader-lesson-nav { display: none; }
+
+  /* ── 8. Bảng ghi chú / tóm tắt thành sheet đáy ──────────────────── */
+  #page-study-reader #study-reader-right-panel {
+    display: grid !important;
+    position: fixed !important;
+    inset: auto 8px 8px !important;
+    width: auto !important;
+    max-height: min(74dvh, 560px);
+    z-index: 600;
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid #dcefe9 !important;
+    border-radius: 22px !important;
+    background: #fff !important;
+    box-shadow: 0 -16px 44px rgba(12, 72, 53, 0.2) !important;
+    transform: translateY(calc(100% + 24px));
+    transition: transform 0.22s ease;
+    overscroll-behavior: contain;
+  }
+
+  #page-study-reader .study-reader-note-paper,
+  #page-study-reader .study-reader-ai,
+  #page-study-reader .study-reader-share { background: #fff !important; }
+
+  #page-study-reader #study-reader-right-panel.open { transform: translateY(0); }
+  #page-study-reader .study-reader-panel-orb { display: none; }
+
+  #page-study-reader .study-reader-m-close {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 30px;
+    height: 30px;
+    border: 0;
+    border-radius: 50%;
+    background: #f1f6f3;
+    color: #4c6a5e;
+    font-size: 13px;
+    cursor: pointer;
+  }
+}
+
+/* ══ DARK ═══════════════════════════════════════════════════════════ */
+@media (max-width: 760px) {
+  [data-theme="dark"] #page-study-reader .study-reader-header { background: #0d0d0d !important; border-bottom-color: #232323 !important; }
+  [data-theme="dark"] #page-study-reader .study-reader-back { color: #35D6A0 !important; }
+  [data-theme="dark"] #page-study-reader .study-reader-crumb { background: #1a1a1a; color: #8FA29D !important; }
+  [data-theme="dark"] #page-study-reader .study-reader-main,
+  [data-theme="dark"] #page-study-reader.sr-mobile-toc .study-reader-toc { background: #111111 !important; }
+  [data-theme="dark"] #page-study-reader .study-reader-content { background: #111111 !important; }
+  [data-theme="dark"] #page-study-reader .study-reader-document-head { background: #111111 !important; }
+  [data-theme="dark"] #page-study-reader .study-reader-note-paper,
+  [data-theme="dark"] #page-study-reader .study-reader-ai,
+  [data-theme="dark"] #page-study-reader .study-reader-share { background: #1a1a1a !important; }
+
+  [data-theme="dark"] #page-study-reader .study-reader-toc-chapter { color: #E4EEEB !important; }
+  [data-theme="dark"] #page-study-reader .study-reader-m-chevron { color: #6c8078; }
+  [data-theme="dark"] #page-study-reader .study-reader-toc-list button { color: #A9BCB5 !important; }
+  [data-theme="dark"] #page-study-reader .study-reader-m-icon { color: #5f766d; }
+  [data-theme="dark"] #page-study-reader .study-reader-toc-list button.active .study-reader-m-icon { color: #35D6A0; }
+  [data-theme="dark"] #page-study-reader .study-reader-toc-list:before { background: #2a2a2a; }
+  [data-theme="dark"] #page-study-reader .study-reader-toc-list button.active:before { border-color: #35D6A0; background: #35D6A0; box-shadow: 0 0 0 4px rgba(53, 214, 160, 0.16); }
+
+  [data-theme="dark"] #page-study-reader .study-reader-toolbar { background: #111111 !important; border-bottom-color: #232323 !important; }
+  [data-theme="dark"] #page-study-reader .study-reader-toolbar button.study-reader-tool-btn { color: #93A7A0 !important; }
+  [data-theme="dark"] #page-study-reader .study-reader-toolbar button.study-reader-tool-btn i { background: #1c1c1c; color: #B7C7C1; }
+  [data-theme="dark"] #page-study-reader .study-reader-toolbar button.study-reader-tool-btn:hover,
+  [data-theme="dark"] #page-study-reader .study-reader-toolbar button.study-reader-tool-btn.active { color: #35D6A0 !important; }
+  [data-theme="dark"] #page-study-reader .study-reader-toolbar button.study-reader-tool-btn:hover i,
+  [data-theme="dark"] #page-study-reader .study-reader-toolbar button.study-reader-tool-btn.active i { background: #173B31; color: #35D6A0; }
+  [data-theme="dark"] #page-study-reader .study-reader-color-palette { border-top-color: #2a2a2a; }
+
+  [data-theme="dark"] #page-study-reader .study-reader-main-top { background: #111111; border-bottom-color: #232323; }
+  [data-theme="dark"] #page-study-reader #study-reader-location { background: #173B31; color: #35D6A0 !important; }
+  [data-theme="dark"] #page-study-reader .study-reader-page-count b { color: #C4D0CC; }
+  [data-theme="dark"] #page-study-reader .study-reader-expand { background: #1c1c1c; color: #B7C7C1; }
+
+  [data-theme="dark"] #page-study-reader .study-reader-doc-title { color: #E4EEEB !important; }
+  [data-theme="dark"] #page-study-reader .study-reader-content .student-reader-body h2,
+  [data-theme="dark"] #page-study-reader .study-reader-content .student-reader-body h3 { color: #E4EEEB !important; }
+
+  [data-theme="dark"] #page-study-reader .study-reader-lesson-nav { background: rgba(13, 13, 13, 0.97); border-top-color: #232323; }
+  [data-theme="dark"] #page-study-reader .study-reader-lesson-nav-btn.is-prev { border-color: #2f2f2f; background: #1a1a1a; color: #C4D0CC; }
+  [data-theme="dark"] #page-study-reader .study-reader-lesson-nav-btn.is-next { background: #0f9e6e; color: #04150f; box-shadow: none; }
+  [data-theme="dark"] #page-study-reader .study-reader-lesson-nav-count { color: #8FA29D; }
+
+  [data-theme="dark"] #page-study-reader #study-reader-right-panel { border-color: #2a2a2a !important; background: #141414 !important; box-shadow: 0 -16px 44px rgba(0, 0, 0, 0.55) !important; }
+  [data-theme="dark"] #page-study-reader .study-reader-m-close { background: #1f1f1f; color: #B7C7C1; }
+}
+
+/* Màn ≤380px: thu nhỏ ô công cụ để 7 nhãn không chạm nhau */
+@media (max-width: 380px) {
+  #page-study-reader .study-reader-toolbar { gap: 1px; padding: 10px 6px !important; }
+  #page-study-reader .study-reader-toolbar button.study-reader-tool-btn { font-size: 9px !important; gap: 4px; }
+  #page-study-reader .study-reader-toolbar button.study-reader-tool-btn i { width: 34px; height: 31px; font-size: 13px; }
+}

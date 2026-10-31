@@ -4,7 +4,7 @@
  *
  * Chức năng:
  *   1. Giải thích câu hỏi / hướng dẫn học tập
- *   2. Nhận báo cáo câu sai → AI kiểm tra lại → cập nhật DB
+ *   2. Nhận báo cáo câu sai → AI kiểm tra lại → đề xuất cho quản trị viên
  *   3. Nhận biết câu hỏi đang hiển thị trên màn hình (context-aware)
  */
 
@@ -90,9 +90,11 @@ async function askAI(userMessage, systemPrompt = CERA_SYSTEM) {
     console.warn('[CERA] ⚠️ Groq lỗi, thử backup qua gateway...', groqError);
 
     try {
+      // Gemini là route khác thật sự; cerebras trước đây trỏ cùng alias
+      // gpt-oss-120b nên Groq hết quota là cả hai cùng chết.
       return await AIPool.callChat({
-        provider: 'cerebras',
-        model: 'gpt-oss-120b',
+        provider: 'gemini',
+        model: 'gemini-3.5-flash-lite',
         messages: [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userMessage }
@@ -185,23 +187,17 @@ GIẢI THÍCH: [giải thích chi tiết bằng tiếng Việt]`;
 
   const aiResponse = await askAI(verifyPrompt, CERA_SYSTEM);
 
-  // Parse kết quả AI để cập nhật DB nếu có thay đổi
+  // Không tự động ghi vào ngân hàng câu hỏi: AI chỉ đề xuất, quản trị viên
+  // phải kiểm tra rồi cập nhật thủ công để tránh AI ghi đè đáp án sai.
   const correctIndexMatch = aiResponse.match(/CHỈ SỐ:\s*([0-3])/);
   const evaluationMatch = aiResponse.match(/ĐÁNH GIÁ:\s*(.+)/);
 
   if (correctIndexMatch && evaluationMatch) {
-    const newCorrectIndex = parseInt(correctIndexMatch[1]);
+    const suggestedIndex = parseInt(correctIndexMatch[1], 10);
     const isCurrentWrong = evaluationMatch[1].toLowerCase().includes('sai');
 
-    if (isCurrentWrong && !isNaN(newCorrectIndex) && newCorrectIndex !== question.correct) {
-      // Cập nhật đáp án đúng vào DB
-      DB.updateQuestion(question.id, {
-        correct: newCorrectIndex,
-        exp: `[Đã được CERA AI xác minh và cập nhật] ${aiResponse.match(/GIẢI THÍCH:\s*([\s\S]+)/)?.[1]?.trim() || ''}`,
-        _ceraVerified: true,
-        _ceraVerifiedAt: new Date().toISOString(),
-      });
-      return `✅ **Tôi đã kiểm tra xong!**\n\n${aiResponse}\n\n---\n🔄 **Hệ thống đã tự động cập nhật lại đáp án đúng vào ngân hàng câu hỏi!**`;
+    if (isCurrentWrong && !Number.isNaN(suggestedIndex) && suggestedIndex !== question.correct) {
+      return `✅ **Tôi đã kiểm tra xong!**\n\n${aiResponse}\n\n---\n⚠️ **Lưu ý:** AI gợi ý đáp án ${['A', 'B', 'C', 'D'][suggestedIndex]}, nhưng hệ thống **không tự sửa** ngân hàng câu hỏi. Quản trị viên vui lòng kiểm tra và cập nhật thủ công.`;
     }
   }
 

@@ -1,0 +1,28 @@
+# Không đưa file chạy local / test / tài liệu nhạy cảm lên Vercel
+.env
+.env.*
+node_modules/
+server.js
+test_*.js
+test_*.cjs
+test_*.mjs
+test_*.html
+verify_*.js
+benchmark_*.js
+*.log
+playwright-report/
+test-results/
+screenshots/
+vibe_images/
+_interaction-reference.mp4
+FOUND_API_KEYS_REPORT.md
+HOW_TO_GET_REAL_API_KEYS.md
+API_KEYS_HOAT_DONG.md
+SETUP_CHECKLIST.md
+ENVIRONMENT_VARIABLES.md
+AI_GENERATION_SYSTEM.md
+QUICK_START.md
+*.md
+!README.md
+# Dữ liệu phân quyền chỉ đồng bộ qua GitHub raw, không phục vụ trực tiếp trên Vercel
+data/user_roles.json

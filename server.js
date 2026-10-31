@@ -7,6 +7,7 @@
  *   npm run dev      → Same as npm start
  */
 
+import 'dotenv/config';
 import http from 'http';
 import fs from 'fs';
 import path from 'path';
@@ -14,6 +15,13 @@ import { fileURLToPath } from 'url';
 import { networkInterfaces } from 'os';
 import { compress } from 'headroom-ai';
 import summaryShareHandler from './api/summary-share.js';
+import aiProxyHandler from './api/ai-proxy.js';
+import aiQuestionHistoryHandler from './api/ai-question-history.js';
+import quizShareHandler from './api/quiz-share.js';
+import adminUsersHandler from './api/admin-users.js';
+import subjectDetailsHandler from './api/subject-details.js';
+import lessonSummaryHandler from './api/lesson-summary.js';
+import documentSummaryHandler from './api/document-summary.js';
 import { isLocalSubjectDetailsWriteRequest, writeLocalSubjectDetails } from './modules/localSubjectDetailsStore.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -173,6 +181,113 @@ async function handleLocalSubjectDetailsWrite(req, res) {
   }
 }
 
+async function handleApiProxy(req, res) {
+  try {
+    const requestUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+    const body = req.method === 'POST' ? await readJsonBody(req, 100_000) : {};
+    const vercelRequest = Object.assign(req, {
+      query: Object.fromEntries(requestUrl.searchParams.entries()),
+      body
+    });
+    let statusCode = 200;
+    const headers = new Map();
+    const vercelResponse = {
+      status(code) { statusCode = code; return this; },
+      setHeader(name, value) { headers.set(name, value); return this; },
+      end(payload = '') {
+        res.writeHead(statusCode, Object.fromEntries(headers));
+        res.end(payload);
+      }
+    };
+    await aiProxyHandler(vercelRequest, vercelResponse);
+  } catch (error) {
+    const status = Number(error?.statusCode) || 500;
+    res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ ok: false, reason: error.message || 'proxy-error' }));
+  }
+}
+
+async function handleAIQuestionHistory(req, res) {
+  try {
+    const requestUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+    const body = ['POST', 'PUT'].includes(req.method) ? await readJsonBody(req, 500_000) : {};
+    const vercelRequest = Object.assign(req, {
+      query: Object.fromEntries(requestUrl.searchParams.entries()),
+      body
+    });
+    let statusCode = 200;
+    const headers = new Map();
+    const vercelResponse = {
+      status(code) { statusCode = code; return this; },
+      setHeader(name, value) { headers.set(name, value); return this; },
+      end(payload = '') {
+        res.writeHead(statusCode, Object.fromEntries(headers));
+        res.end(payload);
+      }
+    };
+    await aiQuestionHistoryHandler(vercelRequest, vercelResponse);
+  } catch (error) {
+    const status = Number(error?.statusCode) || 500;
+    res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ ok: false, reason: error.message || 'history-error' }));
+  }
+}
+
+async function handleAdminUsers(req, res) {
+  try {
+    const requestUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+    const body = req.method === 'PATCH' ? await readJsonBody(req, 50_000) : {};
+    const vercelRequest = Object.assign(req, {
+      query: Object.fromEntries(requestUrl.searchParams.entries()),
+      body
+    });
+    let statusCode = 200;
+    const headers = new Map();
+    const vercelResponse = {
+      status(code) { statusCode = code; return this; },
+      setHeader(name, value) { headers.set(name, value); return this; },
+      end(payload = '') {
+        res.writeHead(statusCode, Object.fromEntries(headers));
+        res.end(payload);
+      }
+    };
+    await adminUsersHandler(vercelRequest, vercelResponse);
+  } catch (error) {
+    const status = Number(error?.statusCode) || 500;
+    res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', 'Cache-Control': 'no-store' });
+    res.end(JSON.stringify({ ok: false, reason: error.message || 'admin-users-error' }));
+  }
+}
+
+// Các handler trong /api vừa chạy trên Vercel vừa chạy ở server.js local, nên
+// ở đây bọc req/res của node thành cặp VercelRequest/VercelResponse.
+async function runServerlessHandler(handler, label, req, res, { bodyLimit = 1_000_000 } = {}) {
+  try {
+    const requestUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
+    const body = ['POST', 'PUT', 'PATCH'].includes(req.method) ? await readJsonBody(req, bodyLimit) : {};
+    let statusCode = 200;
+    const headers = new Map();
+    const vercelResponse = {
+      status(code) { statusCode = code; return this; },
+      setHeader(name, value) { headers.set(name, value); return this; },
+      end(payload = '') {
+        res.writeHead(statusCode, Object.fromEntries(headers));
+        res.end(payload);
+      }
+    };
+    await handler(
+      Object.assign(req, { query: Object.fromEntries(requestUrl.searchParams.entries()), body }),
+      vercelResponse
+    );
+  } catch (error) {
+    res.writeHead(Number(error?.statusCode) || 500, {
+      'Content-Type': 'application/json; charset=utf-8',
+      'Cache-Control': 'no-store'
+    });
+    res.end(JSON.stringify({ ok: false, reason: error.message || `${label}-error` }));
+  }
+}
+
 async function handleTtsProxy(req, res) {
   if (req.method !== 'POST') {
     res.writeHead(405, { 'Content-Type': 'application/json; charset=utf-8' });
@@ -214,6 +329,14 @@ async function handleTtsProxy(req, res) {
 const server = http.createServer(async (req, res) => {
   console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
 
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+  // CSP tối thiểu, không chặn script inline mà app đang dùng:
+  // chặn plugin, ghim <base>, chống clickjacking.
+  res.setHeader('Content-Security-Policy', "object-src 'none'; base-uri 'self'; frame-ancestors 'self'");
+
   // Parse URL and remove query string
   let cleanUrl = req.url.split('?')[0];
   let filePath = '.' + cleanUrl; // ✅ FIX: Dùng cleanUrl thay vì req.url
@@ -226,12 +349,42 @@ const server = http.createServer(async (req, res) => {
     await handleHeadroomCompression(req, res);
     return;
   }
+  if (cleanUrl === '/api/ai-proxy') {
+    await handleApiProxy(req, res);
+    return;
+  }
+  if (cleanUrl === '/api/ai-question-history') {
+    await handleAIQuestionHistory(req, res);
+    return;
+  }
+  if (cleanUrl === '/api/quiz-share') {
+    await runServerlessHandler(quizShareHandler, 'quiz-share', req, res, { bodyLimit: 2_000_000 });
+    return;
+  }
+  // Kho đề chia sẻ cục bộ chứa đáp án đúng và điểm người tham gia — không phục vụ tĩnh.
+  if (cleanUrl === '/data/local' || cleanUrl.startsWith('/data/local/')) {
+    res.writeHead(404, { 'Content-Type': 'text/plain' });
+    res.end('404 Not Found');
+    return;
+  }
   if (cleanUrl === '/api/tts') {
     await handleTtsProxy(req, res);
     return;
   }
   if (cleanUrl === '/api/summary-share') {
     await handleSummaryShare(req, res);
+    return;
+  }
+  if (cleanUrl === '/api/lesson-summary') {
+    await runServerlessHandler(lessonSummaryHandler, 'lesson-summary', req, res, { bodyLimit: 200_000 });
+    return;
+  }
+  if (cleanUrl === '/api/document-summary') {
+    await runServerlessHandler(documentSummaryHandler, 'document-summary', req, res, { bodyLimit: 2_000_000 });
+    return;
+  }
+  if (cleanUrl === '/api/admin-users') {
+    await handleAdminUsers(req, res);
     return;
   }
   if (cleanUrl === '/api/subject-details' && req.method === 'PUT') {
@@ -246,9 +399,9 @@ const server = http.createServer(async (req, res) => {
 
   // API endpoint routing
   if (cleanUrl === '/api/subject-details') {
-    filePath = './data/subject_details.json';
-  } else if (cleanUrl === '/api/user_roles') {
-    filePath = './data/user_roles.json';
+    // Cùng một handler với Vercel để local dev cũng có ETag/304 và header cache edge.
+    await runServerlessHandler(subjectDetailsHandler, 'subject-details', req, res, { bodyLimit: 4_000_000 });
+    return;
   } else if (cleanUrl === '/api/system_announcements') {
     filePath = './data/system_announcements.json';
   } else if (cleanUrl === '/api/cms_articles') {
@@ -271,6 +424,19 @@ const server = http.createServer(async (req, res) => {
   fs.readFile(filePath, (error, content) => {
     if (error) {
       if (error.code === 'ENOENT') {
+        // SPA fallback: path không có đuôi file do router phía client xử lý.
+        if (req.method === 'GET' && !path.extname(cleanUrl) && !cleanUrl.startsWith('/api/')) {
+          fs.readFile('./index.html', (errorIndex, indexContent) => {
+            if (errorIndex) {
+              res.writeHead(500, { 'Content-Type': 'text/plain' });
+              res.end('Server Error: index.html not found', 'utf-8');
+              return;
+            }
+            res.writeHead(200, { 'Content-Type': 'text/html', 'Cache-Control': 'no-cache' });
+            res.end(indexContent, 'utf-8');
+          });
+          return;
+        }
         // File not found
         fs.readFile('./404.html', (error404, content404) => {
           if (error404) {

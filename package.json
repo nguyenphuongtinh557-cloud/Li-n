@@ -24,6 +24,7 @@
     "test:subject-api": "node test_subject_details_api.js"
   },
   "dependencies": {
+    "dotenv": "^16.4.5",
     "firebase-admin": "^13.0.2",
     "gsap": "^3.15.0",
     "headroom-ai": "^0.38.0",

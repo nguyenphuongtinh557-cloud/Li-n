@@ -3,7 +3,9 @@
  */
 
 import { DB } from './db.js';
-import { pushAdminEdits, pullAdminEdits } from './sync.js?v=20260831';
+import { pushAdminEdits, pullAdminEdits } from './sync.js';
+import { AuthModule, isAdminEmail } from './auth.js';
+import { NavController } from './navigation.js';
 
 let adminClickCount = 0;
 let adminClickTimeout = null;
@@ -24,12 +26,12 @@ export function initAdminAuth() {
     if (adminClickCount >= 5) {
       adminClickCount = 0; // reset
       clearTimeout(adminClickTimeout);
-      
-      const pwd = prompt("Nhập mã Admin để vào chế độ chỉnh sửa:");
-      if (pwd === "13052008") {
+
+      const email = AuthModule.user?.email || NavController.currentUser?.email || '';
+      if (isAdminEmail(email)) {
         openAdminPanel();
-      } else if (pwd !== null) {
-        alert("Sai mã Admin!");
+      } else {
+        alert('Chỉ quản trị viên mới có thể mở chế độ chỉnh sửa.');
       }
     }
 

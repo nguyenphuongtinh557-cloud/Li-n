@@ -137,11 +137,80 @@ QLCL/
 - Thống kê & báo cáo
 - User management
 
+### 6. 🤖 AI Question Generation (NEW)
+- **Tạo câu hỏi từ tài liệu:** Upload PDF/Word/Text và AI tự động sinh câu hỏi trắc nghiệm
+- **Multi-layer AI:** Kết hợp Groq + Gemini + Mistral để tạo câu hỏi đa độ khó
+- **Premium Models:** Hỗ trợ Claude 3.5, DeepSeek R1, GPT-4o qua OpenRouter
+- **Lịch sử cá nhân:** Mỗi lượt sinh được lưu riêng, có thể xem lại, chỉnh sửa
+- **Validation & Deduplication:** Tự động kiểm tra và loại câu trùng
+- **Source Tracking:** Lưu thông tin tài liệu nguồn và đoạn văn bản
+
+> **Chi tiết:** Xem file `AI_GENERATION_SYSTEM.md`
+
 ---
 
-## 🔑 API Keys Configuration
+## 🔑 Environment Variables
 
-Project sử dụng các AI APIs:
+### Biến Môi Trường Bắt Buộc
+
+```bash
+# Firebase (Authentication & Firestore)
+FIREBASE_SERVICE_ACCOUNT_JSON={"type":"service_account",...}
+
+# GitHub (Data Sync)
+GITHUB_TOKEN=ghp_xxxx
+GITHUB_OWNER=your-username
+GITHUB_REPO=your-repo
+
+# Admin
+ADMIN_EMAILS=admin1@example.com,admin2@example.com
+
+# AI Gateway (Question Generation & Document AI)
+AI_GATEWAY_URL=https://your-gateway-domain
+AI_GATEWAY_KEY=gw_live_xxxx
+```
+
+### Setup Instructions
+
+**Local Development:**
+1. Tạo file `.env` ở root project
+2. Copy template từ `ENVIRONMENT_VARIABLES.md`
+3. Điền các API keys của bạn (chỉ cần `AI_GATEWAY_URL` + `AI_GATEWAY_KEY` cho AI)
+4. File `.env` đã được thêm vào `.gitignore`
+
+**Vercel/Netlify Deployment:**
+1. Vào Project Settings → Environment Variables
+2. Thêm từng biến với giá trị tương ứng
+3. Chọn environments: Production, Preview, Development
+4. Redeploy project
+
+> **⚠️ Bảo mật:** Không bao giờ commit API keys vào Git!
+> 
+> **📚 Chi tiết:** Xem file `ENVIRONMENT_VARIABLES.md` để biết cách lấy từng API key
+
+---
+
+## 🔧 API Configuration
+
+### Kiểm Tra API Keys
+
+Chạy script để test tất cả API keys:
+
+```bash
+node check_api_quota.js
+```
+
+Script này sẽ kiểm tra:
+- ✅ Key có hoạt động không
+- 📊 Quota còn lại
+- ⚠️ Cảnh báo key hết hạn/quota
+
+### API Status Dashboard
+
+Trong app:
+1. Đăng nhập với tài khoản admin
+2. Vào "Cài đặt" → "API Status"
+3. Xem trạng thái real-time của từng provider
 
 ### Free APIs (Đang hoạt động):
 - ✅ **Groq AI** (3 keys) - Chatbot primary
@@ -191,6 +260,72 @@ Project responsive hoàn toàn:
 
 ---
 
+## 🏗️ Architecture
+
+### Module Structure
+
+```
+modules/
+├── questionGeneratorCore.js    # AI question generation engine
+├── questionValidator.js        # Validation & deduplication
+├── documentExtractor.js        # PDF/Word/Text extraction
+├── aiQuestionHistory.js        # History management (frontend)
+├── aiPool.js                   # AI API pool management
+├── db.js                       # Local database
+├── auth.js                     # Firebase authentication
+└── ...
+
+api/
+├── ai-question-history.js      # History CRUD (backend)
+├── ai-proxy.js                 # AI API proxy (server-side keys)
+├── subject-details.js          # Subject data sync
+└── ...
+```
+
+### AI Question Generation Flow
+
+```
+User Upload Document
+  ↓
+DocumentExtractor (PDF/Word/Text)
+  ↓
+QuestionGeneratorCore (Multi-layer AI)
+  ↓
+QuestionValidator (Check & Deduplicate)
+  ↓
+Save to History (Firestore + localStorage)
+  ↓
+User Review & Edit
+  ↓
+Save to Question Bank (Optional)
+```
+
+> **Chi tiết:** Xem `AI_GENERATION_SYSTEM.md`
+
+---
+
+## 🔒 Security Features
+
+### API Key Protection
+- ✅ Keys stored in environment variables (server-side)
+- ✅ API proxy routes all AI calls through backend
+- ✅ No keys exposed to client-side code
+- ✅ Key rotation for load balancing
+
+### Authentication & Authorization
+- ✅ Firebase Authentication (Google Sign-In)
+- ✅ Role-based access control (Admin/User)
+- ✅ Ownership checks on all user data
+- ✅ Firebase Security Rules for Firestore
+
+### Data Protection
+- ✅ Input sanitization (HTML escaping)
+- ✅ XSS prevention
+- ✅ CORS configuration
+- ✅ Rate limiting (planned)
+
+---
+
 ## 🧪 Testing
 
 ```bash
@@ -199,6 +334,12 @@ npm run test:subject-canvas
 
 # Test subject API
 npm run test:subject-api
+
+# Check API quotas
+node check_api_quota.js
+
+# Benchmark AI models
+node benchmark_models.js
 ```
 
 ---
@@ -263,6 +404,18 @@ Có vấn đề? Liên hệ:
 ---
 
 ## 🎉 Changelog
+
+### v2.0.0 (2025-01-12) - AI Generation System Refactor
+- ✨ **NEW:** AI Question Generation với lịch sử cá nhân
+- ✨ **NEW:** Document Extractor (PDF/Word/Text với scan detection)
+- ✨ **NEW:** Question Validator (validation + deduplication)
+- ✨ **NEW:** API Proxy cho bảo mật API keys
+- ✨ **NEW:** Firestore integration cho history storage
+- 🔧 Refactor generator.js → questionGeneratorCore.js
+- 🔧 Module hóa extraction logic
+- 🐛 Sửa dropdown chương bị trùng "Chương 3"
+- 🔒 HTML escaping để tránh XSS
+- 📚 Documentation đầy đủ (ENVIRONMENT_VARIABLES.md, AI_GENERATION_SYSTEM.md)
 
 ### v1.0.0 (2026-09-12)
 - ✅ Chatbot chuyển sang Groq primary engine

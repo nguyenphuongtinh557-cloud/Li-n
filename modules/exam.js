@@ -160,13 +160,20 @@ export class ExamTimer {
     this._onTick = onTick;
     this._onExpire = onExpire;
     this._intervalId = null;
+    this._endAt = 0;
+    this._pausedRemainingMs = null;
   }
 
+  // Đếm theo mốc thời gian thật: chuyển tab / khoá máy làm setInterval bị bóp
+  // nhịp, nhưng đồng hồ bài thi vẫn phải trôi đúng như đồng hồ treo tường.
   start() {
     this.stop();
+    this._endAt = Date.now() + this.left * 1000;
     this._intervalId = setInterval(() => {
       if (this.paused) return;
-      this.left--;
+      const left = Math.max(0, Math.ceil((this._endAt - Date.now()) / 1000));
+      if (left === this.left) return;
+      this.left = left;
       this._onTick(this.left, this.total);
       if (this.left <= 0) {
         this.stop();
@@ -177,6 +184,11 @@ export class ExamTimer {
 
   togglePause() {
     this.paused = !this.paused;
+    if (this.paused) {
+      this._pausedRemainingMs = Math.max(0, this._endAt - Date.now());
+    } else {
+      this._endAt = Date.now() + (this._pausedRemainingMs ?? this.left * 1000);
+    }
     return this.paused;
   }
 

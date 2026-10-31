@@ -1,3 +1,6 @@
+import { verifyFirebaseUser } from '../lib/firebaseAuth.js';
+import { isAdminEmail } from '../lib/adminAccess.js';
+
 const SUBJECT_DETAILS_FILE = 'data/subject_details.json';
 const inFlight = new Map();
 const rateBuckets = new Map();
@@ -65,8 +68,10 @@ ${source}`;
   return `v1-${(hash >>> 0).toString(16)}-${value.length}`;
 }
 
-function allowedRequest(req) {
-  const key = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'anonymous').split(',')[0].trim();
+// Đếm theo học viên đã xác thực: cả lớp 199 người dùng chung NAT sẽ nghẽn
+// nếu bucket chốt theo IP.
+function allowedRequest(userId) {
+  const key = String(userId || 'anonymous');
   const now = Date.now();
   const active = (rateBuckets.get(key) || []).filter(time => now - time < 60_000);
   if (active.length >= 8) return false;
@@ -92,11 +97,17 @@ async function generateSummary(config, request) {
     body: JSON.stringify({
       feature: 'qlcl-ai',
       modelAlias: config.model,
+      // uid đã xác minh bằng Firebase ID token — gateway giới hạn theo từng học viên
+      userId: request.userId,
       input: { messages: [{ role: 'user', content: summaryPrompt(request) }] },
       options: { temperature: 0.2, maxTokens: 4096, timeoutMs: 120_000 }
     })
   });
-  if (!response.ok) throw new Error(`gateway-${response.status}`);
+  if (!response.ok) {
+    const error = new Error(`gateway-${response.status}`);
+    error.status = response.status === 429 ? 429 : 502;
+    throw error;
+  }
   const payload = await response.json();
   const text = String(payload.content || '').trim().replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '');
   const parsed = JSON.parse(text.match(/\{[\s\S]*\}/)?.[0] || text);
@@ -112,7 +123,23 @@ async function generateSummary(config, request) {
 export default async function handler(req, res) {
   res.setHeader('Cache-Control', 'no-store, max-age=0');
   if (req.method !== 'POST') return json(res, 405, { ok: false, reason: 'method-not-allowed' });
-  if (!allowedRequest(req)) return json(res, 429, { ok: false, reason: 'rate-limited' });
+
+  let user;
+  try {
+    user = await verifyFirebaseUser(req);
+  } catch (error) {
+    return json(res, error.status || 401, { ok: false, reason: error.message || 'unauthorized' });
+  }
+
+  if (!allowedRequest(user.uid)) return json(res, 429, { ok: false, reason: 'rate-limited', message: 'Tối đa 8 lượt tóm tắt mỗi 5 phút cho mỗi học viên' });
+
+  // Endpoint này ghi cache vào data/subject_details.json qua GitHub token.
+  // Chỉ quản trị viên được phép chạy, nếu không học viên có thể tạo commit
+  // vào kho học liệu và đốt quota AI.
+  if (!isAdminEmail(user.email)) {
+    return json(res, 403, { ok: false, reason: 'admin-required', message: 'Chỉ quản trị viên được tạo tóm tắt bài học' });
+  }
+
   const config = getConfig();
   if (!config) return json(res, 503, { ok: false, reason: 'summary-service-not-configured' });
 
@@ -142,7 +169,7 @@ export default async function handler(req, res) {
     if (inFlight.has(lockKey)) return json(res, 202, { ok: false, reason: 'summary-in-progress' });
     inFlight.set(lockKey, true);
     try {
-      const result = await generateSummary(config, { mode, chapterTitle: chapter.title || 'Chương học', lessonTitle: lesson.title || 'Bài học', source: source.slice(0, 28000), instruction: String(instruction).trim() });
+      const result = await generateSummary(config, { mode, userId: user.uid, chapterTitle: chapter.title || 'Chương học', lessonTitle: lesson.title || 'Bài học', source: source.slice(0, 28000), instruction: String(instruction).trim() });
       lesson.aiSummary = lesson.aiSummary || { enabled: true, cache: {} };
       lesson.aiSummary.contentHash = contentHash;
       lesson.aiSummary.status = 'ready';
@@ -153,6 +180,6 @@ export default async function handler(req, res) {
       return json(res, 200, { ok: true, cached: false, contentHash, summary: result });
     } finally { inFlight.delete(lockKey); }
   } catch (error) {
-    return json(res, 502, { ok: false, reason: error.message || 'summary-service-error' });
+    return json(res, error.status || 502, { ok: false, reason: error.message || 'summary-service-error' });
   }
 };

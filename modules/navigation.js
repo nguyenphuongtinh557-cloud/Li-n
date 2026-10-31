@@ -3,10 +3,10 @@
  * Manages Sidebar, Top Header Search, Page Navigation, Subject Detail, and Auth Popover
  */
 
-import { SUBJECTS_REGISTRY, getAllSubjects, getSubjectById, KNOWLEDGE_BLOCKS } from './subjects.js?v=20260901c';
+import { SUBJECTS_REGISTRY, getAllSubjects, getSubjectById, KNOWLEDGE_BLOCKS } from './subjects.js';
 import { DB } from './db.js';
 import { AuthModule, getActiveAdminEmails, getUserRole } from './auth.js';
-import { ArticlesModule } from './articles.js';
+import { ArticlesModule } from './articles.js?v=20261031-news1';
 
 const lazyStyles = new Map();
 
@@ -38,6 +38,10 @@ const SUBJECT_VISUAL_THEMES = {
   society: { art: ['fa-landmark', 'fa-book-open', 'fa-scale-balanced'], description: 'Hệ thống hóa kiến thức nền tảng về xã hội, pháp luật và tư duy học thuật.' }
 };
 
+// Ảnh riêng cho từng môn (PNG/WebP đã tách nền). Để trống để dùng emblem
+// vector theo chủ đề, hoặc thêm đường dẫn ảnh khi có tài nguyên đạt yêu cầu.
+const SUBJECT_HERO_ART = {};
+
 function escapeSubjectDetailText(value) {
   return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#039;');
 }
@@ -55,64 +59,207 @@ function getSubjectVisualTheme(subject) {
   return 'society';
 }
 
+// Mỗi chức năng có một path riêng; môn học nằm trong path thay vì query.
+const PAGE_PATHS = {
+  home: '/',
+  'study-space': '/khong-gian-hoc-tap',
+  'subject-detail': '/mon',
+  'curriculum-summary': '/tom-tat-giao-trinh',
+  'summary-study': '/tom-tat',
+  'shared-quiz': '/de-thi',
+  about: '/doc-bao',
+  notifications: '/thong-bao',
+  report: '/ho-tro',
+  upgrade: '/nang-cap-tai-khoan',
+  admin: '/quan-tri'
+};
+
+const ONTAP_TAB_ROUTES = {
+  'exam-tab': { path: '/on-tap', subject: true },
+  'bank-tab': { path: '/ngan-hang-cau-hoi', subject: true },
+  'source-tab': { path: '/tao-cau-hoi', subject: true },
+  'history-tab': { path: '/lich-su-on-tap', subject: false },
+  'share-tab': { path: '/de-da-chia-se', subject: false }
+};
+
+function encodeRouteSegment(value) {
+  return encodeURIComponent(String(value));
+}
+
+function isKnownSubject(subjectId) {
+  const id = String(subjectId || '').trim();
+  return Boolean(id) && getAllSubjects().some(subject => subject.id === id);
+}
+
+function buildRoutePath(pageId, extra = {}) {
+  if (pageId === 'ontap') {
+    const route = ONTAP_TAB_ROUTES[extra.tab] || ONTAP_TAB_ROUTES['exam-tab'];
+    const subject = route.subject ? String(extra.subject || DB.getActiveSubject() || '').trim() : '';
+    return `${route.path}${subject ? `/${encodeRouteSegment(subject)}` : ''}`;
+  }
+  if (pageId === 'subject-detail') {
+    const subject = String(extra.subject || '').trim();
+    return subject ? `/mon/${encodeRouteSegment(subject)}` : PAGE_PATHS['study-space'];
+  }
+  if (pageId === 'about') {
+    const article = String(extra.article || '').trim();
+    return article ? `/doc-bao/${encodeRouteSegment(article)}` : PAGE_PATHS.about;
+  }
+  if (pageId === 'summary-study') {
+    const shared = String(extra['share-summary'] || '').trim();
+    return shared ? `/tom-tat/${encodeRouteSegment(shared)}` : PAGE_PATHS['summary-study'];
+  }
+  if (pageId === 'shared-quiz') {
+    const shared = String(extra['share-quiz'] || '').trim();
+    return shared ? `/de-thi/${encodeRouteSegment(shared)}` : PAGE_PATHS.home;
+  }
+  return PAGE_PATHS[pageId] || PAGE_PATHS.home;
+}
+
+function parseRouteLocation() {
+  const params = new URLSearchParams(window.location.search);
+  const legacyPage = params.get('page');
+
+  // Link cũ dạng ?page=... vẫn mở đúng trang; sau đó được thay bằng path mới.
+  if (legacyPage) {
+    return {
+      page: legacyPage === 'aigen' || legacyPage === 'history' ? 'ontap' : legacyPage,
+      subject: params.get('subject'),
+      article: params.get('article'),
+      tab: legacyPage === 'aigen' ? 'source-tab' : legacyPage === 'history' ? 'history-tab' : (params.get('tab') || null),
+      sharedSummary: params.get('share-summary')
+    };
+  }
+
+  const segments = window.location.pathname.split('/').filter(Boolean).map(segment => {
+    try { return decodeURIComponent(segment); } catch { return segment; }
+  });
+  const [root, second] = segments;
+
+  if (!root || root === 'index.html') return { page: 'home' };
+  switch (root) {
+    case 'mon': return { page: 'subject-detail', subject: second || null };
+    case 'on-tap': return { page: 'ontap', tab: 'exam-tab', subject: second || null };
+    case 'ngan-hang-cau-hoi': return { page: 'ontap', tab: 'bank-tab', subject: second || null };
+    case 'tao-cau-hoi': return { page: 'ontap', tab: 'source-tab', subject: second || null };
+    case 'lich-su-on-tap': return { page: 'ontap', tab: 'history-tab' };
+    case 'de-da-chia-se': return { page: 'ontap', tab: 'share-tab' };
+    case 'de-thi': return { page: 'shared-quiz', sharedQuiz: second || null };
+    case 'tom-tat-giao-trinh': return { page: 'curriculum-summary' };
+    case 'tom-tat': return { page: 'summary-study', sharedSummary: second || null };
+    case 'doc-bao': return { page: 'about', article: second || null };
+    case 'khong-gian-hoc-tap': return { page: 'study-space' };
+    case 'thong-bao': return { page: 'notifications' };
+    case 'ho-tro': return { page: 'report' };
+    case 'nang-cap-tai-khoan': return { page: 'upgrade' };
+    case 'quan-tri': return { page: 'admin' };
+    default: return { page: 'home' };
+  }
+}
+
 export const NavController = {
   activePage: 'home',
   currentUser: null,
   restoringRoute: false,
 
+  buildUrl(pageId, extra = {}) {
+    return new URL(buildRoutePath(pageId, extra), window.location.origin);
+  },
+
   syncUrl(pageId = this.activePage, extra = {}, { replace = false } = {}) {
     if (this.restoringRoute) return;
+    const routeKeys = new Set(['subject', 'tab', 'article', 'share-summary', 'share-quiz']);
     const params = new URLSearchParams();
-    if (pageId && pageId !== 'home') params.set('page', pageId);
     Object.entries(extra).forEach(([key, value]) => {
+      if (routeKeys.has(key)) return;
       if (value !== undefined && value !== null && value !== '') params.set(key, value);
     });
     const query = params.toString();
-    const method = replace ? 'replaceState' : 'pushState';
-    window.history[method]({ page: pageId, ...extra }, '', `${window.location.pathname}${query ? `?${query}` : ''}${window.location.hash}`);
+    const nextUrl = `${buildRoutePath(pageId, extra)}${query ? `?${query}` : ''}${window.location.hash}`;
+    const currentUrl = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    if (!replace && nextUrl === currentUrl) return;
+    window.history[replace ? 'replaceState' : 'pushState']({ page: pageId, ...extra }, '', nextUrl);
+  },
+
+  syncTabUrl(tabId, { replace = false } = {}) {
+    if (this.activePage !== 'ontap') return;
+    this.syncUrl('ontap', { tab: tabId || 'exam-tab' }, { replace });
+  },
+
+  applyActiveSubject(subjectId) {
+    const id = String(subjectId || '').trim();
+    if (!isKnownSubject(id)) return false;
+    DB.setActiveSubject(id);
+    const select = document.getElementById('global-subject-select');
+    if (select) select.value = id;
+    window.updateSubjectBanner?.(id);
+    window.updateBankCount?.();
+    return true;
   },
 
   getSharedRoute() {
-    const params = new URLSearchParams(window.location.search);
-    return {
-      page: params.get('page') || 'home',
-      subject: params.get('subject'),
-      article: params.get('article'),
-      tab: params.get('tab'),
-      sharedSummary: params.get('share-summary')
-    };
+    return parseRouteLocation();
   },
 
   async shareCurrentSubject(subjectId) {
-    const url = new URL(window.location.href);
-    url.search = '';
-    url.searchParams.set('page', 'subject-detail');
-    url.searchParams.set('subject', subjectId);
-    await window.shareUrl(url.href, 'Chia sẻ môn học');
+    await window.shareUrl(this.buildUrl('subject-detail', { subject: subjectId }).href, 'Chia sẻ môn học');
   },
 
   async restoreSharedRoute() {
     const route = this.getSharedRoute();
+    const subject = isKnownSubject(route.subject) ? route.subject : null;
+    if (route.page === 'subject-detail' && !subject) {
+      route.page = 'study-space';
+      route.subject = null;
+    }
+    const user = this.currentUser || AuthModule?.user;
+    const hasUser = Boolean(user && user.email);
+    const isAdmin = hasUser && getActiveAdminEmails().includes(user.email.toLowerCase());
+    // Deep link vào trang bị khoá phải hạ cánh đúng trang thực sự hiển thị.
+    if (route.page === 'curriculum-summary' && !hasUser) {
+      window.requireLoggedInForFeature?.('Tóm tắt giáo trình');
+      route.page = 'home';
+      route.tab = null;
+    } else if (route.page === 'admin' && !isAdmin) {
+      window.showToast?.('⛔ Trang Quản Trị Admin chỉ dành riêng cho Quản trị viên hệ thống!', 'error');
+      route.page = 'ontap';
+      route.tab = 'exam-tab';
+    }
     this.restoringRoute = true;
     try {
-      if (route.sharedSummary) {
+      if (route.sharedQuiz) {
+        this.navigateToPage('shared-quiz', null, { 'share-quiz': route.sharedQuiz });
+      } else if (route.sharedSummary) {
         this.navigateToPage('summary-study', null, { 'share-summary': route.sharedSummary });
       } else if (route.article) {
         this.navigateToPage('about');
         window.ArticlesModule?.openDetail(route.article);
-      } else if (route.subject) {
-        this.openSubjectDetail(route.subject, route.page === 'subject-detail' ? 'study-space' : route.page);
+      } else if (subject && route.page === 'subject-detail') {
+        this.applyActiveSubject(subject);
+        this.openSubjectDetail(subject, 'study-space');
+      } else if (subject) {
+        this.applyActiveSubject(subject);
+        this.navigateToPage(route.page, route.tab || null, { subject });
       } else {
         this.navigateToPage(route.page, route.tab || null);
       }
     } finally {
       this.restoringRoute = false;
-      if (route.sharedSummary) {
+      if (route.sharedQuiz) {
+        this.syncUrl('shared-quiz', { 'share-quiz': route.sharedQuiz }, { replace: true });
+        void window.QuizSharePage?.open(route.sharedQuiz);
+      } else if (route.sharedSummary) {
         this.syncUrl('summary-study', { 'share-summary': route.sharedSummary }, { replace: true });
         void window.openSharedSummary?.(route.sharedSummary);
-      } else if (route.article) this.syncUrl('about', { article: route.article }, { replace: true });
-      else if (route.subject) this.syncUrl('subject-detail', { subject: route.subject }, { replace: true });
-      else this.syncUrl(route.page, route.tab ? { tab: route.tab } : {}, { replace: true });
+      } else if (route.article) {
+        this.syncUrl('about', { article: route.article }, { replace: true });
+      } else if (subject && route.page === 'subject-detail') {
+        this.syncUrl('subject-detail', { subject }, { replace: true });
+      } else if (subject) {
+        this.syncUrl(route.page, { tab: route.tab || 'exam-tab', subject }, { replace: true });
+      } else {
+        this.syncUrl(route.page, route.tab ? { tab: route.tab } : {}, { replace: true });
+      }
     }
   },
 
@@ -164,8 +311,15 @@ export const NavController = {
       });
     }
     if (pageId !== 'summary-study') window.leaveSharedSummary?.();
+    if (pageId !== 'shared-quiz' && window.QuizSharePage?.isActive?.()) {
+      const leaveExam = window.confirm('Bạn đang làm đề chia sẻ dở dang. Rời trang bây giờ sẽ mất các câu đã chọn. Rời trang?');
+      if (!leaveExam) return;
+    }
+    if (pageId !== 'shared-quiz') window.QuizSharePage?.leave();
     document.body.classList.toggle('summary-page-active', pageId === 'curriculum-summary');
     document.body.classList.toggle('summary-study-body-active', pageId === 'summary-study');
+    document.body.classList.toggle('shared-quiz-body-active', pageId === 'shared-quiz');
+    document.getElementById('study-utility-toolbar')?.classList.toggle('hidden', pageId === 'shared-quiz');
     const hasUser = this.currentUser || AuthModule?.user;
     if ((pageId === 'aigen' || pageId === 'curriculum-summary') && (!hasUser || !hasUser.email)) {
       const featureName = pageId === 'aigen' ? 'Tạo câu hỏi bằng AI' : 'Tóm tắt giáo trình';
@@ -207,6 +361,9 @@ export const NavController = {
     if (pageId === 'report') {
       window.refreshFeedbacksFromServer?.();
       setTimeout(() => window.initSupportTicketPage?.(), 20);
+    }
+    if (pageId === 'ontap' && subTabId === 'source-tab') {
+      setTimeout(() => window.renderAIQuestionHistory?.(), 20);
     }
 
     // Bảo mật trang Admin: Chỉ 2 Gmail Admin mới truy cập được
@@ -261,7 +418,8 @@ export const NavController = {
     document.querySelector('.app-layout')?.classList.toggle('summary-study-active', pageId === 'summary-study');
     const ceraFab = document.getElementById('cera-fab');
     const ceraPanel = document.getElementById('cera-panel');
-    [ceraFab, ceraPanel].forEach(element => element?.classList.toggle('hidden', pageId === 'summary-study'));
+    const hideCera = pageId === 'summary-study' || pageId === 'shared-quiz';
+    [ceraFab, ceraPanel].forEach(element => element?.classList.toggle('hidden', hideCera));
     // Hide all normal page containers and show selected.
     document.querySelectorAll('.page-container').forEach(page => {
       page.classList.add('hidden');
@@ -420,9 +578,8 @@ export const NavController = {
 
   // ─── SUBJECT DETAIL PAGE ──────────────────────────────────────────────────
   openSubjectDetail(subjectId, returnPage = 'study-space') {
-    void ensureStylesheet('subject-page.css?v=20260928-neutral-dark').catch(error => {
-      console.error('[Subject] Không thể tải stylesheet:', error);
-    });
+    // subject-page.css được nạp sẵn trong index.html để trang luôn đúng layout
+    // ngay khung hình đầu tiên khi mở từ trang khác.
     const s = getSubjectById(subjectId);
     if (!s) return;
 
@@ -446,7 +603,6 @@ export const NavController = {
     const shortDesc = details.shortDesc || visualTheme.description;
     const credits = details.credits || s.credits;
     const semester = details.semester || s.semester;
-    const program = details.program || 'Đại học Công nghệ - ĐH Đà Nẵng';
     const banner = details.banner || '';
     const intro = details.intro || '';
     const introCanvas = Array.isArray(details.introCanvas) ? details.introCanvas : [];
@@ -459,224 +615,165 @@ export const NavController = {
         : 'student-intro-canvas--mixed';
     const safeIntroUrl = value => { try { const url = new URL(String(value || ''), window.location.href); return ['http:', 'https:'].includes(url.protocol) ? url.href : ''; } catch { return ''; } };
     const renderIntroCanvas = () => introCanvas.map(item => { const x=Math.max(0,Math.min(92,Number(item.x)||0)), y=Math.max(0,Math.min(92,Number(item.y)||0)), w=Math.max(12,Math.min(100,Number(item.width)||35)), h=Math.max(8,Math.min(100,Number(item.height)||20)), style=`left:${x}%;top:${y}%;width:${w}%;height:${h}%;z-index:${Number(item.zIndex)||1}`; if(item.type==='text') return `<div class="student-intro-canvas-item text" style="${style}">${safe(item.content).replace(/\n/g,'<br>')}</div>`; const src=safeIntroUrl(item.src); if(!src) return ''; if(item.type==='image') return `<figure class="student-intro-canvas-item image" style="${style}"><img src="${safe(src)}" alt="${safe(item.alt || '')}" onerror="this.hidden=true;this.nextElementSibling.hidden=false"><figcaption class="student-intro-canvas-image-error" hidden>Không tải được ảnh này.</figcaption></figure>`; const youtube=/^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\//i.test(src); return youtube ? `<div class="student-intro-canvas-item video" style="${style}"><iframe src="${safe(src)}" title="Video môn học" loading="lazy" allowfullscreen></iframe></div>` : ''; }).join('');
-    const cards = details.cards || {};
-    const instructor = details.instructor || {};
     const chapters = details.chapters || [];
     const safe = escapeSubjectDetailText;
 
     // Store active details on window for TOC interaction
-    window._activeSubjectDetails = details;
+    window._activeSubjectDetails = { ...details, subjectId: s.id };
 
-    // 4 Cards fallbacks
-    const objectivesContent = cards.objectives?.content || '';
-    const mainContentContent = cards.mainContent?.content || '';
-    const targetAudienceContent = cards.targetAudience?.content || '';
-    const learningFormatContent = cards.learningFormat?.content || '';
+    const blockLabel = s.blockId === 'GDQP' ? 'Môn học chung' : block.name;
+    const heroArt = SUBJECT_HERO_ART[code] || banner;
+    const lessonCount = chapters.reduce((sum, chap) => sum + ((chap && chap.lessons || []).length), 0);
+    const safeName = safe(name);
+    const titleBreak = safeName.lastIndexOf(',');
+    const titleHtml = titleBreak > 0
+      ? `${safeName.slice(0, titleBreak + 1)}<span class="sd5-title-accent">${safeName.slice(titleBreak + 1)}</span>`
+      : safeName;
 
     // Render presentation shell; lesson, resource, and exam handlers remain unchanged.
-    const lessonCount = chapters.reduce((sum, chap) => sum + ((chap && chap.lessons || []).length), 0);
     detailContainer.innerHTML = `
-      <div class="sd2-shell">
-        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;">
-          <button class="sd2-back" onclick="NavController.navigateToPage('${returnPage === 'ontap' ? 'ontap' : 'study-space'}')" aria-label="Quay lại danh sách môn học">
-            <i class="fa-solid fa-arrow-left"></i><span>Quay lại</span>
-          </button>
-          <button class="btn btn-secondary btn-sm" onclick="NavController.shareCurrentSubject('${s.id}')">
-            <i class="fa-solid fa-share-nodes"></i> Chia sẻ
-          </button>
+      <div class="sd5-shell">
+        <div class="sd5-topbar">
+          <nav class="sd5-crumbs" aria-label="Điều hướng">
+            <button type="button" class="sd5-crumb-icon" onclick="NavController.navigateToPage('home')" aria-label="Trang chủ"><i class="fa-solid fa-house"></i></button>
+            <i class="fa-solid fa-chevron-right sd5-crumb-sep" aria-hidden="true"></i>
+            <button type="button" class="sd5-crumb-link" onclick="NavController.navigateToPage('${returnPage === 'ontap' ? 'ontap' : 'study-space'}')">${returnPage === 'ontap' ? 'Ôn tập' : 'Không gian học tập'}</button>
+            <i class="fa-solid fa-chevron-right sd5-crumb-sep" aria-hidden="true"></i>
+            <span class="sd5-crumb-current" aria-current="page">${safe(code)}</span>
+          </nav>
+          <button type="button" class="sd5-share" onclick="NavController.shareCurrentSubject('${s.id}')"><i class="fa-solid fa-share-nodes"></i><span>Chia sẻ</span></button>
         </div>
 
-        <!-- SECTION 1 · HERO -->
-        <article class="sd2-hero subject-theme-${visualThemeKey}" style="${banner ? `background-image: url('${banner}'); background-size: cover; background-position: center;` : ''}">
-          <div class="sd2-hero-decor" aria-hidden="true">
-            <div class="sd2-orb sd2-orb-one"></div>
-            <div class="sd2-orb sd2-orb-two"></div>
-            <div class="sd2-dots"></div>
-          </div>
-          <div class="sd2-hero-copy">
-            <span class="sd2-badge"><i class="sd2-badge-dot"></i>${safe(code)} — ${safe(name).toUpperCase()}</span>
-            <h1 class="sd2-title">${safe(name)}</h1>
-            <p class="sd2-desc">${safe(shortDesc)}</p>
-            <div class="sd2-meta">
-              <span class="sd2-meta-chip"><i class="fa-solid fa-book-bookmark"></i>${credits} tín chỉ</span>
-              <span class="sd2-meta-chip"><i class="fa-solid fa-graduation-cap"></i>${safe(program)}</span>
-              <span class="sd2-meta-chip"><i class="fa-solid fa-calendar-days"></i>Học kỳ: ${semester}</span>
-            </div>
-            <div class="sd2-cta">
-              <button class="sd2-btn-primary" onclick="NavController.startSubjectExam('${s.id}')"><i class="fa-solid fa-bolt"></i>Ôn tập ngay</button>
-              <button class="sd2-btn-ghost" onclick="openUserResourceViewer('${s.id}', 'lecture')"><i class="fa-solid fa-folder-open"></i>Tài liệu học tập</button>
-            </div>
-          </div>
-          ${!banner ? `
-          <div class="sd2-hero-art" aria-hidden="true">
-            <div class="sd2-art-ring sd2-art-ring-one"></div>
-            <div class="sd2-art-ring sd2-art-ring-two"></div>
-            <div class="sd2-art-platform"></div>
-            <i class="fa-solid ${visualTheme.art[1]} sd2-art-float sd2-art-float-one"></i>
-            <i class="fa-solid ${visualTheme.art[2]} sd2-art-float sd2-art-float-two"></i>
-            <div class="sd2-art-emblem"><i class="fa-solid ${visualTheme.art[0]}"></i></div>
-          </div>` : ''}
-        </article>
-
-        <!-- SECTION 2 · CHỈ SỐ QUAN TRỌNG -->
-        <section class="sd2-stats" aria-label="Thông tin quan trọng của môn học">
-          <div class="sd2-stat">
-            <span class="sd2-stat-icon sd2-tint-green"><i class="fa-solid fa-layer-group"></i></span>
-            <div><strong>${chapters.length}</strong><span>Chương học</span></div>
-          </div>
-          <div class="sd2-stat">
-            <span class="sd2-stat-icon sd2-tint-blue"><i class="fa-solid fa-book-open"></i></span>
-            <div><strong>${lessonCount}</strong><span>Bài học</span></div>
-          </div>
-          <div class="sd2-stat">
-            <span class="sd2-stat-icon sd2-tint-orange"><i class="fa-solid fa-star"></i></span>
-            <div><strong>${credits}</strong><span>Tín chỉ</span></div>
-          </div>
-          <div class="sd2-stat">
-            <span class="sd2-stat-icon sd2-tint-purple"><i class="fa-solid fa-calendar-days"></i></span>
-            <div><strong>${safe(semester)}</strong><span>Học kỳ</span></div>
-          </div>
-        </section>
-
-        <!-- SECTION 3 + 4 · NỘI DUNG CHÍNH & MỤC LỤC -->
-        <div class="sd2-grid">
-          <div class="sd2-main" id="subject-main-col-root">
-
-            <section class="sd2-card" id="section-subject-intro">
-              <header class="sd2-card-head">
-                <span class="sd2-head-icon sd2-tint-green"><i class="fa-solid fa-book-open"></i></span>
-                <div>
-                  <h2 class="sd2-card-title">Giới thiệu môn học</h2>
-                  <p class="sd2-card-sub">Tổng quan nội dung giảng dạy</p>
+        <div class="sd5-grid">
+          <main class="sd5-main">
+            <article class="sd5-hero subject-theme-${visualThemeKey}">
+              <div class="sd5-hero-main">
+                <div class="sd5-hero-wash" aria-hidden="true"></div>
+                <div class="sd5-hero-copy">
+                  <span class="sd5-badge"><span class="sd5-badge-dot"></span><strong>${safe(code)}</strong><span class="sd5-badge-sep"></span><span>${safe(blockLabel).toUpperCase()}</span></span>
+                  <h1 class="sd5-title">${titleHtml}</h1>
+                  <p class="sd5-desc">${safe(shortDesc)}</p>
+                  <div class="sd5-meta">
+                    <span><i class="fa-solid fa-star"></i>${credits} tín chỉ</span>
+                    <span><i class="fa-solid fa-book-open"></i>${lessonCount} bài học</span>
+                    <span><i class="fa-solid fa-calendar-days"></i>Học kỳ ${safe(semester)}</span>
+                  </div>
                 </div>
+                <div class="sd5-hero-art${heroArt ? '' : ' is-fallback'}" aria-hidden="true">
+                  <span class="sd5-orbit sd5-orbit-one"></span>
+                  <span class="sd5-orbit sd5-orbit-two"></span>
+                  <span class="sd5-art-platform"></span>
+                  <span class="sd5-pin sd5-pin-one"><i class="fa-solid ${visualTheme.art[1]}"></i></span>
+                  <span class="sd5-pin sd5-pin-two"><i class="fa-solid ${visualTheme.art[2]}"></i></span>
+                  <span class="sd5-art-fallback"><i class="fa-solid ${visualTheme.art[0]}"></i></span>
+                  ${heroArt ? `<img class="sd5-art-img" src="${safe(heroArt)}" alt="" onerror="this.parentElement.classList.add('is-fallback');this.remove();">` : ''}
+                </div>
+              </div>
+            </article>
+            <nav class="sd5-quick" aria-label="Danh mục nội dung môn học">
+              <button type="button" class="sd5-quick-row is-active" data-sd5-quick="lecture" aria-current="true" onclick="window.openSubjectQuickTab('lecture')">
+                <span class="sd5-quick-icon"><i class="fa-solid fa-book-open"></i></span>
+                <span class="sd5-quick-text">Tài liệu học tập</span>
+                <i class="fa-solid fa-chevron-right sd5-quick-arrow" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="sd5-quick-row" data-sd5-quick="bank" onclick="window.openSubjectQuickTab('bank')">
+                <span class="sd5-quick-icon"><i class="fa-solid fa-circle-question"></i></span>
+                <span class="sd5-quick-text">Ngân hàng câu hỏi</span>
+                <i class="fa-solid fa-chevron-right sd5-quick-arrow" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="sd5-quick-row" data-sd5-quick="exam" onclick="window.openSubjectQuickTab('exam')">
+                <span class="sd5-quick-icon"><i class="fa-solid fa-file-lines"></i></span>
+                <span class="sd5-quick-text">Đề thi</span>
+                <i class="fa-solid fa-chevron-right sd5-quick-arrow" aria-hidden="true"></i>
+              </button>
+              <button type="button" class="sd5-quick-row" data-sd5-quick="review" onclick="window.openSubjectQuickTab('review')">
+                <span class="sd5-quick-icon"><i class="fa-solid fa-bullseye"></i></span>
+                <span class="sd5-quick-text">Ôn tập</span>
+                <i class="fa-solid fa-chevron-right sd5-quick-arrow" aria-hidden="true"></i>
+              </button>
+            </nav>
+            <div class="sd5-content">
+              <div class="sd5-tabs" role="tablist" aria-label="Nội dung môn học">
+              <button type="button" class="sd5-tab is-active" role="tab" aria-selected="true" data-sd5-tab="lecture" onclick="window.setSubjectDetailTab('lecture')"><i class="fa-solid fa-book-open"></i><span>Tài liệu học tập</span></button>
+              <button type="button" class="sd5-tab" role="tab" aria-selected="false" data-sd5-tab="bank" onclick="window.setSubjectDetailTab('bank')"><i class="fa-solid fa-circle-question"></i><span>Ngân hàng câu hỏi</span></button>
+              <button type="button" class="sd5-tab" role="tab" aria-selected="false" data-sd5-tab="exam" onclick="window.setSubjectDetailTab('exam')"><i class="fa-solid fa-file-lines"></i><span>Đề thi</span></button>
+              <button type="button" class="sd5-tab" role="tab" aria-selected="false" data-sd5-tab="review" onclick="window.setSubjectDetailTab('review')"><i class="fa-solid fa-bullseye"></i><span>Ôn tập</span></button>
+            </div>
+
+            <section class="sd5-panel is-active" data-sd5-panel="lecture" role="tabpanel">
+              <header class="sd5-panel-head">
+                <h2>Giới thiệu môn học</h2>
+                <button type="button" class="sd5-panel-link" onclick="openUserResourceViewer('${s.id}', 'lecture')">Tài liệu học tập<i class="fa-solid fa-arrow-right"></i></button>
               </header>
               ${canDisplayPublishedCanvas && introCanvas.length ? `<div class="student-intro-canvas ${introCanvasVariant}" style="min-height:${introCanvasHeight}px"><div class="student-intro-canvas-backdrop" aria-hidden="true"></div><div class="student-intro-canvas-course-label" aria-hidden="true"><span>${safe(code)}</span><strong>${safe(name)}</strong></div>${renderIntroCanvas()}</div>` : intro ? `
-                <p class="sd2-intro-text">${safe(intro).replace(/\n/g, '<br>')}</p>
+                <p class="sd5-intro-text">${safe(intro).replace(/\n/g, '<br>')}</p>
               ` : `
-                <div class="sd2-empty"><i class="fa-solid fa-feather-pointed"></i>Admin chưa cập nhật nội dung giới thiệu chi tiết cho môn học này.</div>
+                <div class="sd5-empty"><i class="fa-solid fa-feather-pointed"></i><span>Admin chưa cập nhật nội dung giới thiệu chi tiết cho môn học này.</span></div>
               `}
             </section>
 
-            <section class="sd2-infogrid" id="section-subject-cards" aria-label="Thông tin môn học">
-              <div class="sd2-info sd2-tint-card-green">
-                <span class="sd2-info-icon sd2-tint-green"><i class="fa-solid fa-bullseye"></i></span>
-                <h3>${safe(cards.objectives?.title || 'Mục tiêu môn học')}</h3>
-                <p>${safe(objectivesContent || 'Đang cập nhật mục tiêu môn học.')}</p>
-              </div>
-              <div class="sd2-info sd2-tint-card-blue">
-                <span class="sd2-info-icon sd2-tint-blue"><i class="fa-solid fa-book-open"></i></span>
-                <h3>${safe(cards.mainContent?.title || 'Nội dung chính')}</h3>
-                <p>${safe(mainContentContent || 'Đang cập nhật nội dung chính.')}</p>
-              </div>
-              <div class="sd2-info sd2-tint-card-orange">
-                <span class="sd2-info-icon sd2-tint-orange"><i class="fa-solid fa-users"></i></span>
-                <h3>${safe(cards.targetAudience?.title || 'Đối tượng học')}</h3>
-                <p>${safe(targetAudienceContent || 'Đang cập nhật đối tượng học.')}</p>
-              </div>
-              <div class="sd2-info sd2-tint-card-purple">
-                <span class="sd2-info-icon sd2-tint-purple"><i class="fa-solid fa-shield-halved"></i></span>
-                <h3>${safe(cards.learningFormat?.title || 'Hình thức học')}</h3>
-                <p>${safe(learningFormatContent || 'Đang cập nhật hình thức học.')}</p>
+            <section class="sd5-panel sd5-action" data-sd5-panel="bank" role="tabpanel" hidden>
+              <div class="sd5-action-inner">
+                <span class="sd5-action-icon"><i class="fa-solid fa-circle-question"></i></span>
+                <h2>Ngân hàng câu hỏi</h2>
+                <p>Luyện tập với ngân hàng câu hỏi của môn học.</p>
+                <button type="button" class="sd5-btn" onclick="NavController.navigateToPage('ontap', 'bank-tab', { subject: '${s.id}' })">Mở ngân hàng câu hỏi<i class="fa-solid fa-arrow-right"></i></button>
               </div>
             </section>
 
-            <!-- DYNAMIC LESSON / SELECTED CONTENT DISPLAY ZONE -->
-            <div id="subject-selected-lesson-container" style="display:none;"></div>
-
-            <section class="sd2-card sd2-instructor" id="section-subject-instructor">
-              <div class="sd2-instructor-left">
-                ${instructor.avatar ? `
-                  <img src="${instructor.avatar}" alt="Avatar" class="sd2-instructor-avatar" referrerpolicy="no-referrer">
-                ` : `
-                  <div class="sd2-instructor-fallback"><i class="fa-solid fa-user"></i></div>
-                `}
-                <div>
-                  <h3 class="sd2-instructor-name">${safe(instructor.name || 'Đang cập nhật tên giảng viên')}</h3>
-                  <p class="sd2-instructor-role">${safe(instructor.role || 'Giảng viên phụ trách')}</p>
-                </div>
+            <section class="sd5-panel sd5-action" data-sd5-panel="exam" role="tabpanel" hidden>
+              <div class="sd5-action-inner">
+                <span class="sd5-action-icon"><i class="fa-solid fa-file-lines"></i></span>
+                <h2>Đề thi</h2>
+                <p>Kho đề thi các năm và đề minh họa của môn học.</p>
+                <button type="button" class="sd5-btn" onclick="openUserResourceViewer('${s.id}', 'exam')">Mở kho đề thi<i class="fa-solid fa-arrow-right"></i></button>
               </div>
-              ${instructor.email ? `
-                <a href="mailto:${instructor.email}" class="sd2-instructor-contact">
-                  <i class="fa-solid fa-envelope"></i>Liên hệ giảng viên<i class="fa-solid fa-chevron-right"></i>
-                </a>
-              ` : `
-                <button class="sd2-instructor-contact" onclick="showToast('Giảng viên chưa để lại email liên hệ.', 'info')">
-                  <i class="fa-solid fa-envelope"></i>Liên hệ giảng viên<i class="fa-solid fa-chevron-right"></i>
-                </button>
-              `}
             </section>
 
-          </div>
+            <section class="sd5-panel sd5-action" data-sd5-panel="review" role="tabpanel" hidden>
+              <div class="sd5-action-inner">
+                <span class="sd5-action-icon"><i class="fa-solid fa-bullseye"></i></span>
+                <h2>Ôn tập</h2>
+                <p>Luyện trắc nghiệm nhanh theo từng chương.</p>
+                <button type="button" class="sd5-btn" onclick="NavController.startSubjectExam('${s.id}')">Bắt đầu ôn tập<i class="fa-solid fa-arrow-right"></i></button>
+              </div>
+            </section>
+            </div>
+          </main>
 
-          <!-- RIGHT TOC SIDEBAR -->
-          <aside class="sd2-side">
-            <div class="sd2-card sd2-toc">
-              <header class="sd2-toc-head">
+          <aside class="sd5-side">
+            <div class="sd5-toc">
+              <header class="sd5-toc-head">
                 <h2><i class="fa-solid fa-list-ul"></i>Mục lục môn học</h2>
-                <button class="sd2-toc-toggle" onclick="window.toggleSubjectSidebarAllChapters()"><span id="toc-toggle-text">Thu gọn</span><i class="fa-solid fa-chevron-up" id="toc-all-arrow"></i></button>
+                <button type="button" class="sd5-toc-toggle" onclick="window.toggleSubjectSidebarAllChapters()"><span id="toc-toggle-text">Thu gọn</span><i class="fa-solid fa-chevron-up" id="toc-all-arrow"></i></button>
               </header>
-
-              <button class="sd2-toc-overview" id="toc-item-overview" onclick="window.selectSubjectOverview()">
-                <i class="fa-solid fa-house"></i><span>Tổng quan</span><i class="fa-solid fa-chevron-right sd2-chev"></i>
-              </button>
-
-              <div class="sd2-toc-chapters" id="toc-chapters-wrapper">
-                ${chapters.length > 0 ? chapters.map((chap, cIdx) => `
-                  <div class="sd2-chap">
-                    <button class="sd2-chap-head" onclick="window.toggleSubjectSidebarChapter('${chap.id || 'c_' + cIdx}')">
-                      <span class="sd2-chap-idx">${String(cIdx + 1).padStart(2, '0')}</span>
-                      <span class="sd2-chap-title">${safe(chap.title)}</span>
-                      <i class="fa-solid fa-chevron-down text-xs toc-chap-arrow" id="arrow-${chap.id || 'c_' + cIdx}"></i>
+              <div class="sd5-toc-track">
+                ${chapters.length > 0 ? chapters.map((chap, cIdx) => {
+                  const chapId = chap.id || 'c_' + cIdx;
+                  return `
+                  <div class="sd5-chapter${cIdx === 0 ? ' is-open' : ''}">
+                    <button type="button" class="sd5-chap" onclick="window.toggleSubjectSidebarChapter('${chapId}')">
+                      <span class="sd5-chap-node">${String(cIdx + 1).padStart(2, '0')}</span>
+                      <span class="sd5-chap-title">${safe(chap.title)}</span>
+                      <i class="fa-solid ${cIdx === 0 ? 'fa-chevron-up' : 'fa-chevron-down'} sd5-chap-chev toc-chap-arrow" id="arrow-${chapId}"></i>
                     </button>
-                    <div class="toc-lesson-list sd2-lessons" id="lessons-${chap.id || 'c_' + cIdx}">
-                      ${(chap.lessons || []).map((les, lIdx) => `
-                        <button class="toc-lesson-item sd2-lesson" id="les-item-${les.id || 'l_' + cIdx + '_' + lIdx}" onclick="window.selectSubjectSidebarLesson('${chap.id || 'c_' + cIdx}', '${les.id || 'l_' + cIdx + '_' + lIdx}')">
-                          <span class="sd2-lesson-dot"></span><span>${safe(les.title)}</span>
+                    <div class="toc-lesson-list sd5-lessons" id="lessons-${chapId}"${cIdx === 0 ? '' : ' style="display:none"'}>
+                      ${(chap.lessons || []).map((les, lIdx) => {
+                        const lesId = les.id || 'l_' + cIdx + '_' + lIdx;
+                        return `
+                        <button type="button" class="toc-lesson-item sd5-lesson${cIdx === 0 && lIdx === 0 ? ' active' : ''}" id="les-item-${lesId}" onclick="window.selectSubjectSidebarLesson('${chapId}', '${lesId}')">
+                          <span class="sd5-lesson-dot"></span><span class="sd5-lesson-title">${safe(les.title)}</span>
                         </button>
-                      `).join('')}
+                      `; }).join('')}
                     </div>
-                  </div>
-                `).join('') : `
-                  <div class="sd2-empty sd2-empty-sm">Chưa có danh mục chương bài.</div>
+                  </div>`;
+                }).join('') : `
+                  <div class="sd5-empty sd5-empty-sm">Chưa có danh mục chương bài.</div>
                 `}
               </div>
             </div>
           </aside>
         </div>
-
-        <!-- SECTION 5 · KHÁM PHÁ THÊM -->
-        <section class="sd2-explore" aria-label="Chức năng mở rộng">
-          <header class="sd2-section-head">
-            <h2>Khám phá thêm</h2>
-            <p>Công cụ học tập gắn liền với môn học này</p>
-          </header>
-          <div class="sd2-explore-grid">
-            <button class="sd2-explore-card" onclick="openUserResourceViewer('${s.id}', 'lecture')">
-              <span class="sd2-explore-icon sd2-tint-green"><i class="fa-solid fa-file-lines"></i></span>
-              <span class="sd2-explore-name">Tài liệu học tập</span>
-              <span class="sd2-explore-desc">Giáo trình, bài giảng & tài liệu tham khảo</span>
-              <span class="sd2-explore-open">Mở <i class="fa-solid fa-arrow-right"></i></span>
-            </button>
-            <button class="sd2-explore-card" onclick="NavController.startSubjectExam('${s.id}')">
-              <span class="sd2-explore-icon sd2-tint-purple"><i class="fa-solid fa-circle-question"></i></span>
-              <span class="sd2-explore-name">Ngân hàng câu hỏi</span>
-              <span class="sd2-explore-desc">Luyện tập với ngân hàng câu hỏi của môn học</span>
-              <span class="sd2-explore-open">Mở <i class="fa-solid fa-arrow-right"></i></span>
-            </button>
-            <button class="sd2-explore-card" onclick="openUserResourceViewer('${s.id}', 'exam')">
-              <span class="sd2-explore-icon sd2-tint-orange"><i class="fa-solid fa-file-circle-check"></i></span>
-              <span class="sd2-explore-name">Đề thi</span>
-              <span class="sd2-explore-desc">Kho đề thi các năm & đề minh họa</span>
-              <span class="sd2-explore-open">Mở <i class="fa-solid fa-arrow-right"></i></span>
-            </button>
-            <button class="sd2-explore-card" onclick="NavController.startSubjectExam('${s.id}')">
-              <span class="sd2-explore-icon sd2-tint-cyan"><i class="fa-solid fa-sliders"></i></span>
-              <span class="sd2-explore-name">Ôn tập</span>
-              <span class="sd2-explore-desc">Chế độ ôn tập trắc nghiệm nhanh theo chương</span>
-              <span class="sd2-explore-open">Mở <i class="fa-solid fa-arrow-right"></i></span>
-            </button>
-          </div>
-        </section>
       </div>
     `;
 
@@ -699,8 +796,8 @@ export const NavController = {
       window.updateBankCount();
     }
 
-    // 3. Navigate to Ontap page
-    this.navigateToPage('ontap');
+    // 3. Navigate to Ontap page with the subject in the URL
+    this.navigateToPage('ontap', 'exam-tab', { subject: subjectId });
   },
 
   // ─── USER AUTH & PROFILE POPOVER ──────────────────────────────────────────
@@ -821,6 +918,7 @@ export const NavController = {
     const existing = document.getElementById('profile-center-modal');
     if (existing) {
       existing.classList.add('open');
+      this.setProfileMobileView('menu');
       return;
     }
 
@@ -838,11 +936,15 @@ export const NavController = {
         <button class="profile-center-close" onclick="NavController.closeProfileCenter()" aria-label="Đóng profile center">
           <i class="fa-solid fa-xmark"></i>
         </button>
+        <button class="profile-mobile-back" type="button" onclick="NavController.showProfileMobileMenu()" aria-label="Quay lại menu tài khoản">
+          <i class="fa-solid fa-chevron-left"></i>
+        </button>
         <div class="profile-center-shell">
           <aside class="profile-sidebar">
             <div class="profile-sidebar-identity">
               <div class="profile-sidebar-avatar-wrap">
                 <img src="${avatarUrl}" alt="Avatar" class="profile-sidebar-avatar" referrerpolicy="no-referrer" onerror="window.handleAvatarError(this, '${safeName}')">
+                <span class="profile-avatar-verified" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
               </div>
               <div class="profile-sidebar-user">
                 <h3>${displayName}</h3>
@@ -871,6 +973,7 @@ export const NavController = {
 
     document.body.appendChild(profileModal);
     document.body.classList.add('profile-center-open');
+    this.setProfileMobileView('menu');
 
     profileModal.addEventListener('click', (event) => {
       if (event.target === profileModal) {
@@ -894,8 +997,28 @@ export const NavController = {
         const section = button.dataset.profileSection;
         profileModal.querySelectorAll('.profile-nav-item').forEach(item => item.classList.toggle('active', item === button));
         this.renderProfileCenterContent(section);
+        this.setProfileMobileView('section');
       });
     });
+  },
+
+  setProfileMobileView(view) {
+    const modal = document.getElementById('profile-center-modal');
+    if (!modal) return;
+    const isMenu = view === 'menu';
+    modal.classList.toggle('is-mobile-menu', isMenu);
+    modal.classList.toggle('is-mobile-section', !isMenu);
+    if (isMenu) {
+      const sidebar = modal.querySelector('.profile-sidebar');
+      if (sidebar) sidebar.scrollTop = 0;
+    } else {
+      const content = modal.querySelector('.profile-content');
+      if (content) content.scrollTop = 0;
+    }
+  },
+
+  showProfileMobileMenu() {
+    this.setProfileMobileView('menu');
   },
 
   closeProfileCenter() {
@@ -1026,6 +1149,34 @@ export const NavController = {
     if (window.showToast) window.showToast('Đã cập nhật ảnh bìa.', 'success');
   },
 
+  getProfileActivityStats() {
+    const user = this.currentUser || {};
+    const userKey = user.uid || user.email || 'guest';
+    let lessons = 0;
+    try {
+      const progress = DB.getLessonProgressMap() || {};
+      Object.entries(progress).forEach(([key, record]) => {
+        if (!key.startsWith(`${userKey}_`)) return;
+        lessons += Array.isArray(record?.completedLessons) ? record.completedLessons.length : 0;
+      });
+    } catch { /* ignore corrupt progress */ }
+
+    let examCount = 0;
+    let studySeconds = 0;
+    try {
+      const history = DB.getHistory() || [];
+      examCount = history.length;
+      studySeconds = history.reduce((sum, item) => sum + (Number(item?.timeSpent) || 0), 0);
+    } catch { /* ignore corrupt history */ }
+
+    return { lessons, examCount, studyHours: studySeconds / 3600 };
+  },
+
+  openProfileActivityDetail() {
+    this.closeProfileCenter();
+    window.setTimeout(() => this.navigateToPage('ontap', 'history-tab'), 220);
+  },
+
   renderProfileCenterContent(section) {
     const content = document.getElementById('profile-center-content');
     if (!content) return;
@@ -1046,6 +1197,11 @@ export const NavController = {
     const coverStyle = cover.image
       ? ` style="background-image:linear-gradient(120deg,rgba(7,32,42,.22),rgba(18,49,60,.45)),url('${cover.image}');background-position:${cover.positionX}% ${cover.positionY}%"`
       : '';
+    const activity = this.getProfileActivityStats();
+    const studyHours = activity.studyHours >= 10
+      ? String(Math.round(activity.studyHours))
+      : String(Math.round(activity.studyHours * 10) / 10);
+    const memberLabel = role === 'PREMIUM' || role === 'ADMIN' ? 'PREMIUM MEMBER' : 'NEWBIE MEMBER';
 
     document.querySelectorAll('.profile-nav-item').forEach(item => {
       item.classList.toggle('active', item.dataset.profileSection === section);
@@ -1063,13 +1219,16 @@ export const NavController = {
                 <img src="${avatar}" alt="avatar" class="profile-main-avatar" referrerpolicy="no-referrer" onerror="window.handleAvatarError(this, '${safeDisplayName}')">
                 <label class="profile-avatar-upload" for="profile-avatar-upload" title="Thay ảnh đại diện"><i class="fa-solid fa-camera"></i></label>
                 <input id="profile-avatar-upload" type="file" accept="image/*" style="display:none;" onchange="NavController.handleAvatarFileUpload(event)">
+                <span class="profile-avatar-verified" aria-hidden="true"><i class="fa-solid fa-check"></i></span>
               </div>
               <div class="profile-header-text">
                 <div class="profile-name-row">
                   <h2>${displayName}</h2>
+                  <span class="profile-name-verified" title="Đã xác minh"><i class="fa-solid fa-circle-check"></i></span>
                   ${role === 'PREMIUM' || role === 'ADMIN' ? '<span class="name-crown-icon" title="Tài khoản Premium VIP"><i class="fa-solid fa-crown"></i></span>' : ''}
                 </div>
                 <p class="profile-bio"><span class="profile-bio-text">"${bio}"</span> <button type="button" class="bio-edit-icon" onclick="NavController.editProfileBio()" title="Sửa tiểu sử" aria-label="Sửa tiểu sử"><i class="fa-solid fa-pen"></i></button></p>
+                <span class="profile-badge premium profile-header-badge"><i class="fa-solid fa-crown"></i>${memberLabel}</span>
               </div>
             </div>
           </div>
@@ -1118,7 +1277,31 @@ export const NavController = {
           </div>
         </div>
 
-        <div class="profile-panel">
+        <div class="profile-activity-panel">
+          <div class="profile-activity-head">
+            <h3><i class="fa-solid fa-chart-simple"></i> Thống kê hoạt động</h3>
+            <button type="button" class="profile-activity-link" onclick="NavController.openProfileActivityDetail()">Xem chi tiết <i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+          <div class="profile-activity-grid">
+            <div class="profile-activity-tile is-mint">
+              <span class="profile-activity-icon"><i class="fa-solid fa-book-open"></i></span>
+              <strong>${activity.lessons}</strong>
+              <small>Bài học hoàn thành</small>
+            </div>
+            <div class="profile-activity-tile is-blue">
+              <span class="profile-activity-icon"><i class="fa-regular fa-clock"></i></span>
+              <strong>${studyHours} giờ</strong>
+              <small>Thời gian học</small>
+            </div>
+            <div class="profile-activity-tile is-cream">
+              <span class="profile-activity-icon"><i class="fa-regular fa-file-lines"></i></span>
+              <strong>${activity.examCount}</strong>
+              <small>Đề đã luyện</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="profile-panel quick-settings-panel">
           <div class="panel-head">
             <h3><i class="fa-solid fa-sliders"></i> Cài đặt nhanh</h3>
           </div>
@@ -1223,6 +1406,7 @@ export const NavController = {
 
     const html = sections[section] || sections.profile;
     content.innerHTML = html;
+    content.classList.toggle('has-hero', section === 'profile');
 
     content.querySelectorAll('[data-profile-section]').forEach((button) => {
       button.addEventListener('click', () => {
@@ -1566,8 +1750,9 @@ window.toggleSubjectSidebarChapter = function(chapId) {
   if (!lessonsEl) return;
   const isHidden = lessonsEl.style.display === 'none';
   lessonsEl.style.display = isHidden ? '' : 'none';
+  lessonsEl.closest('.sd5-chapter')?.classList.toggle('is-open', isHidden);
   if (arrowEl) {
-    arrowEl.className = isHidden ? 'fa-solid fa-chevron-down text-xs toc-chap-arrow' : 'fa-solid fa-chevron-right text-xs toc-chap-arrow';
+    arrowEl.className = `fa-solid ${isHidden ? 'fa-chevron-up' : 'fa-chevron-down'} sd5-chap-chev toc-chap-arrow`;
   }
 };
 
@@ -1577,21 +1762,37 @@ window.selectSubjectSidebarLesson = function(chapId, lesId) {
   if (targetItem) targetItem.classList.add('active');
 
   const details = window._activeSubjectDetails;
-  const subjectId = details ? details.subjectId : 'GE4150';
+  const subjectId = details?.subjectId;
 
-  if (window.openStudyReaderPage) {
-    window.openStudyReaderPage(subjectId, 'lecture', lesId);
+  if (subjectId && window.NavController?.openStudyReader) {
+    window.NavController.openStudyReader({ subjectId, chapterId: chapId, lessonId: lesId, returnPage: 'subject-detail' });
   }
 };
 
-window.selectSubjectOverview = function() {
-  document.querySelectorAll('.toc-lesson-item').forEach(el => el.classList.remove('active'));
-  const container = document.getElementById('subject-selected-lesson-container');
-  if (container) {
-    container.style.display = 'none';
-    container.innerHTML = '';
+window.setSubjectDetailTab = function(tab) {
+  document.querySelectorAll('#page-subject-detail .sd5-tab').forEach(btn => {
+    const active = btn.dataset.sd5Tab === tab;
+    btn.classList.toggle('is-active', active);
+    btn.setAttribute('aria-selected', active ? 'true' : 'false');
+  });
+  document.querySelectorAll('#page-subject-detail .sd5-quick-row').forEach(btn => {
+    const active = btn.dataset.sd5Quick === tab;
+    btn.classList.toggle('is-active', active);
+    btn.setAttribute('aria-current', active ? 'true' : 'false');
+  });
+  document.querySelectorAll('#page-subject-detail .sd5-panel').forEach(panel => {
+    const active = panel.dataset.sd5Panel === tab;
+    panel.classList.toggle('is-active', active);
+    panel.hidden = !active;
+  });
+};
+
+window.openSubjectQuickTab = function(tab) {
+  window.setSubjectDetailTab(tab);
+  const sheet = document.querySelector('#page-subject-detail .sd5-content');
+  if (sheet && window.matchMedia('(max-width: 760px)').matches) {
+    sheet.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
-  window.scrollTo({ top: 0, behavior: 'smooth' });
 };
 
 let _tocAllExpanded = true;
@@ -1604,8 +1805,9 @@ window.toggleSubjectSidebarAllChapters = function() {
 
   document.querySelectorAll('.toc-lesson-list').forEach(el => {
     el.style.display = _tocAllExpanded ? '' : 'none';
+    el.closest('.sd5-chapter')?.classList.toggle('is-open', _tocAllExpanded);
   });
   document.querySelectorAll('.toc-chap-arrow').forEach(el => {
-    el.className = _tocAllExpanded ? 'fa-solid fa-chevron-down text-xs toc-chap-arrow' : 'fa-solid fa-chevron-right text-xs toc-chap-arrow';
+    el.className = `fa-solid ${_tocAllExpanded ? 'fa-chevron-up' : 'fa-chevron-down'} sd5-chap-chev toc-chap-arrow`;
   });
 };

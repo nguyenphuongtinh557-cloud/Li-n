@@ -44,18 +44,17 @@ try {
 }
 
 import { DB } from './db.js';
-import { pullUserRolesFromServer } from './sync.js?v=20260903roles';
-import { upsertUserToFirestore, fetchAllUsersFromFirestore } from './firestoreUsers.js';
+import { pullUserRolesFromServer } from './sync.js';
+import { upsertUserToFirestore } from './firestoreUsers.js';
 
 export const SUPER_ADMIN_EMAILS = [
   'nguyenphuongtinh557@gmail.com',
-  'macnghich@gmail.com',
-  'fteca.admin.test@gmail.com'
+  'macnghich@gmail.com'
 ];
 
 export function getAdminOverrideEmails() {
   const values = [];
-  if (typeof window !== 'undefined') {
+  if (typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)) {
     try {
       const fromStorage = JSON.parse(localStorage.getItem('fteca_admin_override_emails') || '[]');
       if (Array.isArray(fromStorage)) values.push(...fromStorage);
@@ -85,6 +84,7 @@ export function isAdminEmail(email) {
 
 if (typeof window !== 'undefined') {
   window.setFtecaAdminOverride = function(email) {
+    if (!['localhost', '127.0.0.1'].includes(window.location.hostname)) return false;
     const values = getAdminOverrideEmails();
     const normalized = String(email || '').trim().toLowerCase();
     if (!normalized) return false;
@@ -143,15 +143,6 @@ export const AuthModule = {
       }
     } catch (e) {
       console.warn('[Auth] Không thể pull User Roles từ Server:', e);
-    }
-
-    try {
-      const cloudUsers = await fetchAllUsersFromFirestore();
-      if (Array.isArray(cloudUsers) && cloudUsers.length > 0) {
-        DB.mergeUserRolesFromServer({ users: cloudUsers });
-      }
-    } catch (e) {
-      console.warn('[Auth] Không thể pull Users từ Firestore:', e);
     }
 
     this.restoreSession();
