@@ -1,18 +1,26 @@
 /**
  * api/ai-proxy.js — QLCL server-side AI proxy.
  *
- * Mọi lời gọi AI đều đi qua FTECA AI Gateway. Không có key nhà cung cấp
- * trong mã nguồn hay phía trình duyệt; chỉ cần một client key của gateway
- * nằm trong biến môi trường server.
+ * Hai chế độ, cùng một hợp đồng với phía client:
+ *   1. Có AI_GATEWAY_URL + AI_GATEWAY_KEY  → gọi FTECA AI Gateway.
+ *   2. Không có gateway                    → gọi thẳng nhà cung cấp bằng key
+ *      trong env (GROQ_API_KEYS / GEMINI_API_KEYS / OPENROUTER_API_KEYS).
+ *      lib/directProviders.js tự xoay key khi hết quota.
  *
  * Env bắt buộc:
  *   FIREBASE_SERVICE_ACCOUNT_JSON — xác thực người dùng
- *   AI_GATEWAY_URL                — vd https://gateway.example.com
- *   AI_GATEWAY_KEY                — client key gw_live_...
+ *   AI_GATEWAY_URL + AI_GATEWAY_KEY  hoặc  *_API_KEYS của nhà cung cấp
  */
 
 import admin from 'firebase-admin';
 import { isAdminEmail } from '../lib/adminAccess.js';
+import {
+  resolveTarget,
+  isPremiumRequest,
+  callDirect,
+  callDirectVision,
+  hasAnyProviderKeys
+} from '../lib/directProviders.js';
 
 const GATEWAY_FEATURE = 'qlcl-ai';
 const GATEWAY_VISION_FEATURE = 'qlcl-vision';
@@ -328,11 +336,14 @@ export default async function handler(req, res) {
     }
 
     const gateway = getGatewayConfig();
-    if (!gateway) {
+    // Key nhà cung cấp được ưu tiên: có key là chạy trực tiếp, không phụ thuộc
+    // gateway còn sống hay không và tránh cấu hình gateway cũ còn sót lại.
+    const useGateway = !hasAnyProviderKeys() && Boolean(gateway);
+    if (!useGateway && !hasAnyProviderKeys()) {
       return json(res, 503, {
         ok: false,
-        error: 'missing-gateway-config',
-        message: 'AI gateway is not configured'
+        error: 'missing-ai-keys',
+        message: 'Chưa cấu hình AI: cần AI_GATEWAY_URL + AI_GATEWAY_KEY hoặc key nhà cung cấp.'
       });
     }
 
@@ -365,7 +376,9 @@ export default async function handler(req, res) {
         });
       }
 
-      const result = await callGatewayVision(gateway, { prompt, images, userId: user.uid });
+      const result = useGateway
+        ? await callGatewayVision(gateway, { prompt, images, userId: user.uid })
+        : await callDirectVision({ prompt, images });
       return json(res, 200, {
         ok: true,
         content: result.content,
@@ -377,7 +390,8 @@ export default async function handler(req, res) {
 
     const { provider, model, temperature, max_tokens: maxTokens } = body || {};
     const messages = sanitizeMessages(body?.messages);
-    const gatewayAlias = resolveGatewayAlias(provider, model);
+    const gatewayAlias = useGateway ? resolveGatewayAlias(provider, model) : null;
+    const directTarget = useGateway ? null : resolveTarget(provider);
 
     if (!provider || !messages) {
       return json(res, 400, {
@@ -387,7 +401,7 @@ export default async function handler(req, res) {
       });
     }
 
-    if (!gatewayAlias) {
+    if (useGateway ? !gatewayAlias : !directTarget) {
       return json(res, 400, {
         ok: false,
         error: 'unsupported-model',
@@ -395,7 +409,7 @@ export default async function handler(req, res) {
       });
     }
 
-    if (PREMIUM_ALIASES.has(gatewayAlias)) {
+    if (useGateway ? PREMIUM_ALIASES.has(gatewayAlias) : isPremiumRequest(model)) {
       if (user.emailVerified !== true) {
         return json(res, 403, {
           ok: false,
@@ -423,15 +437,24 @@ export default async function handler(req, res) {
       }
     }
 
-    const result = await callGateway(gateway, {
-      messages,
-      modelAlias: gatewayAlias,
-      temperature: normalizeTemperature(temperature),
-      maxTokens: normalizeMaxTokens(maxTokens),
-      userId: user.uid
-    });
+    const resolvedTemperature = normalizeTemperature(temperature);
+    const resolvedMaxTokens = normalizeMaxTokens(maxTokens);
+    const result = useGateway
+      ? await callGateway(gateway, {
+        messages,
+        modelAlias: gatewayAlias,
+        temperature: resolvedTemperature,
+        maxTokens: resolvedMaxTokens,
+        userId: user.uid
+      })
+      : await callDirect(directTarget, {
+        messages,
+        temperature: resolvedTemperature,
+        maxTokens: resolvedMaxTokens,
+        userId: user.uid
+      });
 
-    console.log(`[AI Proxy] ${user.uid} → ${provider}/${model || 'default'} ⇒ ${gatewayAlias}`);
+    console.log(`[AI Proxy] ${user.uid} → ${provider}/${model || 'default'} ⇒ ${useGateway ? gatewayAlias : `${directTarget.provider}/${directTarget.model}`}`);
 
     return json(res, 200, {
       ok: true,
