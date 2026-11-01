@@ -5,7 +5,7 @@
 
 import { SUBJECTS_REGISTRY, getAllSubjects, getSubjectById, KNOWLEDGE_BLOCKS } from './subjects.js';
 import { DB } from './db.js';
-import { AuthModule, getActiveAdminEmails, getUserRole, hasPendingRedirect } from './auth.js?v=20261101-auth-session';
+import { AuthModule, getActiveAdminEmails, getUserRole, hasPendingRedirect } from './auth.js?v=20261101-auth-popup';
 import { ArticlesModule } from './articles.js?v=20261031-news1';
 
 const lazyStyles = new Map();

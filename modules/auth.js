@@ -114,9 +114,11 @@ let authListeners = [];
 
 function shouldUseRedirectFlow() {
   const userAgent = navigator.userAgent || '';
-  const mobileOrEmbedded = /Android|iPhone|iPad|iPod|FBAN|FBAV|Instagram|Line\/|Zalo|Messenger|; wv\)/i.test(userAgent);
+  // Chrome Android mở được popup; popup giữ trang gốc nên không mất kết quả
+  // khi trình duyệt chặn lưu trạng thái giữa site và firebaseapp.com.
+  const embeddedOrIos = /iPhone|iPad|iPod|FBAN|FBAV|Instagram|Line\/|Zalo|Messenger|; wv\)/i.test(userAgent);
   const standalone = window.matchMedia?.('(display-mode: standalone)').matches || navigator.standalone === true;
-  return mobileOrEmbedded || standalone;
+  return embeddedOrIos || standalone;
 }
 
 function isMissingAuthStateError(error) {
@@ -153,8 +155,9 @@ export const AuthModule = {
 
   async init() {
     // Kết quả redirect Google phải được xử lý trước mọi bước đồng bộ dữ liệu.
-    // Trên mobile toàn bộ phiên đăng nhập đi qua redirect; nếu để fetch roles
-    // chậm chặn trước, người dùng quay về vẫn thấy màn hình chưa đăng nhập.
+    // Nếu để fetch roles chậm chặn trước, người dùng quay về vẫn thấy màn hình
+    // chưa đăng nhập dù phiên Google đã hợp lệ.
+    const returningFromRedirect = hasPendingRedirect();
     if (auth) {
       try {
         await setPersistence(auth, browserLocalPersistence);
@@ -216,6 +219,9 @@ export const AuthModule = {
     }
 
     this.restoreSession();
+    if (!this.user && returningFromRedirect && !auth?.currentUser && window.showToast) {
+      window.showToast('Chưa nhận được phiên đăng nhập Google. Nếu đã chọn tài khoản, hãy bấm đăng nhập lại.', 'warning');
+    }
     if (this.user?.email) {
       this.user.role = getUserRole(this.user.email);
       upsertUserToFirestore(this.user).catch((err) => console.warn('[Auth] Upsert restored session error:', err));

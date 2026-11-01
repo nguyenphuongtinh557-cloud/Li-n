@@ -7,7 +7,7 @@
  * của từng người trong tab "Đề đã chia sẻ".
  */
 
-import { AuthModule } from './auth.js?v=20261101-auth-session';
+import { AuthModule } from './auth.js?v=20261101-auth-popup';
 import { DB } from './db.js';
 import { getAllSubjects } from './subjects.js';
 import { ExamTimer } from './exam.js';
