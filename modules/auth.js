@@ -168,28 +168,29 @@ export const AuthModule = {
         }
       }
 
-      onAuthStateChanged(auth, async (firebaseUser) => {
-        if (firebaseUser) {
-          const customAvatar = localStorage.getItem(`lien_custom_avatar_${firebaseUser.uid}`);
-          const customName = localStorage.getItem(`lien_custom_name_${firebaseUser.uid}`);
-          const customCover = localStorage.getItem(`lien_profile_cover_${firebaseUser.uid}`);
-          const customCoverX = localStorage.getItem(`lien_profile_cover_x_${firebaseUser.uid}`);
-          const customCoverY = localStorage.getItem(`lien_profile_cover_y_${firebaseUser.uid}`);
+      onAuthStateChanged(auth, (firebaseUser) => {
+        if (!firebaseUser) return;
+        const customAvatar = localStorage.getItem(`lien_custom_avatar_${firebaseUser.uid}`);
+        const customName = localStorage.getItem(`lien_custom_name_${firebaseUser.uid}`);
+        const customCover = localStorage.getItem(`lien_profile_cover_${firebaseUser.uid}`);
+        const customCoverX = localStorage.getItem(`lien_profile_cover_x_${firebaseUser.uid}`);
+        const customCoverY = localStorage.getItem(`lien_profile_cover_y_${firebaseUser.uid}`);
 
-          const realUser = {
-            uid: firebaseUser.uid,
-            name: customName || firebaseUser.displayName || firebaseUser.email.split('@')[0],
-            email: firebaseUser.email,
-            avatar: customAvatar || firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(firebaseUser.email)}`,
-            emailVerified: firebaseUser.emailVerified,
-            provider: 'google.com',
-            signedInAt: new Date().toISOString(),
-            profileCover: customCover || '',
-            profileCoverPositionX: customCoverX === null ? 50 : Number(customCoverX),
-            profileCoverPositionY: customCoverY === null ? 50 : Number(customCoverY)
-          };
-          await this.setUserSession(realUser, false);
-        }
+        const realUser = {
+          uid: firebaseUser.uid,
+          name: customName || firebaseUser.displayName || firebaseUser.email.split('@')[0],
+          email: firebaseUser.email,
+          avatar: customAvatar || firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(firebaseUser.email)}`,
+          emailVerified: firebaseUser.emailVerified,
+          provider: 'google.com',
+          signedInAt: new Date().toISOString(),
+          profileCover: customCover || '',
+          profileCoverPositionX: customCoverX === null ? 50 : Number(customCoverX),
+          profileCoverPositionY: customCoverY === null ? 50 : Number(customCoverY)
+        };
+        this.setUserSession(realUser, false).catch((error) => {
+          console.warn('[Auth] Không thể lưu phiên đăng nhập Google:', error);
+        });
       });
 
       try {
@@ -343,26 +344,43 @@ export const AuthModule = {
       user.role = getUserRole(user.email);
       const uidKey = user.uid || user.email;
       const joinedKey = `lien_joined_at_${uidKey}`;
-      user.joinedAt = user.joinedAt || localStorage.getItem(joinedKey) || new Date().toISOString();
-      localStorage.setItem(joinedKey, user.joinedAt);
-      user.bio = user.bio || localStorage.getItem(`lien_profile_bio_${uidKey}`) || 'Học không chỉ để biết, mà để làm được.';
-      registryResult = await DB.saveUserToRegistry(user);
-      // Đồng bộ thông tin học viên lên Firestore Cloud real-time
-      upsertUserToFirestore(user).catch((err) => console.warn('[Auth] Upsert user error:', err));
+      try {
+        user.joinedAt = user.joinedAt || localStorage.getItem(joinedKey) || new Date().toISOString();
+        localStorage.setItem(joinedKey, user.joinedAt);
+      } catch (error) {
+        user.joinedAt = user.joinedAt || new Date().toISOString();
+        console.warn('[Auth] Không thể lưu mốc tham gia:', error);
+      }
+      try {
+        user.bio = user.bio || localStorage.getItem(`lien_profile_bio_${uidKey}`) || 'Học không chỉ để biết, mà để làm được.';
+      } catch (_error) {
+        user.bio = user.bio || 'Học không chỉ để biết, mà để làm được.';
+      }
     }
+
+    // Ghi phiên đăng nhập trước khi đồng bộ danh sách học viên. Trên điện thoại
+    // localStorage có thể đầy (QuotaExceededError) hoặc mạng lỗi; những lỗi đó
+    // không được phép làm hỏng một lần đăng nhập Google đã thành công.
     this.user = user;
-    localStorage.setItem('lien_google_user', JSON.stringify(user));
-    localStorage.setItem('lien_user_session', JSON.stringify({
-      name: user.name,
-      email: user.email,
-      avatar: user.avatar,
-      profileCover: user.profileCover || '',
-      profileCoverPositionX: user.profileCoverPositionX ?? 50,
-      profileCoverPositionY: user.profileCoverPositionY ?? 50,
-      joinedAt: user.joinedAt,
-      bio: user.bio,
-      role: user ? user.role : 'NEWBIE'
-    }));
+    try {
+      localStorage.setItem('lien_google_user', JSON.stringify(user));
+      localStorage.setItem('lien_user_session', JSON.stringify({
+        name: user.name,
+        email: user.email,
+        avatar: user.avatar,
+        profileCover: user.profileCover || '',
+        profileCoverPositionX: user.profileCoverPositionX ?? 50,
+        profileCoverPositionY: user.profileCoverPositionY ?? 50,
+        joinedAt: user.joinedAt,
+        bio: user.bio,
+        role: user ? user.role : 'NEWBIE'
+      }));
+    } catch (error) {
+      console.warn('[Auth] Không thể lưu phiên đăng nhập vào trình duyệt:', error);
+      if (window.showToast) {
+        window.showToast('Đã đăng nhập nhưng bộ nhớ trình duyệt đã đầy; phiên sẽ mất khi tải lại trang. Hãy xoá bớt dữ liệu trang.', 'warning');
+      }
+    }
 
     if (window.NavController) {
       window.NavController.currentUser = user;
@@ -373,11 +391,22 @@ export const AuthModule = {
       const roleBadge = user.role === 'ADMIN' ? '🛡️ ADMIN' : (user.role === 'PREMIUM' ? '💎 PREMIUM' : '🌱 NEWBIE');
       window.showToast(`Xin chào ${user.name}! [${roleBadge}] Đã đăng nhập tài khoản Google (${user.email}).`, 'success');
     }
-    if (!registryResult.synced && window.showToast) {
-      window.showToast('Đã lưu phiên đăng nhập trên thiết bị này, nhưng danh sách học viên chưa đồng bộ lên cloud.', 'warning');
-    }
 
     this.notifyListeners(user);
+
+    if (user && user.email) {
+      try {
+        registryResult = await DB.saveUserToRegistry(user);
+        // Đồng bộ thông tin học viên lên Firestore Cloud real-time
+        upsertUserToFirestore(user).catch((err) => console.warn('[Auth] Upsert user error:', err));
+      } catch (error) {
+        registryResult = { synced: false };
+        console.warn('[Auth] Không thể đồng bộ danh sách học viên:', error);
+      }
+      if (registryResult && registryResult.synced === false && window.showToast) {
+        window.showToast('Đã đăng nhập trên trình duyệt này, nhưng chưa đồng bộ được danh sách học viên lên cloud.', 'warning');
+      }
+    }
   },
 
   async getIdToken() {

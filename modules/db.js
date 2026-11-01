@@ -142,7 +142,12 @@ export const DB = {
     const userData = { name: user.name || user.displayName || cleanEmail.split('@')[0], email: cleanEmail, avatar: user.avatar || user.photoURL, lastLogin: now, provider: user.provider || 'google.com' };
     if (idx >= 0) list[idx] = { ...list[idx], ...userData, firstSeen: list[idx].firstSeen || now };
     else list.push({ ...userData, firstSeen: now });
-    localStorage.setItem(KEYS.USER_REGISTRY, JSON.stringify(list));
+    try {
+      localStorage.setItem(KEYS.USER_REGISTRY, JSON.stringify(list));
+    } catch (error) {
+      console.warn('[DB] Không thể lưu danh sách học viên (bộ nhớ trình duyệt đầy):', error);
+      return { users: list, premiumEmails: this.getPremiumEmails(), synced: false };
+    }
     const premiumEmails = this.getPremiumEmails();
     const synced = skipSync ? true : await pushUserRolesToServer({ premiumEmails, users: list, updatedAt: now });
     return { users: list, premiumEmails, synced: Boolean(synced) };
