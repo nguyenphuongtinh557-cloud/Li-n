@@ -5,7 +5,7 @@
 
 import { SUBJECTS_REGISTRY, getAllSubjects, getSubjectById, KNOWLEDGE_BLOCKS } from './subjects.js';
 import { DB } from './db.js';
-import { AuthModule, getActiveAdminEmails, getUserRole } from './auth.js';
+import { AuthModule, getActiveAdminEmails, getUserRole, hasPendingRedirect } from './auth.js?v=20261101-auth-mobile';
 import { ArticlesModule } from './articles.js?v=20261031-news1';
 
 const lazyStyles = new Map();
@@ -264,20 +264,29 @@ export const NavController = {
   },
 
   async init() {
-    // Khôi phục phiên cục bộ trước để route có thể hiển thị ngay. Các lượt
-    // đồng bộ Firebase/role không được phép chặn màn hình đầu tiên.
-    AuthModule.restoreSession();
-    this.restoreUserSession();
+    // Khi quay về từ redirect Google, xử lý auth ngay và không khôi phục vội
+    // phiên cũ trong localStorage — nếu không avatar tài khoản cũ sẽ hiện lại
+    // và che mất kết quả đăng nhập mới.
+    const pendingGoogleRedirect = hasPendingRedirect();
+    if (!pendingGoogleRedirect) {
+      AuthModule.restoreSession();
+      this.restoreUserSession();
+    }
     this.renderUserAuthZone();
     this.setupSearchShortcut();
-    window.setTimeout(() => {
+    const startAuthInit = () => {
       void AuthModule.init().then(() => {
         this.restoreUserSession();
         this.renderUserAuthZone();
       }).catch(error => {
         console.warn('[Auth] Khởi tạo nền thất bại:', error);
       });
-    }, 900);
+    };
+    if (pendingGoogleRedirect) {
+      startAuthInit();
+    } else {
+      window.setTimeout(startAuthInit, 900);
+    }
     window.addEventListener('popstate', () => {
       void this.restoreSharedRoute();
     });

@@ -8,7 +8,7 @@
  * - Sync between API and localStorage
  */
 
-import { AuthModule } from './auth.js';
+import { AuthModule } from './auth.js?v=20261101-auth-mobile';
 
 const API_ENDPOINT = '/api/ai-question-history';
 const LOCAL_STORAGE_KEY = 'qlcl_ai_question_history_v1';

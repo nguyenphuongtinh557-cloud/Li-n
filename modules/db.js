@@ -33,7 +33,9 @@ export function normalizeInteractiveLesson(lesson = {}, index = 0) {
   const blocks = Array.isArray(lesson.blocks) ? lesson.blocks.map(normalizeInteractiveBlock) : [];
   const rawAi = lesson.aiSummary && typeof lesson.aiSummary === 'object' ? lesson.aiSummary : {};
   const aiSummary = { enabled: rawAi.enabled === true, contentHash: String(rawAi.contentHash || ''), status: ['ready','stale','empty','none'].includes(rawAi.status) ? rawAi.status : 'none', cache: rawAi.cache && typeof rawAi.cache === 'object' ? rawAi.cache : {}, updatedAt: rawAi.updatedAt || null };
-  return { ...lesson, id: lesson.id || `les_${Date.now()}_${index}`, title: String(lesson.title || 'Bài học mới'), description: String(lesson.description || ''), duration: String(lesson.duration || '10:00'), status: lesson.status === 'published' ? 'published' : 'draft', blocks, order: Number.isFinite(lesson.order) ? lesson.order : index, updatedAt: lesson.updatedAt || new Date().toISOString(), content: String(lesson.content || ''), aiSummary };
+  let content = String(lesson.content || '');
+  if (content && blocks.some(block => String(block.content || '') === content)) content = '';
+  return { ...lesson, id: lesson.id || `les_${Date.now()}_${index}`, title: String(lesson.title || 'Bài học mới'), description: String(lesson.description || ''), duration: String(lesson.duration || '10:00'), status: lesson.status === 'published' ? 'published' : 'draft', blocks, order: Number.isFinite(lesson.order) ? lesson.order : index, updatedAt: lesson.updatedAt || new Date().toISOString(), content, aiSummary };
 }
 
 export function normalizeIntroCanvasItem(item = {}, index = 0) {
@@ -47,6 +49,18 @@ export function normalizeInteractiveSubjectDetails(details = {}) {
   const introCanvas = Array.isArray(details.introCanvas) ? details.introCanvas.map(normalizeIntroCanvasItem) : [];
   const introCanvasHeight = Math.min(2400, Math.max(360, Number(details.introCanvasHeight) || 620));
   return { ...details, chapters, introCanvas, introCanvasHeight, updatedAt: details.updatedAt || new Date().toISOString() };
+}
+
+function hydrateLessonContent(lesson = {}) {
+  if (!lesson.content && Array.isArray(lesson.blocks)) {
+    lesson.content = lesson.blocks.map(block => String(block?.content || '')).filter(Boolean).join('');
+  }
+  return lesson;
+}
+
+function hydrateSubjectDetailsContent(details = {}) {
+  (details.chapters || []).forEach(chapter => (chapter.lessons || []).forEach(hydrateLessonContent));
+  return details;
 }
 
 export const DB = {
@@ -390,7 +404,7 @@ export const DB = {
     if (!subjectId) return null;
     const map = this.getAllSubjectDetailsMap();
     if (map[subjectId]) {
-      return map[subjectId];
+      return hydrateSubjectDetailsContent(map[subjectId]);
     }
 
     // Preset cho GE4150 & GE4166 (Quân sự chung / Quốc phòng)

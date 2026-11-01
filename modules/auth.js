@@ -39,6 +39,9 @@ try {
   googleProvider = new GoogleAuthProvider();
   googleProvider.addScope('profile');
   googleProvider.addScope('email');
+  // Luôn mở bảng chọn tài khoản. Nếu thiếu, Google tự dùng tài khoản đang
+  // đăng nhập sẵn trên máy và người dùng không thể thêm tài khoản mới.
+  googleProvider.setCustomParameters({ prompt: 'select_account' });
 } catch (e) {
   console.error('Lỗi khởi tạo Firebase Auth:', e);
 }
@@ -131,27 +134,27 @@ function isRedirectFallbackError(error) {
     || isMissingAuthStateError(error);
 }
 
+const REDIRECT_PENDING_KEY = 'fteca_auth_redirect_pending';
+
+function markRedirectPending() {
+  try { sessionStorage.setItem(REDIRECT_PENDING_KEY, '1'); } catch (_error) { /* ignore */ }
+}
+
+export function clearRedirectPending() {
+  try { sessionStorage.removeItem(REDIRECT_PENDING_KEY); } catch (_error) { /* ignore */ }
+}
+
+export function hasPendingRedirect() {
+  try { return sessionStorage.getItem(REDIRECT_PENDING_KEY) === '1'; } catch (_error) { return false; }
+}
+
 export const AuthModule = {
   user: null,
 
   async init() {
-    // 1. Đồng bộ danh sách User Roles mới nhất từ Server Cloud / Firestore
-    try {
-      const serverRoles = await pullUserRolesFromServer();
-      if (serverRoles && typeof serverRoles === 'object') {
-        DB.mergeUserRolesFromServer(serverRoles);
-      }
-    } catch (e) {
-      console.warn('[Auth] Không thể pull User Roles từ Server:', e);
-    }
-
-    this.restoreSession();
-    if (this.user?.email) {
-      this.user.role = getUserRole(this.user.email);
-      upsertUserToFirestore(this.user).catch((err) => console.warn('[Auth] Upsert restored session error:', err));
-    }
-
-    // Listen for Firebase Auth state changes
+    // Kết quả redirect Google phải được xử lý trước mọi bước đồng bộ dữ liệu.
+    // Trên mobile toàn bộ phiên đăng nhập đi qua redirect; nếu để fetch roles
+    // chậm chặn trước, người dùng quay về vẫn thấy màn hình chưa đăng nhập.
     if (auth) {
       try {
         await setPersistence(auth, browserLocalPersistence);
@@ -196,7 +199,25 @@ export const AuthModule = {
         if (isMissingAuthStateError(error) && window.showToast) {
           window.showToast('Trình duyệt không giữ được phiên đăng nhập Google. Vui lòng thử lại bằng Chrome hoặc Safari chính thức.', 'error');
         }
+      } finally {
+        clearRedirectPending();
       }
+    }
+
+    // 1. Đồng bộ danh sách User Roles mới nhất từ Server Cloud / Firestore
+    try {
+      const serverRoles = await pullUserRolesFromServer();
+      if (serverRoles && typeof serverRoles === 'object') {
+        DB.mergeUserRolesFromServer(serverRoles);
+      }
+    } catch (e) {
+      console.warn('[Auth] Không thể pull User Roles từ Server:', e);
+    }
+
+    this.restoreSession();
+    if (this.user?.email) {
+      this.user.role = getUserRole(this.user.email);
+      upsertUserToFirestore(this.user).catch((err) => console.warn('[Auth] Upsert restored session error:', err));
     }
   },
 
@@ -234,6 +255,7 @@ export const AuthModule = {
 
       if (shouldUseRedirectFlow()) {
         if (window.showToast) window.showToast('Đang chuyển sang đăng nhập Google an toàn cho thiết bị này...', 'info');
+        markRedirectPending();
         await signInWithRedirect(auth, googleProvider);
         return;
       }
@@ -267,14 +289,17 @@ export const AuthModule = {
       if (isRedirectFallbackError(error)) {
         try {
           if (window.showToast) window.showToast('Popup Google bị giới hạn trên trình duyệt này, đang chuyển sang đăng nhập an toàn...', 'info');
+          markRedirectPending();
           await signInWithRedirect(auth, googleProvider);
           return;
         } catch (redirectError) {
           console.error('Google Sign-In Redirect Error:', redirectError);
+          clearRedirectPending();
           this.handleAuthError(redirectError);
           return;
         }
       }
+      clearRedirectPending();
       this.handleAuthError(error);
     }
   },
@@ -290,7 +315,11 @@ export const AuthModule = {
     } else if (error.code === 'auth/popup-blocked') {
       message = 'Trình duyệt đã chặn cửa sổ Popup. Vui lòng cho phép popup để đăng nhập Google.';
     } else if (error.code === 'auth/unauthorized-domain') {
-      message = `Tên miền (${window.location.hostname}) chưa được thêm vào Authorized Domains trong Google/Firebase Console.`;
+      const host = window.location.hostname;
+      const isIpAddress = /^\d{1,3}(?:\.\d{1,3}){3}$/.test(host);
+      message = isIpAddress
+        ? `Google chặn đăng nhập từ địa chỉ IP nội bộ (${host}). Hãy mở bằng localhost trên máy tính, hoặc dùng tên miền HTTPS và khai báo tại Firebase → Authentication → Settings → Authorized domains.`
+        : `Tên miền (${host}) chưa được khai báo tại Firebase → Authentication → Settings → Authorized domains.`;
     } else if (errStr.includes('identitytoolkit')) {
       message = `Dự án Google Cloud chưa bật Identity Toolkit API (Firebase Authentication). Vui lòng vào Google Cloud Console bấm ENABLE API.`;
     } else if (error.code === 'auth/cancelled-popup-request') {

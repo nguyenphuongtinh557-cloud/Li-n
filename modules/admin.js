@@ -4,8 +4,8 @@
 
 import { DB } from './db.js';
 import { pushAdminEdits, pullAdminEdits } from './sync.js';
-import { AuthModule, isAdminEmail } from './auth.js';
-import { NavController } from './navigation.js';
+import { AuthModule, isAdminEmail } from './auth.js?v=20261101-auth-mobile';
+import { NavController } from './navigation.js?v=20261101-auth-mobile';
 
 let adminClickCount = 0;
 let adminClickTimeout = null;

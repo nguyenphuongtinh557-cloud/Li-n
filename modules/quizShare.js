@@ -7,7 +7,7 @@
  * của từng người trong tab "Đề đã chia sẻ".
  */
 
-import { AuthModule } from './auth.js';
+import { AuthModule } from './auth.js?v=20261101-auth-mobile';
 import { DB } from './db.js';
 import { getAllSubjects } from './subjects.js';
 import { ExamTimer } from './exam.js';

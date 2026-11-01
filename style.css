@@ -8981,6 +8981,12 @@ body.dark-mode #admin-subtab-review-lessons .review-lesson-admin-paper { backgro
   width: 100%;
   margin: 16px 0;
 }
+.study-reader-content .student-reader-body table.xstk-grid th,
+.study-reader-content .student-reader-body table.xstk-grid td {
+  border: 1px solid var(--border, #dfe9e5);
+  padding: 4px 6px;
+  text-align: center;
+}
 @media (max-width: 720px) {
   .review-lesson-document { padding: 14px 18px 28px; }
   .review-lesson-document img.review-floating-media,
