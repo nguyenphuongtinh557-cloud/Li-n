@@ -84,26 +84,32 @@
     outline-offset: 2px;
   }
 
-  /* ── Hero ── */
+  /* ── Hero ──
+     Xếp theo luồng (grid 2 cột) thay vì absolute: máy bật cỡ chữ lớn hay
+     tiêu đề xuống 4 dòng thì ảnh mascot không bao giờ đè lên chữ nữa. */
   .mh-hero { position: relative; padding-top: 14px; }
   .mh-hero-row {
-    position: relative;
-    min-height: 298px;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) clamp(132px, 44vw, 236px);
+    align-items: start;
+    column-gap: 2px;
     margin-top: 6px;
   }
   .mh-hero-copy {
     position: relative;
     z-index: 2;
-    max-width: 62%;
+    min-width: 0;
+    max-width: none;
     padding-top: 24px;
   }
   .mh-title {
     margin: 0;
-    font-size: 30px;
+    font-size: clamp(24px, 6.8vw, 30px);
     font-weight: 800;
     line-height: 1.16;
     letter-spacing: -0.025em;
     color: var(--text-primary);
+    overflow-wrap: anywhere;
   }
   .mh-title-accent {
     display: inline-block;
@@ -113,12 +119,12 @@
   }
 
   .mh-hero-art {
-    position: absolute;
-    top: 0;
-    right: -18px;
-    bottom: 0;
+    position: relative;
     z-index: 1;
-    width: min(70%, 262px);
+    width: 100%;
+    justify-self: end;
+    align-self: end;
+    margin-right: -14px;
     pointer-events: none;
   }
   .mh-hero-decor { position: absolute; inset: 0; z-index: 0; }
@@ -149,29 +155,28 @@
     background: radial-gradient(circle at 35% 35%, rgba(245, 158, 11, 0.50), rgba(245, 158, 11, 0.10) 70%);
   }
   .mh-mascot {
-    position: absolute;
+    position: relative;
     z-index: 2;
-    right: 12px;
-    bottom: 0;
-    height: 100%;
-    width: auto;
-    max-width: none;
+    display: block;
+    width: 100%;
+    height: auto;
     -webkit-mask-image: linear-gradient(to bottom, #000 88%, transparent 100%);
     mask-image: linear-gradient(to bottom, #000 88%, transparent 100%);
     filter: drop-shadow(0 14px 18px rgba(16, 185, 129, 0.18));
   }
   .mh-handwrite {
-    position: absolute;
+    position: relative;
     z-index: 3;
-    bottom: 74px;
-    left: 0;
-    padding: 2px 6px;
+    display: inline-block;
+    margin-top: 2px;
+    padding: 2px 6px 2px 0;
     font-family: 'Caveat', cursive;
-    font-size: 15px;
+    font-size: clamp(13px, 3.8vw, 15px);
     font-weight: 600;
     opacity: 0.92;
     color: #0f9f5f;
     transform: rotate(-4deg);
+    transform-origin: left center;
     white-space: nowrap;
     pointer-events: none;
   }
@@ -347,10 +352,8 @@
   /* ── Điều chỉnh cho màn rất hẹp ── */
   @media (max-width: 360px) {
     .home-mobile { padding-left: 14px; padding-right: 14px; }
-    .mh-title { font-size: 26px; }
-    .mh-hero-row { min-height: 262px; }
-    .mh-hero-art { width: min(66%, 218px); right: -12px; }
-    .mh-handwrite { font-size: 13px; bottom: 62px; left: 0; }
+    .mh-hero-row { grid-template-columns: minmax(0, 1fr) clamp(112px, 40vw, 190px); }
+    .mh-hero-copy { padding-top: 18px; }
     .mh-tile { min-height: 92px; padding: 12px 6px 10px; }
     .mh-tile-icon { width: 34px; height: 34px; font-size: 14px; }
     .mh-tile-label { font-size: 11px; }

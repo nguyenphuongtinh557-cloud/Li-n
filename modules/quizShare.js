@@ -645,6 +645,10 @@ async function renderLanding() {
   el('sq-landing-subject').textContent = `${share.subjectCode} · ${share.subjectName}`;
   el('sq-landing-owner').textContent = `Đề do ${share.ownerName || 'một học viên'} chia sẻ · ${Number(share.attemptCount) || 0} người đã thi`;
 
+  setText('sq-mobile-title', share.title);
+  setText('sq-mobile-meta', `Đề do ${share.ownerName || 'một học viên'} chia sẻ · ${Number(share.attemptCount) || 0} người đã thi`);
+  setText('sq-mobile-subject-name', `${share.subjectCode} · ${share.subjectName}`);
+
   el('sq-info-count').textContent = `${total} câu`;
   el('sq-info-duration').textContent = `${minutes} phút`;
   el('sq-duration-footer').textContent = `${minutes} phút làm bài`;
@@ -698,6 +702,7 @@ function renderExamQuestion() {
   const question = quiz.questions[quiz.index];
   if (!question) return;
   el('sq-q-position').textContent = `Câu ${quiz.index + 1} / ${quiz.questions.length}`;
+  setText('sq-q-position-mobile', `${quiz.index + 1} / ${quiz.questions.length}`);
   el('sq-q-chapter').textContent = question.chapter ? `Chương ${question.chapter}` : 'Không rõ chương';
   const level = Math.min(3, Math.max(1, Number(question.difficulty) || 1));
   const diffBadge = el('sq-q-diff');
@@ -712,6 +717,12 @@ function renderExamQuestion() {
     flagButton.innerHTML = flagged
       ? '<i class="fa-solid fa-bookmark" aria-hidden="true"></i> Đã đánh dấu'
       : '<i class="fa-regular fa-bookmark" aria-hidden="true"></i> Đánh dấu';
+  }
+  const flagMobile = el('sq-flag-mobile');
+  if (flagMobile) {
+    flagMobile.classList.toggle('is-flagged', flagged);
+    flagMobile.setAttribute('aria-pressed', String(flagged));
+    flagMobile.innerHTML = `<i class="fa-${flagged ? 'solid' : 'regular'} fa-bookmark" aria-hidden="true"></i>`;
   }
 
   const selected = quiz.answers[quiz.index];
@@ -749,10 +760,13 @@ function renderQuizPalette() {
   });
   const answered = Object.keys(quiz.answers).length;
   el('sq-answered-text').textContent = `Đã làm: ${answered}/${quiz.questions.length}`;
+  const pct = quiz.questions.length ? Math.round(answered / quiz.questions.length * 100) : 0;
   const progress = el('sq-progress-bar');
-  if (progress) {
-    progress.style.width = `${quiz.questions.length ? answered / quiz.questions.length * 100 : 0}%`;
-  }
+  if (progress) progress.style.width = `${pct}%`;
+  setText('sq-progress-text-mobile', `Câu ${quiz.index + 1} / ${quiz.questions.length}`);
+  setText('sq-progress-pct-mobile', `${pct}%`);
+  const mobileBar = el('sq-progress-bar-mobile');
+  if (mobileBar) mobileBar.style.width = `${pct}%`;
   const more = el('sq-palette-more');
   if (more) more.classList.toggle('hidden', quiz.questions.length <= 30);
 }
@@ -784,6 +798,7 @@ async function startExam() {
     quiz.index = 0;
     resetQuizPalette();
     setQuizPauseUi(false);
+    setText('sq-subject-code', quiz.share.subjectCode || '—');
     showSection('sq-exam');
     renderExamQuestion();
 
@@ -853,6 +868,9 @@ let _sqResultPaletteExpanded = false;
 let _sqResultJumpIdx = null;
 let _sqResultRows = [];
 let _sqResultRingRaf = 0;
+let _sqReviewExpanded = false;
+let _sqReviewRowCount = 0;
+const SQ_REVIEW_PREVIEW = 10;
 
 function fxReduced() {
   return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -882,6 +900,9 @@ function resetSqResultView() {
   _sqResultPaletteExpanded = false;
   _sqResultJumpIdx = null;
   _sqResultRows = [];
+  _sqReviewExpanded = false;
+  _sqReviewRowCount = 0;
+  el('sq-result-list')?.classList.remove('is-collapsed');
   el('sq-result-palette')?.classList.remove('is-expanded');
   const sortSelect = el('sq-result-sort');
   if (sortSelect) sortSelect.value = 'order';
@@ -933,6 +954,27 @@ function updateSqToggleAllLabel() {
   if (!button) return;
   const cards = Array.from(document.querySelectorAll('#sq-result-list details.er-q'));
   button.textContent = cards.length > 0 && cards.every(card => card.open) ? 'Thu gọn tất cả' : 'Mở tất cả';
+}
+
+function updateSqResultReviewMore(rowCount) {
+  _sqReviewRowCount = rowCount;
+  const list = el('sq-result-list');
+  const button = el('sq-result-review-more');
+  if (!list || !button) return;
+
+  const needsMore = rowCount > SQ_REVIEW_PREVIEW;
+  button.classList.toggle('hidden', !needsMore);
+  list.classList.toggle('is-collapsed', needsMore && !_sqReviewExpanded);
+
+  const label = button.querySelector('span');
+  if (label) label.textContent = _sqReviewExpanded ? 'Thu gọn danh sách' : 'Xem thêm câu hỏi';
+  const icon = button.querySelector('i');
+  if (icon) icon.className = _sqReviewExpanded ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
+}
+
+function toggleSqResultReviewExpanded() {
+  _sqReviewExpanded = !_sqReviewExpanded;
+  updateSqResultReviewMore(_sqReviewRowCount);
 }
 
 function animateSqResultRing(pct) {
@@ -1112,7 +1154,7 @@ function renderSqReviewList(openFirst = false) {
 
     card.innerHTML = `
       <summary>
-        <span class="er-q-no">Câu ${row.idx + 1}</span>
+        <span class="er-q-no" data-qno="${row.idx + 1}">Câu ${row.idx + 1}</span>
         <span class="er-q-status ${status.cls}"><i class="fa-solid ${status.icon}"></i> ${status.label}</span>
         <span class="er-q-meta">${chapterLabel} · ${DIFF_LABELS[row.difficulty]}</span>
         ${flagged ? '<i class="fa-solid fa-bookmark er-q-flag" title="Đã đánh dấu"></i>' : ''}
@@ -1141,6 +1183,7 @@ function renderSqReviewList(openFirst = false) {
 
   if (!rows.length) list.classList.add('hidden');
   el('sq-result-filter-empty')?.classList.toggle('hidden', rows.length > 0);
+  updateSqResultReviewMore(rows.length);
   renderSqResultFilterCounts();
   updateSqToggleAllLabel();
 
@@ -1202,6 +1245,13 @@ function renderQuizResult(result) {
   setText('sq-res-wrong-pct', `(${pctOf(counts.wrong)}%)`);
   setText('sq-res-empty', counts.empty);
   setText('sq-res-empty-pct', `(${pctOf(counts.empty)}%)`);
+
+  setText('sq-res-correct-m', counts.correct);
+  setText('sq-res-correct-pct-m', `(${pctOf(counts.correct)}%)`);
+  setText('sq-res-wrong-m', counts.wrong);
+  setText('sq-res-wrong-pct-m', `(${pctOf(counts.wrong)}%)`);
+  setText('sq-res-empty-m', counts.empty);
+  setText('sq-res-empty-pct-m', `(${pctOf(counts.empty)}%)`);
 
   setText('sq-result-meta', `${quiz.participantName} · làm trong ${formatDuration(result.timeSpent)}`);
   const sent = el('sq-result-sent');
@@ -1293,6 +1343,10 @@ function bootQuizPage() {
     quiz.flagged[quiz.index] = !quiz.flagged[quiz.index];
     renderExamQuestion();
   });
+  el('sq-flag-mobile')?.addEventListener('click', () => {
+    quiz.flagged[quiz.index] = !quiz.flagged[quiz.index];
+    renderExamQuestion();
+  });
   el('sq-pause')?.addEventListener('click', () => {
     if (!quiz.timer) return;
     setQuizPauseUi(quiz.timer.togglePause());
@@ -1337,6 +1391,7 @@ function bootQuizPage() {
   });
   el('sq-result-sort')?.addEventListener('change', (event) => setSqResultSort(event.target.value));
   el('sq-result-toggle-all')?.addEventListener('click', toggleSqAllDetails);
+  el('sq-result-review-more')?.addEventListener('click', toggleSqResultReviewExpanded);
   el('sq-result-palette-more')?.addEventListener('click', toggleSqResultPalette);
 }
 

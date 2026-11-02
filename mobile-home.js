@@ -105,8 +105,10 @@
   window.mhFocusStudySearch = function () {
     const input = document.getElementById('study-space-search');
     if (!input) return;
+    /* Focus ngay để bàn phím hiện tức thì, cuộn sau — chờ cuộn xong mới focus
+       khiến nút tìm kiếm có cảm giác trễ gần 1/4 giây trên điện thoại. */
+    input.focus({ preventScroll: true });
     input.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    window.setTimeout(() => input.focus({ preventScroll: true }), 260);
   };
 
   window.mhSyncAccountButtons();

@@ -13,10 +13,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261101-xstk-grid2">
+  <link rel="stylesheet" href="style.css?v=20261102-mobile-bank11">
   <link rel="stylesheet" href="subject-page.css?v=20261031-sd8">
-  <link rel="stylesheet" href="mobile-home.css?v=mh17">
-  <link rel="stylesheet" href="study-space-mobile.css?v=ss3">
+  <link rel="stylesheet" href="mobile-home.css?v=mh18">
+  <link rel="stylesheet" href="study-space-mobile.css?v=ss4">
   <link rel="stylesheet" href="articles-mobile.css?v=news3">
   <link rel="stylesheet" href="profile-mobile.css?v=pm6">
   <link rel="stylesheet" href="reader-mobile.css?v=rm7">
@@ -411,6 +411,7 @@
               <div class="mh-hero-row">
                 <div class="mh-hero-copy">
                   <h1 class="mh-title mh-in">Xin chào! Chúng tôi là<br><span class="mh-title-accent">FTECA 24</span></h1>
+                  <span class="mh-handwrite" aria-hidden="true">Let's Learn Together!</span>
                 </div>
                 <div class="mh-hero-art mh-in" aria-hidden="true">
                   <div class="mh-hero-decor">
@@ -420,10 +421,9 @@
                   </div>
                   <img src="assets/mascot-welcome.webp" alt="" class="mh-mascot">
                 </div>
-                <span class="mh-handwrite" aria-hidden="true">Let's Learn Together!</span>
               </div>
               <div class="mh-ctas mh-in">
-                <button class="mh-btn mh-btn-primary" onclick="NavController.navigateToPage('ontap')">
+                <button class="mh-btn mh-btn-primary" onclick="NavController.navigateToPage('study-space')">
                   Vào Khu Vực Ôn Tập <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
                 </button>
                 <button class="mh-btn mh-btn-ghost" onclick="NavController.navigateToPage('about')">
@@ -496,6 +496,24 @@
               </section>
 
               <section class="exam-config-panel" aria-labelledby="exam-config-title">
+                <header class="exam-mobile-head">
+                  <span class="exam-mobile-head-icon" aria-hidden="true"><i class="fa-solid fa-calendar-check"></i></span>
+                  <div class="exam-mobile-head-copy">
+                    <h2>Thi thử ngay</h2>
+                    <p>Kiểm tra kiến thức của bạn một cách nhanh chóng và hiệu quả.</p>
+                  </div>
+                </header>
+                <span class="exam-mobile-rule" aria-hidden="true"></span>
+
+                <div class="exam-mobile-subject">
+                  <label for="exam-subject-select-mobile">Chọn môn</label>
+                  <div class="exam-mobile-subject-field">
+                    <i class="fa-solid fa-book-open" aria-hidden="true"></i>
+                    <select id="exam-subject-select-mobile" aria-label="Chọn môn thi"></select>
+                    <i class="fa-solid fa-chevron-down exam-mobile-subject-chevron" aria-hidden="true"></i>
+                  </div>
+                </div>
+
                 <div class="exam-config-heading">
                   <div>
                     <h2 id="exam-config-title">Cấu hình bài thi</h2>
@@ -524,7 +542,7 @@
 
                 <div class="exam-start-difficulty">
                   <div class="exam-difficulty-heading">
-                    <div><i class="fa-solid fa-chart-simple" aria-hidden="true"></i><span>Phân bố độ khó bộ đề</span></div>
+                    <div><i class="fa-solid fa-chart-simple" aria-hidden="true"></i><span><span class="exam-diff-title-desktop">Phân bố độ khó bộ đề</span><span class="exam-diff-title-mobile">Độ khó</span></span></div>
                     <div class="exam-difficulty-legend">
                       <span class="exam-diff-easy"><i></i>Dễ <strong id="diff-easy-pct">40</strong>%</span>
                       <span class="exam-diff-medium"><i></i>Trung bình <strong id="diff-medium-pct">40</strong>%</span>
@@ -544,7 +562,8 @@
                 </div>
 
                 <button class="btn btn-primary btn-lg btn-full exam-start-submit" onclick="initiateExam()" id="btn-start-exam">
-                  <i class="fa-solid fa-play" aria-hidden="true"></i> Bắt đầu làm bài thi
+                  <i class="fa-solid fa-play" aria-hidden="true"></i>
+                  <span class="exam-start-submit-label"><span class="esl-desktop">Bắt đầu làm bài thi</span><span class="esl-mobile">Bắt đầu làm bài</span></span>
                   <i class="fa-solid fa-arrow-right exam-start-submit-arrow" aria-hidden="true"></i>
                 </button>
 
@@ -552,7 +571,7 @@
                   <span><i class="fa-regular fa-clock" aria-hidden="true"></i><strong id="exam-duration-footer">50 phút làm bài</strong></span>
                   <span class="exam-footer-divider"></span>
                   <span><i class="fa-solid fa-rectangle-list" aria-hidden="true"></i><strong id="exam-count-footer">50 câu hỏi</strong></span>
-                  <span class="exam-start-footer-note">Làm bài nghiêm túc, kết quả sẽ đến!</span>
+                  <span class="exam-start-footer-note"><span class="exam-note-desktop">Làm bài nghiêm túc, kết quả sẽ đến!</span><span class="exam-note-mobile">Làm bài nghiêm túc, kết quả sẽ chính xác hơn!</span></span>
                 </div>
               </section>
             </div>
@@ -843,30 +862,54 @@
 
           <!-- ══════ TAB 3: NGÂN HÀNG ĐỀ ══════ -->
           <section id="bank-tab" class="tab-content" role="main" aria-label="Ngân hàng câu hỏi">
-            <div class="card">
-              <div class="flex justify-between items-center gap-3" style="flex-wrap:wrap;margin-bottom:16px;">
-                <div style="min-width:180px;">
-                  <h2 style="font-size:18px;font-weight:700;">Ngân Hàng Câu Hỏi</h2>
-                  <p id="bank-count-text" class="text-xs text-muted mt-1">Đang tải...</p>
+            <div class="card bank-shell">
+              <div class="flex justify-between items-center gap-3 bank-toolbar" style="flex-wrap:wrap;margin-bottom:16px;">
+                <div class="bank-title-block" style="min-width:180px;">
+                  <span class="bank-title-accent" aria-hidden="true"></span>
+                  <div class="bank-title-copy">
+                    <h2 style="font-size:18px;font-weight:700;">Ngân Hàng Câu Hỏi</h2>
+                    <p id="bank-count-text" class="text-xs text-muted mt-1">Đang tải...</p>
+                  </div>
                 </div>
-                <div class="flex gap-2" style="flex-wrap:wrap;justify-content:flex-end;max-width:100%;">
-                  <select id="bank-filter-subject" class="form-select" style="width:auto;min-width:190px;max-width:300px;" onchange="onBankFilter()">
-                    <option value="">Tất cả môn học</option>
-                  </select>
-                  <select id="bank-filter-chapter" class="form-select" style="width:auto;min-width:160px;" onchange="onBankFilter()">
-                    <option value="0">Tất Cả Chương</option>
-                    <option value="1">Chương 1</option>
-                    <option value="2">Chương 2</option>
-                    <option value="3">Chương 3</option>
-                    <option value="4">Chương 4</option>
-                    <option value="5">Chương 5</option>
-                  </select>
-                  <select id="bank-filter-diff" class="form-select" style="width:auto;min-width:130px;" onchange="onBankFilter()">
-                    <option value="0">Tất Cả Độ Khó</option>
-                    <option value="1">Dễ</option>
-                    <option value="2">Trung Bình</option>
-                    <option value="3">Khó</option>
-                  </select>
+                <div class="flex gap-2 bank-filter-bar" style="flex-wrap:wrap;justify-content:flex-end;max-width:100%;">
+                  <div class="bank-filter-pill">
+                    <i class="fa-solid fa-graduation-cap bank-filter-icon" aria-hidden="true"></i>
+                    <select id="bank-filter-subject" class="form-select" style="width:auto;min-width:190px;max-width:300px;" onchange="onBankFilter()">
+                      <option value="">Tất cả môn học</option>
+                    </select>
+                    <button type="button" class="bank-dd-trigger" aria-haspopup="listbox" aria-expanded="false">
+                      <span class="bank-dd-label">Tất cả môn học</span>
+                    </button>
+                    <i class="fa-solid fa-chevron-down bank-filter-caret" aria-hidden="true"></i>
+                  </div>
+                  <div class="bank-filter-pill">
+                    <i class="fa-solid fa-book-open bank-filter-icon" aria-hidden="true"></i>
+                    <select id="bank-filter-chapter" class="form-select" style="width:auto;min-width:160px;" onchange="onBankFilter()">
+                      <option value="0">Tất Cả Chương</option>
+                      <option value="1">Chương 1</option>
+                      <option value="2">Chương 2</option>
+                      <option value="3">Chương 3</option>
+                      <option value="4">Chương 4</option>
+                      <option value="5">Chương 5</option>
+                    </select>
+                    <button type="button" class="bank-dd-trigger" aria-haspopup="listbox" aria-expanded="false">
+                      <span class="bank-dd-label">Tất Cả Chương</span>
+                    </button>
+                    <i class="fa-solid fa-chevron-down bank-filter-caret" aria-hidden="true"></i>
+                  </div>
+                  <div class="bank-filter-pill">
+                    <i class="fa-solid fa-chart-simple bank-filter-icon" aria-hidden="true"></i>
+                    <select id="bank-filter-diff" class="form-select" style="width:auto;min-width:130px;" onchange="onBankFilter()">
+                      <option value="0">Tất Cả Độ Khó</option>
+                      <option value="1">Dễ</option>
+                      <option value="2">Trung Bình</option>
+                      <option value="3">Khó</option>
+                    </select>
+                    <button type="button" class="bank-dd-trigger" aria-haspopup="listbox" aria-expanded="false">
+                      <span class="bank-dd-label">Tất Cả Độ Khó</span>
+                    </button>
+                    <i class="fa-solid fa-chevron-down bank-filter-caret" aria-hidden="true"></i>
+                  </div>
                   <div class="search-wrap">
                     <i class="fa-solid fa-magnifying-glass search-icon"></i>
                     <input id="bank-search-input" class="form-input search-input" type="search" placeholder="Tìm kiếm câu hỏi..." oninput="onBankFilter()" style="min-width:200px;">
@@ -876,13 +919,13 @@
 
               <div id="bank-list-container" class="space-y-3"></div>
 
-              <div class="flex justify-between items-center" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
+              <div class="flex justify-between items-center bank-pagination" style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border);">
                 <button id="bank-prev-btn" class="btn btn-secondary btn-sm" onclick="changeBankPage(-1)">
-                  <i class="fa-solid fa-chevron-left"></i> Trang trước
+                  <i class="fa-solid fa-chevron-left"></i> <span class="bank-page-label">Trang trước</span>
                 </button>
                 <span id="bank-page-info" class="text-sm text-muted font-medium">Trang 1/1</span>
                 <button id="bank-next-btn" class="btn btn-primary btn-sm" onclick="changeBankPage(1)">
-                  Trang sau <i class="fa-solid fa-chevron-right"></i>
+                  <span class="bank-page-label">Trang sau</span> <i class="fa-solid fa-chevron-right"></i>
                 </button>
               </div>
             </div>
@@ -1175,6 +1218,23 @@
               </section>
 
               <section class="exam-config-panel" aria-labelledby="sq-config-title">
+                <header class="exam-mobile-head">
+                  <span class="exam-mobile-head-icon" aria-hidden="true"><i class="fa-solid fa-file-circle-check"></i></span>
+                  <div class="exam-mobile-head-copy">
+                    <h2 id="sq-mobile-title">Đề thi được chia sẻ</h2>
+                    <p id="sq-mobile-meta"></p>
+                  </div>
+                </header>
+                <span class="exam-mobile-rule" aria-hidden="true"></span>
+
+                <div class="exam-mobile-subject">
+                  <label>Môn thi</label>
+                  <div class="exam-mobile-subject-field is-static">
+                    <i class="fa-solid fa-book-open" aria-hidden="true"></i>
+                    <span id="sq-mobile-subject-name" class="exam-mobile-subject-value">—</span>
+                  </div>
+                </div>
+
                 <div class="exam-config-heading">
                   <div>
                     <h2 id="sq-config-title">Cấu hình bài thi</h2>
@@ -1198,7 +1258,7 @@
 
                 <div class="exam-start-difficulty">
                   <div class="exam-difficulty-heading">
-                    <div><i class="fa-solid fa-chart-simple" aria-hidden="true"></i><span>Phân bố độ khó bộ đề</span></div>
+                    <div><i class="fa-solid fa-chart-simple" aria-hidden="true"></i><span><span class="exam-diff-title-desktop">Phân bố độ khó bộ đề</span><span class="exam-diff-title-mobile">Độ khó</span></span></div>
                     <div class="exam-difficulty-legend">
                       <span class="exam-diff-easy"><i></i>Dễ <strong id="sq-diff-easy-pct">0</strong>%</span>
                       <span class="exam-diff-medium"><i></i>Trung bình <strong id="sq-diff-medium-pct">0</strong>%</span>
@@ -1221,7 +1281,8 @@
                 </div>
 
                 <button class="btn btn-primary btn-lg btn-full exam-start-submit" id="sq-start">
-                  <i class="fa-solid fa-play" aria-hidden="true"></i> Bắt đầu làm bài thi
+                  <i class="fa-solid fa-play" aria-hidden="true"></i>
+                  <span class="exam-start-submit-label"><span class="esl-desktop">Bắt đầu làm bài thi</span><span class="esl-mobile">Bắt đầu làm bài</span></span>
                   <i class="fa-solid fa-arrow-right exam-start-submit-arrow" aria-hidden="true"></i>
                 </button>
 
@@ -1238,6 +1299,10 @@
               <div class="exam-paper">
                 <div class="exam-topbar">
                   <div class="exam-topbar-left">
+                    <span id="sq-subject-chip" class="exam-subject-chip">
+                      <i class="fa-solid fa-book-open" aria-hidden="true"></i>
+                      <span id="sq-subject-code">—</span>
+                    </span>
                     <span id="sq-exam-timer" class="timer-display">
                       <i class="fa-regular fa-clock" aria-hidden="true"></i>
                       <span id="sq-exam-timer-text">00:00</span>
@@ -1253,6 +1318,15 @@
 
                 <div class="exam-progress-track" aria-hidden="true">
                   <div id="sq-progress-bar"></div>
+                </div>
+
+                <div class="exam-mobile-progress">
+                  <span id="sq-progress-text-mobile" class="emp-count">Câu 1 / 1</span>
+                  <div class="emp-track" aria-hidden="true"><div id="sq-progress-bar-mobile"></div></div>
+                  <span id="sq-progress-pct-mobile" class="emp-pct">0%</span>
+                  <button id="sq-flag-mobile" type="button" class="emp-flag" aria-label="Đánh dấu câu hỏi" aria-pressed="false">
+                    <i class="fa-regular fa-bookmark" aria-hidden="true"></i>
+                  </button>
                 </div>
 
                 <div class="exam-question-body">
@@ -1275,6 +1349,7 @@
                       <i class="fa-solid fa-chevron-left" aria-hidden="true"></i> Trước
                     </button>
                     <span id="sq-q-position" class="exam-position">Câu 1 / 1</span>
+                    <span id="sq-q-position-mobile" class="exam-position-mobile">1 / 1</span>
                     <button type="button" class="btn btn-primary btn-sm exam-nav-btn" id="sq-next">
                       Sau <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
                     </button>
@@ -1321,6 +1396,27 @@
                     </div>
 
                     <div class="er-score-col">
+                      <div class="er-stats-mobile">
+                        <div class="er-stat is-correct">
+                          <span class="er-stat-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span>
+                          <span class="er-stat-label">Đúng</span>
+                          <strong id="sq-res-correct-m" class="er-stat-value">0</strong>
+                          <b id="sq-res-correct-pct-m" class="er-stat-pct">(0%)</b>
+                        </div>
+                        <div class="er-stat is-wrong">
+                          <span class="er-stat-icon"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i></span>
+                          <span class="er-stat-label">Sai</span>
+                          <strong id="sq-res-wrong-m" class="er-stat-value">0</strong>
+                          <b id="sq-res-wrong-pct-m" class="er-stat-pct">(0%)</b>
+                        </div>
+                        <div class="er-stat is-empty">
+                          <span class="er-stat-icon"><i class="fa-solid fa-circle-minus" aria-hidden="true"></i></span>
+                          <span class="er-stat-label">Chưa làm</span>
+                          <strong id="sq-res-empty-m" class="er-stat-value">0</strong>
+                          <b id="sq-res-empty-pct-m" class="er-stat-pct">(0%)</b>
+                        </div>
+                      </div>
+
                       <div class="er-tiles">
                         <div class="er-tile is-correct">
                           <span class="er-tile-icon"><i class="fa-solid fa-circle-check"></i></span>
@@ -1416,6 +1512,10 @@
                     <i class="fa-regular fa-folder-open"></i>
                     <p>Không có câu hỏi nào trong mục này.</p>
                   </div>
+                  <button type="button" id="sq-result-review-more" class="er-more-btn hidden">
+                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                    <span>Xem thêm câu hỏi</span>
+                  </button>
                 </section>
 
                 <aside id="sq-result-sidebar" class="er-side">
@@ -3824,7 +3924,7 @@
   </div>
 
   <script src="assets/lottie_light.min.js" defer></script>
-  <script src="mobile-home.js?v=mh17" defer></script>
-  <script type="module" src="app.js?v=20261101-auth-popup"></script>
+  <script src="mobile-home.js?v=mh18" defer></script>
+  <script type="module" src="app.js?v=20261102-mobile-bank11"></script>
 </body>
 </html>

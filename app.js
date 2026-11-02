@@ -305,6 +305,7 @@ async function init() {
 
   updateBankCount();
   initSubjectSelector();
+  initBankDropdowns();
   initStudyToolbarSelects();
   document.getElementById('generate-count')?.addEventListener('change', syncStudyToolbar);
   await NavController.init();
@@ -1980,6 +1981,7 @@ function renderBankTab() {
 function renderBankList() {
   const { page, pageSize, filterSubject, filterChapter, filterDiff, searchText } = State.bank;
   const labels = ['A', 'B', 'C', 'D'];
+  syncBankDropdownLabels();
 
   // Mặc định xem toàn bộ ngân hàng. Câu hỏi nạp trước thời điểm có đa học phần
   // không mang subjectId nên từng bị ẩn khỏi mọi môn trừ FT4468; bộ lọc môn
@@ -2006,8 +2008,9 @@ function renderBankList() {
   const scopeLabel = filterSubject
     ? `Môn ${getSubjectById(filterSubject)?.code || filterSubject}: ${scopeTotal} câu`
     : `Tổng ngân hàng: ${scopeTotal} câu`;
-  document.getElementById('bank-count-text').textContent =
-    `Hiển thị ${items.length}/${total} câu · ${scopeLabel}`;
+  const countEl = document.getElementById('bank-count-text');
+  countEl.classList.toggle('is-scoped', Boolean(filterSubject));
+  countEl.innerHTML = `Hiển thị ${items.length}/${total} câu<span class="bank-count-scope"> · ${escapeHtml(scopeLabel)}</span>`;
   document.getElementById('bank-page-info').textContent = `Trang ${State.bank.page}/${totalPages}`;
   document.getElementById('bank-prev-btn').disabled = State.bank.page <= 1;
   document.getElementById('bank-next-btn').disabled = State.bank.page >= totalPages;
@@ -2025,7 +2028,7 @@ function renderBankList() {
   container.innerHTML = '';
   items.forEach(q => {
     const card = document.createElement('div');
-    card.className = 'bank-question-card';
+    card.className = 'bank-question-card is-open';
 
     const highlight = (text) => {
       const raw = String(text ?? '');
@@ -2041,29 +2044,43 @@ function renderBankList() {
     };
 
     const subjectCode = filterSubject ? '' : (getSubjectById(q.subjectId)?.code || q.subjectId || '');
+    const chapterName = CHAPTERS[q.chapter] || '';
     card.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div style="display:flex;gap:8px;align-items:center;">
+      <div class="bank-card-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <div class="bank-card-badges" style="display:flex;gap:8px;align-items:center;">
           <span class="ch-dot ch-${q.chapter}"></span>
-          <span class="badge badge-primary" style="font-size:11px;">#${escapeHtml(q.id)} · Ch.${escapeHtml(q.chapter)}</span>
+          <span class="badge badge-primary bank-card-id" style="font-size:11px;">#${escapeHtml(q.id)} · Ch.${escapeHtml(q.chapter)}</span>
           <span class="badge badge-${getDiffClass(q.difficulty)}">${getDiffLabel(q.difficulty)}</span>
         </div>
-        <span class="text-xs text-muted">${subjectCode ? `${escapeHtml(subjectCode)} · ` : ''}${CHAPTERS[q.chapter] || ''}</span>
+        <span class="text-xs text-muted bank-card-meta"><span class="bank-card-subject">${subjectCode ? escapeHtml(subjectCode) : ''}</span><span class="bank-card-chapter">${subjectCode && chapterName ? ' · ' : ''}${chapterName}</span></span>
+        <button type="button" class="bank-card-toggle" aria-expanded="true" aria-label="Ẩn đáp án" onclick="toggleBankCard(this)">
+          <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+        </button>
       </div>
       <p class="bank-question-text">${highlight(q.q)}</p>
-      <div class="bank-answer-grid">
-        ${q.options.map((opt, oi) => `
-          <div class="bank-answer-item ${oi === q.correct ? 'correct' : ''}">
-            <span style="font-weight:700;flex-shrink:0;">${labels[oi]}.</span>
-            <span>${escapeHtml(opt)}</span>
-          </div>`).join('')}
-      </div>
-      <div class="bank-explanation">
-        <strong style="color:var(--primary);">Giải thích:</strong> ${highlight(q.exp || '')}
+      <div class="bank-reveal">
+        <div class="bank-answer-grid">
+          ${q.options.map((opt, oi) => `
+            <div class="bank-answer-item ${oi === q.correct ? 'correct' : ''}">
+              <span style="font-weight:700;flex-shrink:0;">${labels[oi]}.</span>
+              <span>${escapeHtml(opt)}</span>
+            </div>`).join('')}
+        </div>
+        <div class="bank-explanation">
+          <strong style="color:var(--primary);">Giải thích:</strong> ${highlight(q.exp || '')}
+        </div>
       </div>`;
 
     container.appendChild(card);
   });
+}
+
+function toggleBankCard(btn) {
+  const card = btn.closest('.bank-question-card');
+  if (!card) return;
+  const open = card.classList.toggle('is-open');
+  btn.setAttribute('aria-expanded', String(open));
+  btn.setAttribute('aria-label', open ? 'Ẩn đáp án' : 'Hiện đáp án');
 }
 
 function changeBankPage(dir) {
@@ -2079,6 +2096,194 @@ function onBankFilter() {
   State.bank.page = 1;
   renderBankList();
 }
+
+/* ─── Dropdown tùy biến cho bộ lọc ngân hàng (mobile ≤900px) ─── */
+const BANK_DD_SELECT_IDS = ['bank-filter-subject', 'bank-filter-chapter', 'bank-filter-diff'];
+let bankOpenDropdown = null;
+
+function isBankDropdownCompact() {
+  return window.matchMedia('(max-width: 900px)').matches;
+}
+
+function isBankFilterDefault(select) {
+  return select.value === '' || select.value === '0';
+}
+
+function syncBankDropdownLabel(select) {
+  if (!select) return;
+  const pill = select.closest('.bank-filter-pill');
+  const trigger = pill?.querySelector('.bank-dd-trigger');
+  if (!trigger) return;
+  const selected = select.selectedOptions[0];
+  const text = selected ? selected.textContent.trim() : '';
+  const label = trigger.querySelector('.bank-dd-label');
+  if (label && label.textContent !== text) label.textContent = text;
+  pill.classList.toggle('is-filtered', !isBankFilterDefault(select));
+}
+
+function syncBankDropdownLabels() {
+  BANK_DD_SELECT_IDS.forEach(id => syncBankDropdownLabel(document.getElementById(id)));
+}
+
+function makeBankDropdownOption(select, opt) {
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'bank-dd-option';
+  btn.setAttribute('role', 'option');
+  btn.dataset.value = opt.value;
+  const selected = opt.value === select.value;
+  btn.setAttribute('aria-selected', String(selected));
+  if (selected) btn.classList.add('is-selected');
+
+  if (select.id === 'bank-filter-diff') {
+    const dot = document.createElement('span');
+    dot.className = `bank-dd-dot diff-${opt.value}`;
+    dot.setAttribute('aria-hidden', 'true');
+    btn.appendChild(dot);
+  }
+
+  const label = document.createElement('span');
+  label.className = 'bank-dd-option-label';
+  label.textContent = opt.textContent.trim();
+  btn.appendChild(label);
+
+  const check = document.createElement('i');
+  check.className = 'fa-solid fa-check bank-dd-check';
+  check.setAttribute('aria-hidden', 'true');
+  btn.appendChild(check);
+
+  btn.addEventListener('click', () => {
+    closeBankDropdown();
+    if (select.value !== opt.value) {
+      select.value = opt.value;
+      select.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    syncBankDropdownLabel(select);
+    select.closest('.bank-filter-pill')?.querySelector('.bank-dd-trigger')?.focus({ preventScroll: true });
+  });
+  return btn;
+}
+
+function buildBankDropdownMenu(select) {
+  const menu = document.createElement('div');
+  menu.className = 'bank-dd-menu';
+  menu.setAttribute('role', 'listbox');
+  menu.id = `bank-dd-menu-${select.id}`;
+
+  Array.from(select.children).forEach(node => {
+    if (node.tagName === 'OPTGROUP') {
+      const head = document.createElement('div');
+      head.className = 'bank-dd-group';
+      head.textContent = node.label;
+      menu.appendChild(head);
+      Array.from(node.children).forEach(opt => menu.appendChild(makeBankDropdownOption(select, opt)));
+    } else if (node.tagName === 'OPTION') {
+      menu.appendChild(makeBankDropdownOption(select, node));
+    }
+  });
+  return menu;
+}
+
+function positionBankDropdown(menu, trigger) {
+  const margin = 10;
+  const pill = trigger.closest('.bank-filter-pill');
+  const rect = (pill && pill.getBoundingClientRect().width ? pill : trigger).getBoundingClientRect();
+  const width = Math.min(Math.max(rect.width, 248), window.innerWidth - margin * 2);
+  menu.style.width = `${width}px`;
+  menu.style.left = `${Math.max(margin, Math.min(rect.left, window.innerWidth - width - margin))}px`;
+  menu.style.top = '0px';
+
+  const menuHeight = menu.offsetHeight;
+  const spaceBelow = window.innerHeight - rect.bottom - margin;
+  const spaceAbove = rect.top - margin;
+  const top = (menuHeight + 8 > spaceBelow && spaceAbove > spaceBelow)
+    ? Math.max(margin, rect.top - menuHeight - 8)
+    : rect.bottom + 8;
+  menu.style.top = `${top}px`;
+}
+
+function openBankDropdown(select, trigger) {
+  closeBankDropdown();
+  syncBankDropdownLabel(select);
+  const menu = buildBankDropdownMenu(select);
+  document.body.appendChild(menu);
+  trigger.classList.add('is-open');
+  trigger.setAttribute('aria-expanded', 'true');
+  trigger.setAttribute('aria-controls', menu.id);
+  positionBankDropdown(menu, trigger);
+  bankOpenDropdown = { select, trigger, menu };
+  requestAnimationFrame(() => menu.classList.add('is-open'));
+  menu.querySelector('.bank-dd-option.is-selected')?.focus({ preventScroll: true });
+}
+
+function closeBankDropdown(restoreFocus = false) {
+  if (!bankOpenDropdown) return;
+  const { trigger, menu } = bankOpenDropdown;
+  trigger?.classList.remove('is-open');
+  trigger?.setAttribute('aria-expanded', 'false');
+  menu.remove();
+  bankOpenDropdown = null;
+  if (restoreFocus) trigger?.focus({ preventScroll: true });
+}
+
+function initBankDropdowns() {
+  BANK_DD_SELECT_IDS.forEach(id => {
+    const select = document.getElementById(id);
+    if (!select) return;
+    const trigger = select.closest('.bank-filter-pill')?.querySelector('.bank-dd-trigger');
+    if (trigger && !trigger.dataset.bound) {
+      trigger.dataset.bound = '1';
+      trigger.addEventListener('click', () => {
+        if (!isBankDropdownCompact()) return;
+        if (bankOpenDropdown?.trigger === trigger) {
+          closeBankDropdown(true);
+          return;
+        }
+        openBankDropdown(select, trigger);
+      });
+    }
+    if (!select.dataset.ddBound) {
+      select.dataset.ddBound = '1';
+      select.addEventListener('change', () => syncBankDropdownLabel(select));
+    }
+    syncBankDropdownLabel(select);
+  });
+}
+
+document.addEventListener('keydown', event => {
+  if (!bankOpenDropdown) return;
+  if (event.key === 'Escape') {
+    event.preventDefault();
+    closeBankDropdown(true);
+    return;
+  }
+  if (event.key === 'Tab') {
+    closeBankDropdown();
+    return;
+  }
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault();
+    const options = Array.from(bankOpenDropdown.menu.querySelectorAll('.bank-dd-option'));
+    const current = options.indexOf(document.activeElement);
+    const next = event.key === 'ArrowDown'
+      ? Math.min(options.length - 1, current + 1)
+      : Math.max(0, current - 1);
+    options[next]?.focus({ preventScroll: true });
+  }
+});
+
+document.addEventListener('pointerdown', event => {
+  if (!bankOpenDropdown) return;
+  if (bankOpenDropdown.menu.contains(event.target) || bankOpenDropdown.trigger.contains(event.target)) return;
+  closeBankDropdown();
+}, true);
+
+window.addEventListener('scroll', event => {
+  if (!bankOpenDropdown) return;
+  if (bankOpenDropdown.menu.contains(event.target)) return;
+  closeBankDropdown();
+}, true);
+window.addEventListener('resize', () => closeBankDropdown());
 
 /* ════════════════════════════════════════════════════
    SOURCE & AI GENERATION TAB
@@ -3636,6 +3841,39 @@ function showToast(message, type = 'info', duration = 3500) {
 ════════════════════════════════════════════════════ */
 
 /* ─── Subject Selector ─── */
+const EXAM_COUNT_LABELS = {
+  '50': ['50 câu (Tiêu chuẩn)', '50 câu'],
+  '60': ['60 câu', '60 câu'],
+  '40': ['40 câu', '40 câu'],
+  '30': ['30 câu', '30 câu']
+};
+
+function syncExamCountLabels() {
+  const select = document.getElementById('exam-question-count');
+  if (!select) return;
+  const short = window.matchMedia('(max-width: 900px)').matches;
+  Array.from(select.options).forEach(opt => {
+    const labels = EXAM_COUNT_LABELS[opt.value];
+    if (!labels) return;
+    const next = short ? labels[1] : labels[0];
+    if (opt.textContent !== next) opt.textContent = next;
+  });
+}
+
+function applySubjectSelection(subjectId) {
+  closeChapterPracticeForScopeChange(subjectId);
+  DB.setActiveSubject(subjectId);
+  State.bank.filterSubject = subjectId;
+  const bankSubjectSelect = document.getElementById('bank-filter-subject');
+  if (bankSubjectSelect) bankSubjectSelect.value = subjectId;
+  updateSubjectBanner(subjectId);
+  updateBankCount();
+  // Re-render active tab if needed
+  if (State.currentTab === 'bank-tab') renderBankList();
+  if (State.currentTab === 'history-tab') void renderSpacedReviewOverview();
+  NavController.syncTabUrl(State.currentTab || 'exam-tab', { replace: true });
+}
+
 function initSubjectSelector() {
   const select = document.getElementById('global-subject-select');
   if (!select) return;
@@ -3684,24 +3922,34 @@ function initSubjectSelector() {
   const saved = DB.getActiveSubject();
   if (saved) select.value = saved;
 
+  // Mobile exam-setup picker mirrors the toolbar dropdown
+  const mobileSelect = document.getElementById('exam-subject-select-mobile');
+  if (mobileSelect) {
+    mobileSelect.innerHTML = select.innerHTML;
+    if (saved) mobileSelect.value = saved;
+    if (!mobileSelect.dataset.bound) {
+      mobileSelect.dataset.bound = '1';
+      mobileSelect.addEventListener('change', () => {
+        if (mobileSelect.value) applySubjectSelection(mobileSelect.value);
+      });
+    }
+  }
+
   // On change
   select.addEventListener('change', () => {
-    const subjectId = select.value;
-    closeChapterPracticeForScopeChange(subjectId);
-    DB.setActiveSubject(subjectId);
-    State.bank.filterSubject = subjectId;
-    if (bankSubjectSelect) bankSubjectSelect.value = subjectId;
-    updateSubjectBanner(subjectId);
-    updateBankCount();
-    // Re-render active tab if needed
-    if (State.currentTab === 'bank-tab') renderBankList();
-    if (State.currentTab === 'history-tab') void renderSpacedReviewOverview();
-    NavController.syncTabUrl(State.currentTab || 'exam-tab', { replace: true });
+    if (select.value) applySubjectSelection(select.value);
   });
+
+  syncExamCountLabels();
+  if (!window.__examCountLabelQuery) {
+    window.__examCountLabelQuery = window.matchMedia('(max-width: 900px)');
+    window.__examCountLabelQuery.addEventListener?.('change', syncExamCountLabels);
+  }
 
   // Init banner
   updateSubjectBanner(saved);
   syncStudyToolbar();
+  syncBankDropdownLabels();
 }
 
 function syncStudyToolbar() {
@@ -3796,6 +4044,8 @@ function updateSubjectBanner(subjectId) {
   // Sync global select in case banner was changed from block filter
   const select = document.getElementById('global-subject-select');
   if (select && select.value !== subjectId) select.value = subjectId;
+  const mobileSelect = document.getElementById('exam-subject-select-mobile');
+  if (mobileSelect && mobileSelect.value !== subjectId) mobileSelect.value = subjectId;
   refreshStudyToolbarSelects();
 }
 
@@ -4436,6 +4686,7 @@ Object.assign(window, {
   onStudyToolbarDifficultyChange,
   onBankFilter,
   changeBankPage,
+  toggleBankCard,
   handleGenerateQuestions,
   handleFileUpload,
   deleteSource,
@@ -6755,6 +7006,12 @@ function renderMobileStudySpaceSubjectCard(subject) {
   </button>`;
 }
 
+function mobileStudySpaceListHtml(subjects) {
+  return subjects.length
+    ? subjects.map(renderMobileStudySpaceSubjectCard).join('')
+    : '<div class="ms-empty"><i class="fa-regular fa-folder-open" aria-hidden="true"></i><p>Không tìm thấy môn học phù hợp.</p></div>';
+}
+
 function renderMobileStudySpace(root) {
   const subjects = getStudySpaceSubjects();
   const contentCount = subjects.reduce((total, subject) => total + subject.articles.length, 0);
@@ -6785,9 +7042,13 @@ function renderMobileStudySpace(root) {
 
     <section class="ms-hero">
       <span class="ms-badge"><i class="fa-solid fa-graduation-cap" aria-hidden="true"></i> KHÔNG GIAN HỌC TẬP</span>
-      <h1 class="ms-title">Khám phá<br>môn học<br><span>theo cách<br>của bạn</span></h1>
-      <span class="ms-handwrite" aria-hidden="true">Let's Learn Together! <i class="fa-solid fa-heart"></i></span>
-      <div class="ms-hero-art" aria-hidden="true"><img class="ms-hero-img" src="assets/study-space-scene.webp" alt=""></div>
+      <div class="ms-hero-row">
+        <div class="ms-hero-copy">
+          <h1 class="ms-title">Khám phá<br>môn học<br><span>theo cách<br>của bạn</span></h1>
+          <span class="ms-handwrite" aria-hidden="true">Let's Learn Together! <i class="fa-solid fa-heart"></i></span>
+        </div>
+        <div class="ms-hero-art" aria-hidden="true"><img class="ms-hero-img" src="assets/study-space-scene.webp" alt=""></div>
+      </div>
     </section>
 
     <p class="ms-sub">Tài liệu chọn lọc, lộ trình rõ ràng và luôn có AI đồng hành.</p>
@@ -6818,7 +7079,7 @@ function renderMobileStudySpace(root) {
           <i class="fa-solid fa-filter" aria-hidden="true"></i>Có bài đăng
         </button>
       </div>
-      <div class="ms-list">${subjects.length ? subjects.map(renderMobileStudySpaceSubjectCard).join('') : '<div class="ms-empty"><i class="fa-regular fa-folder-open" aria-hidden="true"></i><p>Không tìm thấy môn học phù hợp.</p></div>'}</div>
+      <div class="ms-list">${mobileStudySpaceListHtml(subjects)}</div>
     </section>
   </div>`;
 
@@ -6874,10 +7135,26 @@ function setStudySpaceFilter(blockId, hasArticlesOnly) {
   renderStudySpace();
 }
 function searchStudySpaceSubjects(query) {
+  StudySpace.query = String(query || '');
+
+  // Mobile: chỉ vẽ lại danh sách môn. Vẽ lại cả trang (renderStudySpace) khiến
+  // mỗi phím bấm phải dựng lại hero, ảnh webp và ~40 thẻ → gõ rất trễ trên điện thoại.
+  if (studySpaceMobileViewport) {
+    const root = document.getElementById('study-space-root');
+    const list = root?.querySelector('.ms-list');
+    if (list) {
+      const subjects = getStudySpaceSubjects();
+      const contentCount = subjects.reduce((total, subject) => total + subject.articles.length, 0);
+      list.innerHTML = mobileStudySpaceListHtml(subjects);
+      const meta = root.querySelector('.ms-list-meta');
+      if (meta) meta.textContent = `${subjects.length} môn • ${contentCount} tài nguyên`;
+      return;
+    }
+  }
+
   const source = document.getElementById('study-space-search');
   const selectionStart = source?.selectionStart ?? String(query || '').length;
   const selectionEnd = source?.selectionEnd ?? selectionStart;
-  StudySpace.query = String(query || '');
   renderStudySpace();
 
   // renderStudySpace thay toàn bộ catalog, vì vậy khôi phục focus và con trỏ
