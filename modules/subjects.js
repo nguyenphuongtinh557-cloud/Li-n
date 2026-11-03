@@ -75,7 +75,6 @@ export const SUBJECTS_REGISTRY = [
   { id: 'FT4487', code: 'FT4487', name: 'Phát triển sản phẩm mới', credits: 3, blockId: 'CS_NGANH', semester: 8 },
   { id: 'FT4479', code: 'FT4479', name: 'Phân tích thực phẩm', credits: 3, blockId: 'CS_NGANH', semester: 9 },
   { id: 'FT4488', code: 'FT4488', name: 'Công nghệ sau TH và chế biến SP thực vật', credits: 4, blockId: 'CS_NGANH', semester: 9 },
-  { id: 'FT4489', code: 'FT4489', name: 'Công nghệ sau TH và chế biến SP động vật', credits: 4, blockId: 'CS_NGANH', semester: 11 },
   { id: 'FT4490', code: 'FT4490', name: 'TT. Công nghệ thực phẩm (PTN)', credits: 2, blockId: 'CS_NGANH', semester: 11 },
   { id: 'FT4591', code: 'FT4591', name: 'Thực tập Kỹ thuật công nghệ thực phẩm', credits: 2, blockId: 'CS_NGANH', semester: 12 },
 
@@ -93,9 +92,17 @@ export const SUBJECTS_REGISTRY = [
 
 export const DEFAULT_SUBJECT_ID = 'FT4468';
 
+// Môn đã xóa khỏi chương trình: ẩn cả bản tùy chỉnh còn sót trong localStorage.
+const RETIRED_SUBJECT_IDS = new Set(['FT4489']);
+
+function isRetiredSubject(subject) {
+  return RETIRED_SUBJECT_IDS.has(subject?.id) || RETIRED_SUBJECT_IDS.has(subject?.code);
+}
+
 function getCustomSubjectsFromStorage() {
   try {
-    return JSON.parse(localStorage.getItem('qlcl_custom_subjects') || '[]');
+    const list = JSON.parse(localStorage.getItem('qlcl_custom_subjects') || '[]');
+    return Array.isArray(list) ? list.filter(subject => !isRetiredSubject(subject)) : [];
   } catch {
     return [];
   }

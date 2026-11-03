@@ -64,7 +64,7 @@ async function pushFile(filename, data) {
  */
 export async function pullFromGitHub(DB) {
   const now = Date.now();
-  if (now - _lastPullAt < PULL_COOLDOWN_MS) return { questions: 0, sources: 0 };
+  if (now - _lastPullAt < PULL_COOLDOWN_MS) return { questions: 0, sources: 0, retagged: 0 };
   _lastPullAt = now;
 
   try {
@@ -75,9 +75,14 @@ export async function pullFromGitHub(DB) {
 
     let addedQ = 0;
     let addedS = 0;
+    let retagged = 0;
 
     if (remoteQ.length > 0) {
-      addedQ = DB.addQuestions(remoteQ, { skipSync: true });
+      retagged = DB.retagLegacyCommunityQuestions?.(remoteQ) || 0;
+      if (retagged > 0) {
+        console.log(`[Sync] 🔧 Chuyển ${retagged} câu cộng đồng cũ về FT4468`);
+      }
+      addedQ = DB.addQuestions(remoteQ.map(q => ({ ...q, subjectId: q.subjectId || 'FT4468' })), { skipSync: true });
     }
 
     if (remoteS.length > 0) {
@@ -92,10 +97,10 @@ export async function pullFromGitHub(DB) {
       console.log(`[Sync] ✅ Kéo về: +${addedQ} câu hỏi, +${addedS} tài liệu`);
     }
 
-    return { questions: addedQ, sources: addedS };
+    return { questions: addedQ, sources: addedS, retagged };
   } catch (e) {
     console.warn('[Sync] pullFromGitHub thất bại:', e);
-    return { questions: 0, sources: 0 };
+    return { questions: 0, sources: 0, retagged: 0 };
   }
 }
 

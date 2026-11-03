@@ -9,12 +9,13 @@ import { QuestionGenerator } from './modules/questionGeneratorCore.js';
 import { DocumentExtractor } from './modules/documentExtractor.js';
 import { AIQuestionHistory } from './modules/aiQuestionHistory.js';
 import { ExamEngine, ExamTimer } from './modules/exam.js';
-import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion } from './modules/cera.js';
+import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion, setCurrentReading } from './modules/cera.js';
+import { planCeraNavigation, runCeraNavigation } from './modules/ceraNav.js';
 import { searchSubjectKnowledge } from './modules/knowledgeBase.js';
 import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer, pullFeedbacksFromServer, pullSubjectDetailsFromServer } from './modules/sync.js';
 import { initAdminAuth } from './modules/admin.js';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js';
-import { NavController } from './modules/navigation.js?v=20261101-auth-popup';
+import { NavController } from './modules/navigation.js?v=20261104-bank-scope';
 import { AuthModule, getUserRole, getActiveAdminEmails } from './modules/auth.js?v=20261101-auth-popup';
 import { ArticlesModule } from './modules/articles.js?v=20261031-news1';
 import { readSummary, writeSummary, clearSessionCache, summaryIsComplete, summaryIsStale } from './modules/firestoreSummary.js';
@@ -89,7 +90,7 @@ let _seedQuestionsPromise = null;
 async function ensureStudySeed() {
   if (!_seedQuestionsPromise) {
     _seedQuestionsPromise = import('./data/seed_questions.js').then(({ SEED_QUESTIONS }) => {
-      DB.addQuestions(SEED_QUESTIONS, { skipSync: true });
+      DB.addQuestions(SEED_QUESTIONS.map(q => ({ ...q, subjectId: 'FT4468' })), { skipSync: true });
       DB.markSeedLoaded();
       return SEED_QUESTIONS.length;
     });
@@ -161,6 +162,21 @@ const CHAPTERS = {
   5: 'Chương 5: Luật ATTP Việt Nam',
 };
 
+const SUBJECT_CHAPTER_LABELS = {
+  FT4488: {
+    1: 'Chương 1: Nguyên liệu rau quả',
+    2: 'Chương 2: Thu hoạch rau quả',
+    3: 'Chương 3: Các phương pháp bảo quản rau quả',
+    4: 'Chương 4: Chế biến rau quả',
+  },
+};
+
+function getChapterLabel(chapter, subjectId) {
+  const subjectChapters = SUBJECT_CHAPTER_LABELS[subjectId];
+  if (subjectChapters && subjectChapters[chapter]) return subjectChapters[chapter];
+  return CHAPTERS[chapter] || (chapter ? `Chương ${chapter}` : '');
+}
+
 /* ════════════════════════════════════════════════════
    INITIALIZATION
 ════════════════════════════════════════════════════ */
@@ -178,7 +194,7 @@ async function init() {
   async function syncNonCriticalData() {
   // Kéo dữ liệu cộng đồng từ GitHub
   pullFromGitHub(DB).then(res => {
-    if (res.questions > 0 || res.sources > 0) {
+    if (res.questions > 0 || res.sources > 0 || res.retagged > 0) {
       updateBankCount();
       if (document.getElementById('bank-tab')?.classList.contains('active')) {
         renderBankList();
@@ -263,6 +279,8 @@ async function init() {
     const remoteSubjectDetails = await pullSubjectDetailsFromServer();
     if (remoteSubjectDetails && !Array.isArray(remoteSubjectDetails)) {
       DB.mergeSubjectDetailsFromServer(remoteSubjectDetails);
+      studySpaceContentIndexCache = null;
+      if (NavController.activePage === 'study-space') window.renderStudySpace?.();
       console.log('[Subject details] Đã tải cấu hình môn học công khai từ server.');
       // Deep link vẽ trang môn học trước khi đồng bộ xong nên khung chương bài bị trống.
       if (NavController.activePage === 'subject-detail') {
@@ -403,6 +421,14 @@ function switchTab(tabId) {
   if (tabId === 'source-tab') renderSourceTab();
   if (tabId === 'history-tab') { renderHistoryTab(); renderSpacedReviewOverview(); }
   if (tabId === 'share-tab') void QuizShares.renderOwnerTab();
+}
+
+function onStudyModeChange(tabId) {
+  if (NavController.activePage === 'ontap') {
+    switchTab(tabId);
+    return;
+  }
+  NavController.navigateToPage('ontap', tabId);
 }
 
 /* ════════════════════════════════════════════════════
@@ -550,7 +576,7 @@ function renderExamQuestion() {
   setCurrentQuestion(q);
   updateCeraContextUI(q);
 
-  document.getElementById('q-chapter-badge').textContent = CHAPTERS[q.chapter] || ('Chương ' + q.chapter);
+  document.getElementById('q-chapter-badge').textContent = getChapterLabel(q.chapter, q.subjectId);
   document.getElementById('q-diff-badge').textContent = getDiffLabel(q.difficulty);
   document.getElementById('q-diff-badge').className = 'badge badge-' + getDiffClass(q.difficulty);
   document.getElementById('q-title').textContent = `Câu ${currentIndex + 1}: ${q.q}`;
@@ -1085,6 +1111,14 @@ function finishExam() {
   renderExamResult(result);
 }
 
+function endExamResult() {
+  if (State.practice.examChapterSession) returnFromExamChapterPractice();
+  hide('exam-wrong-practice-container');
+  hide('exam-chapter-practice-container');
+  State.practice.returnToReview = false;
+  NavController.navigateToPage('ontap', 'exam-tab');
+}
+
 function renderExamResult(result) {
   const card = document.getElementById('exam-result-card');
   if (!card || !result) return;
@@ -1140,12 +1174,18 @@ function renderExamResult(result) {
   const chColors = ['', '#6366f1', '#8b5cf6', '#06b6d4', '#10b981', '#f59e0b'];
   Object.entries(result.chapterStats).forEach(([ch, st]) => {
     if (!st.t) return;
+    const chapterSubjects = new Set(
+      State.exam.questions
+        .filter(question => String(question.chapter) === String(ch))
+        .map(question => question.subjectId || 'FT4468')
+    );
+    const chapterLabel = getChapterLabel(ch, chapterSubjects.size === 1 ? [...chapterSubjects][0] : null);
     const chPct = Math.round(st.c / st.t * 100);
     const row = document.createElement('div');
     row.className = 'chapter-bar-row';
     row.innerHTML = `
       <div class="chapter-bar-label">
-        <span><span class="ch-dot ch-${ch}" style="display:inline-block;margin-right:6px;"></span>${CHAPTERS[ch] || 'Chương ' + ch}</span>
+        <span><span class="ch-dot ch-${ch}" style="display:inline-block;margin-right:6px;"></span>${chapterLabel}</span>
         <span class="font-bold" style="color:${chPct >= 50 ? 'var(--success)' : 'var(--danger)'}">${st.c}/${st.t} (${chPct}%)</span>
       </div>
       <div class="chapter-bar-track">
@@ -1239,7 +1279,7 @@ function startExamChapterPractice(chapterId, subjectId) {
   });
   if (!questions.length) {
     const subject = getSubjectById(subjectId);
-    showToast(`Không có câu hợp lệ trong ${CHAPTERS[chapterId] || `Chương ${chapterId}`} · ${subject?.name || subjectId}.`, 'info');
+    showToast(`Không có câu hợp lệ trong ${getChapterLabel(chapterId, subjectId)} · ${subject?.name || subjectId}.`, 'info');
     return;
   }
 
@@ -1258,7 +1298,7 @@ function startExamChapterPractice(chapterId, subjectId) {
 
   const subject = getSubjectById(subjectId);
   document.getElementById('exam-chapter-practice-title').textContent =
-    `${subject?.name || subjectId} · ${CHAPTERS[chapterId] || `Chương ${chapterId}`}`;
+    `${subject?.name || subjectId} · ${getChapterLabel(chapterId, subjectId)}`;
   document.getElementById('exam-chapter-practice-count').textContent = `Lượt luyện ngắn · ${questions.length} câu`;
   renderPracticeQuestions(
     questions,
@@ -1280,7 +1320,7 @@ function showChapterPracticeCeraAction(question, selectedOption, subjectId, card
     ...question,
     subjectId,
     subjectName: subject?.name || subjectId,
-    chapterName: CHAPTERS[question.chapter] || `Chương ${question.chapter}`,
+    chapterName: getChapterLabel(question.chapter, subjectId),
     userAns: selectedOption,
     isExamReview: true,
   }));
@@ -1493,7 +1533,7 @@ function renderExamReviewList(openFirst = false) {
       <summary>
         <span class="er-q-no" data-qno="${qr.idx + 1}">Câu ${qr.idx + 1}</span>
         <span class="er-q-status ${status.cls}"><i class="fa-solid ${status.icon}"></i> ${status.label}</span>
-        <span class="er-q-meta">${escapeHtml(CHAPTERS[qr.chapter] || (qr.chapter ? `Chương ${qr.chapter}` : 'Chưa xác định'))} · ${getDiffLabel(qr.difficulty)}</span>
+        <span class="er-q-meta">${escapeHtml(getChapterLabel(qr.chapter, State.exam.questions[qr.idx]?.subjectId) || 'Chưa xác định')} · ${getDiffLabel(qr.difficulty)}</span>
         ${flagged ? '<i class="fa-solid fa-bookmark er-q-flag" title="Đã đánh dấu"></i>' : ''}
         <i class="fa-solid fa-chevron-down er-q-chevron"></i>
       </summary>
@@ -1521,7 +1561,7 @@ function renderExamReviewList(openFirst = false) {
         ...qr,
         subjectId,
         subjectName: subject?.name || subjectId || 'Chưa xác định',
-        chapterName: CHAPTERS[qr.chapter] || (qr.chapter ? `Chương ${qr.chapter}` : 'Chưa xác định'),
+        chapterName: getChapterLabel(qr.chapter, subjectId) || 'Chưa xác định',
         isExamReview: true,
       };
 
@@ -1722,7 +1762,7 @@ function renderPracticeQuestions(questions, wrapper, idPrefix, onAnswered = null
     card.style.marginBottom = '16px';
     card.innerHTML = `
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <span class="badge badge-primary">${escapeHtml(CHAPTERS[question.chapter] || `Chương ${question.chapter ?? ''}`)}</span>
+        <span class="badge badge-primary">${escapeHtml(getChapterLabel(question.chapter, question.subjectId))}</span>
         <div style="display:flex;gap:6px;align-items:center;">
           <span class="badge badge-${getDiffClass(question.difficulty)}">${getDiffLabel(question.difficulty)}</span>
           <span class="text-xs text-muted">Câu ${idx + 1}/${questions.length}</span>
@@ -1957,7 +1997,7 @@ function answerSpacedReviewQuestion(item, selectedOption, card) {
     ...item.question,
     subjectId: item.subjectId,
     subjectName: subject?.name || item.subjectId,
-    chapterName: CHAPTERS[item.question.chapter] || `Chương ${item.question.chapter ?? ''}`,
+    chapterName: getChapterLabel(item.question.chapter, item.subjectId),
     userAns: selectedOption,
     isExamReview: true,
   }));
@@ -2044,7 +2084,7 @@ function renderBankList() {
     };
 
     const subjectCode = filterSubject ? '' : (getSubjectById(q.subjectId)?.code || q.subjectId || '');
-    const chapterName = CHAPTERS[q.chapter] || '';
+    const chapterName = getChapterLabel(q.chapter, q.subjectId);
     card.innerHTML = `
       <div class="bank-card-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
         <div class="bank-card-badges" style="display:flex;gap:8px;align-items:center;">
@@ -3860,6 +3900,16 @@ function syncExamCountLabels() {
   });
 }
 
+function applyBankSubjectScope(subjectId) {
+  const select = document.getElementById('bank-filter-subject');
+  if (!select || !subjectId) return;
+  const hasOption = Array.from(select.options).some(option => option.value === subjectId);
+  if (!hasOption) return;
+  State.bank.filterSubject = subjectId;
+  State.bank.page = 1;
+  select.value = subjectId;
+}
+
 function applySubjectSelection(subjectId) {
   closeChapterPracticeForScopeChange(subjectId);
   DB.setActiveSubject(subjectId);
@@ -4260,11 +4310,12 @@ function _generateMistakeHints(wrongQuestions) {
   });
   
   const results = [];
+  const hintSubjectId = DB.getActiveSubject();
   
   // Gợi ý theo chương (nếu sai > 2 câu trong 1 chương)
   for (const [ch, count] of Object.entries(chapterMistakes)) {
     if (count >= 2) {
-      results.push(`<strong>Chương ${escapeHtml(ch)}:</strong> Bạn đã sai ${count} câu. Cần ôn tập lại toàn bộ kiến thức nền tảng của ${CHAPTERS[ch] || 'Chương ' + escapeHtml(ch)}.`);
+      results.push(`<strong>Chương ${escapeHtml(ch)}:</strong> Bạn đã sai ${count} câu. Cần ôn tập lại toàn bộ kiến thức nền tảng của ${getChapterLabel(ch, hintSubjectId === 'ALL' ? null : hintSubjectId)}.`);
     }
   }
   
@@ -4529,6 +4580,9 @@ async function ceraSend() {
   const statusText = document.getElementById('cera-status-text');
   const modelSelect = document.getElementById('cera-model-select');
   if (!input || !sendBtn || !messages) return;
+  const ceraUserId = (AuthModule.user || NavController.currentUser || {}).uid
+    || (AuthModule.user || NavController.currentUser || {}).email
+    || 'guest';
 
   if (!document.getElementById('exam-active-card')?.classList.contains('hidden')) {
     showToast('Cera sẽ khả dụng sau khi bạn nộp bài thi thử.', 'info');
@@ -4563,6 +4617,25 @@ async function ceraSend() {
   // Clear attached image state
   removeCeraAttachedImage();
 
+  const navPlan = attachedImage ? null : planCeraNavigation(text);
+  if (navPlan) {
+    let navReply = runCeraNavigation(navPlan);
+    if (window.matchMedia('(max-width: 760px)').matches) {
+      navReply += '\n\nĐóng khung chat để xem trang vừa mở nhé.';
+    }
+    _ceraHistory.push({ role: 'user', content: text });
+    _ceraHistory.push({ role: 'bot', content: navReply });
+    const navMsg = document.createElement('div');
+    navMsg.className = 'cera-msg cera-msg-bot';
+    navMsg.innerHTML = `
+      <div class="cera-msg-avatar"><img src="chatbot.webp" alt="FTECA 24" style="width:100%;height:100%;object-fit:cover;border-radius:50%;"></div>
+      <div class="cera-msg-bubble">${formatCeraReply(navReply)}</div>`;
+    messages.appendChild(navMsg);
+    messages.scrollTop = messages.scrollHeight;
+    sendBtn.disabled = false;
+    return;
+  }
+
   const typingMsg = document.createElement('div');
   typingMsg.className = 'cera-msg cera-msg-bot cera-typing';
   typingMsg.innerHTML = `
@@ -4584,10 +4657,10 @@ async function ceraSend() {
       reply = await ceraAnalyzeImage(attachedImage, text, _ceraHistory);
     } else if (selectedModel !== 'standard') {
       // Gọi Premium AI Zone
-      reply = await ceraChat(text, _ceraHistory, { isPremium: true, premiumModelId: selectedModel });
+      reply = await ceraChat(text, _ceraHistory, { isPremium: true, premiumModelId: selectedModel, userId: ceraUserId });
     } else {
       // Gọi Standard Cera
-      reply = await ceraChat(text, _ceraHistory);
+      reply = await ceraChat(text, _ceraHistory, { userId: ceraUserId });
     }
 
     typingMsg.remove();
@@ -4656,6 +4729,8 @@ Object.assign(window, {
   shareUrl,
   showToast,
   switchTab,
+  onStudyModeChange,
+  endExamResult,
   QuizShares,
   QuizSharePage,
   initiateExam,
@@ -4685,6 +4760,7 @@ Object.assign(window, {
   onStudyToolbarCountChange,
   onStudyToolbarDifficultyChange,
   onBankFilter,
+  applyBankSubjectScope,
   changeBankPage,
   toggleBankCard,
   handleGenerateQuestions,
@@ -6068,8 +6144,21 @@ function safeStudyReaderRichText(html) {
   }); return template.innerHTML;
 }
 function studyReaderExternalButton(url) { return isStudyReaderAllowedUrl(url) ? `<a class="btn btn-primary btn-sm" href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-arrow-up-right-from-square"></i> Mở tài liệu gốc</a>` : ''; }
+function syncCeraReadingContext() {
+  const data = _studyReaderContext;
+  const readingPage = window.NavController?.activePage === 'study-reader';
+  if (!data || !readingPage) { setCurrentReading(null); return; }
+  setCurrentReading({
+    subjectId: data.subjectId || null,
+    lessonId: data.lessonId || null,
+    resourceId: data.resourceId || null,
+    title: data.summaryResult?.title || data.lesson?.title || data.resource?.name || '',
+    summary: _studyReaderSummary || null
+  });
+}
 function renderStudyReaderContent(context = _studyReaderContext || {}) {
   const data = getStudyReaderDetails(context); _studyReaderContext = { ...data, resourceId: data.resource?.id || null, lessonId: data.lesson?.id || null };
+  syncCeraReadingContext();
   const content = document.getElementById('study-reader-content'); if (!content) return data;
   if (data.summaryResult) {
     const result = data.summaryResult;
@@ -6201,16 +6290,19 @@ async function loadStudyReaderSummaryCache() {
       renderStudyReaderSummary(summaryObj);
       setStudyReaderSummaryStatus('Bản tóm tắt tiêu chuẩn từ hệ thống.', 'ready');
       if (saveBtn) saveBtn.disabled = false;
+      syncCeraReadingContext();
     } else {
       _studyReaderSummary = null;
       renderStudyReaderSummary(null);
       setStudyReaderSummaryStatus('Bản tóm tắt cho bài này đang được chuẩn bị. Bạn có thể bấm "Tạo lại bằng AI".', 'empty');
+      syncCeraReadingContext();
     }
   } catch (err) {
     console.warn('[StudyReader] Lỗi tải tóm tắt:', err);
     _studyReaderSummary = null;
     renderStudyReaderSummary(null);
     setStudyReaderSummaryStatus('Bản tóm tắt cho bài này đang được chuẩn bị.', 'empty');
+    syncCeraReadingContext();
   }
 }
 
@@ -6242,6 +6334,7 @@ async function requestStudentSummaryRegenerate() {
     renderStudyReaderSummary(result);
     setStudyReaderSummaryStatus('Đã tạo bản tóm tắt mới thành công bằng AI.', 'ready');
     if (btnSave) btnSave.disabled = false;
+    syncCeraReadingContext();
     showToast('✨ Đã tạo bản tóm tắt mới thành công!', 'success');
   } catch (error) {
     console.error('[Student Summary Regenerate] Lỗi:', error);
@@ -6735,6 +6828,7 @@ function normalizeStudySpaceValue(value) {
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLocaleLowerCase('vi-VN')
+    .replace(/đ/g, 'd')
     .trim()
     .replace(/\s+/g, ' ');
 }
@@ -6783,13 +6877,44 @@ function studySpaceContentForSubject(subject, articles, resources) {
 }
 
 function getStudySpaceSubjects() {
-  const query = StudySpace.query.trim().toLocaleLowerCase('vi-VN');
+  const query = normalizeStudySpaceValue(StudySpace.query);
   const articles = DB.getArticles();
   const resources = DB.getResources();
+  const contentIndex = StudySpace.hasArticlesOnly ? getStudySpaceContentIndex() : null;
   return getAllSubjects().map(subject => ({ ...subject, articles: studySpaceContentForSubject(subject, articles, resources) }))
     .filter(subject => StudySpace.blockId === 'ALL' || subject.blockId === StudySpace.blockId)
-    .filter(subject => !StudySpace.hasArticlesOnly || subject.articles.length)
-    .filter(subject => !query || `${subject.code} ${subject.name}`.toLocaleLowerCase('vi-VN').includes(query));
+    .filter(subject => !StudySpace.hasArticlesOnly
+      || subject.articles.length
+      || (contentIndex.bankCounts.get(subject.id) || 0) > 0
+      || (contentIndex.lessonCounts.get(subject.id) || 0) > 0)
+    .filter(subject => !query || normalizeStudySpaceValue(`${subject.code} ${subject.name}`).includes(query));
+}
+
+let studySpaceContentIndexCache = null;
+let studySpaceContentIndexAt = 0;
+const STUDY_SPACE_CONTENT_INDEX_TTL = 60_000;
+
+function getStudySpaceContentIndex() {
+  if (studySpaceContentIndexCache && Date.now() - studySpaceContentIndexAt < STUDY_SPACE_CONTENT_INDEX_TTL) {
+    return studySpaceContentIndexCache;
+  }
+
+  const bankCounts = new Map();
+  DB.getBank().forEach(question => {
+    const subjectId = question.subjectId || 'FT4468';
+    bankCounts.set(subjectId, (bankCounts.get(subjectId) || 0) + 1);
+  });
+
+  const lessonCounts = new Map();
+  const detailsMap = DB.getAllSubjectDetailsMap();
+  Object.entries(detailsMap).forEach(([subjectId, details]) => {
+    const count = (details?.chapters || []).reduce((total, chapter) => total + ((chapter?.lessons || []).length), 0);
+    if (count > 0) lessonCounts.set(subjectId, count);
+  });
+
+  studySpaceContentIndexCache = { bankCounts, lessonCounts };
+  studySpaceContentIndexAt = Date.now();
+  return studySpaceContentIndexCache;
 }
 
 function studySpaceSubjectGroup(subject) {

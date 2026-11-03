@@ -3,7 +3,8 @@
  * Quản lý toàn bộ dữ liệu qua localStorage + Gọi module Sync để đẩy lên GitHub
  */
 
-import { pushToGitHub, pushUserRolesToServer, pushCustomSubjectsToServer, pushAnnouncementsToServer, pushArticlesToServer, pushResourcesToServer, pushFeedbacksToServer, pushSubjectDetailsToServer, isLocalSubjectDetailsEditor, persistSubjectDetailsLocally } from './sync.js?v=20261003-local-subject-file-save';
+import { pushToGitHub, pushUserRolesToServer, pushCustomSubjectsToServer, pushAnnouncementsToServer, pushArticlesToServer, pushResourcesToServer, pushFeedbacksToServer, pushSubjectDetailsToServer, isLocalSubjectDetailsEditor, persistSubjectDetailsLocally } from './sync.js?v=20261104-community-retag2';
+import { FT4488_SEED_QUESTIONS } from '../data/seed_questions_ft4488.js';
 
 const KEYS = {
   BANK: 'qlcl_question_bank',
@@ -22,7 +23,27 @@ const KEYS = {
   RESOURCES: 'qlcl_learning_resources',
   FEEDBACKS: 'qlcl_user_feedbacks',
   SUBJECT_DETAILS: 'qlcl_subject_details',
+  STATIC_QUESTION_OVERRIDES: 'qlcl_static_question_overrides',
 };
+
+// Ngân hàng tĩnh FT4488: luôn có sẵn khi đọc, không chiếm quota localStorage.
+const STATIC_BANK = FT4488_SEED_QUESTIONS.map(q => ({ ...q, _seed: true, _static: true }));
+const STATIC_BANK_BY_ID = new Map(STATIC_BANK.map(q => [q.id, q]));
+
+function readStaticOverrides() {
+  try {
+    return JSON.parse(localStorage.getItem(KEYS.STATIC_QUESTION_OVERRIDES) || '{}');
+  } catch { return {}; }
+}
+
+function staticQuestionFieldsChanged(base, candidate) {
+  return candidate.q !== base.q
+    || candidate.correct !== base.correct
+    || (candidate.exp || '') !== (base.exp || '')
+    || (candidate.difficulty || 1) !== (base.difficulty || 1)
+    || candidate.chapter !== base.chapter
+    || JSON.stringify(candidate.options || []) !== JSON.stringify(base.options || []);
+}
 
 export function normalizeInteractiveBlock(block = {}, index = 0) {
   const type = ['heading', 'text', 'lessonDocument', 'image', 'imageCaption', 'twoColumn', 'callout', 'list', 'table', 'quiz', 'video', 'resource', 'legacyHtml'].includes(block.type) ? block.type : 'text';
@@ -565,13 +586,23 @@ export const DB = {
 
   /** Lấy ngân hàng câu hỏi (Tự động gán subjectId mặc định FT4468 nếu chưa có) */
   getBank() {
+    let stored = [];
     try {
       const bank = JSON.parse(localStorage.getItem(KEYS.BANK) || '[]');
-      return bank.map(q => ({
+      stored = bank.map(q => ({
         ...q,
         subjectId: q.subjectId || 'FT4468'
       }));
-    } catch { return []; }
+    } catch { stored = []; }
+
+    const overrides = readStaticOverrides();
+    const staticBank = STATIC_BANK.map(q => {
+      const override = overrides[q.id];
+      return override
+        ? { ...q, ...override, options: [...(override.options || q.options)], _seed: true, _static: true }
+        : { ...q, options: [...q.options] };
+    });
+    return [...stored, ...staticBank];
   },
 
   /** Lấy ngân hàng câu hỏi theo môn học */
@@ -580,9 +611,65 @@ export const DB = {
     return this.getBank().filter(q => (q.subjectId || 'FT4468') === targetSub);
   },
 
-  /** Lưu toàn bộ ngân hàng */
+  /**
+   * Chuyển các câu cộng đồng cũ (tệp remote không có subjectId) từng bị gán
+   * nhầm sang môn đang mở về FT4468. Chỉ đụng tới câu khớp đúng nội dung.
+   */
+  retagLegacyCommunityQuestions(remoteQuestions = []) {
+    const legacyStems = new Set(
+      remoteQuestions.filter(q => q && !q.subjectId).map(q => _hashQ(q.q))
+    );
+    if (legacyStems.size === 0) return 0;
+
+    let changed = 0;
+    const next = this.getBank().map(q => {
+      if (q._static || !q.subjectId || q.subjectId === 'FT4468') return q;
+      if (!legacyStems.has(_hashQ(q.q))) return q;
+      changed += 1;
+      return { ...q, subjectId: 'FT4468' };
+    });
+
+    if (changed > 0) this.setBank(next);
+    return changed;
+  },
+
+  /** Lưu toàn bộ ngân hàng (câu tĩnh FT4488 tách riêng, chỉ lưu phần chỉnh sửa) */
   setBank(questions) {
-    localStorage.setItem(KEYS.BANK, JSON.stringify(questions));
+    const stored = [];
+    const overrides = readStaticOverrides();
+    let overridesChanged = false;
+
+    questions.forEach(q => {
+      if (!q) return;
+      if (q._static) {
+        const base = STATIC_BANK_BY_ID.get(q.id);
+        if (!base) return;
+        if (staticQuestionFieldsChanged(base, q)) {
+          const next = {
+            q: q.q,
+            options: q.options,
+            correct: q.correct,
+            exp: q.exp,
+            difficulty: q.difficulty,
+            chapter: q.chapter
+          };
+          if (!overrides[q.id] || JSON.stringify(overrides[q.id]) !== JSON.stringify(next)) {
+            overrides[q.id] = next;
+            overridesChanged = true;
+          }
+        } else if (overrides[q.id]) {
+          delete overrides[q.id];
+          overridesChanged = true;
+        }
+        return;
+      }
+      stored.push(q);
+    });
+
+    if (overridesChanged) {
+      try { localStorage.setItem(KEYS.STATIC_QUESTION_OVERRIDES, JSON.stringify(overrides)); } catch {}
+    }
+    localStorage.setItem(KEYS.BANK, JSON.stringify(stored));
   },
 
   /**

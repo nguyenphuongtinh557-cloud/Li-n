@@ -441,6 +441,9 @@ export const NavController = {
     if (pageId === 'summary-study') window.renderSummaryStudyPage?.(window._summaryStudyResult, window._summaryStudyTitle);
 
     // 3. Chuyển tab con nếu có
+    if (pageId === 'ontap' && subTabId === 'bank-tab' && routeParams.subject) {
+      window.applyBankSubjectScope?.(routeParams.subject);
+    }
     if (subTabId && window.switchTab) {
       window.switchTab(subTabId);
     }

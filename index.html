@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261102-mobile-bank11">
+  <link rel="stylesheet" href="style.css?v=20261102-mobile-bank18">
   <link rel="stylesheet" href="subject-page.css?v=20261031-sd8">
   <link rel="stylesheet" href="mobile-home.css?v=mh18">
   <link rel="stylesheet" href="study-space-mobile.css?v=ss4">
@@ -194,7 +194,7 @@
             </label>
             <label class="study-toolbar-control study-toolbar-mode" title="Chế độ ôn tập">
               <i class="fa-solid fa-bullseye" aria-hidden="true"></i>
-              <select id="study-mode-select" class="study-toolbar-select" aria-label="Chế độ ôn tập" onchange="switchTab(this.value)">
+              <select id="study-mode-select" class="study-toolbar-select" aria-label="Chế độ ôn tập" onchange="onStudyModeChange(this.value)">
                 <option value="exam-tab">Thi thử</option>
                 <option value="bank-tab">Ngân hàng</option>
                 <option value="source-tab">AI sinh câu</option>
@@ -723,8 +723,8 @@
                       </div>
 
                       <div class="er-actions">
-                        <button type="button" class="btn btn-primary er-btn" onclick="initiateExam()">
-                          <i class="fa-solid fa-rotate-right"></i> Thi lại đề khác
+                        <button type="button" class="btn btn-primary er-btn" onclick="endExamResult()">
+                          <i class="fa-solid fa-house"></i> Kết thúc
                         </button>
                         <button id="btn-practice-wrong" type="button" class="btn btn-secondary er-btn hidden" onclick="startWrongQuestionPractice()">
                           <i class="fa-solid fa-repeat"></i> Luyện lại câu sai
@@ -3925,6 +3925,6 @@
 
   <script src="assets/lottie_light.min.js" defer></script>
   <script src="mobile-home.js?v=mh18" defer></script>
-  <script type="module" src="app.js?v=20261102-mobile-bank11"></script>
+  <script type="module" src="app.js?v=20261104-study-filter-content"></script>
 </body>
 </html>
