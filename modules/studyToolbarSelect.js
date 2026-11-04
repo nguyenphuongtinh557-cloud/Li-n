@@ -1,5 +1,8 @@
 /**
- * studyToolbarSelect.js — danh sách tùy biến cho thanh tiện ích ôn tập.
+ * studyToolbarSelect.js — danh sách tùy biến thay popup hệ thống.
+ *
+ * Áp dụng cho select trong thanh tiện ích ôn tập (.study-toolbar-select) và mọi
+ * select được đánh dấu data-custom-select (màn cấu hình thi thử).
  *
  * <select> gốc vẫn là nguồn giá trị duy nhất: mọi lựa chọn được ghi ngược vào
  * select rồi bắn sự kiện change, nên handler cũ (switchTab, lọc độ khó, đổi môn)
@@ -9,16 +12,17 @@
 const SEARCH_THRESHOLD = 8;
 const MENU_GAP = 6;
 const VIEWPORT_PADDING = 10;
+const SELECT_SELECTOR = '.study-toolbar-select, [data-custom-select]';
 const entries = new WeakMap();
 let openEntry = null;
 let globalsInstalled = false;
 
 export function initStudyToolbarSelects(scope = document) {
-  scope.querySelectorAll('.study-toolbar-select').forEach(enhance);
+  scope.querySelectorAll(SELECT_SELECTOR).forEach(enhance);
 }
 
 export function refreshStudyToolbarSelects() {
-  document.querySelectorAll('.study-toolbar-select').forEach((select) => {
+  document.querySelectorAll(SELECT_SELECTOR).forEach((select) => {
     const entry = entries.get(select);
     if (entry) entry.refresh();
     else enhance(select);
@@ -27,7 +31,7 @@ export function refreshStudyToolbarSelects() {
 
 function enhance(select) {
   if (entries.has(select)) return entries.get(select);
-  const control = select.closest('.study-toolbar-control');
+  const control = select.closest('.study-toolbar-control') || select.parentElement;
   if (!control) return null;
   const entry = createEntry(select, control);
   entries.set(select, entry);

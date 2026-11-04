@@ -7,6 +7,7 @@ import { SUBJECTS_REGISTRY, getAllSubjects, getSubjectById, KNOWLEDGE_BLOCKS } f
 import { DB } from './db.js';
 import { AuthModule, getActiveAdminEmails, getUserRole, hasPendingRedirect } from './auth.js?v=20261101-auth-popup';
 import { ArticlesModule } from './articles.js?v=20261031-news1';
+import { getSecuritySettings, updateSecuritySetting, openPasscodeDialog, stopActiveMedia } from './security.js?v=20261104-security';
 
 const lazyStyles = new Map();
 
@@ -966,8 +967,8 @@ export const NavController = {
             </div>
             <nav class="profile-sidebar-nav">
               <button class="profile-nav-item active" data-profile-section="profile"><i class="fa-solid fa-user"></i><span>Hồ sơ cá nhân</span></button>
-              <button class="profile-nav-item" data-profile-section="security"><i class="fa-solid fa-shield-halved"></i><span>Bảo mật</span></button>
-              <button class="profile-nav-item" data-profile-section="notifications"><i class="fa-solid fa-bell"></i><span>Thông báo</span></button>
+              <button class="profile-nav-item" data-profile-section="storage"><i class="fa-solid fa-box-archive"></i><span>Kho lưu trữ</span></button>
+              <button class="profile-nav-item" data-profile-section="model-ai"><i class="fa-solid fa-robot"></i><span>Model AI</span></button>
               <button class="profile-nav-item" data-profile-section="appearance"><i class="fa-solid fa-palette"></i><span>Giao diện</span></button>
               <button class="profile-nav-item" data-profile-section="language"><i class="fa-solid fa-globe"></i><span>Ngôn ngữ</span></button>
               <button class="profile-nav-item" data-profile-section="privacy"><i class="fa-solid fa-lock"></i><span>Quyền riêng tư</span></button>
@@ -1318,60 +1319,58 @@ export const NavController = {
             <h3><i class="fa-solid fa-sliders"></i> Cài đặt nhanh</h3>
           </div>
           <div class="quick-setting-grid">
-            <button type="button" class="quick-setting-card" data-profile-section="security"><i class="fa-solid fa-lock"></i><span>Đổi mật khẩu</span><i class="fa-solid fa-chevron-right"></i></button>
-            <button type="button" class="quick-setting-card" data-profile-section="security"><i class="fa-solid fa-link"></i><span>Tài khoản liên kết</span><i class="fa-solid fa-chevron-right"></i></button>
-            <button type="button" class="quick-setting-card" data-profile-section="notifications"><i class="fa-solid fa-bell"></i><span>Thông báo</span><i class="fa-solid fa-chevron-right"></i></button>
+            <button type="button" class="quick-setting-card" data-profile-section="storage"><i class="fa-solid fa-file-lines"></i><span>File rút gọn</span><i class="fa-solid fa-chevron-right"></i></button>
+            <button type="button" class="quick-setting-card" data-profile-section="storage"><i class="fa-solid fa-wand-magic-sparkles"></i><span>Đề tạo bằng AI</span><i class="fa-solid fa-chevron-right"></i></button>
+            <button type="button" class="quick-setting-card" data-profile-section="model-ai"><i class="fa-solid fa-robot"></i><span>Model AI</span><i class="fa-solid fa-chevron-right"></i></button>
             <button type="button" class="quick-setting-card" data-profile-section="language"><i class="fa-solid fa-globe"></i><span>Ngôn ngữ</span><i class="fa-solid fa-chevron-right"></i></button>
           </div>
         </div>
       `,
-      security: `
-        <div class="profile-panel single">
-          <div class="panel-head"><h3>Tài khoản &amp; Bảo mật</h3></div>
-          <div class="security-stack">
-            <div class="security-row">
-              <div>
-                <strong>Đăng nhập Google</strong>
-                <small>${email}</small>
+      storage: `
+        <div class="profile-panel single profile-storage-panel">
+          <div class="panel-head">
+            <h3><img class="storage-title-icon" src="assets/storage-folder.webp" alt="" aria-hidden="true"><i class="fa-solid fa-box-archive"></i> Kho lưu trữ</h3>
+            <button class="panel-head-action" type="button" data-storage-action="refresh"><i class="fa-solid fa-rotate"></i> Làm mới</button>
+          </div>
+          <div class="storage-group">
+            <div class="storage-group-head">
+              <div class="storage-group-title">
+                <strong>File rút gọn</strong>
+                <small id="profile-storage-summaries-note">Bản tóm tắt giáo trình đã lưu trên thiết bị</small>
               </div>
-              <button class="ghost-button" type="button">Liên kết lại</button>
+              <span class="storage-group-count" id="profile-storage-summaries-count"></span>
             </div>
-            <div class="security-row">
-              <div>
-                <strong>Đổi mật khẩu</strong>
-                <small>Cập nhật lần cuối 7 ngày trước</small>
+            <div class="storage-group-body" id="profile-storage-summaries"></div>
+          </div>
+          <div class="storage-group">
+            <div class="storage-group-head">
+              <div class="storage-group-title">
+                <strong>Đề tạo bằng AI</strong>
+                <small id="profile-storage-ai-note">Bộ câu hỏi AI đã sinh từ tài liệu</small>
               </div>
-              <button class="ghost-button" type="button">Đổi</button>
+              <span class="storage-group-count" id="profile-storage-ai-count"></span>
             </div>
-            <div class="toggle-list">
-              <label class="toggle-row"><div><strong>Xác minh 2 bước</strong><small>Khuyến nghị bật để tăng cường bảo vệ</small></div><input type="checkbox" checked></label>
-              <label class="toggle-row"><div><strong>Yêu cầu xác nhận khi đăng nhập mới</strong><small>Nhắc nhở trên thiết bị mới</small></div><input type="checkbox" checked></label>
-            </div>
+            <div class="storage-group-body" id="profile-storage-ai"></div>
           </div>
         </div>
       `,
-      notifications: `
-        <div class="profile-panel single">
-          <div class="panel-head"><h3>Thông báo</h3></div>
-          <div class="toggle-list">
-            <label class="toggle-row"><div><strong>Thông báo học tập</strong><small>Nhật ký, lời nhắc và đề xuất học tập</small></div><input type="checkbox" checked></label>
-            <label class="toggle-row"><div><strong>Thông báo ưu đãi và cập nhật</strong><small>Thông tin về tính năng mới, khuyến mãi</small></div><input type="checkbox" checked></label>
-            <label class="toggle-row"><div><strong>Email nhắc nhở</strong><small>Gửi email khi chiến lược ôn tập trễ</small></div><input type="checkbox"></label>
-          </div>
+      'model-ai': `
+        <div class="profile-panel single profile-model-ai-panel">
+          <div class="panel-head"><h3>Model AI</h3></div>
         </div>
       `,
       appearance: `
-        <div class="profile-panel single">
+        <div class="profile-panel single profile-appearance-panel">
           <div class="panel-head"><h3>Giao diện</h3></div>
           <div class="appearance-grid">
-            <button type="button" class="appearance-option" data-theme-choice="dark"><span>Chủ đề tối</span><small>Phù hợp học khuya và dễ nhìn hơn</small></button>
-            <button type="button" class="appearance-option" data-theme-choice="light"><span>Chủ đề sáng</span><small>Trải nghiệm tối giản và rõ nét</small></button>
-            <button type="button" class="appearance-option" data-theme-choice="auto"><span>Tự động</span><small>Theo cài đặt hệ thống</small></button>
+            <button type="button" class="appearance-option" data-theme-choice="dark"><span>Chủ đề tối</span><small>Phù hợp học khuya và dễ nhìn hơn</small><i class="appearance-radio" aria-hidden="true"></i></button>
+            <button type="button" class="appearance-option" data-theme-choice="light"><span>Chủ đề sáng</span><small>Trải nghiệm tối giản và rõ nét</small><i class="appearance-radio" aria-hidden="true"></i></button>
+            <button type="button" class="appearance-option" data-theme-choice="auto"><span>Tự động</span><small>Sáng 6:00–17:00, tối ngoài khung giờ này</small><i class="appearance-radio" aria-hidden="true"></i></button>
           </div>
         </div>
       `,
       language: `
-        <div class="profile-panel single">
+        <div class="profile-panel single profile-language-panel">
           <div class="panel-head"><h3>Ngôn ngữ</h3></div>
           <div class="language-list" aria-label="Chọn ngôn ngữ">
             <button type="button" class="language-option" data-translate-language="vi"><span>Tiếng Việt</span><img class="language-flag" src="https://flagcdn.com/w40/vn.png" alt="Cờ Việt Nam"></button>
@@ -1385,12 +1384,43 @@ export const NavController = {
         </div>
       `,
       privacy: `
-        <div class="profile-panel single">
+        <div class="profile-panel single profile-security-panel">
           <div class="panel-head"><h3>Quyền riêng tư</h3></div>
-          <div class="toggle-list">
-            <label class="toggle-row"><div><strong>Hiển thị hồ sơ công khai</strong><small>Cho phép người khác nhìn thấy trạng thái học tập</small></div><input type="checkbox"></label>
-            <label class="toggle-row"><div><strong>Cho phép lưu lịch sử ôn tập</strong><small>Đồng bộ tiến độ trên thiết bị của bạn</small></div><input type="checkbox" checked></label>
-            <label class="toggle-row"><div><strong>Chia sẻ dữ liệu cải thiện sản phẩm</strong><small>Giúp đội ngũ hiểu trải nghiệm học tập</small></div><input type="checkbox"></label>
+          <div class="security-list">
+            <div class="security-row">
+              <div class="security-copy">
+                <strong>Mật khẩu đăng nhập</strong>
+                <small>Mặc định tắt. Bật để yêu cầu nhập mã mỗi lần mở ứng dụng.</small>
+              </div>
+              <div class="security-side">
+                <button type="button" class="security-link" data-security-action="change-passcode" hidden>Đổi mã</button>
+                <label class="security-switch">
+                  <input type="checkbox" data-security-toggle="passcode" aria-label="Mật khẩu đăng nhập">
+                  <span class="security-switch-track" aria-hidden="true"></span>
+                </label>
+              </div>
+            </div>
+            <div class="security-row">
+              <div class="security-copy">
+                <strong>Chia sẻ lịch sử hội thoại với admin</strong>
+                <small data-security-note="chat-share">Mặc định tắt. Khi tắt, admin không thể xem lịch sử hội thoại chatbot của bạn.</small>
+              </div>
+              <label class="security-switch">
+                <input type="checkbox" data-security-toggle="chat-share" aria-label="Chia sẻ lịch sử hội thoại với admin">
+                <span class="security-switch-track" aria-hidden="true"></span>
+              </label>
+            </div>
+            <p class="security-consent-note" data-security-consent hidden>Lịch sử hội thoại sẽ được dùng cho huấn luyện AI, cam kết không sử dụng cho các hành vi phi pháp.</p>
+            <div class="security-row">
+              <div class="security-copy">
+                <strong>Quyền camera &amp; micro</strong>
+                <small>Mặc định bật. Tắt để chặn ứng dụng truy cập camera và micro.</small>
+              </div>
+              <label class="security-switch">
+                <input type="checkbox" data-security-toggle="media" aria-label="Quyền camera và micro">
+                <span class="security-switch-track" aria-hidden="true"></span>
+              </label>
+            </div>
           </div>
         </div>
       `,
@@ -1419,6 +1449,10 @@ export const NavController = {
     const html = sections[section] || sections.profile;
     content.innerHTML = html;
     content.classList.toggle('has-hero', section === 'profile');
+    content.classList.toggle('has-storage', section === 'storage');
+    content.classList.toggle('has-appearance', section === 'appearance');
+    content.classList.toggle('has-language', section === 'language');
+    content.classList.toggle('has-privacy', section === 'privacy');
 
     content.querySelectorAll('[data-profile-section]').forEach((button) => {
       button.addEventListener('click', () => {
@@ -1429,16 +1463,31 @@ export const NavController = {
       });
     });
 
+    if (section === 'storage') {
+      content.querySelector('[data-storage-action="refresh"]')?.addEventListener('click', () => {
+        window.renderProfileStorageSection?.(content);
+      });
+      window.renderProfileStorageSection?.(content);
+    }
+
+    if (section === 'privacy') {
+      this.setupPrivacySection(content);
+    }
+
     content.querySelectorAll('.appearance-option').forEach((button) => {
       button.classList.toggle('active', button.dataset.themeChoice === (DB.getSettings().theme || 'light'));
       button.addEventListener('click', () => {
         const choice = button.dataset.themeChoice;
-        const appliedTheme = choice === 'auto'
-          ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')
-          : choice;
-        document.documentElement.setAttribute('data-theme', appliedTheme);
-        DB.saveSettings({ theme: choice });
-        if (typeof updateThemeButton === 'function') updateThemeButton(appliedTheme);
+        if (typeof window.applyThemeChoice === 'function') {
+          window.applyThemeChoice(choice);
+        } else {
+          const hour = new Date().getHours();
+          const appliedTheme = choice === 'auto'
+            ? (hour >= 6 && hour < 17 ? 'light' : 'dark')
+            : choice;
+          document.documentElement.setAttribute('data-theme', appliedTheme);
+          DB.saveSettings({ theme: choice });
+        }
         content.querySelectorAll('.appearance-option').forEach((item) => {
           item.classList.toggle('active', item === button);
         });
@@ -1465,6 +1514,69 @@ export const NavController = {
           item.classList.toggle('active', item.dataset.translateLanguage === language);
         });
       });
+    });
+  },
+
+  setupPrivacySection(content) {
+    const settings = getSecuritySettings();
+    const passToggle = content.querySelector('[data-security-toggle="passcode"]');
+    const chatToggle = content.querySelector('[data-security-toggle="chat-share"]');
+    const mediaToggle = content.querySelector('[data-security-toggle="media"]');
+    const changePass = content.querySelector('[data-security-action="change-passcode"]');
+    const chatNote = content.querySelector('[data-security-note="chat-share"]');
+    const consentNote = content.querySelector('[data-security-consent]');
+    if (!passToggle || !chatToggle || !mediaToggle) return;
+
+    const syncPasscode = (enabled) => {
+      passToggle.checked = enabled;
+      if (changePass) changePass.hidden = !enabled;
+    };
+    const syncChat = (enabled) => {
+      chatToggle.checked = enabled;
+      if (chatNote) {
+        chatNote.textContent = enabled
+          ? 'Đã bật. Lịch sử hội thoại chatbot của bạn sẽ hiển thị cho admin.'
+          : 'Mặc định tắt. Khi tắt, admin không thể xem lịch sử hội thoại chatbot của bạn.';
+      }
+      if (consentNote) consentNote.hidden = !enabled;
+    };
+
+    syncPasscode(!!settings.passcodeEnabled);
+    syncChat(!!settings.shareChatHistory);
+    mediaToggle.checked = settings.mediaAllowed !== false;
+
+    passToggle.addEventListener('change', async () => {
+      const wantsOn = passToggle.checked;
+      passToggle.checked = !wantsOn;
+      await openPasscodeDialog(wantsOn ? 'create' : 'disable');
+      syncPasscode(!!getSecuritySettings().passcodeEnabled);
+    });
+
+    changePass?.addEventListener('click', async () => {
+      await openPasscodeDialog('change');
+      syncPasscode(!!getSecuritySettings().passcodeEnabled);
+    });
+
+    chatToggle.addEventListener('change', () => {
+      const enabled = chatToggle.checked;
+      updateSecuritySetting({ shareChatHistory: enabled });
+      syncChat(enabled);
+      window.showToast?.(
+        enabled
+          ? 'Đã bật chia sẻ lịch sử hội thoại với admin.'
+          : 'Đã tắt chia sẻ lịch sử hội thoại. Admin sẽ không xem được lịch sử của bạn.',
+        'info'
+      );
+    });
+
+    mediaToggle.addEventListener('change', () => {
+      const allowed = mediaToggle.checked;
+      updateSecuritySetting({ mediaAllowed: allowed });
+      if (!allowed) stopActiveMedia();
+      window.showToast?.(
+        allowed ? 'Đã bật quyền camera và micro.' : 'Đã tắt quyền camera và micro.',
+        'info'
+      );
     });
   },
 

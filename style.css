@@ -3320,6 +3320,7 @@ body.profile-center-open {
 .appearance-option.active { border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08); }
 .appearance-option span { display:block; font-weight:600; font-size: 0.9rem; }
 .appearance-option small { color: #94a3b8; font-size: 0.82rem; margin-top: 2px; }
+.appearance-radio { display: none; }
 .language-option { width: 100%; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left; padding: 12px 14px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.07); background: rgba(15, 23, 42, 0.4); color: #f8fafc; font-size: 0.9rem; cursor: pointer; transition: all 0.18s ease; }
 .language-flag { width: 24px; height: 16px; flex: 0 0 24px; object-fit: cover; border-radius: 3px; box-shadow: 0 1px 3px rgba(15, 23, 42, 0.22); }
 .language-option.active { border-color: rgba(16, 185, 129, 0.4); background: rgba(16, 185, 129, 0.08); color: #34d399; font-weight: 600; }
@@ -3775,8 +3776,9 @@ body {
 .exam-difficulty-legend strong { color: var(--text-primary); font-weight: 800; }
 
 /* Draggable Difficulty Bar */
-.draggable-bar { cursor: ew-resize; user-select: none; position: relative; }
+.draggable-bar { cursor: ew-resize; user-select: none; position: relative; touch-action: pan-y; }
 .draggable-bar > div { position: relative; transition: flex 0.2s ease; }
+.draggable-bar.is-dragging > div { transition: none; }
 .diff-bar-handle { 
   position: absolute; 
   right: -2px; 
@@ -5048,6 +5050,8 @@ body {
 
 /* ── Danh sách tùy biến của thanh tiện ích (thay popup hệ thống) ── */
 .study-toolbar-control.is-custom .study-toolbar-select { display: none; }
+/* Select ngoài thanh tiện ích (màn cấu hình thi): chỉ bật trigger trên mobile */
+.custom-select-host > .st-select-trigger { display: none; }
 .study-toolbar-control.is-open { border-color: var(--study-accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--study-accent) 18%, transparent); }
 
 .st-select-trigger {
@@ -18891,6 +18895,15 @@ body.ai-generating-lock #cera-panel { display: none; }
   :is(#exam-start-card, #sq-landing) .exam-mobile-subject-chevron { position: absolute; right: 14px; color: var(--text-muted); font-size: 12px; pointer-events: none; }
   [data-theme="dark"] :is(#exam-start-card, #sq-landing) #exam-subject-select-mobile { border: 0 !important; background-color: transparent !important; color: #E1E9E6 !important; }
 
+  /* Màn cấu hình thi: popup tùy biến thay select hệ thống (chỉ mobile) */
+  :is(#exam-start-card, #sq-landing) .custom-select-host.is-custom > [data-custom-select] { display: none; }
+  :is(#exam-start-card, #sq-landing) .custom-select-host.is-custom > .st-select-trigger { display: flex; height: auto; }
+  :is(#exam-start-card, #sq-landing) .custom-select-host .st-select-caret { color: var(--text-muted); font-size: 12px; }
+  :is(#exam-start-card, #sq-landing) .exam-mobile-subject-field.is-custom > .exam-mobile-subject-chevron { display: none; }
+  :is(#exam-start-card, #sq-landing) .exam-mobile-subject-field .st-select-value { font-size: 14px; font-weight: 700; }
+  :is(#exam-start-card, #sq-landing) .exam-info-count .st-select-trigger { width: 100%; }
+  :is(#exam-start-card, #sq-landing) .exam-info-count .st-select-value { font-size: 16px; font-weight: 800; line-height: 1.3; }
+
   :is(#exam-start-card, #sq-landing) .exam-start-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 0;
@@ -18963,6 +18976,8 @@ body.ai-generating-lock #cera-panel { display: none; }
     transform: translateY(-50%);
   }
   :is(#exam-start-card, #sq-landing) .diff-bar-handle:hover { background: #fff; }
+  /* Vùng chạm mở rộng ~44px để kéo được bằng ngón tay */
+  :is(#exam-start-card, #sq-landing) .diff-bar-handle::after { content: ""; position: absolute; inset: -13px; }
 
   :is(#exam-start-card, #sq-landing) .exam-start-submit { min-height: 52px; border-radius: 16px; font-size: 15.5px; }
   :is(#exam-start-card, #sq-landing) .exam-start-submit .esl-desktop { display: none; }
@@ -19798,3 +19813,68 @@ body.ai-generating-lock #cera-panel { display: none; }
 [data-theme="dark"] .bank-dd-menu {
   box-shadow: 0 20px 44px rgba(0, 0, 0, .55), 0 2px 8px rgba(0, 0, 0, .4);
 }
+
+/* ════════════════════════════════════════════════════════════
+   PROFILE CENTER — KHO LƯU TRỮ (file rút gọn + đề tạo bằng AI)
+   ════════════════════════════════════════════════════════════ */
+.profile-storage-panel .storage-group {
+  padding: 12px 0 4px;
+  border-top: 1px solid var(--border);
+}
+.profile-storage-panel .storage-group:first-of-type {
+  padding-top: 2px;
+  border-top: 0;
+}
+.storage-group-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+.storage-group-title { min-width: 0; }
+.storage-group-title strong {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.storage-group-title small {
+  display: block;
+  margin-top: 2px;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+.storage-group-count {
+  flex: 0 0 auto;
+  padding: 3px 9px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+  font-size: 0.74rem;
+  font-weight: 700;
+}
+.storage-group-count:empty { display: none; }
+.storage-group-body {
+  max-height: 320px;
+  overflow-y: auto;
+  padding-right: 2px;
+  scrollbar-width: thin;
+}
+.storage-group-body .ai-history-item { padding: 10px 2px; }
+.storage-group-body .ai-history-item:last-child { border-bottom: 0; }
+.storage-title-icon,
+.storage-meta-icon,
+.storage-empty-art,
+.storage-empty-cta { display: none; }
+.storage-empty-hint {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.storage-group-body .ai-history-empty { padding: 22px 14px; text-align: center; }
+@media (hover: none) {
+  .storage-group-body .ai-history-delete { opacity: 1; }
+}
+

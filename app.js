@@ -13,9 +13,9 @@ import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion, s
 import { planCeraNavigation, runCeraNavigation } from './modules/ceraNav.js';
 import { searchSubjectKnowledge } from './modules/knowledgeBase.js';
 import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer, pullFeedbacksFromServer, pullSubjectDetailsFromServer } from './modules/sync.js';
-import { initAdminAuth } from './modules/admin.js';
+import { initAdminAuth } from './modules/admin.js?v=20261104-auto-theme';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js';
-import { NavController } from './modules/navigation.js?v=20261104-bank-scope';
+import { NavController } from './modules/navigation.js?v=20261104-auto-theme';
 import { AuthModule, getUserRole, getActiveAdminEmails } from './modules/auth.js?v=20261101-auth-popup';
 import { ArticlesModule } from './modules/articles.js?v=20261031-news1';
 import { readSummary, writeSummary, clearSessionCache, summaryIsComplete, summaryIsStale } from './modules/firestoreSummary.js';
@@ -24,12 +24,15 @@ import { updateUserRoleInFirestore } from './modules/firestoreUsers.js';
 import { renderMarkdownTables } from './modules/markdownTables.js';
 import { mountRichTextEditor, prepareRichTextDocument, readSummaryText, runSummaryEditorTableCommand, runSummaryEditorTool, sanitizeRichTextHtml } from './modules/richTextEditor.js';
 import { sanitizeDisplayHtml } from './modules/sanitizeHtml.js';
-import { initStudyToolbarSelects, refreshStudyToolbarSelects } from './modules/studyToolbarSelect.js';
+import { initStudyToolbarSelects, refreshStudyToolbarSelects } from './modules/studyToolbarSelect.js?v=20261104-exam-select-menu';
 import { QuizShares, QuizSharePage } from './modules/quizShare.js';
 import { createSummaryDocumentVersion, readSummaryDocumentHistory } from './modules/summaryDocumentHistory.js';
 import { updateThemeMorphIcons } from './vendor/themeMorphIcon.js';
 import { exportSummaryHtmlToDocx } from './vendor/summaryDocx.js';
 import { animateStudySpaceHeroAccents, mountStudySpaceAssistantButton } from './vendor/studySpaceAssistantAnimation.js';
+import { initSecurity } from './modules/security.js?v=20261104-security';
+
+initSecurity();
 
 const _lazyAssets = new Map();
 
@@ -314,12 +317,13 @@ async function init() {
   if (window.renderNotificationCenter) window.renderNotificationCenter();
   }
 
-  // Apply saved theme
+  // Apply saved theme (auto: light from 06:00 to 17:00, dark otherwise)
   const settings = DB.getSettings();
-  if (settings.theme === 'dark') {
-    document.documentElement.setAttribute('data-theme', 'dark');
-  }
-  updateThemeButton(settings.theme === 'dark' ? 'dark' : 'light');
+  applyTheme(settings.theme);
+  window.setInterval(syncAutoTheme, 60 * 1000);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') syncAutoTheme();
+  });
 
   updateBankCount();
   initSubjectSelector();
@@ -3055,6 +3059,146 @@ async function viewAllAIQuestionHistory() {
 }
 window.viewAllAIQuestionHistory = viewAllAIQuestionHistory;
 
+/* ═════════════ Profile Center — Kho lưu trữ ═════════════ */
+
+const PROFILE_STORAGE_AI_LIMIT = 30;
+
+function storageItemParam(value) {
+  return escapeHtml(String(value || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'"));
+}
+
+function storageSummaryItemHtml(entry, index) {
+  const title = escapeHtml(entry.title || 'Bản rút gọn không tên');
+  const isDocx = String(entry.title || '').toLowerCase().endsWith('.docx');
+  const kind = isDocx ? 'doc' : 'pdf';
+  const icon = isDocx ? 'fa-file-word' : 'fa-file-pdf';
+  const modeLabel = { quick: 'Nhanh', study: 'Chi tiết' }[entry.mode] || 'Rút gọn';
+  const savedAt = entry.savedAt ? new Date(entry.savedAt).toLocaleDateString('vi-VN') : '';
+  const meta = [`${modeLabel} · ${savedAt || 'Gần đây'}`, entry.shareUrl ? 'Đã chia sẻ' : ''].filter(Boolean).join(' · ');
+
+  return `<div class="ai-history-item" role="button" tabindex="0" onclick="openStorageSummary(${index})" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openStorageSummary(${index});}">
+    <span class="ai-history-file ai-file-${kind}" aria-hidden="true"><i class="fa-solid ${icon}"></i></span>
+    <span class="ai-history-main">
+      <span class="ai-history-title">${title}</span>
+      <span class="ai-history-meta"><i class="fa-regular fa-calendar storage-meta-icon" aria-hidden="true"></i>${escapeHtml(meta)}</span>
+    </span>
+    <button type="button" class="ai-history-delete" onclick="event.stopPropagation(); deleteStorageSummary('${storageItemParam(entry.summaryId)}')" title="Xóa file rút gọn" aria-label="Xóa file rút gọn">
+      <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+    </button>
+    <i class="fa-solid fa-chevron-right ai-history-chevron" aria-hidden="true"></i>
+  </div>`;
+}
+
+function storageAiItemHtml(item) {
+  const count = Array.isArray(item.questions) ? item.questions.length : 0;
+  const statusLabel = { saved: 'Đã lưu', draft: 'Nháp' }[item.status] || '';
+  const date = new Date(item.createdAt);
+  const day = Number.isNaN(date.getTime()) ? '' : date.toLocaleDateString('vi-VN');
+  const meta = [`${count} câu`, day, statusLabel].filter(Boolean).join(' · ') + (item._localOnly ? ' · Local' : '');
+  const id = storageItemParam(item.id);
+
+  return `<div class="ai-history-item" role="button" tabindex="0" onclick="openStorageAIExam('${id}')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openStorageAIExam('${id}');}">
+    <span class="ai-history-file ai-file-text" aria-hidden="true"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+    <span class="ai-history-main">
+      <span class="ai-history-title">${escapeHtml(item.source?.title || 'Tài liệu không tên')}</span>
+      <span class="ai-history-meta">${escapeHtml(meta)}</span>
+    </span>
+    <button type="button" class="ai-history-delete" onclick="event.stopPropagation(); deleteStorageAIExam('${id}')" title="Xóa đề đã tạo" aria-label="Xóa đề đã tạo">
+      <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+    </button>
+    <i class="fa-solid fa-chevron-right ai-history-chevron" aria-hidden="true"></i>
+  </div>`;
+}
+
+function storageGroupHost(content, id) {
+  return content.querySelector(`#${id}`) || document.getElementById(id);
+}
+
+function storageGroupEmpty(message, { hint = '', art = '', ctaLabel = '', ctaAction = '' } = {}) {
+  return `<div class="ai-history-empty storage-empty">
+    ${art ? `<img class="storage-empty-art" src="${art}" alt="" aria-hidden="true">` : '<i class="fa-solid fa-inbox" aria-hidden="true"></i>'}
+    <p>${message}</p>
+    ${hint ? `<span class="storage-empty-hint">${hint}</span>` : ''}
+    ${ctaLabel ? `<button type="button" class="storage-empty-cta" onclick="${ctaAction}"><i class="fa-solid fa-wand-magic-sparkles" aria-hidden="true"></i> ${ctaLabel}</button>` : ''}
+  </div>`;
+}
+
+function renderProfileStorageSummaries(content = document) {
+  const body = storageGroupHost(content, 'profile-storage-summaries');
+  if (!body) return;
+  const history = readCurriculumSummaryHistory();
+  const count = storageGroupHost(content, 'profile-storage-summaries-count');
+  if (count) count.textContent = history.length ? `${history.length} file` : '';
+  body.innerHTML = history.length
+    ? history.map(storageSummaryItemHtml).join('')
+    : storageGroupEmpty('Chưa có file rút gọn', { hint: 'Bản tóm tắt bạn tạo ở mục Tóm tắt giáo trình sẽ được lưu tại đây.' });
+}
+
+async function renderProfileStorageAI(content = document) {
+  const body = storageGroupHost(content, 'profile-storage-ai');
+  if (!body) return;
+  const count = storageGroupHost(content, 'profile-storage-ai-count');
+
+  const user = AuthModule.user || NavController?.currentUser;
+  if (!user || !user.email) {
+    if (count) count.textContent = '';
+    body.innerHTML = storageGroupEmpty('Đăng nhập để xem đề đã tạo bằng AI');
+    return;
+  }
+
+  body.innerHTML = '<div class="ai-history-empty"><i class="fa-solid fa-clock"></i><p>Đang tải Kho lưu trữ...</p></div>';
+  const result = await AIQuestionHistory.list({ limit: PROFILE_STORAGE_AI_LIMIT });
+  if (!result.ok) {
+    if (count) count.textContent = '';
+    body.innerHTML = storageGroupEmpty(`Không tải được đề AI: ${escapeHtml(result.message || result.error || 'Lỗi không xác định')}`);
+    return;
+  }
+  if (count) count.textContent = result.items.length ? `${result.items.length} đề` : '';
+  body.innerHTML = result.items.length
+    ? result.items.map(storageAiItemHtml).join('')
+    : storageGroupEmpty('Chưa có đề nào tạo bằng AI', {
+      hint: 'Bộ câu hỏi bạn sinh từ tài liệu sẽ xuất hiện tại đây.',
+      art: 'assets/storage-ai-doc.webp',
+      ctaLabel: 'Tạo đề từ tài liệu',
+      ctaAction: "NavController.closeProfileCenter(); NavController.navigateToPage('aigen')"
+    });
+}
+
+function renderProfileStorageSection(content = document) {
+  renderProfileStorageSummaries(content);
+  return renderProfileStorageAI(content);
+}
+
+function openStorageSummary(index) {
+  const history = readCurriculumSummaryHistory();
+  const entry = history[Number(index)];
+  if (!entry) return showToast('File rút gọn này không còn trong Kho lưu trữ.', 'warning');
+  NavController.closeProfileCenter();
+  NavController.navigateToPage('curriculum-summary');
+  csLoadHistoryEntry(Number(index));
+}
+
+async function deleteStorageSummary(summaryId) {
+  await csDeleteHistoryEntry(summaryId);
+  renderProfileStorageSummaries();
+}
+
+function openStorageAIExam(id) {
+  NavController.closeProfileCenter();
+  return openAIQuestionHistory(id);
+}
+
+async function deleteStorageAIExam(id) {
+  await deleteAIQuestionHistory(id);
+  renderProfileStorageSection();
+}
+
+window.renderProfileStorageSection = renderProfileStorageSection;
+window.openStorageSummary = openStorageSummary;
+window.deleteStorageSummary = deleteStorageSummary;
+window.openStorageAIExam = openStorageAIExam;
+window.deleteStorageAIExam = deleteStorageAIExam;
+
 function queuePendingAIHistorySave() {
   const historyId = State.source.pendingHistoryId;
   if (!historyId) return;
@@ -3798,7 +3942,7 @@ function openSettings() {
   if (apiInput) apiInput.value = settings.apiKey || '';
 
   const themeToggle = document.getElementById('settings-theme');
-  if (themeToggle) themeToggle.checked = settings.theme === 'dark';
+  if (themeToggle) themeToggle.checked = document.documentElement.getAttribute('data-theme') === 'dark';
 
   panel.classList.add('open');
   overlay.classList.add('open');
@@ -3819,6 +3963,35 @@ function saveSettings() {
 
   closeSettings();
   showToast('Đã lưu cài đặt!', 'success');
+}
+
+const AUTO_THEME_LIGHT_START = 6;
+const AUTO_THEME_LIGHT_END = 17;
+
+function resolveThemeChoice(choice, now = new Date()) {
+  if (choice === 'dark' || choice === 'light') return choice;
+  const hour = now.getHours();
+  return hour >= AUTO_THEME_LIGHT_START && hour < AUTO_THEME_LIGHT_END ? 'light' : 'dark';
+}
+
+function applyTheme(choice) {
+  const appliedTheme = resolveThemeChoice(choice);
+  document.documentElement.setAttribute('data-theme', appliedTheme);
+  updateThemeButton(appliedTheme);
+  return appliedTheme;
+}
+
+function applyThemeChoice(choice, options = {}) {
+  const normalized = ['light', 'dark', 'auto'].includes(choice) ? choice : 'light';
+  if (options.persist !== false) DB.saveSettings({ theme: normalized });
+  return applyTheme(normalized);
+}
+
+function syncAutoTheme() {
+  if (DB.getSettings().theme !== 'auto') return;
+  if (document.documentElement.getAttribute('data-theme') !== resolveThemeChoice('auto')) {
+    applyTheme('auto');
+  }
 }
 
 function toggleTheme() {
@@ -4133,85 +4306,113 @@ function updateDifficultyBar(id, ratioActual) {
 }
 
 /**
- * Kéo thanh màu để điều chỉnh độ khó
+ * Kéo thanh màu để điều chỉnh độ khó (chuột, cảm ứng, bút stylus)
  */
 function initDraggableDifficultyBar() {
   const bar = document.getElementById('exam-start-diff-bar');
   if (!bar) return;
 
-  let isDragging = false;
-  let dragTarget = null;
-
-  bar.addEventListener('mousedown', (e) => {
-    const handle = e.target.closest('.diff-bar-handle');
-    if (!handle) return;
-    
-    isDragging = true;
-    dragTarget = handle.parentElement;
-    e.preventDefault();
+  const readRatio = () => ({
+    easy: parseFloat(bar.querySelector('.diff-bar-easy').style.flex) || 50,
+    medium: parseFloat(bar.querySelector('.diff-bar-medium').style.flex) || 30,
+    hard: parseFloat(bar.querySelector('.diff-bar-hard').style.flex) || 20
   });
 
-  document.addEventListener('mousemove', (e) => {
-    if (!isDragging || !dragTarget) return;
-    
+  const applyRatio = (clientX) => {
     const barRect = bar.getBoundingClientRect();
-    const barWidth = barRect.width;
-    const mouseX = e.clientX - barRect.left;
-    const percentage = Math.max(0, Math.min(100, (mouseX / barWidth) * 100));
-    
-    const difficulty = dragTarget.dataset.difficulty;
-    
-    // Get current flex values
-    const easy = parseFloat(bar.querySelector('.diff-bar-easy').style.flex) || 50;
-    const medium = parseFloat(bar.querySelector('.diff-bar-medium').style.flex) || 30;
-    const hard = parseFloat(bar.querySelector('.diff-bar-hard').style.flex) || 20;
-    
+    if (!barRect.width) return;
+    const percentage = Math.max(0, Math.min(100, ((clientX - barRect.left) / barRect.width) * 100));
+    const { easy, medium, hard } = readRatio();
+
     let newEasy = easy, newMedium = medium, newHard = hard;
-    
-    if (difficulty === 'easy') {
-      const newEasyValue = Math.max(10, Math.min(80, percentage));
-      const remaining = 100 - newEasyValue;
-      const ratio = remaining / (medium + hard);
-      newEasy = newEasyValue;
-      newMedium = Math.round(medium * ratio);
+
+    if (dragTarget.dataset.difficulty === 'easy') {
+      newEasy = Math.max(10, Math.min(80, percentage));
+      const scale = (100 - newEasy) / (medium + hard);
+      newMedium = Math.round(medium * scale);
       newHard = 100 - newEasy - newMedium;
-    } else if (difficulty === 'medium') {
-      const easyWidth = (easy / 100) * barWidth;
-      const newMediumValue = Math.max(10, Math.min(80, percentage - (easy)));
-      newMedium = newMediumValue;
+    } else if (dragTarget.dataset.difficulty === 'medium') {
+      newMedium = Math.max(10, Math.min(80, percentage - easy));
       newHard = 100 - easy - newMedium;
       if (newHard < 10) {
         newHard = 10;
         newMedium = 100 - easy - newHard;
       }
     }
-    
+
     updateDifficultyUI(Math.round(newEasy), Math.round(newMedium), Math.round(newHard));
+  };
+
+  // Trên điện thoại ngón tay khó bám đúng nút 18px: chạm đâu cũng kéo nút biên gần nhất
+  const nearestSegment = (clientX, barRect) => {
+    const { easy, medium } = readRatio();
+    const easyEdge = barRect.left + (easy / 100) * barRect.width;
+    const mediumEdge = barRect.left + ((easy + medium) / 100) * barRect.width;
+    return Math.abs(clientX - easyEdge) <= Math.abs(clientX - mediumEdge)
+      ? bar.querySelector('.diff-bar-easy')
+      : bar.querySelector('.diff-bar-medium');
+  };
+
+  // Ngưỡng px: phân biệt "kéo ngang" với "chạm/vuốt dọc để cuộn trang"
+  const DRAG_SLOP = 4;
+  const SCROLL_SLOP = 10;
+  let pending = null;
+  let dragTarget = null;
+  let activePointerId = null;
+
+  bar.addEventListener('pointerdown', (event) => {
+    const barRect = bar.getBoundingClientRect();
+    if (!barRect.width) return;
+    const handle = event.target.closest('.diff-bar-handle');
+    const target = handle ? handle.parentElement : nearestSegment(event.clientX, barRect);
+    if (!target) return;
+    pending = { pointerId: event.pointerId, startX: event.clientX, startY: event.clientY, target };
+    if (bar.setPointerCapture) bar.setPointerCapture(event.pointerId);
   });
 
-  document.addEventListener('mouseup', () => {
-    if (isDragging) {
-      isDragging = false;
-      dragTarget = null;
-      
-      // Save to settings
-      const easy = parseFloat(bar.querySelector('.diff-bar-easy').style.flex) || 50;
-      const medium = parseFloat(bar.querySelector('.diff-bar-medium').style.flex) || 30;
-      const hard = parseFloat(bar.querySelector('.diff-bar-hard').style.flex) || 20;
-      
-      const settings = DB.getSettings();
-      settings.diffRatio = {
-        easy: easy / 100,
-        medium: medium / 100,
-        hard: hard / 100
-      };
-      DB.saveSettings(settings);
-      
-      // Chuyển dropdown về "Tùy chọn" khi user kéo tay
-      const diffSelect = document.getElementById('study-difficulty-select');
-      if (diffSelect) diffSelect.value = 'custom';
+  bar.addEventListener('pointermove', (event) => {
+    if (!pending || event.pointerId !== pending.pointerId) return;
+    const dx = event.clientX - pending.startX;
+    const dy = event.clientY - pending.startY;
+
+    if (!dragTarget) {
+      if (Math.abs(dy) > SCROLL_SLOP && Math.abs(dy) > Math.abs(dx)) {
+        pending = null;
+        return;
+      }
+      if (Math.abs(dx) < DRAG_SLOP) return;
+      dragTarget = pending.target;
+      activePointerId = pending.pointerId;
+      bar.classList.add('is-dragging');
     }
+    applyRatio(event.clientX);
   });
+
+  const stopDrag = (event) => {
+    if (event && event.pointerId !== (activePointerId || pending?.pointerId)) return;
+    const wasDragging = Boolean(dragTarget);
+    pending = null;
+    dragTarget = null;
+    activePointerId = null;
+    bar.classList.remove('is-dragging');
+    if (!wasDragging) return;
+
+    const { easy, medium, hard } = readRatio();
+    const settings = DB.getSettings();
+    settings.diffRatio = {
+      easy: easy / 100,
+      medium: medium / 100,
+      hard: hard / 100
+    };
+    DB.saveSettings(settings);
+
+    // Chuyển dropdown về "Tùy chọn" khi user kéo tay
+    const diffSelect = document.getElementById('study-difficulty-select');
+    if (diffSelect) diffSelect.value = 'custom';
+  };
+
+  bar.addEventListener('pointerup', stopDrag);
+  bar.addEventListener('pointercancel', stopDrag);
 }
 
 function updateDifficultyUI(easy, medium, hard) {
@@ -4770,6 +4971,7 @@ Object.assign(window, {
   closeSettings,
   saveSettings,
   toggleTheme,
+  applyThemeChoice,
   togglePauseExam,
   openModal,
   closeModal,

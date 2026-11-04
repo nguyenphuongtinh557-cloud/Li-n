@@ -1,0 +1,364 @@
+/* security.css — màn khóa mở ứng dụng, modal mã đăng nhập, công tắc quyền riêng tư */
+
+html.fteca-lock-pending body { overflow: hidden !important; }
+html.fteca-lock-pending body > *:not(#fteca-lock-screen) { visibility: hidden !important; }
+
+/* ─── Màn khóa ─── */
+.fteca-lock {
+  position: fixed;
+  inset: 0;
+  z-index: 30000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background:
+    url("assets/profile-leaf-top.svg") top left / 150px auto no-repeat,
+    url("assets/profile-leaf-bottom.svg") right bottom / 160px auto no-repeat,
+    radial-gradient(70% 34% at 100% 0%, rgba(226, 247, 235, 0.8), transparent 70%),
+    linear-gradient(180deg, #FFFFFF 0%, #FDFFFE 46%, #F3FBF7 100%);
+  opacity: 0;
+  transition: opacity 0.22s ease;
+}
+.fteca-lock.is-visible { opacity: 1; }
+.fteca-lock.is-leaving { opacity: 0; pointer-events: none; }
+
+.fteca-lock-card {
+  width: min(366px, 100%);
+  padding: 30px 24px 22px;
+  border: 1px solid #E7F0EA;
+  border-radius: 24px;
+  background: #FFFFFF;
+  box-shadow: 0 24px 60px rgba(12, 74, 48, 0.14);
+  text-align: center;
+  font-family: inherit;
+}
+.fteca-lock-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 58px;
+  height: 58px;
+  margin: 0 auto 14px;
+  border-radius: 50%;
+  background: #E9F8F0;
+  color: #12A85B;
+  font-size: 1.35rem;
+}
+.fteca-lock-card h2 {
+  margin: 0;
+  color: #0E1B14;
+  font-size: 1.28rem;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+.fteca-lock-card > p {
+  margin: 7px 0 20px;
+  color: #66786F;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+.fteca-lock-form { display: flex; flex-direction: column; gap: 10px; }
+.fteca-lock-input {
+  height: 52px;
+  padding: 0 16px;
+  border: 1px solid #D9E7E0;
+  border-radius: 14px;
+  background: #F9FCFB;
+  color: #0E1B14;
+  font-family: inherit;
+  font-size: 1.02rem;
+  letter-spacing: 0.12em;
+  text-align: center;
+  outline: none;
+}
+.fteca-lock-input:focus {
+  border-color: #7ED9A9;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
+}
+.fteca-lock-error {
+  min-height: 16px;
+  margin: 0;
+  color: #DC2626;
+  font-size: 0.78rem;
+}
+.fteca-lock-submit {
+  height: 50px;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #2FCB78 0%, #189E55 100%);
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 10px 22px rgba(23, 168, 90, 0.24);
+}
+.fteca-lock-submit:active { transform: scale(0.985); }
+.fteca-lock-submit:disabled { opacity: 0.7; cursor: progress; }
+.fteca-lock-forgot {
+  margin-top: 14px;
+  border: 0;
+  background: none;
+  color: #6B7D75;
+  font-family: inherit;
+  font-size: 0.78rem;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.fteca-lock-forgot:disabled { opacity: 0.6; cursor: progress; }
+
+[data-theme="dark"] .fteca-lock {
+  background:
+    radial-gradient(140% 46% at 8% -6%, rgba(32, 201, 151, 0.12), transparent 62%),
+    radial-gradient(120% 40% at 100% 104%, rgba(32, 201, 151, 0.08), transparent 60%),
+    linear-gradient(180deg, #0B1210 0%, #0A0A0A 60%, #0B1210 100%);
+}
+[data-theme="dark"] .fteca-lock-card {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #101713;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+[data-theme="dark"] .fteca-lock-icon { background: rgba(32, 201, 151, 0.14); color: #6EE7B7; }
+[data-theme="dark"] .fteca-lock-card h2 { color: #E9F3EE; }
+[data-theme="dark"] .fteca-lock-card > p { color: #9DB0A7; }
+[data-theme="dark"] .fteca-lock-input {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.045);
+  color: #E9F3EE;
+}
+[data-theme="dark"] .fteca-lock-input:focus { border-color: rgba(46, 204, 151, 0.5); }
+[data-theme="dark"] .fteca-lock-forgot { color: #9DB0A7; }
+
+/* ─── Modal tạo / đổi / tắt mã ─── */
+.fteca-passcode-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 13000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(2, 8, 5, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+.fteca-passcode-overlay.open { opacity: 1; visibility: visible; }
+
+.fteca-passcode-card {
+  width: min(430px, 100%);
+  max-height: calc(100vh - 40px);
+  overflow: auto;
+  padding: 22px;
+  border: 1px solid #E7F0EA;
+  border-radius: 20px;
+  background: #FFFFFF;
+  box-shadow: 0 26px 70px rgba(4, 20, 12, 0.25);
+  font-family: inherit;
+}
+.fteca-passcode-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+.fteca-passcode-icon {
+  display: flex;
+  flex: 0 0 42px;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 13px;
+  background: #E9F8F0;
+  color: #12A85B;
+  font-size: 1.05rem;
+}
+.fteca-passcode-head h3 {
+  margin: 0;
+  color: #0E1B14;
+  font-size: 1.06rem;
+  font-weight: 800;
+}
+.fteca-passcode-head p {
+  margin: 5px 0 0;
+  color: #66786F;
+  font-size: 0.78rem;
+  line-height: 1.5;
+}
+.fteca-passcode-form { display: flex; flex-direction: column; gap: 12px; }
+.fteca-field { display: flex; flex-direction: column; gap: 6px; }
+.fteca-field span { color: #3E4F47; font-size: 0.76rem; font-weight: 700; }
+.fteca-field input {
+  height: 46px;
+  padding: 0 14px;
+  border: 1px solid #D9E7E0;
+  border-radius: 12px;
+  background: #F9FCFB;
+  color: #0E1B14;
+  font-family: inherit;
+  font-size: 0.92rem;
+  outline: none;
+}
+.fteca-field input:focus {
+  border-color: #7ED9A9;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.12);
+}
+.fteca-passcode-error {
+  min-height: 16px;
+  margin: 0;
+  color: #DC2626;
+  font-size: 0.78rem;
+}
+.fteca-passcode-actions { display: flex; gap: 10px; margin-top: 4px; }
+.fteca-passcode-cancel {
+  flex: 1;
+  height: 46px;
+  border: 1px solid #DFE8E4;
+  border-radius: 12px;
+  background: #FFFFFF;
+  color: #3E4F47;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.fteca-passcode-save {
+  flex: 1.4;
+  height: 46px;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #2FCB78 0%, #189E55 100%);
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 18px rgba(23, 168, 90, 0.2);
+}
+.fteca-passcode-save:disabled { opacity: 0.7; cursor: progress; }
+
+[data-theme="dark"] .fteca-passcode-card {
+  border-color: rgba(255, 255, 255, 0.08);
+  background: #101713;
+}
+[data-theme="dark"] .fteca-passcode-icon { background: rgba(32, 201, 151, 0.14); color: #6EE7B7; }
+[data-theme="dark"] .fteca-passcode-head h3 { color: #E9F3EE; }
+[data-theme="dark"] .fteca-passcode-head p { color: #9DB0A7; }
+[data-theme="dark"] .fteca-field span { color: #B9CEC3; }
+[data-theme="dark"] .fteca-field input {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.045);
+  color: #E9F3EE;
+}
+[data-theme="dark"] .fteca-field input:focus { border-color: rgba(46, 204, 151, 0.5); }
+[data-theme="dark"] .fteca-passcode-cancel {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.04);
+  color: #DBE7E1;
+}
+
+/* ─── Công tắc & dòng cài đặt ─── */
+.security-list { display: flex; flex-direction: column; gap: 10px; margin-top: 6px; }
+.security-copy { min-width: 0; }
+.security-side { display: flex; flex: 0 0 auto; align-items: center; gap: 10px; }
+.security-link {
+  padding: 4px 2px;
+  border: 0;
+  background: none;
+  color: #0B7A53;
+  font-family: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+.security-link[hidden] { display: none; }
+
+.security-switch {
+  position: relative;
+  display: inline-flex;
+  flex: 0 0 auto;
+  width: 42px;
+  height: 24px;
+  cursor: pointer;
+}
+.security-switch input {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.security-switch-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 999px;
+  background: #CBD5E1;
+  transition: background 0.18s ease;
+  pointer-events: none;
+}
+.security-switch-track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #FFFFFF;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.25);
+  transition: transform 0.18s ease;
+}
+.security-switch input:checked + .security-switch-track { background: #22C55E; }
+.security-switch input:checked + .security-switch-track::after { transform: translateX(18px); }
+.security-switch input:focus-visible + .security-switch-track {
+  outline: 2px solid #86EFAC;
+  outline-offset: 2px;
+}
+
+.security-consent-note {
+  margin: 2px 2px 0;
+  padding: 10px 12px;
+  border: 1px solid #D9EFE4;
+  border-radius: 10px;
+  background: #ECF8F1;
+  color: #3E6B55;
+  font-size: 0.75rem;
+  line-height: 1.5;
+}
+.security-consent-note[hidden] { display: none; }
+
+:root:not([data-theme="dark"]) .security-row strong { color: #0F172A; }
+:root:not([data-theme="dark"]) .security-row small { color: #64748B; }
+
+[data-theme="dark"] .security-switch-track { background: #3A4740; }
+[data-theme="dark"] .security-link { color: #6EE7B7; }
+[data-theme="dark"] .security-consent-note {
+  border-color: rgba(32, 201, 151, 0.18);
+  background: rgba(32, 201, 151, 0.1);
+  color: #9CC9B4;
+}
+
+.fteca-lock-card.is-shaking,
+.fteca-passcode-card.is-shaking { animation: fteca-shake 0.38s ease; }
+@keyframes fteca-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-7px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(3px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fteca-lock,
+  .fteca-passcode-overlay,
+  .security-switch-track,
+  .security-switch-track::after { transition: none; }
+  .fteca-lock-card.is-shaking,
+  .fteca-passcode-card.is-shaking { animation: none; }
+}

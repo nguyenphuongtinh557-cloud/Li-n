@@ -13,14 +13,36 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261102-mobile-bank18">
+  <link rel="stylesheet" href="style.css?v=20261104-appearance-mobile">
   <link rel="stylesheet" href="subject-page.css?v=20261031-sd8">
   <link rel="stylesheet" href="mobile-home.css?v=mh18">
   <link rel="stylesheet" href="study-space-mobile.css?v=ss4">
   <link rel="stylesheet" href="articles-mobile.css?v=news3">
-  <link rel="stylesheet" href="profile-mobile.css?v=pm6">
+  <link rel="stylesheet" href="profile-mobile.css?v=pm15">
   <link rel="stylesheet" href="reader-mobile.css?v=rm7">
   <link rel="stylesheet" href="summary-mobile.css?v=sm4">
+  <link rel="stylesheet" href="security.css?v=20261104-security">
+  <script>
+    // Ẩn nội dung ngay từ đầu nếu tài khoản đang bật mật khẩu mở ứng dụng,
+    // tránh lộ nội dung trước khi màn khóa kịp dựng.
+    (function () {
+      try {
+        var store = JSON.parse(localStorage.getItem('lien_security_settings_v1') || '{}');
+        var user = null;
+        try { user = JSON.parse(localStorage.getItem('lien_google_user') || 'null'); } catch (e) {}
+        if (!user) { try { user = JSON.parse(localStorage.getItem('lien_user_session') || 'null'); } catch (e) {} }
+        var id = user && (user.email || user.uid) ? String(user.email || user.uid).trim().toLowerCase() : 'guest';
+        if (store && store[id] && store[id].passcodeEnabled) {
+          document.documentElement.classList.add('fteca-lock-pending');
+          setTimeout(function () {
+            if (!document.getElementById('fteca-lock-screen')) {
+              document.documentElement.classList.remove('fteca-lock-pending');
+            }
+          }, 5000);
+        }
+      } catch (e) {}
+    })();
+  </script>
   <style>
     @media (max-width: 720px) {
       #study-space-root .study-hub-shell { padding: 16px 12px 30px; }
@@ -125,8 +147,9 @@
           <button id="snav-study-space" class="sidebar-nav-item" onclick="NavController.navigateToPage('study-space')">
             <i class="fa-solid fa-graduation-cap"></i> <span>Không gian học tập</span>
           </button>
-          <button id="snav-guide" class="sidebar-nav-item" onclick="">
-            <i class="fa-solid fa-circle-info"></i> <span>Hướng dẫn tính năng</span>
+          <button id="snav-highlights" class="sidebar-nav-item" onclick="window._guardDevFeature('Tâm điểm &amp; bản cập nhật')">
+            <i class="fa-solid fa-newspaper"></i> <span>Tâm điểm &amp; bản cập nhật</span>
+            <span class="badge-soon">Sắp ra</span>
           </button>
         </div>
 
@@ -139,8 +162,8 @@
           <button id="snav-summary" class="sidebar-nav-item" onclick="NavController.navigateToPage('curriculum-summary')">
             <i class="fa-solid fa-wand-magic-sparkles"></i> <span>Tóm tắt giáo trình</span>
           </button>
-          <button id="snav-plan" class="sidebar-nav-item" onclick="window._guardDevFeature('Lên kế hoạch ôn thi')">
-            <i class="fa-solid fa-calendar-check"></i> <span>Lên kế hoạch ôn thi</span>
+          <button id="snav-plan" class="sidebar-nav-item" onclick="window._guardDevFeature('FTECA Team')">
+            <i class="fa-solid fa-people-group"></i> <span>FTECA Team</span>
             <span class="badge-soon">Sắp ra</span>
           </button>
           <button id="snav-exam-ai" class="sidebar-nav-item hidden" onclick="">
@@ -447,9 +470,9 @@
                   <span class="mh-tile-icon"><i class="fa-solid fa-folder-open" aria-hidden="true"></i></span>
                   <span class="mh-tile-label">Không gian học tập</span>
                 </button>
-                <button class="mh-tile" onclick="window._guardDevFeature('Hướng dẫn tính năng')">
-                  <span class="mh-tile-icon"><i class="fa-solid fa-file-lines" aria-hidden="true"></i></span>
-                  <span class="mh-tile-label">Hướng dẫn tính năng</span>
+                <button class="mh-tile" onclick="window._guardDevFeature('Tâm điểm &amp; bản cập nhật')">
+                  <span class="mh-tile-icon"><i class="fa-solid fa-newspaper" aria-hidden="true"></i></span>
+                  <span class="mh-tile-label">Tâm điểm &amp; cập nhật</span>
                 </button>
               </div>
             </section>
@@ -507,9 +530,9 @@
 
                 <div class="exam-mobile-subject">
                   <label for="exam-subject-select-mobile">Chọn môn</label>
-                  <div class="exam-mobile-subject-field">
+                  <div class="exam-mobile-subject-field custom-select-host">
                     <i class="fa-solid fa-book-open" aria-hidden="true"></i>
-                    <select id="exam-subject-select-mobile" aria-label="Chọn môn thi"></select>
+                    <select id="exam-subject-select-mobile" data-custom-select aria-label="Chọn môn thi"></select>
                     <i class="fa-solid fa-chevron-down exam-mobile-subject-chevron" aria-hidden="true"></i>
                   </div>
                 </div>
@@ -521,9 +544,9 @@
                 </div>
 
                 <div class="exam-start-grid">
-                  <div class="exam-info-tile exam-info-count">
+                  <div class="exam-info-tile exam-info-count custom-select-host">
                     <div class="exam-info-heading"><i class="fa-solid fa-list-ol" aria-hidden="true"></i><label for="exam-question-count">Số câu hỏi</label></div>
-                    <select id="exam-question-count" onchange="updateExamDuration()">
+                    <select id="exam-question-count" data-custom-select aria-label="Số câu hỏi" onchange="updateExamDuration()">
                       <option value="50">50 câu (Tiêu chuẩn)</option>
                       <option value="60">60 câu</option>
                       <option value="40">40 câu</option>
@@ -3925,6 +3948,6 @@
 
   <script src="assets/lottie_light.min.js" defer></script>
   <script src="mobile-home.js?v=mh18" defer></script>
-  <script type="module" src="app.js?v=20261104-study-filter-content"></script>
+  <script type="module" src="app.js?v=20261104-auto-theme"></script>
 </body>
 </html>
