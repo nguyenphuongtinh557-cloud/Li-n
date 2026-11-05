@@ -872,10 +872,6 @@ let _sqReviewExpanded = false;
 let _sqReviewRowCount = 0;
 const SQ_REVIEW_PREVIEW = 10;
 
-function fxReduced() {
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-}
-
 function setText(id, value) {
   const node = el(id);
   if (node) node.textContent = value;
@@ -985,11 +981,6 @@ function animateSqResultRing(pct) {
   cancelAnimationFrame(_sqResultRingRaf);
   ring.classList.remove('is-filling');
 
-  if (fxReduced()) {
-    value.textContent = `${pct}%`;
-    return;
-  }
-
   const duration = 1100;
   const start = performance.now();
   const easeOut = t => 1 - Math.pow(1 - t, 3);
@@ -1039,7 +1030,7 @@ function toggleSqResultPalette() {
     if (label) label.textContent = _sqResultPaletteExpanded ? 'Thu gọn danh sách' : 'Xem thêm chi tiết';
     if (icon) icon.className = _sqResultPaletteExpanded ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
   }
-  if (_sqResultPaletteExpanded && grid && !fxReduced()) {
+  if (_sqResultPaletteExpanded && grid) {
     grid.querySelectorAll('.er-cell:nth-child(n+26)').forEach((cell, index) => {
       cell.style.animationDelay = `${index * 12}ms`;
       cell.classList.add('fx-cell-in');

@@ -13,14 +13,14 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261104-appearance-mobile">
+  <link rel="stylesheet" href="style.css?v=20261105-upgradeblur2">
   <link rel="stylesheet" href="subject-page.css?v=20261031-sd8">
   <link rel="stylesheet" href="mobile-home.css?v=mh18">
   <link rel="stylesheet" href="study-space-mobile.css?v=ss4">
   <link rel="stylesheet" href="articles-mobile.css?v=news3">
   <link rel="stylesheet" href="profile-mobile.css?v=pm15">
   <link rel="stylesheet" href="reader-mobile.css?v=rm7">
-  <link rel="stylesheet" href="summary-mobile.css?v=sm4">
+  <link rel="stylesheet" href="summary-mobile.css?v=sm5">
   <link rel="stylesheet" href="security.css?v=20261104-security">
   <script>
     // Ẩn nội dung ngay từ đầu nếu tài khoản đang bật mật khẩu mở ứng dụng,
@@ -1618,6 +1618,12 @@
 
         <!-- ══════ PAGE 5B: TÓM TẮT GIÁO TRÌNH CÁ NHÂN (MASTER WORKSTATION ACADEMIC UI) ══════ -->
         <section id="page-curriculum-summary" class="page-container hidden">
+          <div class="cs-bg-decor" aria-hidden="true">
+            <i class="fa-solid fa-graduation-cap cs-decor-cap"></i>
+            <i class="fa-solid fa-leaf cs-decor-leaf cs-decor-leaf-one"></i>
+            <i class="fa-solid fa-leaf cs-decor-leaf cs-decor-leaf-two"></i>
+            <i class="fa-solid fa-leaf cs-decor-leaf cs-decor-leaf-three"></i>
+          </div>
           <div class="curriculum-summary-shell">
 
             <!-- STAGE 1: INPUT STAGE (PERFECT BALANCED 2-COLUMN LAYOUT) -->
@@ -1683,7 +1689,7 @@
                       <textarea
                         id="curriculum-text-input"
                         class="curriculum-text-area"
-                        placeholder="🔗 Dán nội dung, đường link tài liệu hoặc gõ nội dung tại đây..."
+                        placeholder="Dán nội dung, đường link tài liệu hoặc gõ nội dung tại đây..."
                         rows="4"
                         maxlength="100000"
                       ></textarea>
@@ -3767,6 +3773,10 @@
 
     // 🤖 Official page-mascot Component Engine (Ported to Vanilla JS)
     document.addEventListener('DOMContentLoaded', function () {
+      // Tạm tắt để dành cho tính năng sau; giữ nguyên engine, markup và sprite.
+      const PAGE_MASCOT_ENABLED = false;
+      if (!PAGE_MASCOT_ENABLED) return;
+
       const container = document.getElementById('page-mascot-standalone');
       if (!container) return;
 
@@ -3948,6 +3958,6 @@
 
   <script src="assets/lottie_light.min.js" defer></script>
   <script src="mobile-home.js?v=mh18" defer></script>
-  <script type="module" src="app.js?v=20261104-auto-theme"></script>
+  <script type="module" src="app.js?v=20261105-readertools3"></script>
 </body>
 </html>

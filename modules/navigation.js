@@ -83,8 +83,45 @@ const ONTAP_TAB_ROUTES = {
   'share-tab': { path: '/de-da-chia-se', subject: false }
 };
 
+// Tab trong trang chi tiết môn học cũng có path riêng, nối tiếp sau id môn.
+const SUBJECT_TAB_SLUGS = { lecture: 'tai-lieu', bank: 'ngan-hang-cau-hoi', exam: 'de-thi', review: 'on-tap' };
+const SUBJECT_SLUG_TABS = Object.fromEntries(Object.entries(SUBJECT_TAB_SLUGS).map(([tab, slug]) => [slug, tab]));
+
 function encodeRouteSegment(value) {
   return encodeURIComponent(String(value));
+}
+
+// Đường dẫn /mon/{môn}[/{tab}[/{bài}]] -> tab đang mở và bài/đề cần đọc.
+function parseSubjectRoute(segments) {
+  const tab = SUBJECT_SLUG_TABS[segments[2]] || null;
+  const item = segments[3] || null;
+  if (item) return { page: 'study-reader', subject: segments[1] || null, tab: tab || 'lecture', item };
+  return { page: 'subject-detail', subject: segments[1] || null, tab };
+}
+
+function readerRouteFor(context = {}) {
+  const subject = String(context.subjectId || '').trim();
+  if (!subject || context.summaryResult) return null;
+  if (context.resourceId) {
+    return { subject, tab: context.resourceCategory === 'exam' ? 'exam' : 'lecture', item: String(context.resourceId) };
+  }
+  if (context.lessonId) return { subject, tab: 'lecture', item: String(context.lessonId) };
+  return null;
+}
+
+// Ưu tiên bài giảng trong mục lục, rồi tới tài liệu/đề thi có id trùng.
+function resolveReaderContext(subjectId, tab, itemId) {
+  const subject = String(subjectId || '').trim();
+  const id = String(itemId || '').trim();
+  if (!subject || !id) return null;
+  for (const chapter of DB.getSubjectDetails(subject)?.chapters || []) {
+    for (const lesson of chapter.lessons || []) {
+      if (lesson.id === id) return { subjectId: subject, chapterId: chapter.id, lessonId: id, returnPage: 'subject-detail' };
+    }
+  }
+  const resource = DB.getResources(subject).find(r => r.id === id && r.readerConfig?.visibility !== 'draft');
+  if (!resource) return null;
+  return { subjectId: subject, resourceId: id, resourceCategory: tab === 'exam' ? 'exam' : 'lecture', returnPage: 'subject-detail' };
 }
 
 function isKnownSubject(subjectId) {
@@ -100,7 +137,12 @@ function buildRoutePath(pageId, extra = {}) {
   }
   if (pageId === 'subject-detail') {
     const subject = String(extra.subject || '').trim();
-    return subject ? `/mon/${encodeRouteSegment(subject)}` : PAGE_PATHS['study-space'];
+    if (!subject) return PAGE_PATHS['study-space'];
+    const base = `/mon/${encodeRouteSegment(subject)}`;
+    const slug = SUBJECT_TAB_SLUGS[extra.tab];
+    if (!slug) return base;
+    const item = String(extra.item || '').trim();
+    return item ? `${base}/${slug}/${encodeRouteSegment(item)}` : `${base}/${slug}`;
   }
   if (pageId === 'about') {
     const article = String(extra.article || '').trim();
@@ -139,7 +181,7 @@ function parseRouteLocation() {
 
   if (!root || root === 'index.html') return { page: 'home' };
   switch (root) {
-    case 'mon': return { page: 'subject-detail', subject: second || null };
+    case 'mon': return parseSubjectRoute(segments);
     case 'on-tap': return { page: 'ontap', tab: 'exam-tab', subject: second || null };
     case 'ngan-hang-cau-hoi': return { page: 'ontap', tab: 'bank-tab', subject: second || null };
     case 'tao-cau-hoi': return { page: 'ontap', tab: 'source-tab', subject: second || null };
@@ -162,6 +204,7 @@ export const NavController = {
   activePage: 'home',
   currentUser: null,
   restoringRoute: false,
+  pendingReaderRoute: null,
 
   buildUrl(pageId, extra = {}) {
     return new URL(buildRoutePath(pageId, extra), window.location.origin);
@@ -169,7 +212,7 @@ export const NavController = {
 
   syncUrl(pageId = this.activePage, extra = {}, { replace = false } = {}) {
     if (this.restoringRoute) return;
-    const routeKeys = new Set(['subject', 'tab', 'article', 'share-summary', 'share-quiz']);
+    const routeKeys = new Set(['subject', 'tab', 'article', 'item', 'share-summary', 'share-quiz']);
     const params = new URLSearchParams();
     Object.entries(extra).forEach(([key, value]) => {
       if (routeKeys.has(key)) return;
@@ -185,6 +228,26 @@ export const NavController = {
   syncTabUrl(tabId, { replace = false } = {}) {
     if (this.activePage !== 'ontap') return;
     this.syncUrl('ontap', { tab: tabId || 'exam-tab' }, { replace });
+  },
+
+  // Bài/đề mở bằng deep link khi dữ liệu môn học chưa về xong sẽ được nạp lại một lần.
+  flushPendingReaderRoute() {
+    const route = this.pendingReaderRoute;
+    if (!route) return;
+    const subject = isKnownSubject(route.subject) ? route.subject : null;
+    if (!subject || this.activePage !== 'study-reader') { this.pendingReaderRoute = null; return; }
+    const context = resolveReaderContext(subject, route.tab || 'lecture', route.item);
+    if (!context) return;
+    this.pendingReaderRoute = null;
+    this.openStudyReader(context);
+  },
+
+  // Bài giảng/đề đang mở trong trình đọc được ghi vào path để chia sẻ từng bài.
+  syncStudyReaderUrl(context = {}) {
+    if (context.returnPage !== 'subject-detail') return;
+    const route = readerRouteFor(context);
+    if (!route) return;
+    this.syncUrl('subject-detail', route);
   },
 
   applyActiveSubject(subjectId) {
@@ -209,10 +272,13 @@ export const NavController = {
   async restoreSharedRoute() {
     const route = this.getSharedRoute();
     const subject = isKnownSubject(route.subject) ? route.subject : null;
-    if (route.page === 'subject-detail' && !subject) {
+    if ((route.page === 'subject-detail' || route.page === 'study-reader') && !subject) {
       route.page = 'study-space';
       route.subject = null;
     }
+    const readerContext = subject && route.page === 'study-reader'
+      ? resolveReaderContext(subject, route.tab || 'lecture', route.item)
+      : null;
     const user = this.currentUser || AuthModule?.user;
     const hasUser = Boolean(user && user.email);
     const isAdmin = hasUser && getActiveAdminEmails().includes(user.email.toLowerCase());
@@ -237,7 +303,13 @@ export const NavController = {
         window.ArticlesModule?.openDetail(route.article);
       } else if (subject && route.page === 'subject-detail') {
         this.applyActiveSubject(subject);
-        this.openSubjectDetail(subject, 'study-space');
+        this.openSubjectDetail(subject, 'study-space', { tab: route.tab });
+      } else if (subject && route.page === 'study-reader') {
+        // Chương/bài có thể chưa tải xong ở lần mở đầu -> mở reader rồi nạp lại sau.
+        this.applyActiveSubject(subject);
+        this.openSubjectDetail(subject, 'study-space', { tab: route.tab || 'lecture' });
+        this.openStudyReader(readerContext || { subjectId: subject, returnPage: 'subject-detail' });
+        if (!readerContext) this.pendingReaderRoute = route;
       } else if (subject) {
         this.applyActiveSubject(subject);
         this.navigateToPage(route.page, route.tab || null, { subject });
@@ -255,7 +327,9 @@ export const NavController = {
       } else if (route.article) {
         this.syncUrl('about', { article: route.article }, { replace: true });
       } else if (subject && route.page === 'subject-detail') {
-        this.syncUrl('subject-detail', { subject }, { replace: true });
+        this.syncUrl('subject-detail', { subject, tab: route.tab }, { replace: true });
+      } else if (subject && route.page === 'study-reader') {
+        this.syncUrl('subject-detail', { subject, tab: route.tab || 'lecture', item: readerContext ? route.item : null }, { replace: true });
       } else if (subject) {
         this.syncUrl(route.page, { tab: route.tab || 'exam-tab', subject }, { replace: true });
       } else {
@@ -571,7 +645,13 @@ export const NavController = {
 
   // ─── STUDY READER ─────────────────────────────────────────────────────────
   openStudyReader(context = {}) {
-    this.studyReaderReturn = { page: context.returnPage || this.activePage || 'subject-detail', scrollY: window.scrollY || 0, context };
+    const fromSubject = context.returnPage === 'subject-detail' && isKnownSubject(context.subjectId);
+    this.studyReaderReturn = {
+      page: context.returnPage || this.activePage || 'subject-detail',
+      scrollY: window.scrollY || 0,
+      context,
+      route: fromSubject ? { subject: context.subjectId, tab: readerRouteFor(context)?.tab || 'lecture' } : null
+    };
     this.activePage = 'study-reader';
     document.querySelectorAll('.page-container, .study-reader-page').forEach(page => page.classList.add('hidden'));
     document.getElementById('page-study-reader')?.classList.remove('hidden');
@@ -584,13 +664,15 @@ export const NavController = {
     const state = this.studyReaderReturn || { page: 'subject-detail', scrollY: 0 };
     document.getElementById('page-study-reader')?.classList.add('hidden');
     document.querySelector('.app-layout')?.classList.remove('study-reader-active');
-    this.navigateToPage(state.page === 'study-reader' ? 'subject-detail' : state.page);
+    const pageId = state.page === 'study-reader' ? 'subject-detail' : state.page;
+    const routeParams = pageId === 'subject-detail' && state.route ? { subject: state.route.subject, tab: state.route.tab } : {};
+    this.navigateToPage(pageId, null, routeParams);
     requestAnimationFrame(() => window.scrollTo({ top: state.scrollY || 0, behavior: 'auto' }));
     this.studyReaderReturn = null;
   },
 
   // ─── SUBJECT DETAIL PAGE ──────────────────────────────────────────────────
-  openSubjectDetail(subjectId, returnPage = 'study-space') {
+  openSubjectDetail(subjectId, returnPage = 'study-space', options = {}) {
     // subject-page.css được nạp sẵn trong index.html để trang luôn đúng layout
     // ngay khung hình đầu tiên khi mở từ trang khác.
     const s = getSubjectById(subjectId);
@@ -684,22 +766,22 @@ export const NavController = {
               </div>
             </article>
             <nav class="sd5-quick" aria-label="Danh mục nội dung môn học">
-              <button type="button" class="sd5-quick-row is-active" data-sd5-quick="lecture" aria-current="true" onclick="window.openSubjectQuickTab('lecture')">
+              <button type="button" class="sd5-quick-row is-active" data-sd5-quick="lecture" aria-current="true" onclick="window.openSubjectSection('lecture')">
                 <span class="sd5-quick-icon"><i class="fa-solid fa-book-open"></i></span>
                 <span class="sd5-quick-text">Tài liệu học tập</span>
                 <i class="fa-solid fa-chevron-right sd5-quick-arrow" aria-hidden="true"></i>
               </button>
-              <button type="button" class="sd5-quick-row" data-sd5-quick="bank" onclick="window.openSubjectQuickTab('bank')">
+              <button type="button" class="sd5-quick-row" data-sd5-quick="bank" onclick="window.openSubjectSection('bank')">
                 <span class="sd5-quick-icon"><i class="fa-solid fa-circle-question"></i></span>
                 <span class="sd5-quick-text">Ngân hàng câu hỏi</span>
                 <i class="fa-solid fa-chevron-right sd5-quick-arrow" aria-hidden="true"></i>
               </button>
-              <button type="button" class="sd5-quick-row" data-sd5-quick="exam" onclick="window.openSubjectQuickTab('exam')">
+              <button type="button" class="sd5-quick-row" data-sd5-quick="exam" onclick="window.openSubjectSection('exam')">
                 <span class="sd5-quick-icon"><i class="fa-solid fa-file-lines"></i></span>
                 <span class="sd5-quick-text">Đề thi</span>
                 <i class="fa-solid fa-chevron-right sd5-quick-arrow" aria-hidden="true"></i>
               </button>
-              <button type="button" class="sd5-quick-row" data-sd5-quick="review" onclick="window.openSubjectQuickTab('review')">
+              <button type="button" class="sd5-quick-row" data-sd5-quick="review" onclick="window.openSubjectSection('review')">
                 <span class="sd5-quick-icon"><i class="fa-solid fa-bullseye"></i></span>
                 <span class="sd5-quick-text">Ôn tập</span>
                 <i class="fa-solid fa-chevron-right sd5-quick-arrow" aria-hidden="true"></i>
@@ -707,10 +789,10 @@ export const NavController = {
             </nav>
             <div class="sd5-content">
               <div class="sd5-tabs" role="tablist" aria-label="Nội dung môn học">
-              <button type="button" class="sd5-tab is-active" role="tab" aria-selected="true" data-sd5-tab="lecture" onclick="window.setSubjectDetailTab('lecture')"><i class="fa-solid fa-book-open"></i><span>Tài liệu học tập</span></button>
-              <button type="button" class="sd5-tab" role="tab" aria-selected="false" data-sd5-tab="bank" onclick="window.setSubjectDetailTab('bank')"><i class="fa-solid fa-circle-question"></i><span>Ngân hàng câu hỏi</span></button>
-              <button type="button" class="sd5-tab" role="tab" aria-selected="false" data-sd5-tab="exam" onclick="window.setSubjectDetailTab('exam')"><i class="fa-solid fa-file-lines"></i><span>Đề thi</span></button>
-              <button type="button" class="sd5-tab" role="tab" aria-selected="false" data-sd5-tab="review" onclick="window.setSubjectDetailTab('review')"><i class="fa-solid fa-bullseye"></i><span>Ôn tập</span></button>
+              <button type="button" class="sd5-tab is-active" role="tab" aria-selected="true" data-sd5-tab="lecture" onclick="window.openSubjectSection('lecture')"><i class="fa-solid fa-book-open"></i><span>Tài liệu học tập</span></button>
+              <button type="button" class="sd5-tab" role="tab" aria-selected="false" data-sd5-tab="bank" onclick="window.openSubjectSection('bank')"><i class="fa-solid fa-circle-question"></i><span>Ngân hàng câu hỏi</span></button>
+              <button type="button" class="sd5-tab" role="tab" aria-selected="false" data-sd5-tab="exam" onclick="window.openSubjectSection('exam')"><i class="fa-solid fa-file-lines"></i><span>Đề thi</span></button>
+              <button type="button" class="sd5-tab" role="tab" aria-selected="false" data-sd5-tab="review" onclick="window.openSubjectSection('review')"><i class="fa-solid fa-bullseye"></i><span>Ôn tập</span></button>
             </div>
 
             <section class="sd5-panel is-active" data-sd5-panel="lecture" role="tabpanel">
@@ -790,7 +872,8 @@ export const NavController = {
       </div>
     `;
 
-    this.navigateToPage('subject-detail', null, { subject: subjectId });
+    this.navigateToPage('subject-detail', null, { subject: subjectId, tab: options.tab });
+    window.setSubjectDetailTab?.(options.tab || 'lecture', { skipUrl: true });
     window.scrollTo({ top: 0, behavior: 'auto' });
   },
 
@@ -1893,7 +1976,7 @@ window.selectSubjectSidebarLesson = function(chapId, lesId) {
   }
 };
 
-window.setSubjectDetailTab = function(tab) {
+window.setSubjectDetailTab = function(tab, options = {}) {
   document.querySelectorAll('#page-subject-detail .sd5-tab').forEach(btn => {
     const active = btn.dataset.sd5Tab === tab;
     btn.classList.toggle('is-active', active);
@@ -1909,14 +1992,24 @@ window.setSubjectDetailTab = function(tab) {
     panel.classList.toggle('is-active', active);
     panel.hidden = !active;
   });
+  if (options.skipUrl || window.NavController?.activePage !== 'subject-detail') return;
+  const subject = String(window._activeSubjectDetails?.subjectId || '').trim();
+  if (subject) window.NavController.syncUrl('subject-detail', { subject, tab });
 };
 
-window.openSubjectQuickTab = function(tab) {
-  window.setSubjectDetailTab(tab);
-  const sheet = document.querySelector('#page-subject-detail .sd5-content');
-  if (sheet && window.matchMedia('(max-width: 760px)').matches) {
-    sheet.scrollIntoView({ behavior: 'smooth', block: 'start' });
+// 4 mục trong trang môn học đi thẳng tới nội dung đích, không qua thẻ trung gian.
+window.openSubjectSection = function(tab) {
+  const subjectId = String(window._activeSubjectDetails?.subjectId || '').trim();
+  if (!subjectId) return;
+  if (tab === 'bank') {
+    window.NavController?.navigateToPage('ontap', 'bank-tab', { subject: subjectId });
+    return;
   }
+  if (tab === 'review') {
+    window.NavController?.startSubjectExam(subjectId);
+    return;
+  }
+  window.openUserResourceViewer?.(subjectId, tab === 'exam' ? 'exam' : 'lecture');
 };
 
 let _tocAllExpanded = true;

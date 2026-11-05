@@ -10,129 +10,153 @@
 @media (max-width: 760px) {
 
   /* ══ 1. STAGE NHẬP LIỆU ══════════════════════════════════════════════ */
+  #page-curriculum-summary {
+    background-color: #FFFFFF;
+  }
+
   #page-curriculum-summary .curriculum-summary-shell { padding: 0; }
 
-  #page-curriculum-summary .cs-layout-grid {
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
+  #page-curriculum-summary .cs-layout-grid { display: block; }
+
+  /* Màn hình chỉ giữ hero + form như bản desktop */
+  #page-curriculum-summary .cs-sidebar-column { display: none; }
+
+  #page-curriculum-summary .cs-hero-header {
+    display: block;
+    text-align: center;
+    margin: 2px 0 18px;
   }
 
-  /* Cột flex mặc định min-width:auto nên nội dung rộng sẽ đẩy tràn màn hẹp */
-  #page-curriculum-summary .cs-layout-grid > *,
-  #page-curriculum-summary .cs-sidebar-column > * {
-    min-width: 0;
-    max-width: 100%;
-  }
-
-  #page-curriculum-summary .cs-hero-header { margin-bottom: 4px; }
+  #page-curriculum-summary .cs-hero-left { max-width: none; }
 
   #page-curriculum-summary .cs-hero-badge {
-    font-size: 10.5px;
-    padding: 4px 10px;
-    margin-bottom: 10px;
+    gap: 6px;
+    padding: 5px 12px;
+    border-radius: 999px;
+    background: #EAF9F1;
+    border-color: #A7E3C8;
+    color: #0B7A52;
+    font-size: 10px;
+    letter-spacing: 0.07em;
+    margin-bottom: 11px;
   }
 
   #page-curriculum-summary .cs-hero-title {
-    font-size: 25px;
-    line-height: 1.22;
-    letter-spacing: -0.5px;
-    margin-bottom: 8px;
+    font-size: 23.5px;
+    line-height: 1.24;
+    letter-spacing: -0.45px;
+    margin: 0 0 8px;
   }
 
-  #page-curriculum-summary .cs-m-accent { color: #0f9e6e; }
+  #page-curriculum-summary .cs-m-accent { color: #00855E; }
 
   #page-curriculum-summary .cs-hero-subtitle {
     font-size: 13px;
     line-height: 1.55;
+    max-width: 340px;
+    margin: 0 auto;
   }
 
   #page-curriculum-summary .cs-workspace-card {
-    padding: 14px;
-    border-radius: 18px;
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+    padding: 0;
     box-shadow: none;
   }
 
-  /* Ô kéo thả: icon — chữ — nút, mỗi thứ một dòng cho khỏi dồn */
-  #page-curriculum-summary .curriculum-dropzone { border-radius: 14px; }
+  #page-curriculum-summary .curriculum-dropzone {
+    background: #F2FBF6;
+    border: 1.5px dashed #75DCB4;
+    border-radius: 16px;
+  }
 
-  #page-curriculum-summary .curriculum-dropzone-inner { padding: 16px 12px; }
+  #page-curriculum-summary .curriculum-dropzone:hover,
+  #page-curriculum-summary .curriculum-dropzone.drag-over {
+    background: #ECFAF3;
+    border-color: #2FC08E;
+  }
+
+  #page-curriculum-summary .curriculum-dropzone-inner { padding: 20px 14px 17px; }
 
   #page-curriculum-summary .cs-dz-icon {
     width: 46px;
     height: 46px;
-    border-radius: 14px;
+    border-radius: 50%;
+    background: linear-gradient(155deg, #00B37E 0%, #00855E 100%);
+    color: #FFFFFF;
     font-size: 19px;
-    margin-bottom: 12px;
+    margin-bottom: 10px;
+    box-shadow: 0 6px 16px rgba(0, 133, 94, 0.22);
   }
 
   #page-curriculum-summary .cs-dz-main-label {
     flex-direction: column;
     align-items: center;
-    gap: 10px;
-    font-size: 14.5px;
-    margin-bottom: 10px;
+    gap: 9px;
+    font-size: 14px;
+    margin-bottom: 8px;
   }
 
   #page-curriculum-summary .cs-btn-browse-pill {
+    gap: 6px;
     font-size: 13px;
-    padding: 9px 18px;
-    background: #0f9e6e;
+    padding: 7px 16px;
+    border-radius: 999px;
+    background: #009E73;
     box-shadow: none;
   }
 
   #page-curriculum-summary .cs-dz-hint {
-    font-size: 11px;
+    font-size: 10.5px;
     line-height: 1.5;
   }
 
-  #page-curriculum-summary .cs-work-divider { margin: 14px 0 12px; }
+  #page-curriculum-summary .cs-work-divider {
+    gap: 10px;
+    margin: 12px 0;
+    font-size: 10px;
+    letter-spacing: 0.09em;
+  }
+
+  #page-curriculum-summary .cs-textarea-container { gap: 9px; }
 
   #page-curriculum-summary .curriculum-text-area {
-    font-size: 14px;
-    min-height: 108px;
-    padding: 12px;
+    min-height: 104px;
+    height: 104px;
+    padding: 12px 12px 12px 38px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    line-height: 1.55;
+    background-color: #FFFFFF;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23009E73' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/%3E%3Cpath d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: 13px 14px;
+    background-size: 15px 15px;
   }
 
-  #page-curriculum-summary .curriculum-title-input { font-size: 14px; }
+  #page-curriculum-summary .curriculum-title-input {
+    height: 44px;
+    padding: 0 38px;
+    border-radius: 12px;
+    font-size: 13.5px;
+    background-color: #FFFFFF;
+    background-image:
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23009E73' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M22 10 12 5 2 10l10 5 10-5Z'/%3E%3Cpath d='M6 12v5c0 1.7 2.7 3 6 3s6-1.3 6-3v-5'/%3E%3C/svg%3E"),
+      url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2394A3B8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat, no-repeat;
+    background-position: 13px center, right 13px center;
+    background-size: 15px 15px, 13px 13px;
+  }
 
   #page-curriculum-summary .curriculum-run-btn {
-    padding: 14px 18px;
+    height: 46px;
+    padding: 0 18px;
+    border-radius: 12px;
+    background: #009E73;
     font-size: 15px;
-    border-radius: 14px;
-    background: #0f9e6e;
-    box-shadow: none;
+    box-shadow: 0 4px 14px rgba(0, 158, 115, 0.22);
   }
-
-  /* Sidebar xuống dưới: thẻ chế độ và lịch sử giữ nguyên chức năng */
-  #page-curriculum-summary .cs-widget-card {
-    padding: 14px;
-    border-radius: 16px;
-    box-shadow: none;
-  }
-
-  #page-curriculum-summary .cs-widget-title { font-size: 15px; }
-
-  #page-curriculum-summary .cs-mode-option-card {
-    padding: 11px 12px;
-    gap: 10px;
-  }
-
-  #page-curriculum-summary .cs-mode-name { font-size: 14px; }
-  #page-curriculum-summary .cs-mode-sub { font-size: 11.5px; }
-
-  #page-curriculum-summary .cs-mode-icon-box {
-    width: 38px;
-    height: 38px;
-    font-size: 15px;
-  }
-
-  #page-curriculum-summary .cs-help-promo-card {
-    padding: 12px 14px;
-    border-radius: 16px;
-  }
-
-  #page-curriculum-summary .curriculum-history-item { padding: 10px 12px; }
 
   /* ══ 2. MÀN "ĐANG TÓM TẮT" ═══════════════════════════════════════════ */
   /* Bảng tiến trình thật vẫn nằm trong thẻ nhập liệu; trên mobile nó trở
@@ -433,6 +457,36 @@
 
 /* ══ 4. NHÀM TỐI ════════════════════════════════════════════════════════ */
 @media (max-width: 760px) {
+  [data-theme="dark"] #page-curriculum-summary { background-color: #0B0F0E !important; }
+
+  [data-theme="dark"] #page-curriculum-summary .cs-hero-badge {
+    background: #06281F !important;
+    border-color: #1F6F56 !important;
+    color: #6EE7B7 !important;
+  }
+
+  [data-theme="dark"] #page-curriculum-summary .cs-m-accent { color: #34D399; }
+
+  [data-theme="dark"] #page-curriculum-summary .curriculum-dropzone {
+    background: #0F1A16 !important;
+    border-color: #2E7D62 !important;
+  }
+
+  [data-theme="dark"] #page-curriculum-summary .curriculum-dropzone:hover,
+  [data-theme="dark"] #page-curriculum-summary .curriculum-dropzone.drag-over {
+    background: #12241D !important;
+    border-color: #10B981 !important;
+  }
+
+  [data-theme="dark"] #page-curriculum-summary .cs-dz-icon {
+    background: linear-gradient(155deg, #10B981 0%, #047857 100%) !important;
+    color: #FFFFFF !important;
+  }
+
+  [data-theme="dark"] #page-curriculum-summary .cs-btn-browse-pill { background: #059669; }
+
+  [data-theme="dark"] #page-curriculum-summary .curriculum-run-btn { background: #059669; }
+
   [data-theme="dark"] #page-curriculum-summary .cs-m-progress { background: #0d0d0d; }
 
   [data-theme="dark"] #page-curriculum-summary .cs-m-progress-bar { border-bottom-color: #1f1f1f; }
@@ -468,8 +522,7 @@
 
 /* ══ 5. MÀN RẤT NGANG 360px ═════════════════════════════════════════════ */
 @media (max-width: 380px) {
-  #page-curriculum-summary .cs-hero-title { font-size: 22.5px; }
-  #page-curriculum-summary .cs-workspace-card { padding: 12px; }
+  #page-curriculum-summary .cs-hero-title { font-size: 22px; }
   #page-curriculum-summary .cs-dz-hint { font-size: 10px; }
   #page-curriculum-summary .cs-m-progress-body { padding: 24px 16px 22px; }
   #page-curriculum-summary .cs-m-progress-halo { width: 148px; height: 148px; }

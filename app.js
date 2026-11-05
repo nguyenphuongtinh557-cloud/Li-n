@@ -13,9 +13,9 @@ import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion, s
 import { planCeraNavigation, runCeraNavigation } from './modules/ceraNav.js';
 import { searchSubjectKnowledge } from './modules/knowledgeBase.js';
 import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer, pullFeedbacksFromServer, pullSubjectDetailsFromServer } from './modules/sync.js';
-import { initAdminAuth } from './modules/admin.js?v=20261104-auto-theme';
+import { initAdminAuth } from './modules/admin.js?v=20261105-subjecttabs1';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js';
-import { NavController } from './modules/navigation.js?v=20261104-auto-theme';
+import { NavController } from './modules/navigation.js?v=20261105-subjecttabs2';
 import { AuthModule, getUserRole, getActiveAdminEmails } from './modules/auth.js?v=20261101-auth-popup';
 import { ArticlesModule } from './modules/articles.js?v=20261031-news1';
 import { readSummary, writeSummary, clearSessionCache, summaryIsComplete, summaryIsStale } from './modules/firestoreSummary.js';
@@ -25,7 +25,7 @@ import { renderMarkdownTables } from './modules/markdownTables.js';
 import { mountRichTextEditor, prepareRichTextDocument, readSummaryText, runSummaryEditorTableCommand, runSummaryEditorTool, sanitizeRichTextHtml } from './modules/richTextEditor.js';
 import { sanitizeDisplayHtml } from './modules/sanitizeHtml.js';
 import { initStudyToolbarSelects, refreshStudyToolbarSelects } from './modules/studyToolbarSelect.js?v=20261104-exam-select-menu';
-import { QuizShares, QuizSharePage } from './modules/quizShare.js';
+import { QuizShares, QuizSharePage } from './modules/quizShare.js?v=20261105-examfx1';
 import { createSummaryDocumentVersion, readSummaryDocumentHistory } from './modules/summaryDocumentHistory.js';
 import { updateThemeMorphIcons } from './vendor/themeMorphIcon.js';
 import { exportSummaryHtmlToDocx } from './vendor/summaryDocx.js';
@@ -290,9 +290,10 @@ async function init() {
         const route = NavController.getSharedRoute();
         const rendered = document.querySelectorAll('#page-subject-detail .sd5-chap-title').length > 0;
         if (route.subject && !rendered && DB.getSubjectDetails(route.subject)) {
-          NavController.openSubjectDetail(route.subject);
+          NavController.openSubjectDetail(route.subject, 'study-space', { tab: route.tab });
         }
       }
+      NavController.flushPendingReaderRoute();
     }
   } catch (e) {
     console.warn('[Subject details] Không thể tải cấu hình môn học từ server:', e);
@@ -734,10 +735,6 @@ function syncExamProgressUI() {
 /* ── Exam micro-interactions ── */
 let _examFxLayer = null;
 
-function examFxReduced() {
-  return window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-}
-
 function examFxLayerEl() {
   if (!_examFxLayer) {
     _examFxLayer = document.createElement('div');
@@ -757,7 +754,6 @@ function examFxColors(kind) {
 }
 
 function examFxBurst(x, y, kind = 'pick') {
-  if (examFxReduced()) return;
   const layer = examFxLayerEl();
   const colors = examFxColors(kind);
   const count = kind === 'flag' ? 9 : kind === 'palette' ? 7 : 10;
@@ -792,7 +788,6 @@ function examFxBurst(x, y, kind = 'pick') {
 }
 
 function examFxPickOption(optIdx) {
-  if (examFxReduced()) return;
   const btn = document.querySelectorAll('#q-options-container .option-btn')[optIdx];
   if (!btn) return;
   btn.classList.add('fx-pick');
@@ -800,7 +795,6 @@ function examFxPickOption(optIdx) {
 }
 
 function examFxFlagPulse(isFlagged) {
-  if (examFxReduced()) return;
   const btn = document.getElementById('btn-flag');
   if (!btn) return;
   btn.classList.remove('fx-flag-toggle', 'fx-flag-off');
@@ -810,7 +804,6 @@ function examFxFlagPulse(isFlagged) {
 }
 
 function examFxCountPop() {
-  if (examFxReduced()) return;
   const el = document.getElementById('palette-summary');
   if (!el) return;
   el.classList.remove('fx-count-pop');
@@ -820,7 +813,6 @@ function examFxCountPop() {
 }
 
 function examFxQuestionIn(dir) {
-  if (examFxReduced()) return;
   const cls = dir >= 0 ? 'fx-q-in-next' : 'fx-q-in-prev';
   [document.getElementById('q-title'), document.getElementById('q-options-container')].forEach((el) => {
     if (!el) return;
@@ -832,7 +824,6 @@ function examFxQuestionIn(dir) {
 }
 
 function examFxExpandPalette() {
-  if (examFxReduced()) return;
   const grid = document.getElementById('palette-grid');
   if (!grid) return;
   grid.querySelectorAll('.palette-btn:nth-child(n+31)').forEach((cell, i) => {
@@ -1045,11 +1036,6 @@ function animateResultRing(pct) {
   cancelAnimationFrame(_resultRingRaf);
   ring.classList.remove('is-filling');
 
-  if (examFxReduced()) {
-    valueEl.textContent = `${pct}%`;
-    return;
-  }
-
   const duration = 1100;
   const start = performance.now();
   const easeOut = t => 1 - Math.pow(1 - t, 3);
@@ -1067,7 +1053,7 @@ function animateResultRing(pct) {
 }
 
 function examFxResultBurst(state) {
-  if (examFxReduced() || state === 'low') return;
+  if (state === 'low') return;
   const ring = document.getElementById('result-score-ring');
   if (!ring) return;
 
@@ -1433,7 +1419,7 @@ function toggleResultPalette() {
     if (icon) icon.className = _resultPaletteExpanded ? 'fa-solid fa-chevron-up' : 'fa-solid fa-chevron-down';
   }
 
-  if (_resultPaletteExpanded && grid && !examFxReduced()) {
+  if (_resultPaletteExpanded && grid) {
     grid.querySelectorAll('.er-cell:nth-child(n+26)').forEach((cell, index) => {
       cell.style.animationDelay = `${index * 12}ms`;
       cell.classList.add('fx-cell-in');
@@ -1469,10 +1455,8 @@ function renderResultPalette() {
     btn.textContent = qr.idx + 1;
     btn.setAttribute('aria-label', `Câu ${qr.idx + 1}: ${qr.isCorrect ? 'đúng' : answered ? 'sai' : 'chưa làm'}${isFlagged ? ', đã đánh dấu' : ''}`);
     btn.addEventListener('click', () => {
-      if (!examFxReduced()) {
-        const rect = btn.getBoundingClientRect();
-        examFxBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, 'palette');
-      }
+      const rect = btn.getBoundingClientRect();
+      examFxBurst(rect.left + rect.width / 2, rect.top + rect.height / 2, 'palette');
       jumpToResultQuestion(qr.idx);
     });
     grid.appendChild(btn);
@@ -6425,14 +6409,34 @@ function getStudyReaderNote() { return DB.getUserNote(studyReaderNoteKey(), _stu
 function saveStudyReaderNote(patch) { const note = DB.saveUserNote(studyReaderNoteKey(), _studyReaderContext, patch); const status = document.getElementById('study-reader-note-status'); if (status) status.textContent = `Đã lưu ${new Date(note.updatedAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}`; return note; }
 function loadStudyReaderNote() { const input = document.getElementById('study-reader-note-input'), note = getStudyReaderNote(); if (input) input.value = note.text; const status = document.getElementById('study-reader-note-status'); if (status) status.textContent = note.updatedAt ? 'Đã lưu' : 'Chưa lưu'; }
 function textOffset(root, node, offset) { const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let total = 0, item; while ((item = walker.nextNode())) { if (item === node) return total + offset; total += item.nodeValue.length; } return -1; }
-function rangeForTextAnchor(anchor) { const root = document.getElementById('study-reader-content'); if (!root) return null; const nodes = []; const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); let node, total = 0, start, end, so, eo; while ((node = walker.nextNode())) nodes.push(node); for (const item of nodes) { const next = total + item.nodeValue.length; if (!start && anchor.start >= total && anchor.start <= next) { start = item; so = anchor.start - total; } if (anchor.end >= total && anchor.end <= next) { end = item; eo = anchor.end - total; break; } total = next; } if (!start || !end) return null; const range = document.createRange(); range.setStart(start, so); range.setEnd(end, eo); return range; }
-function restoreStudyReaderHighlights() { getStudyReaderNote().highlights.forEach(anchor => { const range = rangeForTextAnchor(anchor); if (!range || range.collapsed) return; const mark = document.createElement('mark'); mark.className = 'study-reader-highlight'; try { range.surroundContents(mark); } catch {} }); }
+// Range vắt qua nhiều đoạn/khối làm surroundContents thất bại, nên tô theo từng đoạn văn bản.
+function wrapStudyReaderHighlightOffsets(start, end) {
+  const root = document.getElementById('study-reader-content');
+  if (!root || !(end > start)) return 0;
+  const nodes = [], walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  let node, pos = 0, made = 0;
+  while ((node = walker.nextNode())) nodes.push(node);
+  for (const item of nodes) {
+    const next = pos + item.nodeValue.length, from = Math.max(start, pos), to = Math.min(end, next);
+    if (to > from) {
+      const range = document.createRange();
+      range.setStart(item, from - pos); range.setEnd(item, to - pos);
+      const mark = document.createElement('mark');
+      mark.className = 'study-reader-highlight';
+      try { range.surroundContents(mark); made++; } catch {}
+    }
+    pos = next;
+    if (pos >= end) break;
+  }
+  return made;
+}
+function restoreStudyReaderHighlights() { getStudyReaderNote().highlights.forEach(anchor => wrapStudyReaderHighlightOffsets(anchor.start, anchor.end)); }
 function studyReaderCreateNoteFromSelection() { const text = String(window.getSelection?.() || '').trim(), input = document.getElementById('study-reader-note-input'); if (!text || !input) return showToast('Chọn đoạn văn trước khi tạo ghi chú.', 'info'); input.value += `${input.value ? '\n\n' : ''}${text}`; saveStudyReaderNote({ text: input.value }); input.focus(); }
-function studyReaderApplyHighlight() { const root = document.getElementById('study-reader-content'), selection = window.getSelection(); if (!root || !selection?.rangeCount || selection.isCollapsed || !root.contains(selection.anchorNode)) return showToast('Chọn đoạn văn trong bài giảng trước khi highlight.', 'info'); const range = selection.getRangeAt(0), start = textOffset(root, range.startContainer, range.startOffset), end = textOffset(root, range.endContainer, range.endOffset); if (start < 0 || end <= start) return; saveStudyReaderNote({ highlights: [...getStudyReaderNote().highlights, { start, end, quote: selection.toString().slice(0, 500) }] }); const mark = document.createElement('mark'); mark.className = 'study-reader-highlight'; try { range.surroundContents(mark); selection.removeAllRanges(); } catch { renderStudyReaderContent(_studyReaderContext); } }
-function mountStudyReaderAnnotationLayer() { const root = document.getElementById('study-reader-content'); if (!root) return; root.querySelector('.study-reader-annotation-layer')?.remove(); root.style.position = 'relative'; const canvas = document.createElement('canvas'); canvas.className = 'study-reader-annotation-layer'; canvas.width = root.clientWidth; canvas.height = root.scrollHeight; canvas.style.pointerEvents = _studyReaderAnnotationEnabled ? 'auto' : 'none'; const ctx = canvas.getContext('2d'), strokes = getStudyReaderNote().annotations || []; const draw = stroke => { if (!stroke.points?.length) return; ctx.beginPath(); stroke.points.forEach((p, i) => i ? ctx.lineTo(p.x * canvas.width, p.y * canvas.height) : ctx.moveTo(p.x * canvas.width, p.y * canvas.height)); ctx.strokeStyle = stroke.color || '#1a9b71'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke(); }; strokes.forEach(draw); let active; canvas.onpointerdown = e => { if (!_studyReaderAnnotationEnabled) return; const box = canvas.getBoundingClientRect(); canvas.setPointerCapture(e.pointerId); active = { color: _studyReaderAnnotationColor, points: [{ x: (e.clientX - box.left) / box.width, y: (e.clientY - box.top) / box.height }] }; }; canvas.onpointermove = e => { if (!active) return; const box = canvas.getBoundingClientRect(); active.points.push({ x: (e.clientX - box.left) / box.width, y: (e.clientY - box.top) / box.height }); ctx.clearRect(0, 0, canvas.width, canvas.height); [...strokes, active].forEach(draw); }; canvas.onpointerup = () => { if (active?.points.length > 1) { strokes.push(active); saveStudyReaderNote({ annotations: strokes }); } active = null; }; root.appendChild(canvas); }
+function studyReaderApplyHighlight() { const root = document.getElementById('study-reader-content'), selection = window.getSelection(); if (!root || !selection?.rangeCount || selection.isCollapsed || !root.contains(selection.anchorNode)) return showToast('Chọn đoạn văn trong bài giảng trước khi highlight.', 'info'); const range = selection.getRangeAt(0), start = textOffset(root, range.startContainer, range.startOffset), end = textOffset(root, range.endContainer, range.endOffset); if (start < 0 || end <= start) return; saveStudyReaderNote({ highlights: [...getStudyReaderNote().highlights, { start, end, quote: selection.toString().slice(0, 500) }] }); wrapStudyReaderHighlightOffsets(start, end); selection.removeAllRanges(); }
+function mountStudyReaderAnnotationLayer() { const root = document.getElementById('study-reader-content'); if (!root) return; root.querySelector('.study-reader-annotation-layer')?.remove(); root.style.position = 'relative'; const canvas = document.createElement('canvas'); canvas.className = 'study-reader-annotation-layer'; canvas.width = root.clientWidth; canvas.height = root.scrollHeight; canvas.style.width = root.clientWidth + 'px'; canvas.style.height = root.scrollHeight + 'px'; canvas.style.pointerEvents = _studyReaderAnnotationEnabled ? 'auto' : 'none'; const ctx = canvas.getContext('2d'), strokes = getStudyReaderNote().annotations || []; const draw = stroke => { if (!stroke.points?.length) return; ctx.beginPath(); stroke.points.forEach((p, i) => i ? ctx.lineTo(p.x * canvas.width, p.y * canvas.height) : ctx.moveTo(p.x * canvas.width, p.y * canvas.height)); ctx.strokeStyle = stroke.color || '#1a9b71'; ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.stroke(); }; strokes.forEach(draw); let active; canvas.onpointerdown = e => { if (!_studyReaderAnnotationEnabled) return; const box = canvas.getBoundingClientRect(); canvas.setPointerCapture(e.pointerId); active = { color: _studyReaderAnnotationColor, points: [{ x: (e.clientX - box.left) / box.width, y: (e.clientY - box.top) / box.height }] }; }; canvas.onpointermove = e => { if (!active) return; const box = canvas.getBoundingClientRect(); active.points.push({ x: (e.clientX - box.left) / box.width, y: (e.clientY - box.top) / box.height }); ctx.clearRect(0, 0, canvas.width, canvas.height); [...strokes, active].forEach(draw); }; canvas.onpointerup = () => { if (active?.points.length > 1) { strokes.push(active); saveStudyReaderNote({ annotations: strokes }); } active = null; }; root.appendChild(canvas); }
 function studyReaderToggleAnnotation() { _studyReaderAnnotationEnabled = !_studyReaderAnnotationEnabled; mountStudyReaderAnnotationLayer(); showToast(_studyReaderAnnotationEnabled ? 'Chế độ vẽ đã bật.' : 'Chế độ vẽ đã tắt.', 'info'); }
-function studyReaderUndoAnnotation() { saveStudyReaderNote({ annotations: getStudyReaderNote().annotations.slice(0, -1) }); mountStudyReaderAnnotationLayer(); }
-function studyReaderClearAnnotations() { saveStudyReaderNote({ annotations: [] }); mountStudyReaderAnnotationLayer(); }
+function studyReaderUndoAnnotation() { const strokes = getStudyReaderNote().annotations; if (!strokes.length) return showToast('Chưa có nét vẽ để hoàn tác.', 'info'); saveStudyReaderNote({ annotations: strokes.slice(0, -1) }); mountStudyReaderAnnotationLayer(); showToast('Đã hoàn tác nét vẽ gần nhất.', 'success'); }
+function studyReaderClearAnnotations() { if (!getStudyReaderNote().annotations.length) return showToast('Chưa có nét vẽ để xóa.', 'info'); saveStudyReaderNote({ annotations: [] }); mountStudyReaderAnnotationLayer(); showToast('Đã xóa toàn bộ nét vẽ.', 'success'); }
 
 let _studyReaderSummaryMode = 'study'; // ✅ DEFAULT: Tóm tắt chi tiết (thay vì 'quick')
 let _studyReaderSummary = null;
@@ -6664,7 +6668,7 @@ function renderStudyReaderHeaderResourceLink(context = _studyReaderContext || {}
   link.querySelector('span').textContent = resource.name ? `Tải: ${resource.name}` : 'Tải tài liệu';
 }
 
-function renderStudyReader(context = {}) { _studyReaderContext = { ...context, returnPage: context.returnPage || 'curriculum-summary' }; const subject = getAllSubjects().find(s => s.id === context.subjectId) || {}; const crumb = document.getElementById('study-reader-crumb'); if (crumb) crumb.textContent = context.summaryResult ? 'Ôn tập · Tóm tắt chi tiết' : `${subject.code || context.subjectId || ''} · ${subject.name || 'Tài liệu học tập'}`; renderStudyReaderContent(_studyReaderContext); renderStudyReaderToc(_studyReaderContext); renderStudyReaderHeaderResourceLink(_studyReaderContext); bindStudyReaderControls(); bindStudyReaderDrawers(); loadStudyReaderNote(); initStudyReaderSummaryControls(); initStudyReaderMobileLayer(_studyReaderContext); }
+function renderStudyReader(context = {}) { _studyReaderContext = { ...context, returnPage: context.returnPage || 'curriculum-summary' }; const subject = getAllSubjects().find(s => s.id === context.subjectId) || {}; const crumb = document.getElementById('study-reader-crumb'); if (crumb) crumb.textContent = context.summaryResult ? 'Ôn tập · Tóm tắt chi tiết' : `${subject.code || context.subjectId || ''} · ${subject.name || 'Tài liệu học tập'}`; renderStudyReaderContent(_studyReaderContext); renderStudyReaderToc(_studyReaderContext); renderStudyReaderHeaderResourceLink(_studyReaderContext); bindStudyReaderControls(); bindStudyReaderDrawers(); loadStudyReaderNote(); initStudyReaderSummaryControls(); initStudyReaderMobileLayer(_studyReaderContext); window.NavController?.syncStudyReaderUrl?.(_studyReaderContext); }
 
 /* ─── STUDY READER · lớp mobile (≤760px, chỉ giao diện) ────────────────── */
 function isStudyReaderMobile() { return window.matchMedia('(max-width: 760px)').matches; }
@@ -6915,7 +6919,7 @@ function openUserResourceViewer(subjectId, category) {
         close();
         if (r.empty) return showToast('Đề thi các năm đang được cập nhật.', 'info');
         if (r.fallback) NavController.openStudyReader({ subjectId, returnPage: 'subject-detail' });
-        else if (isReaderResourceSupported(r)) NavController.openStudyReader({ subjectId, resourceId: r.id, returnPage: 'subject-detail' });
+        else if (isReaderResourceSupported(r)) NavController.openStudyReader({ subjectId, resourceId: r.id, resourceCategory: category, returnPage: 'subject-detail' });
         else openUnsupportedResourceViewer(subjectId, r);
       };
     }
