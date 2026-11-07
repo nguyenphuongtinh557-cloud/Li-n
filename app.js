@@ -3,7 +3,7 @@
  * Điều phối toàn bộ logic của ứng dụng
  */
 
-import { DB } from './modules/db.js';
+import { DB } from './modules/db.js?v=20261106-notify5';
 import { AIPool } from './modules/aiPool.js';
 import { QuestionGenerator } from './modules/questionGeneratorCore.js';
 import { DocumentExtractor } from './modules/documentExtractor.js';
@@ -12,7 +12,7 @@ import { ExamEngine, ExamTimer } from './modules/exam.js';
 import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion, setCurrentReading } from './modules/cera.js';
 import { planCeraNavigation, runCeraNavigation } from './modules/ceraNav.js';
 import { searchSubjectKnowledge } from './modules/knowledgeBase.js';
-import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer, pullFeedbacksFromServer, pullSubjectDetailsFromServer } from './modules/sync.js';
+import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer, pullFeedbacksFromServer, pullSubjectDetailsFromServer } from './modules/sync.js?v=20261106-notify5';
 import { initAdminAuth } from './modules/admin.js?v=20261105-subjecttabs1';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js';
 import { NavController } from './modules/navigation.js?v=20261105-subjecttabs2';
@@ -207,32 +207,32 @@ async function init() {
     console.warn('[Community] Không thể đồng bộ dữ liệu cộng đồng:', error);
   });
 
-  // Kéo tài nguyên học tập từ server về (sync toàn bộ, bao gồm cả xóa)
+    // Kéo tài nguyên học tập từ Cloud. Chỉ thêm/cập nhật và gỡ các mục đã bị xóa
+  // mềm; không xóa tài nguyên local chỉ vì file GitHub cũ không có nó.
   try {
-    const serverResources = await pullResourcesFromServer();
-    if (serverResources && Array.isArray(serverResources)) {
-      // SYNC TOÀN BỘ: Server là nguồn dữ liệu chính
-      const localResources = DB.getResources();
-      const serverIds = new Set(serverResources.map(r => r.id));
-      const localIds = new Set(localResources.map(r => r.id));
-      
-      // Thêm resources mới từ server
-      const newResources = serverResources.filter(r => !localIds.has(r.id));
-      if (newResources.length > 0) {
-        newResources.forEach(r => DB.saveResource(r, true)); // skipSync = true
-        console.log(`[Resources] ✅ Đã kéo ${newResources.length} tài nguyên mới từ server`);
-      }
-      
-      // Xóa resources local nếu không còn trên server (Admin đã xóa)
-      const deletedResources = localResources.filter(r => !serverIds.has(r.id));
-      if (deletedResources.length > 0) {
-        deletedResources.forEach(r => DB.deleteResource(r.id, true)); // skipSync = true
-        console.log(`[Resources] 🗑️ Đã xóa ${deletedResources.length} tài nguyên không còn trên server`);
-      }
-      
-      // Re-render nếu đang ở tab resources
+    const feed = await pullResourcesFromServer();
+    if (feed.ok) {
+      const merged = DB.mergeResourcesFromServer(feed.resources, feed.deletedIds);
       if (document.getElementById('resources-tab')?.classList.contains('active')) {
         if (typeof renderResources === 'function') renderResources();
+      }
+
+      // Một lần duy nhất sau khi chuyển sang Firestore: đẩy các tài nguyên cũ
+      // chỉ nằm trên máy admin lên Cloud để không mất khi đổi thiết bị.
+      const adminEmail = String(NavController.currentUser?.email || '').toLowerCase();
+      const isAdmin = adminEmail && getActiveAdminEmails().includes(adminEmail);
+      const migrationKey = 'qlcl_resources_cloud_migrated_v1';
+      let alreadyMigrated = true;
+      try { alreadyMigrated = Boolean(localStorage.getItem(migrationKey)); } catch { /* ignore */ }
+      if (isAdmin && !alreadyMigrated) {
+        const serverIds = new Set(feed.resources.map(item => item.id));
+        const tombstones = new Set(feed.deletedIds);
+        const localOnly = merged.filter(item => item.id && !serverIds.has(item.id) && !tombstones.has(item.id));
+        for (const item of localOnly) {
+          try { await DB.saveResource(item); } catch { /* giữ bản local nếu Cloud từ chối */ }
+        }
+        try { localStorage.setItem(migrationKey, new Date().toISOString()); } catch { /* ignore */ }
+        if (localOnly.length) console.log(`[Resources] Đã gửi ${localOnly.length} tài nguyên cũ lên Cloud.`);
       }
     }
   } catch (e) {
@@ -305,9 +305,9 @@ async function init() {
     { id: 'DEMO_MATERIALS_2026', title: 'Tài liệu học tập mới đã sẵn sàng', content: '<p><strong>Thông báo mới,</strong></p><p>Một số tài liệu và nội dung ôn tập đã được cập nhật. Bạn có thể truy cập khu vực Ôn tập & kiểm tra để xem các nội dung phù hợp.</p><p>Nếu cần hỗ trợ, hãy gửi phản hồi cho đội ngũ quản trị.</p>', type: 'update', category: 'Cập nhật học tập', scope: 'all', excerpt: 'Khám phá các tài liệu và nội dung ôn tập vừa được cập nhật.', createdAt: '2026-09-01T08:30:00.000Z', author: 'Admin' }
   ];
   try {
-    const announcements = await pullAnnouncementsFromServer();
-    if (Array.isArray(announcements) && announcements.length) {
-      DB.mergeAnnouncementsFromServer(announcements);
+    const feed = await pullAnnouncementsFromServer();
+    if (feed.ok && (feed.announcements.length || feed.deletedIds.length)) {
+      DB.mergeAnnouncementsFromServer(feed.announcements, feed.deletedIds);
     } else if (!DB.getAnnouncements().length) {
       localStorage.setItem('qlcl_system_announcements', JSON.stringify(demoAnnouncements));
     }
@@ -5631,7 +5631,7 @@ function adminTogglePinArticle(id) {
 }
 
 /* ─── RICH ANNOUNCEMENT ────────────────────────────────────────────────────── */
-function handleAdminPostAnnouncement() {
+async function handleAdminPostAnnouncement() {
   const titleInput = document.getElementById('admin-announcement-title');
   const typeSelect = document.getElementById('admin-announcement-type');
   const scopeSelect = document.getElementById('admin-announcement-scope');
@@ -5653,12 +5653,18 @@ function handleAdminPostAnnouncement() {
   if (!title) { showToast('Vui lòng nhập tiêu đề thông báo!', 'error'); return; }
   if (!content) { showToast('Vui lòng nhập nội dung thông báo!', 'error'); return; }
 
-  DB.addAnnouncement({ title, content, type, category: type, scope, author: NavController.currentUser?.name || 'Admin' });
+  const result = await DB.addAnnouncement({ title, content, type, category: type, scope, author: NavController.currentUser?.name || 'Admin' });
   if (document.getElementById('notification-center-shell')) renderNotificationCenter();
-  showToast('📢 Đã gửi thông báo lên Server Cloud!', 'success');
+  renderAdminAnnouncementList();
+
+  if (!result.synced) {
+    showToast('Chưa gửi được thông báo lên Cloud. Bản nháp đã lưu trên máy này để thử lại.', 'warning');
+    return;
+  }
+
+  showToast('📢 Đã gửi thông báo đến học viên.', 'success');
   if (titleInput) titleInput.value = '';
   if (_adminTinyMCEAnnouncement) _adminTinyMCEAnnouncement.setContent('');
-  renderAdminAnnouncementList();
 }
 
 function renderAdminAnnouncementList() {
@@ -5667,24 +5673,31 @@ function renderAdminAnnouncementList() {
   const list = DB.getAnnouncements();
   if (!list.length) { el.innerHTML = `<div class="text-xs text-muted text-center py-3">Chưa có thông báo nào.</div>`; return; }
   const typeIcon = { info: '💡', update: '🚀', alert: '⚠️', success: '🎉' };
+  const scopeLabel = a => a.scope === 'premium'
+    ? '💎 PREMIUM'
+    : a.scope === 'newbie'
+      ? '🌱 NEWBIE'
+      : a.scope === 'user'
+        ? `👤 Riêng: ${escapeHtml(a.recipientEmail || 'không rõ')}`
+        : '👥 Tất cả';
   el.innerHTML = list.slice(0, 20).map(a => `
     <div class="feedback-item" style="padding:10px 12px;">
       <div class="fb-icon">${typeIcon[a.type] || '📢'}</div>
       <div class="fb-body">
         <h5>${escapeHtml(a.title)}</h5>
-        <p>${new Date(a.createdAt).toLocaleDateString('vi-VN')} · ${a.category || a.type || 'info'} · Phạm vi: ${a.scope === 'premium' ? '💎 PREMIUM' : a.scope === 'newbie' ? '🌱 NEWBIE' : '👥 Tất cả'}</p>
+        <p>${new Date(a.createdAt).toLocaleDateString('vi-VN')} · ${a.category || a.type || 'info'} · Phạm vi: ${scopeLabel(a)}</p>
       </div>
       <button class="btn btn-danger btn-xs" onclick="adminDeleteAnnouncement('${escapeAttr(a.id)}')"><i class="fa-solid fa-trash"></i></button>
     </div>
   `).join('');
 }
 
-function adminDeleteAnnouncement(id) {
-  DB.deleteAnnouncement(id);
+async function adminDeleteAnnouncement(id) {
+  const result = await DB.deleteAnnouncement(id);
   if (NotificationCenterState.selectedId === id) NotificationCenterState.selectedId = null;
   renderAdminAnnouncementList();
   if (document.getElementById('notification-center-shell')) renderNotificationCenter();
-  showToast('Đã xóa thông báo.', 'info');
+  showToast(result.synced ? 'Đã xóa thông báo.' : 'Đã xóa trên máy này nhưng chưa xóa được trên Cloud. Thông báo có thể xuất hiện lại.', result.synced ? 'info' : 'warning');
 }
 
 /* ─── SUPPORT TICKETS ─────────────────────────────────────────────────────── */
@@ -5708,7 +5721,7 @@ function renderUserTicketHistory() {
   const tickets = DB.getFeedbacks().filter(f => email && (f.userEmail || '').toLowerCase() === email);
   document.getElementById('report-ticket-count').textContent = tickets.length;
   const statusLabel = { submitted:'Đã gửi', acknowledged:'Đã ghi nhận', processing:'Đang xử lý', fixed:'Đã sửa', unable:'Không tái hiện được' };
-  container.innerHTML = tickets.length ? tickets.map(t => `<article class="report-history-item"><div><strong>${escapeHtml(t.ticketCode || t.id)}</strong><span class="report-status ${t.status}">${statusLabel[t.status] || t.status}</span></div><h3>${escapeHtml(t.title || t.content)}</h3><p>${new Date(t.updatedAt || t.createdAt).toLocaleString('vi-VN')}</p></article>`).join('') : '<div class="report-history-empty">Chưa có ticket nào. Ticket mới sẽ xuất hiện ở đây.</div>';
+  container.innerHTML = tickets.length ? tickets.map(t => `<article class="report-history-item"><div><strong>${escapeHtml(t.ticketCode || t.id)}</strong><span class="report-status ${t.status}">${statusLabel[t.status] || t.status}</span></div><h3>${escapeHtml(t.title || t.content)}</h3><p>${new Date(t.updatedAt || t.createdAt).toLocaleString('vi-VN')}</p>${t.adminResponse ? `<p><strong>Phản hồi từ đội ngũ:</strong> ${escapeHtml(t.adminResponse)}</p>` : ''}</article>`).join('') : '<div class="report-history-empty">Chưa có ticket nào. Ticket mới sẽ xuất hiện ở đây.</div>';
 }
 async function submitSupportTicket(event) {
   event.preventDefault(); const user = NavController.currentUser;
@@ -5771,21 +5784,13 @@ async function adminMarkFeedback(id, status) {
   const response = document.getElementById(`admin-response-${id}`)?.value.trim() || '';
   const label = { acknowledged:'Đã ghi nhận', processing:'Đang xử lý', fixed:'Đã sửa', unable:'Không tái hiện được' }[status] || status;
   const result = await DB.updateFeedback(id, { status, adminResponse: response, historyEntry: { status, message: response || `Ticket ${label.toLowerCase()}.`, actor: 'Admin' } });
-  if (!result.synced) { showToast('Cập nhật chỉ lưu cục bộ; chưa gửi phản hồi đến học viên.', 'warning'); renderAdminFeedbackInbox(); return; }
-  if (feedback.userEmail) {
-    const ticketCode = escapeHtml(feedback.ticketCode || feedback.id);
-    const ticketTitle = escapeHtml(feedback.title || 'yêu cầu hỗ trợ của bạn');
-    const responseBlock = response ? `<p><strong>Nội dung phản hồi từ đội ngũ:</strong><br>${escapeHtml(response)}</p>` : '';
-    const statusMessage = {
-      acknowledged: 'Chúng tôi đã tiếp nhận yêu cầu và sẽ sớm cập nhật thêm thông tin đến bạn.',
-      processing: 'Yêu cầu đang được đội ngũ kiểm tra và xử lý. Cảm ơn bạn đã kiên nhẫn chờ đợi.',
-      fixed: 'Vấn đề đã được xử lý. Xin cảm ơn bạn đã phản hồi để chúng tôi cải thiện hệ thống.',
-      unable: 'Đội ngũ hiện chưa thể tái hiện vấn đề. Nếu thuận tiện, bạn vui lòng bổ sung thêm thông tin hoặc ảnh minh họa để chúng tôi hỗ trợ tốt hơn.'
-    }[status] || 'Yêu cầu của bạn đã được cập nhật.';
-    await DB.addAnnouncement({ title: `Cập nhật yêu cầu hỗ trợ ${ticketCode}`, content: `<p><strong>Xin chào bạn,</strong></p><p>Cảm ơn bạn đã gửi phản hồi về “<strong>${ticketTitle}</strong>”. Yêu cầu <strong>${ticketCode}</strong> hiện ở trạng thái: <strong>${label}</strong>.</p><p>${statusMessage}</p>${responseBlock}<p>Trân trọng,<br><strong>Đội ngũ hỗ trợ FTECA 24</strong></p>`, type: status === 'fixed' ? 'success' : 'info', category: 'Phản hồi ticket', scope: 'user', recipientEmail: feedback.userEmail, author: 'Đội ngũ hỗ trợ FTECA 24' });
-  }
-  await refreshFeedbacksFromServer(); renderAdminDashboard(); if (document.getElementById('notification-center-shell')) renderNotificationCenter();
-  showToast('Đã đồng bộ phản hồi ticket.', 'success');
+  if (!result.synced) { showToast('Không gửi được cập nhật lên Cloud; trạng thái chỉ lưu trên máy này.', 'warning'); renderAdminFeedbackInbox(); return; }
+  // Server tạo thông báo riêng cho học viên trong cùng giao dịch PATCH.
+  await refreshFeedbacksFromServer();
+  await window.refreshAnnouncementsFromServer?.();
+  renderAdminDashboard();
+  if (document.getElementById('notification-center-shell')) renderNotificationCenter();
+  showToast('Đã cập nhật ticket và gửi thông báo đến học viên.', 'success');
 }
 
 async function adminDeleteFeedback(id) {
@@ -5868,6 +5873,10 @@ async function adminSaveResource() {
     const fileInput = document.getElementById('admin-resource-file-input');
     if (fileInput && fileInput.files && fileInput.files.length) {
       const file = fileInput.files[0];
+      if (file.size > 650_000) {
+        showToast('Tệp lớn hơn ~650 KB chưa lưu được lên Cloud. Hãy dùng tab "Nhập Link URL" (Google Drive/YouTube) cho tệp lớn.', 'error');
+        return;
+      }
       fileName = file.name;
       try {
         const dataUrl = await new Promise((res, rej) => {
@@ -5892,33 +5901,46 @@ async function adminSaveResource() {
     }
   }
 
-  DB.saveResource({
-    subjectId,
-    type,
-    name,
-    url,
-    content,
-    fileName,
-    year,
-    inputMode: _currentResourceInputMode,
-    author: NavController.currentUser?.name || 'Admin'
-  });
+  try {
+    const result = await DB.saveResource({
+      subjectId,
+      type,
+      name,
+      url,
+      content,
+      fileName,
+      year,
+      inputMode: _currentResourceInputMode,
+      author: NavController.currentUser?.name || 'Admin'
+    });
+    renderAdminResourceList();
 
-  showToast('🎉 Đã lưu tài nguyên và đồng bộ 100% lên Server Cloud!', 'success');
-  document.getElementById('admin-resource-name').value = '';
-  document.getElementById('admin-resource-url').value = '';
-  document.getElementById('admin-resource-year').value = '';
-  if (_adminTinyMCEResource) _adminTinyMCEResource.setContent('');
-  const fileInput = document.getElementById('admin-resource-file-input');
-  if (fileInput) fileInput.value = '';
-  renderAdminResourceList();
+    if (!result.synced) {
+      showToast(result.reason === 'resource-too-large'
+        ? 'Tài nguyên quá lớn để lưu Cloud (giới hạn ~650 KB). Tài nguyên chỉ được lưu trên máy này.'
+        : 'Chưa gửi được tài nguyên lên Cloud. Bản lưu tạm vẫn còn trên máy này để thử lại.', 'warning');
+      return;
+    }
+
+    showToast('🎉 Đã lưu tài nguyên và đồng bộ lên Cloud!', 'success');
+    document.getElementById('admin-resource-name').value = '';
+    document.getElementById('admin-resource-url').value = '';
+    document.getElementById('admin-resource-year').value = '';
+    if (_adminTinyMCEResource) _adminTinyMCEResource.setContent('');
+    const fileInput = document.getElementById('admin-resource-file-input');
+    if (fileInput) fileInput.value = '';
+  } catch (error) {
+    showToast(error?.message === 'resource-storage-quota'
+      ? 'Bộ nhớ trình duyệt đã đầy nên chưa lưu được tài nguyên. Hãy dùng link Drive hoặc xóa bớt dữ liệu.'
+      : 'Không lưu được tài nguyên. Vui lòng thử lại.', 'error');
+  }
 }
 
-function adminDeleteResource(id) {
+async function adminDeleteResource(id) {
   if (!confirm('Xóa tài nguyên này?')) return;
-  DB.deleteResource(id);
+  const result = await DB.deleteResource(id);
   renderAdminResourceList();
-  showToast('Đã xóa tài nguyên.', 'info');
+  showToast(result.synced ? 'Đã xóa tài nguyên.' : 'Đã xóa trên máy này nhưng chưa xóa được trên Cloud. Tài nguyên có thể xuất hiện lại.', result.synced ? 'info' : 'warning');
 }
 
 /* ─── AI BANK 4-STEP WORKFLOW ──────────────────────────────────────────────── */
@@ -12035,11 +12057,11 @@ function updateNotificationBadge() {
 
 window.refreshAnnouncementsFromServer = async function() {
   try {
-    const announcements = await pullAnnouncementsFromServer();
-    if (Array.isArray(announcements) && announcements.length) DB.mergeAnnouncementsFromServer(announcements);
+    const feed = await pullAnnouncementsFromServer();
+    if (feed.ok) DB.mergeAnnouncementsFromServer(feed.announcements, feed.deletedIds);
     const unreadCount = updateNotificationBadge();
     if (document.getElementById('notification-center-shell')) renderNotificationCenter();
-    return { synced: true, unreadCount };
+    return { synced: feed.ok, unreadCount };
   } catch (error) {
     console.warn('[Announcements] Không thể làm mới dữ liệu cloud:', error);
     return { synced: false, unreadCount: updateNotificationBadge() };

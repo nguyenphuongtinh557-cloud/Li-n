@@ -10,6 +10,9 @@
   "rewrites": [
     { "source": "/api/subject-details", "destination": "/api/subject-details.js" },
     { "source": "/api/admin-users", "destination": "/api/admin-users.js" },
+    { "source": "/api/announcements", "destination": "/api/announcements.js" },
+    { "source": "/api/feedbacks", "destination": "/api/feedbacks.js" },
+    { "source": "/api/resources", "destination": "/api/resources.js" },
     { "source": "/api/summary-share", "destination": "/api/summary-share.js" },
     { "source": "/api/quiz-share", "destination": "/api/quiz-share.js" },
     { "source": "/api/document-summary", "destination": "/api/document-summary.js" },

@@ -183,12 +183,53 @@ export async function pullCustomSubjectsFromServer() {
 }
 
 // ─── Đồng bộ Thông báo Hệ thống (System Announcements) ─────────────────────
-export async function pushAnnouncementsToServer(announcements) {
-  return await pushFile(SYNC_CONFIG.announcementsFile, announcements);
+// Thông báo và ticket đi qua API Firestore có xác thực, không qua file GitHub
+// công khai. Ghi file GitHub đã bị gỡ vì trước đây chỉ là hàm rỗng.
+async function getIdToken() {
+  try {
+    if (typeof window !== 'undefined' && window.AuthModule?.getIdToken) {
+      return await window.AuthModule.getIdToken();
+    }
+  } catch {
+    // Không có phiên đăng nhập thì gọi API ở chế độ khách.
+  }
+  return '';
+}
+
+async function apiRequest(path, { method = 'GET', body } = {}) {
+  const token = await getIdToken();
+  try {
+    const response = await fetch(path, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: body === undefined ? undefined : JSON.stringify(body)
+    });
+    const payload = await response.json().catch(() => ({}));
+    return { ok: response.ok && payload?.ok === true, status: response.status, payload };
+  } catch (error) {
+    return { ok: false, status: 0, payload: { ok: false, reason: String(error?.message || error) } };
+  }
+}
+
+export async function pushAnnouncementToServer(announcement) {
+  return await apiRequest('/api/announcements', { method: 'POST', body: { announcement } });
+}
+
+export async function deleteAnnouncementFromServer(id) {
+  return await apiRequest(`/api/announcements?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
 
 export async function pullAnnouncementsFromServer() {
-  return await fetchRaw(SYNC_CONFIG.announcementsFile);
+  const result = await apiRequest('/api/announcements');
+  if (!result.ok) return { ok: false, announcements: [], deletedIds: [] };
+  return {
+    ok: true,
+    announcements: Array.isArray(result.payload.announcements) ? result.payload.announcements : [],
+    deletedIds: Array.isArray(result.payload.deletedIds) ? result.payload.deletedIds : []
+  };
 }
 
 // ─── CMS Articles (Bài Viết Giới Thiệu Ngành) ─────────────────────────────
@@ -201,21 +242,40 @@ export async function pullArticlesFromServer() {
 }
 
 // ─── Learning Resources (Tài Nguyên Học Tập) ──────────────────────────────
-export async function pushResourcesToServer(resources) {
-  return await pushFile(SYNC_CONFIG.resourcesFile, resources);
+export async function pushResourceToServer(resource) {
+  return await apiRequest('/api/resources', { method: 'POST', body: { resource } });
+}
+
+export async function deleteResourceFromServer(id) {
+  return await apiRequest(`/api/resources?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
 
 export async function pullResourcesFromServer() {
-  return await fetchRaw(SYNC_CONFIG.resourcesFile);
+  const result = await apiRequest('/api/resources');
+  if (!result.ok) return { ok: false, resources: [], deletedIds: [] };
+  return {
+    ok: true,
+    resources: Array.isArray(result.payload.resources) ? result.payload.resources : [],
+    deletedIds: Array.isArray(result.payload.deletedIds) ? result.payload.deletedIds : []
+  };
 }
 
 // ─── User Feedbacks (Phản Hồi Học Viên) ───────────────────────────────────
-export async function pushFeedbacksToServer(feedbacks) {
-  return await pushFile(SYNC_CONFIG.feedbacksFile, feedbacks);
+export async function pushFeedbackToServer(feedback) {
+  return await apiRequest('/api/feedbacks', { method: 'POST', body: { feedback } });
+}
+
+export async function updateFeedbackOnServer(id, patch = {}) {
+  return await apiRequest('/api/feedbacks', { method: 'PATCH', body: { id, ...patch } });
+}
+
+export async function deleteFeedbackFromServer(id) {
+  return await apiRequest(`/api/feedbacks?id=${encodeURIComponent(id)}`, { method: 'DELETE' });
 }
 
 export async function pullFeedbacksFromServer() {
-  return await fetchRaw(SYNC_CONFIG.feedbacksFile);
+  const result = await apiRequest('/api/feedbacks');
+  return result.ok && Array.isArray(result.payload.feedbacks) ? result.payload.feedbacks : [];
 }
 
 // ─── Subject Details Config (Thiết Lập Trang Môn Học) ──────────────────────

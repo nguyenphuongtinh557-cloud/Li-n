@@ -19,6 +19,9 @@ import aiProxyHandler from './api/ai-proxy.js';
 import aiQuestionHistoryHandler from './api/ai-question-history.js';
 import quizShareHandler from './api/quiz-share.js';
 import adminUsersHandler from './api/admin-users.js';
+import announcementsHandler from './api/announcements.js';
+import feedbacksHandler from './api/feedbacks.js';
+import resourcesHandler from './api/resources.js';
 import subjectDetailsHandler from './api/subject-details.js';
 import lessonSummaryHandler from './api/lesson-summary.js';
 import documentSummaryHandler from './api/document-summary.js';
@@ -385,6 +388,18 @@ const server = http.createServer(async (req, res) => {
   }
   if (cleanUrl === '/api/admin-users') {
     await handleAdminUsers(req, res);
+    return;
+  }
+  if (cleanUrl === '/api/announcements') {
+    await runServerlessHandler(announcementsHandler, 'announcements', req, res, { bodyLimit: 500_000 });
+    return;
+  }
+  if (cleanUrl === '/api/feedbacks') {
+    await runServerlessHandler(feedbacksHandler, 'feedbacks', req, res, { bodyLimit: 200_000 });
+    return;
+  }
+  if (cleanUrl === '/api/resources') {
+    await runServerlessHandler(resourcesHandler, 'resources', req, res, { bodyLimit: 2_000_000 });
     return;
   }
   if (cleanUrl === '/api/subject-details' && req.method === 'PUT') {

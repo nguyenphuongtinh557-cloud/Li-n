@@ -3,7 +3,7 @@
  * Quản lý toàn bộ dữ liệu qua localStorage + Gọi module Sync để đẩy lên GitHub
  */
 
-import { pushToGitHub, pushUserRolesToServer, pushCustomSubjectsToServer, pushAnnouncementsToServer, pushArticlesToServer, pushResourcesToServer, pushFeedbacksToServer, pushSubjectDetailsToServer, isLocalSubjectDetailsEditor, persistSubjectDetailsLocally } from './sync.js?v=20261104-community-retag2';
+import { pushToGitHub, pushUserRolesToServer, pushCustomSubjectsToServer, pushAnnouncementToServer, deleteAnnouncementFromServer, pushArticlesToServer, pushResourceToServer, deleteResourceFromServer, pushFeedbackToServer, updateFeedbackOnServer, deleteFeedbackFromServer, pushSubjectDetailsToServer, isLocalSubjectDetailsEditor, persistSubjectDetailsLocally } from './sync.js?v=20261106-notify5';
 import { FT4488_SEED_QUESTIONS } from '../data/seed_questions_ft4488.js';
 
 const KEYS = {
@@ -210,16 +210,17 @@ export const DB = {
     });
   },
 
-  mergeAnnouncementsFromServer(remoteAnnouncements = []) {
+  mergeAnnouncementsFromServer(remoteAnnouncements = [], deletedIds = []) {
+    const tombstones = new Set(Array.isArray(deletedIds) ? deletedIds : []);
     const merged = new Map();
     const add = (announcement = {}) => {
-      if (!announcement.id) return;
+      if (!announcement.id || announcement.deletedAt) return;
       const current = merged.get(announcement.id);
       const currentTime = Date.parse(current?.createdAt || '') || 0;
       const incomingTime = Date.parse(announcement.createdAt || '') || 0;
       if (!current || incomingTime >= currentTime) merged.set(announcement.id, announcement);
     };
-    this.getAnnouncements().forEach(add);
+    this.getAnnouncements().forEach(item => { if (!tombstones.has(item.id)) add(item); });
     (Array.isArray(remoteAnnouncements) ? remoteAnnouncements : []).forEach(add);
     const list = [...merged.values()].sort((a, b) => (Date.parse(b.createdAt || '') || 0) - (Date.parse(a.createdAt || '') || 0));
     localStorage.setItem(KEYS.ANNOUNCEMENTS, JSON.stringify(list));
@@ -259,16 +260,32 @@ export const DB = {
       links: Array.isArray(announcement.links) ? announcement.links : [], attachment: announcement.attachment || null, recipientEmail,
       createdAt: new Date().toISOString(), author: announcement.author || 'Admin'
     };
+    if (skipSync) {
+      list.unshift(item);
+      localStorage.setItem(KEYS.ANNOUNCEMENTS, JSON.stringify(list));
+      return { item, list, synced: true };
+    }
+
+    const result = await pushAnnouncementToServer(item);
+    if (result.ok && result.payload?.announcement) {
+      const saved = result.payload.announcement;
+      const next = this.getAnnouncements().filter(a => a.id !== saved.id);
+      next.unshift(saved);
+      localStorage.setItem(KEYS.ANNOUNCEMENTS, JSON.stringify(next));
+      return { item: saved, list: next, synced: true };
+    }
+
+    // Giữ bản nháp trên máy để admin không mất nội dung khi mất mạng.
     list.unshift(item);
     localStorage.setItem(KEYS.ANNOUNCEMENTS, JSON.stringify(list));
-    const synced = skipSync ? true : await pushAnnouncementsToServer(list);
-    return { item, list, synced: Boolean(synced) };
+    return { item, list, synced: false };
   },
 
-  deleteAnnouncement(id) {
+  async deleteAnnouncement(id) {
     const list = this.getAnnouncements().filter(a => a.id !== id);
     localStorage.setItem(KEYS.ANNOUNCEMENTS, JSON.stringify(list));
-    pushAnnouncementsToServer(list);
+    const result = await deleteAnnouncementFromServer(id);
+    return { list, synced: result.ok };
   },
 
   // ─── CMS Articles (Bài Viết Giới Thiệu Ngành) ──────────────────────────────
@@ -307,40 +324,81 @@ export const DB = {
   // ─── Learning Resources (Tài Nguyên Học Tập theo Môn) ──────────────────────
   getResources(subjectId = null) {
     try {
-      const all = JSON.parse(localStorage.getItem(KEYS.RESOURCES) || '[]');
+      const all = JSON.parse(localStorage.getItem(KEYS.RESOURCES) || '[]').filter(r => !r.deletedAt);
       return subjectId ? all.filter(r => r.subjectId === subjectId) : all;
     } catch { return []; }
   },
 
-  saveResource(resource, skipSync = false) {
+  mergeResourcesFromServer(remoteResources = [], deletedIds = []) {
+    const tombstones = new Set(Array.isArray(deletedIds) ? deletedIds : []);
+    const merged = new Map();
+    const add = (resource = {}) => {
+      if (!resource.id || resource.deletedAt || tombstones.has(resource.id)) return;
+      const current = merged.get(resource.id);
+      const currentTime = Date.parse(current?.updatedAt || current?.createdAt || '') || 0;
+      const resourceTime = Date.parse(resource.updatedAt || resource.createdAt || '') || 0;
+      if (!current || resourceTime >= currentTime) merged.set(resource.id, resource);
+    };
+    this.getResources().forEach(item => { if (!tombstones.has(item.id)) add(item); });
+    (Array.isArray(remoteResources) ? remoteResources : []).forEach(add);
+    const list = [...merged.values()].sort((a, b) => (Date.parse(b.createdAt || '') || 0) - (Date.parse(a.createdAt || '') || 0));
+    localStorage.setItem(KEYS.RESOURCES, JSON.stringify(list));
+    return list;
+  },
+
+  _storeResource(resource) {
     const list = this.getResources();
-    if (!resource.id) {
-      resource.id = 'RES_' + Date.now();
-      resource.createdAt = new Date().toISOString();
-    }
     const idx = list.findIndex(r => r.id === resource.id);
     if (idx >= 0) list[idx] = resource;
     else list.unshift(resource);
-    localStorage.setItem(KEYS.RESOURCES, JSON.stringify(list));
-    if (!skipSync) pushResourcesToServer(list);
-    return resource;
+    try {
+      localStorage.setItem(KEYS.RESOURCES, JSON.stringify(list));
+    } catch (error) {
+      throw Object.assign(new Error('resource-storage-quota'), { cause: error });
+    }
   },
 
-  deleteResource(id, skipSync = false) {
+  async saveResource(resource, skipSync = false) {
+    const now = new Date().toISOString();
+    const item = { ...resource };
+    if (!item.id) {
+      item.id = 'RES_' + Date.now();
+      item.createdAt = now;
+    }
+    item.updatedAt = now;
+
+    if (!skipSync) {
+      const result = await pushResourceToServer(item);
+      if (result.ok && result.payload?.resource) {
+        const saved = result.payload.resource;
+        this._storeResource(saved);
+        return { resource: saved, synced: true };
+      }
+      this._storeResource(item);
+      return { resource: item, synced: false, reason: result.payload?.reason || 'cloud-unavailable' };
+    }
+
+    this._storeResource(item);
+    return { resource: item, synced: true };
+  },
+
+  async deleteResource(id, skipSync = false) {
     const list = this.getResources().filter(r => r.id !== id);
     localStorage.setItem(KEYS.RESOURCES, JSON.stringify(list));
-    if (!skipSync) pushResourcesToServer(list);
+    if (skipSync) return { list, synced: true };
+    const result = await deleteResourceFromServer(id);
+    return { list, synced: result.ok };
   },
 
   // ─── User Feedbacks (Phản Hồi Học Viên) ────────────────────────────────────
   getFeedbacks() {
-    try { return JSON.parse(localStorage.getItem(KEYS.FEEDBACKS) || '[]'); } catch { return []; }
+    try { return JSON.parse(localStorage.getItem(KEYS.FEEDBACKS) || '[]').filter(ticket => !ticket.deletedAt); } catch { return []; }
   },
 
   mergeFeedbacksFromServer(remoteFeedbacks = []) {
     const merged = new Map();
     const add = (ticket = {}) => {
-      if (!ticket.id) return;
+      if (!ticket.id || ticket.deletedAt) return;
       const current = merged.get(ticket.id);
       const currentTime = Date.parse(current?.updatedAt || current?.createdAt || '') || 0;
       const ticketTime = Date.parse(ticket.updatedAt || ticket.createdAt || '') || 0;
@@ -354,12 +412,28 @@ export const DB = {
   },
 
   async submitFeedback(feedback, skipSync = false) {
-    const list = this.getFeedbacks();
     const now = new Date().toISOString();
     const item = { id: 'FB_' + Date.now(), ticketCode: 'TK-' + Date.now().toString().slice(-6), type: feedback.type || 'bug', priority: feedback.priority || 'normal', title: feedback.title || 'Báo cáo lỗi', content: feedback.content || '', page: feedback.page || '', device: feedback.device || '', userName: feedback.userName || 'Ẩn danh', userEmail: feedback.userEmail || '', status: 'submitted', adminResponse: '', createdAt: now, updatedAt: now, history: [{ status: 'submitted', message: 'Đã gửi báo cáo đến quản trị viên.', at: now, actor: feedback.userName || 'Người dùng' }] };
-    list.unshift(item); localStorage.setItem(KEYS.FEEDBACKS, JSON.stringify(list));
-    const synced = skipSync ? true : await pushFeedbacksToServer(list);
-    return { item, list, synced: Boolean(synced) };
+
+    if (!skipSync) {
+      const result = await pushFeedbackToServer({
+        type: item.type, priority: item.priority, title: item.title, content: item.content,
+        page: item.page, device: item.device, userName: item.userName
+      });
+      if (result.ok && result.payload?.feedback) {
+        const saved = result.payload.feedback;
+        const next = this.getFeedbacks().filter(ticket => ticket.id !== saved.id);
+        next.unshift(saved);
+        localStorage.setItem(KEYS.FEEDBACKS, JSON.stringify(next));
+        return { item: saved, list: next, synced: true };
+      }
+    }
+
+    // Giữ ticket trên máy để học viên không mất nội dung khi API lỗi.
+    const list = this.getFeedbacks();
+    list.unshift(item);
+    localStorage.setItem(KEYS.FEEDBACKS, JSON.stringify(list));
+    return { item, list, synced: Boolean(skipSync) };
   },
 
   async updateFeedback(id, patch = {}) {
@@ -370,8 +444,15 @@ export const DB = {
       updated = { ...f, ...patch, history, updatedAt: now }; delete updated.historyEntry; return updated;
     });
     localStorage.setItem(KEYS.FEEDBACKS, JSON.stringify(list));
-    const synced = await pushFeedbacksToServer(list);
-    return { item: updated, list, synced: Boolean(synced) };
+
+    const result = await updateFeedbackOnServer(id, { status: patch.status, adminResponse: patch.adminResponse });
+    if (result.ok && result.payload?.feedback) {
+      const saved = result.payload.feedback;
+      const next = this.getFeedbacks().map(ticket => ticket.id === saved.id ? saved : ticket);
+      localStorage.setItem(KEYS.FEEDBACKS, JSON.stringify(next));
+      return { item: saved, list: next, synced: true, announcement: result.payload.announcement || null };
+    }
+    return { item: updated, list, synced: false };
   },
 
   markFeedbackStatus(id, status) {
@@ -381,8 +462,8 @@ export const DB = {
   async deleteFeedback(id) {
     const list = this.getFeedbacks().filter(f => f.id !== id);
     localStorage.setItem(KEYS.FEEDBACKS, JSON.stringify(list));
-    const synced = await pushFeedbacksToServer(list);
-    return { list, synced: Boolean(synced) };
+    const result = await deleteFeedbackFromServer(id);
+    return { list, synced: result.ok };
   },
 
   /** Lấy danh sách Môn học tùy chỉnh do người dùng tạo */
