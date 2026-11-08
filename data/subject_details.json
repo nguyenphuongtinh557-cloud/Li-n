@@ -9016,10 +9016,16 @@
           }
         ],
         "order": 2
+      },
+      {
+        "id": "chap_1794120121086",
+        "title": "Chương 4: PROTEIN VÀ ENZYME",
+        "lessons": [],
+        "order": 3
       }
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-11-08T06:41:18.034Z"
+    "updatedAt": "2026-11-08T06:42:04.824Z"
   }
 }
