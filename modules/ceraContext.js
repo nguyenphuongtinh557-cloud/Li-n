@@ -99,6 +99,35 @@ export function mentionedSubjects(query) {
   return scored.sort((a, b) => b.score - a.score).slice(0, 2).map(entry => entry.subject);
 }
 
+const CERA_LAST_SUBJECT_KEY = 'fteca_cera_last_subject_v1';
+const PRONOUN_SUBJECT = /\b(?:mon(?:\s+hoc)?|bai(?:\s+giang)?|tai\s+lieu|de(?:\s+thi)?|phan|chuong)\s+(?:do|nay|ay|day|kia)\b|\b(?:mon|bai|tai\s+lieu|de)\s+(?:vua\s+roi|luc\s+nay|vua\s+mo|vua\s+doc|vua\s+hoc)\b/;
+
+// Nhớ môn CERA vừa mở để hiểu các câu nối tiếp kiểu "môn đó", "môn này".
+export function rememberCeraSubject(subjectId) {
+  const id = String(subjectId || '').trim();
+  if (!id || !getAllSubjects().some(subject => subject.id === id)) return false;
+  try {
+    sessionStorage.setItem(CERA_LAST_SUBJECT_KEY, id);
+  } catch {
+    // sessionStorage bị chặn thì vẫn không làm hỏng điều hướng
+  }
+  return true;
+}
+
+export function recallCeraSubject() {
+  let id = '';
+  try {
+    id = sessionStorage.getItem(CERA_LAST_SUBJECT_KEY) || '';
+  } catch {
+    return null;
+  }
+  return getAllSubjects().find(subject => subject.id === id) || null;
+}
+
+export function refersToPreviousSubject(query) {
+  return PRONOUN_SUBJECT.test(normalize(query));
+}
+
 function longestAdjacentRun(nameTokens, queryTokens) {
   let best = 0;
   for (let start = 0; start < queryTokens.length; start += 1) {
@@ -220,7 +249,8 @@ export function buildCeraContext({ query = '', userId = '', reading = null, read
   const queryText = String(query || '');
   const wantsMaterials = INTENTS.materials.test(queryText) || INTENTS.list.test(queryText);
   const mentioned = mentionedSubjects(queryText);
-  const activeSubjectId = mentioned[0]?.id || (readingActive && reading?.subjectId) || DB.getActiveSubject();
+  const remembered = !mentioned.length && refersToPreviousSubject(queryText) ? recallCeraSubject() : null;
+  const activeSubjectId = mentioned[0]?.id || (readingActive && reading?.subjectId) || remembered?.id || DB.getActiveSubject();
   const activeSubject = getAllSubjects().find(subject => subject.id === activeSubjectId);
 
   if (activeSubject) {

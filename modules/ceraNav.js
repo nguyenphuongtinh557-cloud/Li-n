@@ -8,9 +8,9 @@
 
 import { DB } from './db.js';
 import { getAllSubjects } from './subjects.js';
-import { mentionedSubjects } from './ceraContext.js';
+import { mentionedSubjects, recallCeraSubject, rememberCeraSubject, refersToPreviousSubject } from './ceraContext.js?v=20261108-cera-subjectfollow1';
 
-const CUES = /(mở|xem|đưa (tôi|mình|em)|dẫn (tôi|mình|em)|đi đến|đi tới|đến trang|chuyển (sang|đến|qua)|vào trang|tới trang|tôi muốn|mình muốn|em muốn|cho (tôi|mình|em) (xem|đến|xin|hỏi)|xem trang|quay (lại|về)|thi thử|thi môn|làm bài thi|vào thi|đi thi|thông tin liên hệ|liên hệ (tác giả|admin|anh Phúc)|liên lạc|nâng cấp tài khoản|gói (vip|cao cấp|premium))/i;
+const CUES = /(mở|xem|đưa (tôi|mình|em)|dẫn (tôi|mình|em)|đi đến|đi tới|đến trang|chuyển (sang|đến|qua)|vào trang|tới trang|tôi muốn|mình muốn|em muốn|cho (tôi|mình|em) (xem|đến|xin|hỏi)|xem trang|quay (lại|về)|thi thử|thi môn|làm bài thi|vào thi|đi thi|thông tin liên hệ|liên hệ (tác giả|admin|anh Phúc)|liên lạc|nâng cấp tài khoản|gói (vip|cao cấp|premium)|(?:tải|lấy|xin|download)\s+(?:tài liệu|file|drive|tài nguyên)|link drive|tải xuống)/i;
 
 const FILLER = new Set([
   'bai', 'bao', 'viet', 'tin', 'tuc', 'xem', 'mo', 'tai', 'lieu', 'bai', 'giang', 'hoc',
@@ -104,17 +104,60 @@ function pick(options) {
   return options[Math.floor(Math.random() * options.length)];
 }
 
+function isExternalResourceUrl(value) {
+  try {
+    const parsed = new URL(String(value || '').trim());
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
+function isDriveResourceUrl(value) {
+  return /^https?:\/\/(?:drive|docs)\.google\.com\//i.test(String(value || '').trim());
+}
+
+// Tài liệu admin đăng có link ngoài (Drive/PDF...) để người học mở tải.
+function downloadResourcesFor(subject) {
+  const code = String(subject?.code || '').toLowerCase();
+  return DB.getResources()
+    .filter(resource => {
+      if (!resource || resource.readerConfig?.visibility === 'draft') return false;
+      const sameSubject = resource.subjectId === subject.id
+        || (code && String(resource.subjectCode || '').toLowerCase() === code);
+      return sameSubject && isExternalResourceUrl(resource.url);
+    })
+    .sort((a, b) => (isDriveResourceUrl(b.url) ? 1 : 0) - (isDriveResourceUrl(a.url) ? 1 : 0)
+      || (Date.parse(b.createdAt || '') || 0) - (Date.parse(a.createdAt || '') || 0));
+}
+
+function pickDownloadResource(links, query) {
+  let best = null;
+  links.forEach(resource => {
+    const score = bestTitleMatch(resource.name || '', query);
+    if (score > 0 && (!best || score > best.score)) best = { resource, score };
+  });
+  return best?.resource || links[0];
+}
+
 export function planCeraNavigation(query) {
   const raw = String(query || '').trim();
   if (!raw || raw.length > 220) return null;
   if (!CUES.test(raw)) return null;
   // Câu dài chỉ được hiểu là lệnh khi có động từ điều hướng rõ ràng,
   // tránh cướp mất câu hỏi kiểu "tôi xem bài giảng rồi nhưng vẫn chưa hiểu…".
-  const strongCue = /(mở|tôi muốn|mình muốn|em muốn|thi thử|thi môn|làm bài thi|vào thi|đi thi|đi đến|đi tới|chuyển (sang|đến|qua)|đưa (tôi|mình|em)|dẫn (tôi|mình|em)|vào trang|tới trang|quay (lại|về))/i;
+  const strongCue = /(mở|tôi muốn|mình muốn|em muốn|thi thử|thi môn|làm bài thi|vào thi|đi thi|đi đến|đi tới|chuyển (sang|đến|qua)|đưa (tôi|mình|em)|dẫn (tôi|mình|em)|vào trang|tới trang|quay (lại|về)|tải (tài liệu|file|drive)|link drive)/i;
   if (raw.length > 80 && !strongCue.test(raw)) return null;
 
   const q = norm(raw).replace(/\s+/g, ' ');
-  const subjects = mentionedSubjects(raw);
+  // Câu hỏi học thuật có nhắc "bài giảng/tài liệu" không phải lệnh mở trang.
+  if (/(chua hieu|khong hieu|giai thich|tai sao|vi sao|nhu the nao|la gi|co phai|nghia la|khac (gi|nhau)|so sanh|lam sao|cach (tai|mo|gui|dang|su dung))/.test(q)
+    && !/(^|\s)(mo|di den|di toi|chuyen|vao trang|toi trang)\b/.test(q)) return null;
+  const explicitSubjects = mentionedSubjects(raw);
+  const refersBack = !explicitSubjects.length && refersToPreviousSubject(raw);
+  const remembered = refersBack ? recallCeraSubject() : null;
+  // "môn đó" / "môn này" lấy đúng môn CERA vừa mở, không đoán môn đang chọn.
+  const subjects = explicitSubjects.length ? explicitSubjects : (remembered ? [remembered] : []);
   const subject = subjects[0];
 
   if (/(thi thu|thi mon|lam bai thi|vao thi|di thi|lam de)/.test(q)) {
@@ -129,6 +172,15 @@ export function planCeraNavigation(query) {
           `Đi thôi nào! Phòng thi **${label}** mở rồi đó, chỉnh số câu xong là bấm **Bắt đầu thi**.`,
           `Lên thuyền **${label}**! Chọn số câu rồi bấm **Bắt đầu thi** là vào làm được ngay.`,
           `Đã mở **${label}** cho cậu. Hít thở sâu rồi bấm **Bắt đầu thi** nào, đừng căng nhé!`
+        ])
+      };
+    }
+    if (refersBack) {
+      return {
+        kind: 'reply',
+        reply: pick([
+          'Tớ chưa nhớ cậu đang nói tới môn nào. Cậu nói rõ tên môn giúp tớ nhé (ví dụ: “thi thử môn Công nghệ sau thu hoạch thực vật”).',
+          'Câu này nhắc “môn đó” nhưng tớ chưa có môn nào để nhớ. Cậu ghi tên môn cụ thể giúp tớ nhé!'
         ])
       };
     }
@@ -222,6 +274,40 @@ export function planCeraNavigation(query) {
       };
     }
     return { kind: 'page', page: 'about', reply: 'Trang **Bài viết** mở rồi. Tớ chưa khớp đúng tiêu đề cậu nói, cậu lướt danh sách xem giúp tớ nhé!' };
+  }
+
+  if (/(?:tai|download|xuong|lay|xin)\s+(?:tai\s+lieu|file|tai\s+nguyen|link|drive)|\blink\s+drive\b/.test(q)) {
+    if (!subject) {
+      return {
+        kind: 'reply',
+        reply: pick([
+          'Cậu muốn tải tài liệu môn nào? Ghi rõ mã hoặc tên môn giúp tớ nhé (ví dụ: “tải tài liệu môn FT4488”).',
+          'Tớ cần biết môn cụ thể mới lấy đúng link được. Cậu nhắn kiểu “tải tài liệu môn <tên môn>” giúp tớ nha!'
+        ])
+      };
+    }
+    const links = downloadResourcesFor(subject);
+    if (!links.length) {
+      return {
+        kind: 'reply',
+        reply: pick([
+          `Môn **${subjectLabel(subject)}** chưa có link Drive/tài liệu đính kèm nào do admin đăng. Cậu xem bài giảng trong app trước nhé!`,
+          `Tớ lục kho rồi, môn **${subjectLabel(subject)}** hiện chưa có file/link Drive để tải. Admin đăng thêm là tớ mở liền!`
+        ])
+      };
+    }
+    const chosen = pickDownloadResource(links, raw);
+    const more = links.length > 1 ? ` Môn này có ${links.length} tài liệu kèm link — muốn file khác thì nhắn đúng tên giúp tớ nhé!` : '';
+    return {
+      kind: 'download',
+      subjectId: subject.id,
+      resourceId: chosen.id,
+      url: chosen.url,
+      reply: pick([
+        `Đang mở **${plain(chosen.name) || 'tài liệu'}** cho cậu tải.${more}`,
+        `Link tải **${plain(chosen.name) || 'tài liệu'}** mở rồi đó.${more}`
+      ])
+    };
   }
 
   if (/(bai giang|bai hoc|tai lieu|tai nguyen|doc bai|mo bai|vo (phan|bai|mon)|vao (phan|bai|mon)|hoc (mon|bai|phan))/.test(q)) {
@@ -326,6 +412,8 @@ function activateSubject(subjectId) {
 
 export function runCeraNavigation(plan) {
   if (!plan) return '';
+  const targetSubjectId = plan.subjectId || plan.context?.subjectId;
+  if (targetSubjectId) rememberCeraSubject(targetSubjectId);
   const nav = window.NavController;
   if (!nav) return plan.reply || '';
   switch (plan.kind) {
@@ -335,6 +423,22 @@ export function runCeraNavigation(plan) {
       if (plan.subjectId && nav.startSubjectExam) nav.startSubjectExam(plan.subjectId);
       else nav.navigateToPage('ontap', 'exam-tab');
       return plan.reply;
+    case 'download': {
+      activateSubject(plan.subjectId);
+      let popup = null;
+      try {
+        popup = window.open(plan.url, '_blank');
+        if (popup) popup.opener = null;
+      } catch {
+        popup = null;
+      }
+      if (popup) return plan.reply;
+      if (plan.resourceId && nav.openStudyReader) {
+        nav.openStudyReader({ subjectId: plan.subjectId, resourceId: plan.resourceId, returnPage: 'subject-detail' });
+        return `${plan.reply} Trình duyệt chặn tab mới nên tớ mở tài liệu trong app — bấm **Mở tài liệu gốc** để tải nhé!`;
+      }
+      return `${plan.reply} Trình duyệt đang chặn tab mới, cậu cho phép popup rồi nhắn tớ mở lại nhé!`;
+    }
     case 'page':
       activateSubject(plan.subjectId);
       nav.navigateToPage(plan.page, plan.tab || null, plan.params || {});
@@ -347,6 +451,9 @@ export function runCeraNavigation(plan) {
       window.setTimeout(() => window.ArticlesModule?.openDetail?.(plan.articleId), 180);
       return plan.reply;
     case 'reader':
+      // Mở bài của môn khác phải đổi luôn môn đang chọn, để lệnh tiếp theo
+      // ("thi thử", "ngân hàng câu hỏi"...) không rơi lại môn cũ.
+      if (plan.context?.subjectId) activateSubject(plan.context.subjectId);
       nav.openStudyReader(plan.context);
       return plan.reply;
     case 'settings':

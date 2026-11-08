@@ -10,7 +10,7 @@ import { DocumentExtractor } from './modules/documentExtractor.js';
 import { AIQuestionHistory } from './modules/aiQuestionHistory.js';
 import { ExamEngine, ExamTimer } from './modules/exam.js';
 import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion, setCurrentReading } from './modules/cera.js';
-import { planCeraNavigation, runCeraNavigation } from './modules/ceraNav.js';
+import { planCeraNavigation, runCeraNavigation } from './modules/ceraNav.js?v=20261108-cera-subjectfollow1';
 import { searchSubjectKnowledge } from './modules/knowledgeBase.js';
 import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer, pullFeedbacksFromServer, pullSubjectDetailsFromServer } from './modules/sync.js?v=20261106-notify5';
 import { initAdminAuth } from './modules/admin.js?v=20261105-subjecttabs1';
@@ -4805,7 +4805,7 @@ async function ceraSend() {
   const navPlan = attachedImage ? null : planCeraNavigation(text);
   if (navPlan) {
     let navReply = runCeraNavigation(navPlan);
-    if (window.matchMedia('(max-width: 760px)').matches) {
+    if (navPlan.kind !== 'download' && window.matchMedia('(max-width: 760px)').matches) {
       navReply += '\n\nĐóng khung chat để xem trang vừa mở nhé.';
     }
     _ceraHistory.push({ role: 'user', content: text });

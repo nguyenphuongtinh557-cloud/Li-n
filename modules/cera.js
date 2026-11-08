@@ -11,7 +11,7 @@
 import { DB } from './db.js';
 import { AIPool } from './aiPool.js';
 import { formatKnowledgeContext, searchSubjectKnowledge } from './knowledgeBase.js';
-import { buildCeraContext } from './ceraContext.js';
+import { buildCeraContext } from './ceraContext.js?v=20261108-cera-subjectfollow1';
 
 // ─── System Prompt & High EQ GenZ Companion Knowledge Engine ─────────────────
 const CERA_SYSTEM = `
