@@ -8923,7 +8923,24 @@
     "semester": 7,
     "program": "Chương trình Đào tạo Đại học",
     "intro": "Hóa học thực phẩm nghiên cứu thành phần, cấu trúc, tính chất và sự biến đổi của các cấu tử trong thực phẩm; từ đó giải thích chất lượng và định hướng công nghệ.",
-    "cards": [],
+    "cards": {
+      "objectives": {
+        "title": "",
+        "content": ""
+      },
+      "mainContent": {
+        "title": "",
+        "content": ""
+      },
+      "targetAudience": {
+        "title": "",
+        "content": ""
+      },
+      "learningFormat": {
+        "title": "",
+        "content": ""
+      }
+    },
     "instructor": {
       "name": "",
       "role": "Giảng viên phụ trách",
@@ -9046,6 +9063,6 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-11-08T06:42:17.155Z"
+    "updatedAt": "2026-11-08T06:42:21.425Z"
   }
 }
