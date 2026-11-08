@@ -8994,12 +8994,32 @@
       {
         "id": "chap_1794120070615",
         "title": "CHƯƠNG 3: CARBOHYDRATE VÀ HYDROCOLLOID",
-        "lessons": [],
+        "lessons": [
+          {
+            "id": "les_1794120074237",
+            "title": "CHƯƠNG 3: CARBOHYDRATE VÀ HYDROCOLLOID",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 0,
+            "updatedAt": "2026-11-08T06:41:15.001Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
         "order": 2
       }
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-11-08T06:41:14.334Z"
+    "updatedAt": "2026-11-08T06:41:18.034Z"
   }
 }
