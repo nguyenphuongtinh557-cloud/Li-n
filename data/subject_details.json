@@ -8968,12 +8968,32 @@
       {
         "id": "chap_1794119994430",
         "title": "CHƯƠNG 2: NƯỚC VÀ ĐỘ ỔN ĐỊNH THỰC PHẨM",
-        "lessons": [],
+        "lessons": [
+          {
+            "id": "les_1794120012551",
+            "title": "CHƯƠNG 2: NƯỚC VÀ ĐỘ ỔN ĐỊNH THỰC PHẨM",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 0,
+            "updatedAt": "2026-11-08T06:40:12.587Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
         "order": 1
       }
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-11-08T06:39:57.729Z"
+    "updatedAt": "2026-11-08T06:40:15.554Z"
   }
 }
