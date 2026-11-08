@@ -10,6 +10,7 @@
 
 import { DB } from './db.js';
 import { getAllSubjects } from './subjects.js';
+import { getUserRole } from './auth.js?v=20261101-auth-popup';
 
 const SUMMARY_HISTORY_KEY = 'fteca_curriculum_summary_history_v2';
 const LIMITS = { history: 3, bank: 2, noteChars: 400, highlights: 4, summaryPoints: 5, pitfalls: 3, materials: 6 };
@@ -244,6 +245,27 @@ function materialsListSection() {
   return subjects.map(subject => `- ${subject.code} · ${plain(subject.name)}: ${counts.get(subject.id)} tài nguyên`).join('\n');
 }
 
+// Vai trò thật của tài khoản đang đăng nhập, để CERA không trả lời chung chung.
+export function getCeraUserProfile() {
+  const scope = typeof window !== 'undefined' ? window : {};
+  const user = scope.NavController?.currentUser || scope.AuthModule?.user || null;
+  const email = String(user?.email || '').trim();
+  const role = getUserRole(email);
+  const name = plain(user?.name || '').slice(0, 60) || (email ? email.split('@')[0] : 'bạn');
+  return { name, email, role, isAdmin: role === 'ADMIN' };
+}
+
+function userProfileSection() {
+  const profile = getCeraUserProfile();
+  const roleText = profile.isAdmin
+    ? 'Quản trị viên (ADMIN)'
+    : (profile.role === 'PREMIUM' ? 'Premium' : 'Người học thường (NEWBIE)');
+  const permission = profile.isAdmin
+    ? 'Có quyền quản trị: mở trang Quản trị, quản lý môn học, người dùng, tài nguyên, bài viết, thông báo, ngân hàng câu hỏi và phản hồi.'
+    : 'Không có quyền quản trị. Không hướng dẫn vào Cài đặt/Hồ sơ để tìm mục admin vì không có mục đó.';
+  return `## Người dùng hiện tại\n- Tên: ${profile.name}\n- Vai trò: ${roleText}\n- Quyền: ${permission}`;
+}
+
 export function buildCeraContext({ query = '', userId = '', reading = null, readingActive = false } = {}) {
   const sections = [];
   const queryText = String(query || '');
@@ -252,6 +274,8 @@ export function buildCeraContext({ query = '', userId = '', reading = null, read
   const remembered = !mentioned.length && refersToPreviousSubject(queryText) ? recallCeraSubject() : null;
   const activeSubjectId = mentioned[0]?.id || (readingActive && reading?.subjectId) || remembered?.id || DB.getActiveSubject();
   const activeSubject = getAllSubjects().find(subject => subject.id === activeSubjectId);
+
+  sections.push(userProfileSection());
 
   if (activeSubject) {
     sections.push(`## Học liệu môn ${activeSubject.code}\n${formatAvailability(activeSubject, availabilityFor(activeSubject), wantsMaterials)}`);

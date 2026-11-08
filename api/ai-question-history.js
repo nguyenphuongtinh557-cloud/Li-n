@@ -78,7 +78,7 @@ async function verifyUser(req, serviceAccount) {
   try {
     const decoded = await admin.auth().verifyIdToken(token);
     const email = String(decoded.email || '').trim().toLowerCase();
-    const isAdmin = decoded.email_verified && getAdminEmails().includes(email);
+    const isAdmin = decoded.email_verified && getAdminEmails().has(email);
     
     return {
       uid: decoded.uid,

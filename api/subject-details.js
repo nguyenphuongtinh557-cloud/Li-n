@@ -63,7 +63,7 @@ function getConfig() {
 
 async function requireAdmin(req) {
   const user = await verifyFirebaseUser(req);
-  if (!getAdminEmails().includes(user.email)) {
+  if (!getAdminEmails().has(user.email)) {
     throw Object.assign(new Error('admin-required'), { status: 403 });
   }
   return user.email;

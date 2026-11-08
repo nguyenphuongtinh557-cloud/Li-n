@@ -10,7 +10,8 @@ import { DocumentExtractor } from './modules/documentExtractor.js';
 import { AIQuestionHistory } from './modules/aiQuestionHistory.js';
 import { ExamEngine, ExamTimer } from './modules/exam.js';
 import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion, setCurrentReading } from './modules/cera.js';
-import { planCeraNavigation, runCeraNavigation } from './modules/ceraNav.js?v=20261108-cera-subjectfollow1';
+import { planCeraNavigation, runCeraNavigation, rememberSubjectMentions } from './modules/ceraNav.js?v=20261108-cera-adminrole1';
+import { rememberCeraSubject } from './modules/ceraContext.js?v=20261108-cera-adminrole1';
 import { searchSubjectKnowledge } from './modules/knowledgeBase.js';
 import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer, pullFeedbacksFromServer, pullSubjectDetailsFromServer } from './modules/sync.js?v=20261106-notify5';
 import { initAdminAuth } from './modules/admin.js?v=20261105-subjecttabs1';
@@ -4247,6 +4248,8 @@ function updateSubjectBanner(subjectId) {
   if (codeEl) codeEl.textContent = subject.code;
   if (nameEl) nameEl.textContent = subject.name;
   if (creditsEl) creditsEl.textContent = `(${subject.credits} Tín chỉ)`;
+  // Đổi môn đang chọn (dropdown, route, CERA) thì bộ nhớ môn của CERA đi theo.
+  rememberCeraSubject(subjectId);
 
   // Sync global select in case banner was changed from block filter
   const select = document.getElementById('global-subject-select');
@@ -4802,6 +4805,9 @@ async function ceraSend() {
   // Clear attached image state
   removeCeraAttachedImage();
 
+  // Mọi tin nhắn có nhắc tên môn đều cập nhật bộ nhớ, kể cả câu hỏi
+  // thường không phải lệnh, để lệnh ngắn tiếp theo hiểu đúng môn.
+  rememberSubjectMentions(text);
   const navPlan = attachedImage ? null : planCeraNavigation(text);
   if (navPlan) {
     let navReply = runCeraNavigation(navPlan);

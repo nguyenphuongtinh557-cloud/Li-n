@@ -8,7 +8,7 @@
 
 import { DB } from './db.js';
 import { getAllSubjects } from './subjects.js';
-import { mentionedSubjects, recallCeraSubject, rememberCeraSubject, refersToPreviousSubject } from './ceraContext.js?v=20261108-cera-subjectfollow1';
+import { mentionedSubjects, recallCeraSubject, rememberCeraSubject, refersToPreviousSubject, getCeraUserProfile } from './ceraContext.js?v=20261108-cera-adminrole1';
 
 const CUES = /(mở|xem|đưa (tôi|mình|em)|dẫn (tôi|mình|em)|đi đến|đi tới|đến trang|chuyển (sang|đến|qua)|vào trang|tới trang|tôi muốn|mình muốn|em muốn|cho (tôi|mình|em) (xem|đến|xin|hỏi)|xem trang|quay (lại|về)|thi thử|thi môn|làm bài thi|vào thi|đi thi|thông tin liên hệ|liên hệ (tác giả|admin|anh Phúc)|liên lạc|nâng cấp tài khoản|gói (vip|cao cấp|premium)|(?:tải|lấy|xin|download)\s+(?:tài liệu|file|drive|tài nguyên)|link drive|tải xuống)/i;
 
@@ -140,6 +140,13 @@ function pickDownloadResource(links, query) {
   return best?.resource || links[0];
 }
 
+// Nhắc tên môn trong chat (kể cả câu hỏi thường) cũng đủ để lệnh ngắn
+// tiếp theo như "thi thử" hiểu đúng môn, không bám môn đang chọn cũ.
+export function rememberSubjectMentions(query) {
+  const [first] = mentionedSubjects(String(query || ''));
+  return first ? rememberCeraSubject(first.id) : false;
+}
+
 export function planCeraNavigation(query) {
   const raw = String(query || '').trim();
   if (!raw || raw.length > 220) return null;
@@ -155,8 +162,9 @@ export function planCeraNavigation(query) {
     && !/(^|\s)(mo|di den|di toi|chuyen|vao trang|toi trang)\b/.test(q)) return null;
   const explicitSubjects = mentionedSubjects(raw);
   const refersBack = !explicitSubjects.length && refersToPreviousSubject(raw);
-  const remembered = refersBack ? recallCeraSubject() : null;
-  // "môn đó" / "môn này" lấy đúng môn CERA vừa mở, không đoán môn đang chọn.
+  const remembered = explicitSubjects.length ? null : recallCeraSubject();
+  // "môn đó" / "môn này" và lệnh ngắn ("thi thử", "tải tài liệu") lấy đúng môn
+  // CERA vừa mở hoặc vừa được nhắc, không đoán theo môn đang chọn cũ.
   const subjects = explicitSubjects.length ? explicitSubjects : (remembered ? [remembered] : []);
   const subject = subjects[0];
 
@@ -202,6 +210,39 @@ export function planCeraNavigation(query) {
         'Mở phòng thi thử rồi đó, vào thử sức xem hôm nay tay nghề tới đâu!',
         'Phòng thi sẵn sàng, chọn số câu xong là chiến thôi!'
       ])
+    };
+  }
+
+  const adminCue = /(trang admin|trang quan tri|admin dashboard|khu quan tri|bang dieu khien|quan ly (mon hoc|cau hinh mon|nguoi dung|hoc vien|tai nguyen|hoc lieu|bai viet|bai dang|thong bao|phan hoi|ngan hang cau hoi)|(mo|vao|den|toi|cho (toi|minh|em)|dua (toi|minh|em))\s+(?:trang\s+)?(admin|quan tri)\b)/;
+  if (adminCue.test(q)) {
+    const profile = getCeraUserProfile();
+    if (!profile.isAdmin) {
+      return {
+        kind: 'reply',
+        reply: pick([
+          `Tài khoản **${profile.name}** hiện là tài khoản thường nên không mở được **trang Quản trị**. Nếu cậu có Gmail admin, đăng nhập lại bằng tài khoản đó rồi nhắn “mở trang admin” giúp tớ nhé!`,
+          'Cậu đang dùng tài khoản không có quyền quản trị nên tớ không mở **trang Quản trị** được. Đăng nhập Gmail admin rồi gọi tớ lại nha!'
+        ])
+      };
+    }
+    let tab = null;
+    let label = '';
+    if (/(nguoi dung|hoc vien|cap quyen)/.test(q)) { tab = 'users'; label = 'Quản lý người dùng'; }
+    else if (/(mon hoc|cau hinh mon)/.test(q)) { tab = 'subject-config'; label = 'Cấu hình môn học'; }
+    else if (/(tai nguyen|hoc lieu)/.test(q)) { tab = 'resources'; label = 'Tài nguyên học tập'; }
+    else if (/(bai viet|bai dang|cms)/.test(q)) { tab = 'cms'; label = 'Bài viết'; }
+    else if (/(thong bao)/.test(q)) { tab = 'announcement'; label = 'Thông báo'; }
+    else if (/(phan hoi|feedback|gop y)/.test(q)) { tab = 'feedback'; label = 'Phản hồi'; }
+    else if (/(ngan hang cau hoi|ngan hang)/.test(q)) { tab = 'bank'; label = 'Ngân hàng câu hỏi'; }
+    return {
+      kind: 'admin',
+      tab,
+      reply: tab
+        ? `Mở mục **${label}** trong **trang Quản trị** cho ${profile.name} rồi nhé!`
+        : pick([
+            `Trang **Quản trị** mở rồi — tài khoản ${profile.name} có quyền ADMIN nên vào thẳng được luôn!`,
+            `Mở **trang Quản trị** cho ${profile.name} đây. Cần xem mục nào cứ gọi tớ!`
+          ])
     };
   }
 
@@ -442,6 +483,10 @@ export function runCeraNavigation(plan) {
     case 'page':
       activateSubject(plan.subjectId);
       nav.navigateToPage(plan.page, plan.tab || null, plan.params || {});
+      return plan.reply;
+    case 'admin':
+      nav.navigateToPage('admin');
+      if (plan.tab) window.setTimeout(() => window.switchAdminSubTab?.(plan.tab), 350);
       return plan.reply;
     case 'subject':
       nav.openSubjectDetail(plan.subjectId, 'study-space');
