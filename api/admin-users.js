@@ -32,7 +32,8 @@ function getParams(req) {
   const search = new URL(req.url || '/', 'https://fteca.invalid').searchParams;
   return {
     pageSize: query.pageSize ?? search.get('pageSize') ?? '',
-    cursor: query.cursor ?? search.get('cursor') ?? ''
+    cursor: query.cursor ?? search.get('cursor') ?? '',
+    self: query.self ?? search.get('self') ?? ''
   };
 }
 
@@ -42,14 +43,21 @@ export default async function handler(req, res) {
     return json(res, 405, { ok: false, reason: 'method-not-allowed' });
   }
 
-  let adminEmail;
+  let callerEmail;
   try {
-    adminEmail = (await verifyFirebaseUser(req)).email;
-    if (!getAdminEmails().has(String(adminEmail || '').toLowerCase())) {
-      throw Object.assign(new Error('admin-required'), { status: 403 });
-    }
+    callerEmail = (await verifyFirebaseUser(req)).email;
   } catch (error) {
     return json(res, error.status || 401, { ok: false, reason: error.message || 'unauthorized' });
+  }
+  const cleanCallerEmail = String(callerEmail || '').trim().toLowerCase();
+  const isAdmin = getAdminEmails().has(cleanCallerEmail);
+
+  const params = getParams(req);
+  if (req.method === 'PATCH' && !isAdmin) {
+    return json(res, 403, { ok: false, reason: 'admin-required' });
+  }
+  if (req.method === 'GET' && !isAdmin && String(params.self || '') !== '1') {
+    return json(res, 403, { ok: false, reason: 'admin-required' });
   }
 
   const account = getServiceAccount();
@@ -59,18 +67,33 @@ export default async function handler(req, res) {
     const db = admin.firestore();
 
     if (req.method === 'GET') {
-      const params = getParams(req);
+      // Người dùng đã đăng nhập chỉ được đọc role của chính mình. Đây là nguồn
+      // quyền PREMIUM/NEWBIE để thiết bị học viên nhận thay đổi ngay, không phụ
+      // thuộc file GitHub cũ đã ngừng ghi.
+      if (String(params.self || '') === '1') {
+        const selfSnap = await db.collection('users').doc(emailToDocId(cleanCallerEmail)).get();
+        const selfData = selfSnap.exists ? (selfSnap.data() || {}) : {};
+        return json(res, 200, {
+          ok: true,
+          self: true,
+          email: cleanCallerEmail,
+          role: selfData.role === 'PREMIUM' ? 'PREMIUM' : 'NEWBIE',
+          found: Boolean(selfSnap.exists)
+        });
+      }
+
       const parsedPageSize = Number.parseInt(String(params.pageSize), 10);
       const pageSize = Number.isFinite(parsedPageSize) && parsedPageSize >= 1
         ? Math.min(parsedPageSize, MAX_PAGE_SIZE)
         : DEFAULT_PAGE_SIZE;
       const cursor = String(params.cursor || '').trim();
 
-      // __name__ luôn có chỉ mục tự động và không trùng nhau, nên con trỏ theo
-      // id tuyệt đối không bỏ rơi hồ sơ nào ở ranh giới trang (lastLogin thì có
-      // thể trùng mốc giờ tới mili giây). Dashboard tự sắp xếp theo lastLogin.
+      // Đọc theo thứ tự mặc định __name__ của Firestore (không orderBy) để
+      // không cần composite index. Con trỏ vẫn là id tuyệt đối nên không bỏ rơi
+      // hồ sơ ở ranh giới trang (lastLogin có thể trùng mốc giờ tới mili giây).
+      // Dashboard tự sắp xếp theo lastLogin sau khi nhận dữ liệu.
       const usersRef = db.collection('users');
-      let page = usersRef.orderBy('__name__', 'desc').limit(pageSize + 1);
+      let page = usersRef.limit(pageSize + 1);
       if (cursor) page = page.startAfter(usersRef.doc(cursor));
       const snap = await page.get();
 
@@ -94,7 +117,7 @@ export default async function handler(req, res) {
         pageSize,
         hasMore,
         nextCursor: hasMore && lastDoc ? String(lastDoc.id || '') : '',
-        requestedBy: adminEmail
+        requestedBy: cleanCallerEmail
       });
     }
 

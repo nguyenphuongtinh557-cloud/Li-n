@@ -8467,9 +8467,15 @@ html,body{max-width:100%;overflow-x:hidden}.app-main-wrapper,.page-container{min
 .review-lesson-admin-tree-item { width: 100%; display: flex; justify-content: space-between; gap: 8px; text-align: left; border: 0; border-radius: 8px; background: transparent; color: var(--text-primary); padding: 8px; cursor: pointer; }
 .review-lesson-admin-tree-item:hover, .review-lesson-admin-tree-item.active { background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary); }
 .review-lesson-admin-tree-item small { white-space: nowrap; color: var(--text-muted); }
-.review-lesson-admin-meta { grid-template-columns: minmax(0,1fr) 140px; margin-bottom: 12px; }
+.review-lesson-admin-meta { grid-template-columns: minmax(0,1fr) 140px max-content; align-items: end; margin-bottom: 12px; }
+.review-lesson-admin-meta-actions { display: flex; align-items: end; }
+.review-lesson-admin-meta-actions .btn { white-space: nowrap; }
 .review-lesson-admin-meta label, #review-lesson-media-properties label { display: grid; gap: 5px; font-size: 12px; font-weight: 700; }
 .review-lesson-admin-paper { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; min-height: 520px; padding: 8px; }
+.review-lesson-math-preview { background: #fff; border: 1px solid var(--border-color); border-radius: 8px; padding: 18px 24px; margin-top: 12px; max-height: 640px; overflow: auto; font-family: Inter, sans-serif; font-size: 15px; line-height: 1.8; color: var(--text-primary); }
+.review-lesson-math-preview img { max-width: 100%; height: auto; }
+.review-lesson-math-preview .katex-display { overflow-x: auto; overflow-y: hidden; padding: 4px 0; margin: 14px 0; }
+.review-lesson-math-preview-hint { margin: 0 0 12px; font-size: 12px; color: var(--text-muted); }
 .review-lesson-admin-paper .tox-tinymce { border: 0; border-radius: 6px; }
 .review-lesson-admin-paper .tox .tox-toolbar, .review-lesson-admin-paper .tox .tox-toolbar__primary { background: var(--bg-secondary); }
 #review-lesson-media-canvas { position: relative; min-height: 360px; margin: 12px 0; border: 1px dashed var(--border-color); border-radius: 10px; background: var(--bg-secondary); overflow: hidden; }
@@ -8490,8 +8496,9 @@ html,body{max-width:100%;overflow-x:hidden}.app-main-wrapper,.page-container{min
 .review-lesson-document blockquote { border-left: 3px solid var(--primary); padding-left: 14px; margin-left: 0; color: var(--text-muted); }
 body.dark-mode #admin-subtab-review-lessons .review-lesson-admin-tree, body.dark-mode #admin-subtab-review-lessons .review-lesson-admin-editor, body.dark-mode #admin-subtab-review-lessons .review-lesson-admin-media, body.dark-mode #review-lesson-media-canvas .review-lesson-media-item { background: var(--bg-card); }
 body.dark-mode #admin-subtab-review-lessons .review-lesson-admin-paper { background: var(--bg-secondary); }
-@media (max-width:760px) { #admin-subtab-review-lessons .review-lesson-admin-header, #admin-subtab-review-lessons .review-lesson-admin-layout, #admin-subtab-review-lessons .review-lesson-admin-meta { grid-template-columns: 1fr; } #admin-subtab-review-lessons .review-lesson-admin-actions { justify-content: stretch; grid-template-columns: 1fr; } }
+body.dark-mode .review-lesson-math-preview { background: var(--bg-secondary); }
 #admin-subtab-review-lessons .review-lesson-admin-layout { grid-template-columns: minmax(210px,.75fr) minmax(0,2.25fr); }
+@media (max-width:760px) { #admin-subtab-review-lessons .review-lesson-admin-header, #admin-subtab-review-lessons .review-lesson-admin-layout, #admin-subtab-review-lessons .review-lesson-admin-meta { grid-template-columns: 1fr; } #admin-subtab-review-lessons .review-lesson-admin-actions { justify-content: stretch; grid-template-columns: 1fr; } }
 #admin-subtab-review-lessons .review-lesson-admin-media { color: var(--text-muted); line-height: 1.6; }
 #admin-subtab-review-lessons .review-lesson-admin-media h4 { color: var(--text-primary); }
 #admin-subtab-review-lessons .review-lesson-admin-paper img { max-width: 100%; height: auto; }

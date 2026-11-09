@@ -48,7 +48,7 @@ try {
 
 import { DB } from './db.js';
 import { pullUserRolesFromServer } from './sync.js';
-import { upsertUserToFirestore } from './firestoreUsers.js';
+import { upsertUserToFirestore, fetchMyRoleFromFirestore } from './firestoreUsers.js?v=20261109-role2';
 
 export const SUPER_ADMIN_EMAILS = [
   'nguyenphuongtinh557@gmail.com',
@@ -108,6 +108,30 @@ export function getUserRole(email) {
     return 'PREMIUM';
   }
   return 'NEWBIE';
+}
+
+/**
+ * Đồng bộ role của chính người đang đăng nhập từ Firestore vào máy này.
+ * Firestore là nguồn quyền thật; file GitHub user_roles.json đã ngừng ghi và
+ * có thể còn giữ PREMIUM cũ, nên kết quả Firestore phải được áp sau cùng.
+ * @returns {Promise<boolean>} true nếu danh sách premium cục bộ vừa thay đổi.
+ */
+export async function syncCurrentUserRoleFromFirestore(email) {
+  const cleanEmail = String(email || '').trim().toLowerCase();
+  if (!cleanEmail) return false;
+  const result = await fetchMyRoleFromFirestore();
+  if (!result.ok) return false;
+  const premiumList = DB.getPremiumEmails().map(item => String(item || '').trim().toLowerCase());
+  const hasPremium = premiumList.includes(cleanEmail);
+  if (result.role === 'PREMIUM' && !hasPremium) {
+    await DB.setPremiumEmails([...premiumList, cleanEmail], true);
+    return true;
+  }
+  if (result.role === 'NEWBIE' && hasPremium) {
+    await DB.setPremiumEmails(premiumList.filter(item => item !== cleanEmail), true);
+    return true;
+  }
+  return false;
 }
 
 let authListeners = [];
@@ -223,9 +247,14 @@ export const AuthModule = {
       window.showToast('Chưa nhận được phiên đăng nhập Google. Nếu đã chọn tài khoản, hãy bấm đăng nhập lại.', 'warning');
     }
     if (this.user?.email) {
+      await syncCurrentUserRoleFromFirestore(this.user.email).catch(() => false);
       this.user.role = getUserRole(this.user.email);
       upsertUserToFirestore(this.user).catch((err) => console.warn('[Auth] Upsert restored session error:', err));
     }
+  },
+
+  async syncCurrentUserRoleFromFirestore(email) {
+    return syncCurrentUserRoleFromFirestore(email);
   },
 
   restoreSession() {
@@ -233,8 +262,7 @@ export const AuthModule = {
       const saved = localStorage.getItem('lien_google_user');
       if (saved) {
         this.user = JSON.parse(saved);
-        if (this.user && this.user.email) {
-          this.user.role = getUserRole(this.user.email);
+        if (this.user && this.user.email) {          this.user.role = getUserRole(this.user.email);
         }
       }
     } catch (e) {
@@ -399,6 +427,28 @@ export const AuthModule = {
     }
 
     this.notifyListeners(user);
+
+    if (user && user.email) {
+      try {
+        const roleChanged = await syncCurrentUserRoleFromFirestore(user.email);
+        if (roleChanged) {
+          user.role = getUserRole(user.email);
+          this.user = user;
+          try {
+            localStorage.setItem('lien_google_user', JSON.stringify(user));
+          } catch (_error) {}
+          if (window.NavController) {
+            window.NavController.currentUser = user;
+            window.NavController.renderUserAuthZone();
+          }
+          if (showNotification && user.role === 'PREMIUM' && window.showToast) {
+            window.showToast('💎 Quyền PREMIUM của bạn đã được kích hoạt.', 'success');
+          }
+        }
+      } catch (error) {
+        console.warn('[Auth] Không thể đồng bộ role từ Firestore:', error);
+      }
+    }
 
     if (user && user.email) {
       try {

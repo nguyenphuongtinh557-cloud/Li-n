@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261105-upgradeblur2">
+  <link rel="stylesheet" href="style.css?v=20261109-adminmath1">
   <link rel="stylesheet" href="subject-page.css?v=20261031-sd8">
   <link rel="stylesheet" href="mobile-home.css?v=mh18">
   <link rel="stylesheet" href="study-space-mobile.css?v=ss4">
@@ -3435,7 +3435,7 @@
             <div class="review-lesson-admin-header"><div><h3>Thiết lập bài giảng ôn tập</h3><p>Soạn nội dung như Word; chèn ảnh hoặc video trực tiếp tại vị trí con trỏ trong trình soạn thảo.</p></div><select id="review-lesson-subject-select" class="form-select" onchange="initReviewLessonAdmin(this.value)"></select></div>
             <div class="review-lesson-admin-layout">
               <aside class="review-lesson-admin-tree"><div class="flex justify-between items-center"><h4>Chương & bài giảng</h4><button class="btn btn-primary btn-sm" onclick="createReviewLesson()"><i class="fa-solid fa-plus"></i> Bài giảng</button></div><div id="review-lesson-tree"></div></aside>
-              <section class="review-lesson-admin-editor"><div class="review-lesson-admin-meta"><label>Tiêu đề<input id="review-lesson-title" class="form-input" oninput="updateReviewLessonMetadata('title',this.value)"></label><label>Trạng thái<select id="review-lesson-status" class="form-select" onchange="updateReviewLessonMetadata('status',this.value)"><option value="draft">Lưu nháp</option><option value="published">Công khai</option></select></label></div><div class="review-lesson-admin-paper"><textarea id="admin-review-lesson-document-editor"></textarea></div></section>
+              <section class="review-lesson-admin-editor"><div class="review-lesson-admin-meta"><label>Tiêu đề<input id="review-lesson-title" class="form-input" oninput="updateReviewLessonMetadata('title',this.value)"></label><label>Trạng thái<select id="review-lesson-status" class="form-select" onchange="updateReviewLessonMetadata('status',this.value)"><option value="draft">Lưu nháp</option><option value="published">Công khai</option></select></label><div class="review-lesson-admin-meta-actions"><button type="button" class="btn btn-secondary btn-sm" onclick="toggleReviewLessonMathPreview()"><i class="fa-solid fa-square-root-variable"></i> Xem công thức</button></div></div><div class="review-lesson-admin-paper"><textarea id="admin-review-lesson-document-editor"></textarea></div><div id="review-lesson-math-preview" class="review-lesson-math-preview hidden" aria-live="polite"></div></section>
               <aside class="review-lesson-admin-media"><h4>Ảnh & video trong Word</h4><p>Dùng nút <strong>ảnh</strong> hoặc <strong>video</strong> trên thanh công cụ. Media được chèn, căn lề và đổi kích thước trực tiếp trong nội dung bài giảng.</p></aside>
             </div>
             <div class="review-lesson-admin-actions"><button id="review-lesson-save-draft" class="btn btn-warning" onclick="saveReviewLesson('draft')">Lưu nháp</button><button class="btn btn-secondary" onclick="previewReviewLesson()">Xem trước</button><button id="review-lesson-publish" class="btn btn-success" onclick="saveReviewLesson('published')">Đăng công khai</button></div>
@@ -3958,6 +3958,6 @@
 
   <script src="assets/lottie_light.min.js" defer></script>
   <script src="mobile-home.js?v=mh18" defer></script>
-  <script type="module" src="app.js?v=20261108-cera-adminrole1"></script>
+  <script type="module" src="app.js?v=20261109-role2"></script>
 </body>
 </html>

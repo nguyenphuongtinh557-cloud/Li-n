@@ -6,7 +6,7 @@
  */
 
 import { DB } from './db.js';
-import { fetchAllUsersFromFirestore } from './firestoreUsers.js';
+import { fetchAllUsersFromFirestore } from './firestoreUsers.js?v=20261109-role2';
 
 const analyticsState = { range: 7 };
 
@@ -443,13 +443,17 @@ function renderAdminDashboardExtras() {
   renderRecentUsers();
 
   // Async: Đọc danh sách học viên từ Firestore Cloud và làm mới UI
-  fetchAllUsersFromFirestore().then((cloudUsers) => {
+  fetchAllUsersFromFirestore().then(({ users: cloudUsers, error }) => {
     if (Array.isArray(cloudUsers) && cloudUsers.length > 0) {
       DB.mergeUserRolesFromServer({ users: cloudUsers });
       renderKpiExtras();
       renderQuickBadges();
       renderRecentUsers();
       renderActivityFeed();
+      window.renderAdminUserList?.(document.getElementById('admin-user-search')?.value || '');
+    }
+    if (error && error !== 'missing-auth-token') {
+      window.showToast?.('Không tải được danh sách học viên từ Cloud. Xem Console để biết chi tiết.', 'warning');
     }
   }).catch((err) => {
     console.warn('[AdminDashboard] Không thể tải danh sách học viên từ Firestore:', err);

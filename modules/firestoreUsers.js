@@ -113,6 +113,25 @@ export async function upsertUserToFirestore(user) {
 }
 
 /**
+ * Đọc role của chính người đang đăng nhập từ Firestore.
+ * Dùng ở mọi thiết bị để quyền PREMIUM/NEWBIE do admin cấp có hiệu lực ngay,
+ * không phụ thuộc file GitHub user_roles.json (đã ngừng ghi).
+ * @returns {{ ok: boolean, role?: 'PREMIUM'|'NEWBIE', email?: string, reason?: string }}
+ */
+export async function fetchMyRoleFromFirestore() {
+  try {
+    const payload = await requestAdminUsers('GET', undefined, '/api/admin-users?self=1');
+    return {
+      ok: true,
+      role: payload?.role === 'PREMIUM' ? 'PREMIUM' : 'NEWBIE',
+      email: String(payload?.email || '').trim().toLowerCase()
+    };
+  } catch (e) {
+    return { ok: false, reason: String(e?.message || e || 'self-role-failed') };
+  }
+}
+
+/**
  * Cập nhật vai trò/cấp quyền học viên (ADMIN, PREMIUM, NEWBIE) trên Firestore Cloud
  * @param {string} email
  * @param {string} role - 'PREMIUM' | 'NEWBIE' | 'ADMIN'
@@ -149,7 +168,7 @@ export async function updateUserRoleInFirestore(email, role) {
 
 /**
  * Lấy toàn bộ học viên qua API admin, đọc hết từng trang.
- * @returns {Array} Mảng các object user
+ * @returns {{ users: Array, error: string }} error rỗng khi đọc thành công.
  */
 export async function fetchAllUsersFromFirestore() {
   const users = [];
@@ -170,14 +189,14 @@ export async function fetchAllUsersFromFirestore() {
       }
       if (!payload.hasMore || !payload.nextCursor) {
         console.log(`[FirestoreUsers] ✅ Đã tải ${users.length} học viên qua API admin (${page + 1} trang)`);
-        return users;
+        return { users, error: '' };
       }
       cursor = payload.nextCursor;
     }
     console.warn(`[FirestoreUsers] Danh sách vượt ${maxPages} trang — dừng ở ${users.length} học viên`);
-    return users;
+    return { users, error: '' };
   } catch (e) {
     console.warn('[FirestoreUsers] Không thể lấy hết danh sách học viên:', e.message || e);
-    return users;
+    return { users, error: String(e?.message || e || 'fetch-failed') };
   }
 }
