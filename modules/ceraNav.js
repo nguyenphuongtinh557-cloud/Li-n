@@ -7,8 +7,8 @@
  */
 
 import { DB } from './db.js';
-import { getAllSubjects } from './subjects.js';
-import { mentionedSubjects, recallCeraSubject, rememberCeraSubject, refersToPreviousSubject, getCeraUserProfile } from './ceraContext.js?v=20261108-cera-adminrole1';
+import { getAllSubjects } from './subjects.js?v=20261110-ft4498';
+import { mentionedSubjects, recallCeraSubject, rememberCeraSubject, refersToPreviousSubject, getCeraUserProfile } from './ceraContext.js?v=20261110-ft4498';
 
 const CUES = /(mở|xem|đưa (tôi|mình|em)|dẫn (tôi|mình|em)|đi đến|đi tới|đến trang|chuyển (sang|đến|qua)|vào trang|tới trang|tôi muốn|mình muốn|em muốn|cho (tôi|mình|em) (xem|đến|xin|hỏi)|xem trang|quay (lại|về)|thi thử|thi môn|làm bài thi|vào thi|đi thi|thông tin liên hệ|liên hệ (tác giả|admin|anh Phúc)|liên lạc|nâng cấp tài khoản|gói (vip|cao cấp|premium)|(?:tải|lấy|xin|download)\s+(?:tài liệu|file|drive|tài nguyên)|link drive|tải xuống)/i;
 
@@ -317,7 +317,7 @@ export function planCeraNavigation(query) {
     return { kind: 'page', page: 'about', reply: 'Trang **Bài viết** mở rồi. Tớ chưa khớp đúng tiêu đề cậu nói, cậu lướt danh sách xem giúp tớ nhé!' };
   }
 
-  if (/(?:tai|download|xuong|lay|xin)\s+(?:tai\s+lieu|file|tai\s+nguyen|link|drive)|\blink\s+drive\b/.test(q)) {
+  if (/(?:tai|download|xuong|lay|xin|muon|can)\s+(?:tai\s+lieu|file|tai\s+nguyen|link|drive)|\blink\s+drive\b/.test(q)) {
     if (!subject) {
       return {
         kind: 'reply',
@@ -338,15 +338,18 @@ export function planCeraNavigation(query) {
       };
     }
     const chosen = pickDownloadResource(links, raw);
-    const more = links.length > 1 ? ` Môn này có ${links.length} tài liệu kèm link — muốn file khác thì nhắn đúng tên giúp tớ nhé!` : '';
+    const resourceName = plain(chosen.name);
+    const isPlaceholderName = resourceName.length < 3 || /^(tai lieu|file|link)( mon)?$/.test(norm(resourceName));
+    const label = isPlaceholderName ? `tài liệu môn **${subjectLabel(subject)}**` : `**${resourceName}**`;
+    const more = links.length > 1 ? ` Môn này có tất cả ${links.length} tài liệu kèm link; cần file khác thì cậu nhắn đúng tên giúp tớ nhé.` : '';
     return {
       kind: 'download',
       subjectId: subject.id,
       resourceId: chosen.id,
       url: chosen.url,
       reply: pick([
-        `Đang mở **${plain(chosen.name) || 'tài liệu'}** cho cậu tải.${more}`,
-        `Link tải **${plain(chosen.name) || 'tài liệu'}** mở rồi đó.${more}`
+        `Tớ mở link tải ${label} cho cậu rồi nhé. Cậu kiểm tra tab mới giúp tớ!${more}`,
+        `Link tải ${label} đã mở. Cậu xem có đúng tài liệu cần tải không nhé!${more}`
       ])
     };
   }

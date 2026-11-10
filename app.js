@@ -3,22 +3,22 @@
  * Điều phối toàn bộ logic của ứng dụng
  */
 
-import { DB } from './modules/db.js?v=20261106-notify5';
+import { DB } from './modules/db.js';
 import { AIPool } from './modules/aiPool.js';
 import { QuestionGenerator } from './modules/questionGeneratorCore.js';
 import { DocumentExtractor } from './modules/documentExtractor.js';
 import { AIQuestionHistory } from './modules/aiQuestionHistory.js';
 import { ExamEngine, ExamTimer } from './modules/exam.js';
-import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion, setCurrentReading } from './modules/cera.js';
-import { planCeraNavigation, runCeraNavigation, rememberSubjectMentions } from './modules/ceraNav.js?v=20261108-cera-adminrole1';
-import { rememberCeraSubject } from './modules/ceraContext.js?v=20261108-cera-adminrole1';
-import { searchSubjectKnowledge } from './modules/knowledgeBase.js';
+import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion, setCurrentReading } from './modules/cera.js?v=20261110-kb2';
+import { planCeraNavigation, runCeraNavigation, rememberSubjectMentions } from './modules/ceraNav.js?v=20261110-ft4498';
+import { rememberCeraSubject } from './modules/ceraContext.js?v=20261110-ft4498';
+import { searchSubjectKnowledge } from './modules/knowledgeBase.js?v=20261110-kb1';
 import { renderMathIn, containsMath } from './modules/mathRender.js?v=20261109-adminmath1';
 import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer, pullFeedbacksFromServer, pullSubjectDetailsFromServer } from './modules/sync.js?v=20261106-notify5';
-import { initAdminAuth } from './modules/admin.js?v=20261105-subjecttabs1';
-import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js';
-import { NavController } from './modules/navigation.js?v=20261105-subjecttabs2';
-import { AuthModule, getUserRole, getActiveAdminEmails } from './modules/auth.js?v=20261109-role2';
+import { initAdminAuth } from './modules/admin.js?v=20261109-profile2';
+import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js?v=20261110-ft4498';
+import { NavController } from './modules/navigation.js?v=20261110-ft4498';
+import { AuthModule, getUserRole, getActiveAdminEmails } from './modules/auth.js?v=20261109-profile2';
 import { ArticlesModule } from './modules/articles.js?v=20261031-news1';
 import { readSummary, writeSummary, clearSessionCache, summaryIsComplete, summaryIsStale } from './modules/firestoreSummary.js';
 import { renderMindmap, renderStructuredMindmap, initMindmapControls } from './modules/mindmap.js';
@@ -27,7 +27,7 @@ import { renderMarkdownTables } from './modules/markdownTables.js';
 import { mountRichTextEditor, prepareRichTextDocument, readSummaryText, runSummaryEditorTableCommand, runSummaryEditorTool, sanitizeRichTextHtml } from './modules/richTextEditor.js';
 import { sanitizeDisplayHtml } from './modules/sanitizeHtml.js';
 import { initStudyToolbarSelects, refreshStudyToolbarSelects } from './modules/studyToolbarSelect.js?v=20261104-exam-select-menu';
-import { QuizShares, QuizSharePage } from './modules/quizShare.js?v=20261105-examfx1';
+import { QuizShares, QuizSharePage } from './modules/quizShare.js?v=20261110-ft4498';
 import { createSummaryDocumentVersion, readSummaryDocumentHistory } from './modules/summaryDocumentHistory.js';
 import { updateThemeMorphIcons } from './vendor/themeMorphIcon.js';
 import { exportSummaryHtmlToDocx } from './vendor/summaryDocx.js';
@@ -173,6 +173,9 @@ const SUBJECT_CHAPTER_LABELS = {
     2: 'Chương 2: Thu hoạch rau quả',
     3: 'Chương 3: Các phương pháp bảo quản rau quả',
     4: 'Chương 4: Chế biến rau quả',
+  },
+  FT4498: {
+    5: 'Chương 5: Tài liệu bổ sung — Pectin, xử lý nhiệt và thành tế bào thực vật',
   },
 };
 

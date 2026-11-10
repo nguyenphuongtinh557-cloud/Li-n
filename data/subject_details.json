@@ -9072,5 +9072,161 @@
     "introCanvas": [],
     "introCanvasHeight": 620,
     "updatedAt": "2026-11-08T07:21:39.110Z"
+  },
+  "FT4498": {
+    "subjectId": "FT4498",
+    "code": "FT4498",
+    "name": "Công nghệ chế biến sau thu hoạch thực vật (bổ sung)",
+    "status": "published",
+    "banner": "",
+    "shortDesc": "",
+    "credits": 4,
+    "semester": 9,
+    "program": "Chương trình Đào tạo Đại học",
+    "intro": "",
+    "cards": {
+      "objectives": {
+        "title": "Mục tiêu môn học",
+        "content": ""
+      },
+      "mainContent": {
+        "title": "Nội dung chính",
+        "content": ""
+      },
+      "targetAudience": {
+        "title": "Đối tượng học",
+        "content": ""
+      },
+      "learningFormat": {
+        "title": "Hình thức học",
+        "content": ""
+      }
+    },
+    "instructor": {
+      "name": "",
+      "role": "Giảng viên phụ trách",
+      "avatar": "",
+      "email": ""
+    },
+    "chapters": [
+      {
+        "id": "chap_ft4498_supplement",
+        "title": "Chương 5. Tài liệu bổ sung: Pectin, xử lý nhiệt và thành tế bào thực vật",
+        "lessons": [
+          {
+            "id": "les_ft4498_5_1",
+            "title": "5.1. Pectin: phân loại theo mức độ ester hóa và cơ chế tạo gel",
+            "duration": "15:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [
+              {
+                "id": "les_ft4498_5_1_block",
+                "type": "lessonDocument",
+                "content": "<h3>1. Phân loại pectin theo mức độ ester hóa</h3>\n<p><strong>Độ ester hóa (DE, Degree of Esterification)</strong> là tỷ lệ các nhóm carboxyl trong pectin đã được ester hóa. Theo DE, pectin thường được chia thành hai nhóm:</p>\n<table>\n<thead>\n<tr><th>Loại pectin</th><th>DE</th><th>Đặc điểm tạo gel</th></tr>\n</thead>\n<tbody>\n<tr><td><strong>HMP</strong> — pectin methoxyl cao</td><td>&gt; 50%</td><td>Thường cần môi trường acid và hàm lượng chất khô hòa tan cao, thường khoảng 55–75%.</td></tr>\n<tr><td><strong>LMP</strong> — pectin methoxyl thấp</td><td>&lt; 50%</td><td>Tạo gel chủ yếu nhờ ion hóa trị hai, đặc biệt là Ca²⁺; có thể dùng trong sản phẩm ít đường.</td></tr>\n</tbody>\n</table>\n<p><strong>DE = 50% nằm đúng ranh giới</strong>; cách xếp loại tại điểm này có thể phụ thuộc quy ước của tài liệu hoặc tiêu chuẩn đang dùng. Vì vậy, không nên tự động xếp DE 50% vào HMP hoặc LMP nếu tài liệu không nói rõ.</p>\n<h4>Cơ chế tạo gel</h4>\n<ul>\n<li><strong>HMP:</strong> Đường làm giảm lượng nước sẵn có để hydrat hóa pectin; pH thấp làm giảm lực đẩy giữa các chuỗi pectin. Nhờ đó, các chuỗi dễ liên kết thành mạng gel. Đường và pH là các điều kiện điển hình, nhưng công thức cụ thể còn phụ thuộc loại pectin và thành phần sản phẩm.</li>\n<li><strong>LMP:</strong> Các nhóm carboxyl chưa ester hóa có thể phối hợp với Ca²⁺. Ion calcium tạo cầu nối giữa các chuỗi pectin, hình thành mạng gel thường được mô tả bằng mô hình “hộp trứng” (<em>egg-box</em>).</li>\n</ul>\n<h4>Enzyme làm giảm DE</h4>\n<p><strong>Pectin methylesterase (PME)</strong> thủy phân các nhóm methyl ester của pectin, làm tăng số nhóm carboxyl tự do và giảm DE. Sản phẩm của phản ứng có thể viết khái quát:</p>\n<p>\\[ \\mathrm{R{-}COOCH_3} + \\mathrm{H_2O} \\xrightarrow{\\mathrm{PME}} \\mathrm{R{-}COOH} + \\mathrm{CH_3OH} \\]</p>\n<p>PME làm pectin <strong>dịch chuyển về phía pectin DE thấp hơn</strong>. Việc một mẫu cụ thể đổi từ nhóm HMP sang LMP phụ thuộc DE ban đầu và mức độ phản ứng.</p>\n<h4>Ghi nhớ nhanh</h4>\n<ul>\n<li><strong>HMP:</strong> DE cao; thường tạo gel với đường cao và pH thấp.</li>\n<li><strong>LMP:</strong> DE thấp; tạo gel nhờ Ca²⁺, phù hợp với công thức ít đường.</li>\n<li><strong>PME:</strong> loại bỏ nhóm methyl ester, làm giảm DE.</li>\n<li><strong>50% DE</strong> là ngưỡng phân loại; <strong>55–75% chất khô hòa tan</strong> là khoảng thường gặp trong công thức tạo gel HMP. Đây là hai con số có ý nghĩa khác nhau.</li>\n</ul>",
+                "settings": {},
+                "order": 0
+              }
+            ],
+            "content": "",
+            "description": "Phân biệt HMP/LMP theo DE, cơ chế tạo gel và vai trò của PME.",
+            "order": 0,
+            "updatedAt": "2026-11-10T12:53:48.136Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          },
+          {
+            "id": "les_ft4498_5_2",
+            "title": "5.2. Thanh trùng và tiệt trùng thương mại",
+            "duration": "15:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [
+              {
+                "id": "les_ft4498_5_2_block",
+                "type": "lessonDocument",
+                "content": "<h3>2. Thanh trùng và tiệt trùng thương mại</h3>\n<p><strong>Thanh trùng</strong> và <strong>tiệt trùng thương mại</strong> là các cách xử lý nhiệt khác nhau. Không thể phân biệt chỉ dựa vào một nhiệt độ cố định: chế độ phù hợp phụ thuộc vào pH cân bằng, loại thực phẩm, bao bì và quy trình đã được xác lập.</p>\n<table>\n<thead>\n<tr><th>Tiêu chí</th><th>Thanh trùng</th><th>Tiệt trùng thương mại</th></tr>\n</thead>\n<tbody>\n<tr><td>Mục đích</td><td>Tiêu diệt vi sinh vật mục tiêu nhạy nhiệt và giảm nguy cơ hư hỏng theo quy trình phù hợp</td><td>Đạt mức ổn định thương mại trong điều kiện bảo quản dự kiến, bao gồm kiểm soát mối nguy từ bào tử phù hợp với sản phẩm</td></tr>\n<tr><td>Nhiệt độ</td><td>Có thể dưới hoặc trên 100°C, tùy quy trình</td><td>Đồ hộp ít acid thường cần quy trình áp suất cao hơn 100°C</td></tr>\n<tr><td>Sản phẩm thường gặp</td><td>Nhiều thực phẩm acid hoặc sản phẩm được bảo quản lạnh</td><td>Đồ hộp ít acid bảo quản ở nhiệt độ thường</td></tr>\n<tr><td>Bảo quản</td><td>Tùy sản phẩm; có thể cần lạnh</td><td>Thường có thể bảo quản ở nhiệt độ thường khi bao bì kín và quy trình đạt yêu cầu</td></tr>\n</tbody>\n</table>\n<h4>Vì sao đồ hộp ít acid cần xử lý nghiêm ngặt?</h4>\n<p>Trong thực phẩm đóng kín, ít acid và bảo quản ở nhiệt độ thường, bào tử <em>Clostridium botulinum</em> là một mối nguy quan trọng. Vì vậy, cần quy trình nhiệt phù hợp để đạt <strong>tiệt trùng thương mại</strong>; sản phẩm không nhất thiết vô trùng tuyệt đối.</p>\n<p>Với thực phẩm có pH cân bằng <strong>trên 4,6</strong>, không nên suy ra chế độ xử lý an toàn chỉ từ bảng tóm tắt. Quy trình phải phù hợp với sản phẩm, bao bì và điều kiện bảo quản.</p>\n<h4>Một số trường hợp cần phân biệt</h4>\n<ul>\n<li><strong>Thực phẩm được acid hóa:</strong> Thực phẩm ít acid được thêm acid có thể thuộc nhóm thực phẩm acid hóa nếu pH cân bằng cuối cùng đạt yêu cầu. Tuy nhiên, điều đó không có nghĩa là có thể tùy ý thay quy trình nhiệt; mức acid hóa và chế độ xử lý phải được kiểm soát.</li>\n<li><strong>Thực phẩm bảo quản lạnh:</strong> Một số sản phẩm thịt hoặc cá được xử lý nhiệt rồi giữ lạnh có thể dùng quy trình khác đồ hộp bảo quản ở nhiệt độ thường. Việc bảo quản lạnh và hạn sử dụng phải nằm trong hệ thống kiểm soát an toàn phù hợp.</li>\n<li><strong>UHT và đóng gói vô trùng:</strong> Sản phẩm được xử lý nhiệt riêng rồi đóng gói trong môi trường vô trùng; không nhất thiết phải tiệt trùng lại sau khi đóng gói.</li>\n</ul>\n<p><strong>Điểm cần nhớ:</strong> pH 4,6 là ngưỡng quan trọng trong phân loại thực phẩm đóng hộp ít acid và thực phẩm acid hóa, nhưng không phải hướng dẫn đầy đủ để tự thiết kế quy trình đóng hộp an toàn.</p>",
+                "settings": {},
+                "order": 0
+              }
+            ],
+            "content": "",
+            "description": "Phân biệt thanh trùng với tiệt trùng thương mại và các trường hợp cần lưu ý.",
+            "order": 1,
+            "updatedAt": "2026-11-10T12:53:48.136Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          },
+          {
+            "id": "les_ft4498_5_3",
+            "title": "5.3. Màu bắp cải tím thay đổi theo pH",
+            "duration": "15:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [
+              {
+                "id": "les_ft4498_5_3_block",
+                "type": "lessonDocument",
+                "content": "<h3>3. Màu bắp cải tím thay đổi theo pH</h3>\n<p>Bắp cải tím chứa <strong>anthocyanin</strong>, sắc tố có cấu trúc thay đổi theo môi trường acid–kiềm. Sự thay đổi cấu trúc làm thay đổi cách sắc tố hấp thụ ánh sáng, nên màu quan sát được cũng thay đổi.</p>\n<table>\n<thead>\n<tr><th>Môi trường</th><th>Màu thường thấy của dịch chiết</th></tr>\n</thead>\n<tbody>\n<tr><td>Acid mạnh</td><td>Đỏ hoặc hồng đỏ</td></tr>\n<tr><td>Acid yếu</td><td>Hồng tím hoặc tím đỏ</td></tr>\n<tr><td>Gần trung tính</td><td>Tím</td></tr>\n<tr><td>Kiềm nhẹ</td><td>Xanh tím hoặc xanh dương</td></tr>\n<tr><td>Kiềm mạnh hơn</td><td>Xanh lục đến vàng</td></tr>\n</tbody>\n</table>\n<p>Các màu trên chỉ là <strong>xấp xỉ</strong>, không phải thang đo pH chính xác. Kết quả còn tùy nồng độ dịch chiết, nhiệt độ và thành phần mẫu. Nghiên cứu về dịch chiết bắp cải tím cũng ghi nhận màu chuyển dần từ đỏ trong môi trường acid sang tím–xanh và xanh lục khi pH tăng.</p>\n<h4>Ví dụ: ngâm bắp cải tím bằng giấm</h4>\n<p>Giấm làm môi trường acid hơn, nên dịch ngâm thường chuyển sang đỏ tím hoặc hồng đỏ. Nếu thêm baking soda, pH tăng và màu có thể chuyển dần về tím, xanh dương hoặc xanh lục. Màu cụ thể phụ thuộc lượng giấm hoặc baking soda và thành phần của dung dịch.</p>",
+                "settings": {},
+                "order": 0
+              }
+            ],
+            "content": "",
+            "description": "Anthocyanin và sự chuyển màu của dịch chiết bắp cải tím theo pH.",
+            "order": 2,
+            "updatedAt": "2026-11-10T12:53:48.136Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          },
+          {
+            "id": "les_ft4498_5_4",
+            "title": "5.4. Thành tế bào thực vật",
+            "duration": "15:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [
+              {
+                "id": "les_ft4498_5_4_block",
+                "type": "lessonDocument",
+                "content": "<h3>4. Thành tế bào thực vật</h3>\n<p>Thành tế bào là lớp bao bên ngoài màng sinh chất. Thành tế bào giúp <strong>bảo vệ tế bào</strong>, tạo hình dạng và duy trì cấu trúc, đồng thời tăng độ bền cơ học cho tế bào và mô thực vật.</p>\n<h4>Các lớp của thành tế bào</h4>\n<p>Từ ngoài vào trong, sơ đồ thể hiện:</p>\n<ol>\n<li><strong>Phiến giữa</strong> (<em>middle lamella</em>): nằm giữa các tế bào lân cận, giúp gắn kết chúng với nhau; giàu pectin.</li>\n<li><strong>Thành sơ cấp</strong>: hình thành khi tế bào còn phát triển. Tương đối mỏng và linh hoạt, cho phép tế bào lớn lên.</li>\n<li><strong>Thành thứ cấp</strong>: có thể được tạo thêm ở phía trong thành sơ cấp khi tế bào đã trưởng thành. Thường dày và chắc hơn; các vi sợi cellulose có thể được sắp xếp theo nhiều hướng.</li>\n</ol>\n<p><em>Không phải mọi tế bào thực vật đều có thành thứ cấp.</em></p>\n<h4>Thành phần chính</h4>\n<ul>\n<li><strong>Cellulose</strong>: tạo các vi sợi bền, góp phần nâng đỡ thành tế bào.</li>\n<li><strong>Hemicellulose</strong>: liên kết với các vi sợi cellulose, góp phần tạo mạng lưới thành tế bào.</li>\n<li><strong>Pectin</strong>: tạo nền gel, giúp liên kết và điều chỉnh tính chất của thành tế bào; có nhiều ở phiến giữa và thành sơ cấp.</li>\n<li><strong>Protein thành tế bào</strong>: tham gia cấu trúc và các hoạt động của thành.</li>\n</ul>\n<h4>Sơ đồ phân lớp thành thứ cấp</h4>\n<p>Sơ đồ chia thành thứ cấp thành các lớp <strong>S1, S2 và S3</strong>. Các lớp khác nhau về độ dày và hướng sắp xếp của vi sợi cellulose. Sự sắp xếp theo nhiều hướng góp phần làm thành tế bào chắc hơn.</p>\n<h4>Liên hệ với không bào và áp suất trương nước</h4>\n<p>Nước đi vào tế bào làm không bào lớn lên và tạo <strong>áp suất trương nước</strong> (<em>turgor pressure</em>) lên phía thành tế bào. Thành tế bào chống lại áp suất này, giúp tế bào giữ hình dạng và giúp mô thực vật đứng vững. Thành tế bào cũng hạn chế tế bào trương quá mức khi hút nước.</p>\n<h4>Các cấu trúc được ghi trên hình tế bào thực vật</h4>\n<ul>\n<li>Nhân tế bào</li>\n<li>Mạng lưới nội chất</li>\n<li>Bộ máy Golgi</li>\n<li>Ti thể</li>\n<li>Lục lạp</li>\n<li>Bào tương</li>\n<li>Không bào và dịch tế bào</li>\n<li>Màng không bào (<em>tonoplast</em>)</li>\n<li>Màng sinh chất</li>\n<li>Thành tế bào</li>\n</ul>",
+                "settings": {},
+                "order": 0
+              }
+            ],
+            "content": "",
+            "description": "Các lớp, thành phần và liên hệ với áp suất trương nước của thành tế bào.",
+            "order": 3,
+            "updatedAt": "2026-11-10T12:53:48.136Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
+        "order": 0
+      }
+    ],
+    "introCanvas": [],
+    "introCanvasHeight": 620,
+    "updatedAt": "2026-11-10T12:53:48.136Z"
   }
 }

@@ -10,8 +10,8 @@
 
 import { DB } from './db.js';
 import { AIPool } from './aiPool.js';
-import { formatKnowledgeContext, searchSubjectKnowledge } from './knowledgeBase.js';
-import { buildCeraContext } from './ceraContext.js?v=20261108-cera-adminrole1';
+import { formatKnowledgeContext, searchSubjectKnowledge } from './knowledgeBase.js?v=20261110-kb1';
+import { buildCeraContext, resolveCeraSubjectForQuery } from './ceraContext.js?v=20261110-ft4498';
 
 // ─── System Prompt & High EQ GenZ Companion Knowledge Engine ─────────────────
 const CERA_SYSTEM = `
@@ -425,9 +425,12 @@ export async function ceraChat(userText, history = [], options = {}) {
   const knowledgeQuery = _currentContext
     ? [userText, _currentContext.q, _currentContext.options?.[_currentContext.correct], _currentContext.exp].filter(Boolean).join(' ')
     : userText;
+  const resolvedSubject = resolveCeraSubjectForQuery(userText, { reading: _currentReading, readingActive });
   const knowledgeContext = formatKnowledgeContext(searchSubjectKnowledge(
     knowledgeQuery,
-    _currentContext?.subjectId || DB.getActiveSubject()
+    _currentContext?.subjectId || resolvedSubject.primary?.id || DB.getActiveSubject(),
+    4,
+    readingActive ? _currentReading?.lessonId || null : null
   ));
 
   // ── 0. Kiểm tra nếu là Chế độ Premium ─────────────────────────────────────

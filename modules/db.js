@@ -5,6 +5,7 @@
 
 import { pushToGitHub, pushUserRolesToServer, pushCustomSubjectsToServer, pushAnnouncementToServer, deleteAnnouncementFromServer, pushArticlesToServer, pushResourceToServer, deleteResourceFromServer, pushFeedbackToServer, updateFeedbackOnServer, deleteFeedbackFromServer, pushSubjectDetailsToServer, isLocalSubjectDetailsEditor, persistSubjectDetailsLocally } from './sync.js?v=20261106-notify5';
 import { FT4488_SEED_QUESTIONS } from '../data/seed_questions_ft4488.js';
+import { FT4498_SEED_QUESTIONS } from '../data/seed_questions_ft4498.js';
 
 const KEYS = {
   BANK: 'qlcl_question_bank',
@@ -26,8 +27,8 @@ const KEYS = {
   STATIC_QUESTION_OVERRIDES: 'qlcl_static_question_overrides',
 };
 
-// Ngân hàng tĩnh FT4488: luôn có sẵn khi đọc, không chiếm quota localStorage.
-const STATIC_BANK = FT4488_SEED_QUESTIONS.map(q => ({ ...q, _seed: true, _static: true }));
+// Ngân hàng tĩnh FT4488 + FT4498: luôn có sẵn khi đọc, không chiếm quota localStorage.
+const STATIC_BANK = [...FT4488_SEED_QUESTIONS, ...FT4498_SEED_QUESTIONS].map(q => ({ ...q, _seed: true, _static: true }));
 const STATIC_BANK_BY_ID = new Map(STATIC_BANK.map(q => [q.id, q]));
 
 function readStaticOverrides() {

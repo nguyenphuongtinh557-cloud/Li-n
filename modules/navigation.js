@@ -3,9 +3,9 @@
  * Manages Sidebar, Top Header Search, Page Navigation, Subject Detail, and Auth Popover
  */
 
-import { SUBJECTS_REGISTRY, getAllSubjects, getSubjectById, KNOWLEDGE_BLOCKS } from './subjects.js';
+import { SUBJECTS_REGISTRY, getAllSubjects, getSubjectById, KNOWLEDGE_BLOCKS } from './subjects.js?v=20261110-ft4498';
 import { DB } from './db.js';
-import { AuthModule, getActiveAdminEmails, getUserRole, hasPendingRedirect } from './auth.js?v=20261101-auth-popup';
+import { AuthModule, getActiveAdminEmails, getUserRole, hasPendingRedirect } from './auth.js?v=20261109-profile2';
 import { ArticlesModule } from './articles.js?v=20261031-news1';
 import { getSecuritySettings, updateSecuritySetting, openPasscodeDialog, stopActiveMedia } from './security.js?v=20261104-security';
 
@@ -1803,7 +1803,9 @@ export const NavController = {
   },
 
   handleAvatarFileUpload(event) {
-    const file = event.target.files?.[0];
+    const input = event.target;
+    const file = input?.files?.[0];
+    if (input) input.value = '';
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
@@ -1811,46 +1813,220 @@ export const NavController = {
       return;
     }
 
+    const editModalOpen = Boolean(document.getElementById('modal-edit-profile')?.classList.contains('open'));
     const reader = new FileReader();
     reader.onload = (e) => {
-      const rawDataUrl = e.target.result;
-      
-      // Compress image via Canvas to 250x250 max
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const maxSize = 250;
-        let width = img.width;
-        let height = img.height;
-
-        if (width > height) {
-          if (width > maxSize) {
-            height *= maxSize / width;
-            width = maxSize;
-          }
-        } else {
-          if (height > maxSize) {
-            width *= maxSize / height;
-            height = maxSize;
-          }
+      this.openAvatarCropper(e.target.result, (croppedDataUrl) => {
+        if (editModalOpen) {
+          this.tempAvatarData = croppedDataUrl;
+          const previewImg = document.getElementById('edit-avatar-preview');
+          if (previewImg) previewImg.src = croppedDataUrl;
+          if (window.showToast) window.showToast('Đã chọn ảnh mới. Bấm "Lưu Hồ Sơ" để áp dụng nhé!', 'info');
+          return;
         }
-
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.85);
-        this.tempAvatarData = compressedDataUrl;
-
-        const previewImg = document.getElementById('edit-avatar-preview');
-        if (previewImg) previewImg.src = compressedDataUrl;
-
-        if (window.showToast) window.showToast('Đã chọn ảnh thành công! Bấm Lưu Hồ Sơ để xác nhận.', 'info');
-      };
-      img.src = rawDataUrl;
+        this.applyAvatar(croppedDataUrl);
+      });
+    };
+    reader.onerror = () => {
+      if (window.showToast) window.showToast('Không đọc được file ảnh này, cậu chọn file khác giúp tớ nhé!', 'error');
     };
     reader.readAsDataURL(file);
+  },
+
+  avatarCropState: null,
+
+  openAvatarCropper(rawDataUrl, onApply) {
+    if (!rawDataUrl) return;
+    this.closeAvatarCropper();
+
+    const stageSize = Math.max(200, Math.round(Math.min(300, window.innerWidth - 84, window.innerHeight * 0.46)));
+    const editor = document.createElement('div');
+    editor.id = 'avatar-crop-editor';
+    editor.className = 'avatar-crop-overlay';
+    editor.innerHTML = `
+      <div class="avatar-crop-modal" role="dialog" aria-modal="true" aria-label="Chỉnh sửa ảnh đại diện">
+        <div class="avatar-crop-head">
+          <div>
+            <h3>Chỉnh sửa ảnh đại diện</h3>
+            <p>Kéo ảnh để chọn vị trí, dùng thanh trượt để phóng to hoặc thu nhỏ.</p>
+          </div>
+          <button type="button" class="avatar-crop-close" onclick="NavController.closeAvatarCropper()" aria-label="Đóng"><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class="avatar-crop-stage-wrap">
+          <div class="avatar-crop-stage" id="avatar-crop-stage">
+            <img id="avatar-crop-image" alt="Ảnh đại diện đang chỉnh" draggable="false">
+            <div class="avatar-crop-ring" aria-hidden="true"></div>
+          </div>
+        </div>
+        <div class="avatar-crop-zoom">
+          <i class="fa-solid fa-minimize" aria-hidden="true"></i>
+          <input id="avatar-crop-zoom" type="range" min="1" max="3" step="0.01" value="1" aria-label="Kích thước ảnh">
+          <i class="fa-solid fa-maximize" aria-hidden="true"></i>
+        </div>
+        <div class="avatar-crop-actions">
+          <button type="button" class="ghost-button" onclick="NavController.closeAvatarCropper()">Hủy</button>
+          <button type="button" class="btn btn-primary" onclick="NavController.saveAvatarCrop()"><i class="fa-solid fa-check"></i> Dùng ảnh này</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(editor);
+
+    const stage = editor.querySelector('#avatar-crop-stage');
+    const imageEl = editor.querySelector('#avatar-crop-image');
+    const zoomEl = editor.querySelector('#avatar-crop-zoom');
+    stage.style.width = `${stageSize}px`;
+    stage.style.height = `${stageSize}px`;
+
+    this.avatarCropState = { stageSize, imageEl, zoom: 1, offsetX: 0, offsetY: 0, baseScale: 1, naturalW: 1, naturalH: 1, onApply };
+
+    imageEl.onload = () => {
+      const state = this.avatarCropState;
+      if (!state) return;
+      state.naturalW = imageEl.naturalWidth || 1;
+      state.naturalH = imageEl.naturalHeight || 1;
+      state.baseScale = stageSize / Math.min(state.naturalW, state.naturalH);
+      this.renderAvatarCrop();
+    };
+    imageEl.onerror = () => {
+      this.closeAvatarCropper();
+      if (window.showToast) window.showToast('Không đọc được file ảnh này, cậu chọn file khác giúp tớ nhé!', 'error');
+    };
+    imageEl.src = rawDataUrl;
+
+    zoomEl.addEventListener('input', () => {
+      if (!this.avatarCropState) return;
+      this.avatarCropState.zoom = Number(zoomEl.value);
+      this.renderAvatarCrop();
+    });
+
+    let dragPointer = null;
+    let dragStartX = 0;
+    let dragStartY = 0;
+    let dragBaseX = 0;
+    let dragBaseY = 0;
+    stage.addEventListener('pointerdown', (e) => {
+      if (!this.avatarCropState) return;
+      dragPointer = e.pointerId;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      dragBaseX = this.avatarCropState.offsetX;
+      dragBaseY = this.avatarCropState.offsetY;
+      stage.setPointerCapture(dragPointer);
+      stage.classList.add('is-dragging');
+    });
+    stage.addEventListener('pointermove', (e) => {
+      if (dragPointer === null || e.pointerId !== dragPointer || !this.avatarCropState) return;
+      this.avatarCropState.offsetX = dragBaseX + (e.clientX - dragStartX);
+      this.avatarCropState.offsetY = dragBaseY + (e.clientY - dragStartY);
+      this.renderAvatarCrop();
+    });
+    const endDrag = (e) => {
+      if (dragPointer === null || (e.pointerId !== undefined && e.pointerId !== dragPointer)) return;
+      dragPointer = null;
+      stage.classList.remove('is-dragging');
+    };
+    stage.addEventListener('pointerup', endDrag);
+    stage.addEventListener('pointercancel', endDrag);
+
+    stage.addEventListener('wheel', (e) => {
+      if (!this.avatarCropState) return;
+      e.preventDefault();
+      this.avatarCropState.zoom = Math.min(3, Math.max(1, this.avatarCropState.zoom + (e.deltaY < 0 ? 0.08 : -0.08)));
+      zoomEl.value = String(this.avatarCropState.zoom);
+      this.renderAvatarCrop();
+    }, { passive: false });
+
+    editor.addEventListener('click', (e) => {
+      if (e.target === editor) this.closeAvatarCropper();
+    });
+    editor.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') this.closeAvatarCropper();
+    });
+    editor.querySelector('.avatar-crop-close')?.focus();
+  },
+
+  renderAvatarCrop() {
+    const state = this.avatarCropState;
+    if (!state?.imageEl) return;
+    const displayedW = state.naturalW * state.baseScale * state.zoom;
+    const displayedH = state.naturalH * state.baseScale * state.zoom;
+    const maxX = Math.max(0, (displayedW - state.stageSize) / 2);
+    const maxY = Math.max(0, (displayedH - state.stageSize) / 2);
+    state.offsetX = Math.min(maxX, Math.max(-maxX, state.offsetX));
+    state.offsetY = Math.min(maxY, Math.max(-maxY, state.offsetY));
+    state.imageEl.style.width = `${displayedW}px`;
+    state.imageEl.style.height = `${displayedH}px`;
+    state.imageEl.style.transform = `translate(calc(-50% + ${state.offsetX}px), calc(-50% + ${state.offsetY}px))`;
+  },
+
+  closeAvatarCropper() {
+    document.getElementById('avatar-crop-editor')?.remove();
+    this.avatarCropState = null;
+  },
+
+  saveAvatarCrop() {
+    const state = this.avatarCropState;
+    if (!state?.imageEl) return;
+
+    const outputSize = 256;
+    const canvas = document.createElement('canvas');
+    canvas.width = outputSize;
+    canvas.height = outputSize;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, outputSize, outputSize);
+
+    const scale = state.baseScale * state.zoom;
+    const sourceSize = state.stageSize / scale;
+    const imageLeft = (state.stageSize - state.naturalW * scale) / 2 + state.offsetX;
+    const imageTop = (state.stageSize - state.naturalH * scale) / 2 + state.offsetY;
+    ctx.drawImage(
+      state.imageEl,
+      -imageLeft / scale,
+      -imageTop / scale,
+      sourceSize,
+      sourceSize,
+      0,
+      0,
+      outputSize,
+      outputSize
+    );
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+    const onApply = state.onApply;
+    this.closeAvatarCropper();
+    if (typeof onApply === 'function') onApply(dataUrl);
+  },
+
+  async applyAvatar(avatarDataUrl) {
+    if (!this.currentUser) {
+      if (window.showToast) window.showToast('Cậu đăng nhập Google trước để đổi ảnh đại diện nhé!', 'warning');
+      return;
+    }
+
+    const pending = AuthModule.updateCustomProfile(this.currentUser.name, avatarDataUrl);
+    this.refreshAvatarDisplays(avatarDataUrl);
+    if (window.showToast) window.showToast('Đã cập nhật ảnh đại diện!', 'success');
+
+    const result = await pending;
+    if (result?.synced === false && window.showToast) {
+      window.showToast('Ảnh đã đổi trên thiết bị này nhưng chưa đồng bộ lên cloud; admin có thể chưa thấy ảnh mới.', 'warning');
+    }
+  },
+
+  refreshAvatarDisplays(avatarUrl) {
+    if (!avatarUrl) return;
+    this.renderUserAuthZone();
+    document.querySelectorAll('.profile-main-avatar, .profile-sidebar-avatar, .user-avatar-img').forEach((image) => {
+      image.src = avatarUrl;
+    });
+    const sidebarName = document.querySelector('.profile-sidebar-user h3');
+    if (sidebarName && this.currentUser?.name) sidebarName.textContent = this.currentUser.name;
+    const profileContent = document.getElementById('profile-center-content');
+    if (profileContent) {
+      const activeSection = document.querySelector('.profile-nav-item.active')?.dataset.profileSection || 'profile';
+      this.renderProfileCenterContent(activeSection);
+    }
   },
 
   saveProfileEdit() {
@@ -1864,6 +2040,8 @@ export const NavController = {
 
     if (this.currentUser) {
       AuthModule.updateCustomProfile(newName, this.tempAvatarData);
+      this.tempAvatarData = null;
+      this.refreshAvatarDisplays(this.currentUser.avatar);
     }
 
     const modal = document.getElementById('modal-edit-profile');

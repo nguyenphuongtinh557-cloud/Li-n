@@ -7,9 +7,9 @@
  * của từng người trong tab "Đề đã chia sẻ".
  */
 
-import { AuthModule } from './auth.js?v=20261101-auth-popup';
+import { AuthModule } from './auth.js?v=20261109-profile2';
 import { DB } from './db.js';
-import { getAllSubjects } from './subjects.js';
+import { getAllSubjects } from './subjects.js?v=20261110-ft4498';
 import { ExamTimer } from './exam.js';
 
 const API = '/api/quiz-share';

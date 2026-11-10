@@ -75,6 +75,7 @@ export const SUBJECTS_REGISTRY = [
   { id: 'FT4487', code: 'FT4487', name: 'Phát triển sản phẩm mới', credits: 3, blockId: 'CS_NGANH', semester: 8 },
   { id: 'FT4479', code: 'FT4479', name: 'Phân tích thực phẩm', credits: 3, blockId: 'CS_NGANH', semester: 9 },
   { id: 'FT4488', code: 'FT4488', name: 'Công nghệ sau TH và chế biến SP thực vật', credits: 4, blockId: 'CS_NGANH', semester: 9 },
+  { id: 'FT4498', code: 'FT4498', name: 'Công nghệ chế biến sau thu hoạch thực vật (bổ sung)', credits: 4, blockId: 'CS_NGANH', semester: 9 },
   { id: 'FT4490', code: 'FT4490', name: 'TT. Công nghệ thực phẩm (PTN)', credits: 2, blockId: 'CS_NGANH', semester: 11 },
   { id: 'FT4591', code: 'FT4591', name: 'Thực tập Kỹ thuật công nghệ thực phẩm', credits: 2, blockId: 'CS_NGANH', semester: 12 },
 

@@ -9,8 +9,8 @@
  */
 
 import { DB } from './db.js';
-import { getAllSubjects } from './subjects.js';
-import { getUserRole } from './auth.js?v=20261101-auth-popup';
+import { getAllSubjects } from './subjects.js?v=20261110-ft4498';
+import { getUserRole } from './auth.js?v=20261109-profile2';
 
 const SUMMARY_HISTORY_KEY = 'fteca_curriculum_summary_history_v2';
 const LIMITS = { history: 3, bank: 2, noteChars: 400, highlights: 4, summaryPoints: 5, pitfalls: 3, materials: 6 };
@@ -29,6 +29,11 @@ const SUBJECT_NAME_STOPWORDS = new Set([
   'thuc', 'pham', 'cong', 'nghe', 'trong', 'cua', 'cho', 'voi', 'tai', 'lieu',
   'hoc', 'tap', 'mon', 'bai', 'giang', 'ky', 'va', 'cac', 'nhung', 'nay', 'do'
 ]);
+
+// Tên gọi tắt sinh viên hay dùng, không trùng tên chính thức trong registry.
+const SUBJECT_ALIASES = {
+  FT4488: ['cong nghe sau thu hoach', 'cong nghe sau th', 'sau thu hoach thuc vat']
+};
 
 function plain(value) {
   return String(value ?? '')
@@ -79,12 +84,18 @@ function availabilityFor(subject) {
 export function mentionedSubjects(query) {
   const queryText = String(query || '');
   const upper = queryText.toUpperCase();
+  const normalizedQuery = normalize(queryText);
   const queryTokenList = tokensOf(queryText);
   const queryTokens = new Set(queryTokenList);
   const scored = [];
   getAllSubjects().forEach(subject => {
     const code = String(subject.code || subject.id || '').toUpperCase();
     if (code && upper.includes(code)) {
+      scored.push({ subject, score: 100 });
+      return;
+    }
+    const aliases = SUBJECT_ALIASES[subject.id] || [];
+    if (aliases.some(alias => normalizedQuery.includes(alias))) {
       scored.push({ subject, score: 100 });
       return;
     }
@@ -98,6 +109,33 @@ export function mentionedSubjects(query) {
     }
   });
   return scored.sort((a, b) => b.score - a.score).slice(0, 2).map(entry => entry.subject);
+}
+
+// Một mention "mạnh" là mã môn, tên gọi tắt, hoặc ≥3 từ trong tên môn.
+// "kho bảo quản" chỉ khớp 2 từ với "Nguyên lý bảo quản…" nên không được coi là
+// người học đang hỏi môn đó khi họ đang đọc bài của môn khác.
+function strongSubjectMention(query, subject) {
+  const upper = String(query || '').toUpperCase();
+  const code = String(subject.code || subject.id || '').toUpperCase();
+  if (code && upper.includes(code)) return true;
+  const normalizedQuery = normalize(query);
+  const aliases = SUBJECT_ALIASES[subject.id] || [];
+  if (aliases.some(alias => normalizedQuery.includes(alias))) return true;
+  const nameTokens = tokensOf(subject.name).filter(token => token.length >= 2 && !SUBJECT_NAME_STOPWORDS.has(token));
+  const queryTokens = new Set(tokensOf(query));
+  return nameTokens.filter(token => queryTokens.has(token)).length >= 3;
+}
+
+export function resolveCeraSubjectForQuery(query, { reading = null, readingActive = false } = {}) {
+  const mentioned = mentionedSubjects(query);
+  const readingSubject = readingActive && reading?.subjectId
+    ? getAllSubjects().find(subject => subject.id === reading.subjectId) || null
+    : null;
+  const primary = mentioned[0];
+  if (readingSubject && primary && primary.id !== readingSubject.id && !strongSubjectMention(query, primary)) {
+    return { primary: readingSubject, mentioned: [] };
+  }
+  return { primary: primary || readingSubject || null, mentioned };
 }
 
 const CERA_LAST_SUBJECT_KEY = 'fteca_cera_last_subject_v1';
@@ -270,9 +308,9 @@ export function buildCeraContext({ query = '', userId = '', reading = null, read
   const sections = [];
   const queryText = String(query || '');
   const wantsMaterials = INTENTS.materials.test(queryText) || INTENTS.list.test(queryText);
-  const mentioned = mentionedSubjects(queryText);
-  const remembered = !mentioned.length && refersToPreviousSubject(queryText) ? recallCeraSubject() : null;
-  const activeSubjectId = mentioned[0]?.id || (readingActive && reading?.subjectId) || remembered?.id || DB.getActiveSubject();
+  const { primary, mentioned } = resolveCeraSubjectForQuery(queryText, { reading, readingActive });
+  const remembered = !primary && refersToPreviousSubject(queryText) ? recallCeraSubject() : null;
+  const activeSubjectId = primary?.id || remembered?.id || DB.getActiveSubject();
   const activeSubject = getAllSubjects().find(subject => subject.id === activeSubjectId);
 
   sections.push(userProfileSection());

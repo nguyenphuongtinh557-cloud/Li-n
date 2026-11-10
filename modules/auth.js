@@ -470,20 +470,42 @@ export const AuthModule = {
     try { return await auth.currentUser.getIdToken(); } catch { return ''; }
   },
 
-  updateCustomProfile(name, avatar) {
-    if (!this.user) return;
+  async updateCustomProfile(name, avatar) {
+    if (!this.user) return { synced: false, reason: 'not-signed-in' };
 
     const uidKey = this.user.uid || this.user.email;
     if (name) {
       this.user.name = name;
-      localStorage.setItem(`lien_custom_name_${uidKey}`, name);
+      try {
+        localStorage.setItem(`lien_custom_name_${uidKey}`, name);
+      } catch (error) {
+        console.warn('[Auth] Không thể lưu tên hiển thị vào trình duyệt:', error);
+      }
     }
     if (avatar) {
       this.user.avatar = avatar;
-      localStorage.setItem(`lien_custom_avatar_${uidKey}`, avatar);
+      try {
+        localStorage.setItem(`lien_custom_avatar_${uidKey}`, avatar);
+      } catch (error) {
+        console.warn('[Auth] Không thể lưu ảnh đại diện vào trình duyệt:', error);
+      }
     }
 
-    this.setUserSession(this.user, false);
+    await this.setUserSession(this.user, false);
+
+    if (!this.user?.email) return { synced: false, reason: 'no-email' };
+
+    DB.saveUserToRegistry(this.user).catch((error) => {
+      console.warn('[Auth] Không thể cập nhật danh sách học viên:', error);
+    });
+
+    try {
+      const result = await upsertUserToFirestore(this.user);
+      return { synced: Boolean(result?.ok), reason: result?.reason || '' };
+    } catch (error) {
+      console.warn('[Auth] Không thể đồng bộ hồ sơ lên Firestore:', error);
+      return { synced: false, reason: error.message || 'cloud-sync-failed' };
+    }
   },
 
   async signOut() {
