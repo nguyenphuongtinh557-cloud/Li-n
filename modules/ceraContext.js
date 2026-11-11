@@ -10,7 +10,7 @@
 
 import { DB } from './db.js';
 import { getAllSubjects } from './subjects.js?v=20261110-ft4498';
-import { getUserRole } from './auth.js?v=20261109-profile2';
+import { getUserRole } from './auth.js?v=20261111-authotp1';
 
 const SUMMARY_HISTORY_KEY = 'fteca_curriculum_summary_history_v2';
 const LIMITS = { history: 3, bank: 2, noteChars: 400, highlights: 4, summaryPoints: 5, pitfalls: 3, materials: 6 };

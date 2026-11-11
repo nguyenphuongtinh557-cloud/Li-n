@@ -1,16 +1,23 @@
 /**
- * auth.js — Real Google Authentication Module
- * Strict, authentic Google Sign-In via Firebase Web Auth & Google Identity Services (GIS).
- * No fake fallback forms. Explicit error reporting on failure.
+ * auth.js — FTECA Authentication Module
+ * Hai hình thức: Google (popup/redirect) và Email/Mật khẩu (FTECA account).
+ * Tài khoản email phải xác minh bằng mã OTP gửi về email trước khi dùng app.
+ * Không có form giả; báo lỗi tường minh khi thất bại.
  */
 
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js';
 import {
   getAuth,
   GoogleAuthProvider,
+  EmailAuthProvider,
   signInWithPopup,
   signInWithRedirect,
   getRedirectResult,
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  sendPasswordResetEmail,
+  updateProfile,
+  linkWithCredential,
   setPersistence,
   browserLocalPersistence,
   browserSessionPersistence,
@@ -174,6 +181,55 @@ export function hasPendingRedirect() {
   try { return sessionStorage.getItem(REDIRECT_PENDING_KEY) === '1'; } catch (_error) { return false; }
 }
 
+// Dựng object phiên từ Firebase user, dùng chung cho Google lẫn Email/Mật khẩu.
+// Provider suy từ providerData thay vì hardcode 'google.com' để tài khoản FTECA
+// (password) được nhận diện đúng và chịu cổng xác minh email.
+function buildSessionUser(firebaseUser, { fallbackAvatar = null } = {}) {
+  const uid = firebaseUser.uid;
+  const customAvatar = localStorage.getItem(`lien_custom_avatar_${uid}`);
+  const customName = localStorage.getItem(`lien_custom_name_${uid}`);
+  const customCover = localStorage.getItem(`lien_profile_cover_${uid}`);
+  const customCoverX = localStorage.getItem(`lien_profile_cover_x_${uid}`);
+  const customCoverY = localStorage.getItem(`lien_profile_cover_y_${uid}`);
+  const providers = (firebaseUser.providerData || []).map(p => p.providerId).filter(Boolean);
+  const primaryProvider = providers.includes('google.com') ? 'google.com' : (providers[0] || 'password');
+  const email = firebaseUser.email || '';
+  return {
+    uid,
+    name: customName || firebaseUser.displayName || email.split('@')[0],
+    email,
+    avatar: customAvatar || firebaseUser.photoURL || fallbackAvatar
+      || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(email)}`,
+    emailVerified: Boolean(firebaseUser.emailVerified),
+    provider: primaryProvider,
+    providers,
+    signedInAt: new Date().toISOString(),
+    profileCover: customCover || '',
+    profileCoverPositionX: customCoverX === null ? 50 : Number(customCoverX),
+    profileCoverPositionY: customCoverY === null ? 50 : Number(customCoverY)
+  };
+}
+
+// Gọi endpoint OTP với Bearer token của chính người đang đăng nhập. Email nhận
+// mã lấy từ token phía server, không truyền từ client nên không thể gửi mã hộ.
+async function otpRequest(body) {
+  const token = auth?.currentUser ? await auth.currentUser.getIdToken().catch(() => '') : '';
+  try {
+    const response = await fetch('/api/auth-otp', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {})
+      },
+      body: JSON.stringify(body)
+    });
+    const payload = await response.json().catch(() => ({}));
+    return { ok: response.ok && payload?.ok === true, status: response.status, payload };
+  } catch (error) {
+    return { ok: false, status: 0, payload: { ok: false, reason: String(error?.message || error) } };
+  }
+}
+
 export const AuthModule = {
   user: null,
 
@@ -197,26 +253,9 @@ export const AuthModule = {
 
       onAuthStateChanged(auth, (firebaseUser) => {
         if (!firebaseUser) return;
-        const customAvatar = localStorage.getItem(`lien_custom_avatar_${firebaseUser.uid}`);
-        const customName = localStorage.getItem(`lien_custom_name_${firebaseUser.uid}`);
-        const customCover = localStorage.getItem(`lien_profile_cover_${firebaseUser.uid}`);
-        const customCoverX = localStorage.getItem(`lien_profile_cover_x_${firebaseUser.uid}`);
-        const customCoverY = localStorage.getItem(`lien_profile_cover_y_${firebaseUser.uid}`);
-
-        const realUser = {
-          uid: firebaseUser.uid,
-          name: customName || firebaseUser.displayName || firebaseUser.email.split('@')[0],
-          email: firebaseUser.email,
-          avatar: customAvatar || firebaseUser.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(firebaseUser.email)}`,
-          emailVerified: firebaseUser.emailVerified,
-          provider: 'google.com',
-          signedInAt: new Date().toISOString(),
-          profileCover: customCover || '',
-          profileCoverPositionX: customCoverX === null ? 50 : Number(customCoverX),
-          profileCoverPositionY: customCoverY === null ? 50 : Number(customCoverY)
-        };
+        const realUser = buildSessionUser(firebaseUser);
         this.setUserSession(realUser, false).catch((error) => {
-          console.warn('[Auth] Không thể lưu phiên đăng nhập Google:', error);
+          console.warn('[Auth] Không thể lưu phiên đăng nhập:', error);
         });
       });
 
@@ -297,27 +336,7 @@ export const AuthModule = {
 
       // Trigger standard Google OAuth 2.0 Popup
       const result = await signInWithPopup(auth, googleProvider);
-      const user = result.user;
-
-      const customAvatar = localStorage.getItem(`lien_custom_avatar_${user.uid}`);
-      const customName = localStorage.getItem(`lien_custom_name_${user.uid}`);
-      const customCover = localStorage.getItem(`lien_profile_cover_${user.uid}`);
-      const customCoverX = localStorage.getItem(`lien_profile_cover_x_${user.uid}`);
-      const customCoverY = localStorage.getItem(`lien_profile_cover_y_${user.uid}`);
-
-      const realUser = {
-        uid: user.uid,
-        name: customName || user.displayName || user.email.split('@')[0],
-        email: user.email,
-        avatar: customAvatar || user.photoURL || null,
-        emailVerified: user.emailVerified,
-        provider: 'google.com',
-        signedInAt: new Date().toISOString(),
-        profileCover: customCover || '',
-        profileCoverPositionX: customCoverX === null ? 50 : Number(customCoverX),
-        profileCoverPositionY: customCoverY === null ? 50 : Number(customCoverY)
-      };
-
+      const realUser = buildSessionUser(result.user);
       await this.setUserSession(realUser, true);
     } catch (error) {
       console.error('Google Sign-In Error:', error);
@@ -360,6 +379,8 @@ export const AuthModule = {
     } else if (error.code === 'auth/cancelled-popup-request') {
       message = 'Yêu cầu đăng nhập đã bị hủy.';
       return;
+    } else if (error.code === 'auth/account-exists-with-different-credential') {
+      message = 'Email này đã có tài khoản FTECA (email + mật khẩu). Hãy chuyển sang tab Đăng nhập và dùng email + mật khẩu, hoặc bấm Quên mật khẩu nếu cần.';
     } else if (error.message) {
       message = `Lỗi Google Auth (${error.code || 'UNKNOWN'}): ${error.message}`;
     }
@@ -368,6 +389,139 @@ export const AuthModule = {
       window.showToast(message, 'error');
     } else {
       alert(message);
+    }
+  },
+
+  // ─── EMAIL / PASSWORD (FTECA ACCOUNT) ────────────────────────────────────
+  emailAuthErrorMessage(error) {
+    const code = error?.code || '';
+    switch (code) {
+      case 'auth/email-already-in-use':
+        return 'Email này đã được đăng ký. Hãy chuyển sang Đăng nhập, hoặc dùng Google nếu trước đây bạn vào bằng Google.';
+      case 'auth/invalid-email':
+        return 'Email không hợp lệ.';
+      case 'auth/weak-password':
+        return 'Mật khẩu quá yếu (tối thiểu 6 ký tự).';
+      case 'auth/user-not-found':
+      case 'auth/wrong-password':
+      case 'auth/invalid-credential':
+        return 'Email hoặc mật khẩu không đúng.';
+      case 'auth/too-many-requests':
+        return 'Quá nhiều lần thử. Vui lòng đợi một lát rồi thử lại.';
+      case 'auth/network-request-failed':
+        return 'Lỗi mạng. Kiểm tra kết nối rồi thử lại.';
+      case 'auth/operation-not-allowed':
+        return 'Phương thức đăng nhập email/mật khẩu chưa được bật trên hệ thống.';
+      case 'auth/provider-already-linked':
+        return 'Tài khoản này đã liên kết mật khẩu.';
+      case 'auth/credential-already-in-use':
+        return 'Thông tin này đã gắn với một tài khoản khác.';
+      case 'auth/requires-recent-login':
+        return 'Phiên đăng nhập đã cũ. Hãy đăng xuất rồi đăng nhập lại trước khi đổi mật khẩu.';
+      default:
+        return error?.message || 'Thao tác thất bại. Vui lòng thử lại.';
+    }
+  },
+
+  async registerWithEmail(name, email, password, confirmPassword) {
+    if (!auth) return { ok: false, reason: 'auth-not-ready', message: 'Firebase Authentication chưa khởi tạo.' };
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    const displayName = String(name || '').trim();
+    if (!displayName) return { ok: false, reason: 'missing-name', message: 'Vui lòng nhập tên hiển thị.' };
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return { ok: false, reason: 'invalid-email', message: 'Email không hợp lệ.' };
+    if (String(password || '').length < 6) return { ok: false, reason: 'weak-password', message: 'Mật khẩu tối thiểu 6 ký tự.' };
+    if (password !== confirmPassword) return { ok: false, reason: 'password-mismatch', message: 'Mật khẩu xác nhận không khớp.' };
+
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, cleanEmail, password);
+      try { await updateProfile(cred.user, { displayName }); } catch (_error) { /* tên sẽ fallback email */ }
+      const realUser = buildSessionUser(cred.user);
+      realUser.name = displayName;
+      await this.setUserSession(realUser, false);
+      return { ok: true, needsVerification: !cred.user.emailVerified };
+    } catch (error) {
+      console.error('[Auth] Register error:', error);
+      return { ok: false, reason: error.code || 'register-failed', message: this.emailAuthErrorMessage(error) };
+    }
+  },
+
+  async signInWithEmail(email, password) {
+    if (!auth) return { ok: false, reason: 'auth-not-ready', message: 'Firebase Authentication chưa khởi tạo.' };
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    if (!cleanEmail || !password) return { ok: false, reason: 'missing-credentials', message: 'Nhập email và mật khẩu.' };
+    try {
+      const cred = await signInWithEmailAndPassword(auth, cleanEmail, password);
+      const realUser = buildSessionUser(cred.user);
+      await this.setUserSession(realUser, true);
+      return { ok: true, needsVerification: !cred.user.emailVerified };
+    } catch (error) {
+      console.error('[Auth] Email sign-in error:', error);
+      return { ok: false, reason: error.code || 'signin-failed', message: this.emailAuthErrorMessage(error) };
+    }
+  },
+
+  async resetPassword(email) {
+    if (!auth) return { ok: false, message: 'Firebase Authentication chưa khởi tạo.' };
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return { ok: false, message: 'Email không hợp lệ.' };
+    try {
+      await sendPasswordResetEmail(auth, cleanEmail, { url: window.location.origin, handleCodeInApp: false });
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, message: this.emailAuthErrorMessage(error) };
+    }
+  },
+
+  // Gửi mã OTP về email của chính tài khoản đang đăng nhập (server lấy email từ token).
+  async sendEmailOtp() {
+    return otpRequest({ action: 'send' });
+  },
+
+  async verifyEmailOtp(code) {
+    const result = await otpRequest({ action: 'verify', code });
+    if (result.ok && result.payload?.verified) {
+      await this.completeEmailVerification();
+    }
+    return result;
+  },
+
+  // Sau khi server bật emailVerified, reload user + refresh token để claim
+  // email_verified=true lan toả (cổng 403 phía API tự mở), rồi dựng lại phiên.
+  async completeEmailVerification() {
+    if (!auth?.currentUser) return;
+    try {
+      await auth.currentUser.reload();
+      await auth.currentUser.getIdToken(true);
+      const realUser = buildSessionUser(auth.currentUser);
+      await this.setUserSession(realUser, false);
+    } catch (error) {
+      console.warn('[Auth] Không thể hoàn tất xác minh email:', error);
+    }
+  },
+
+  // Cho tài khoản đã đăng nhập bằng Google thêm mật khẩu: buộc chọn đúng
+  // tài khoản Google trùng email rồi liên kết credential email/mật khẩu.
+  async linkPasswordWithGoogle(email, password) {
+    if (!auth) return { ok: false, message: 'Firebase Authentication chưa khởi tạo.' };
+    const cleanEmail = String(email || '').trim().toLowerCase();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) return { ok: false, message: 'Email không hợp lệ.' };
+    if (String(password || '').length < 6) return { ok: false, message: 'Mật khẩu tối thiểu 6 ký tự.' };
+    try {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({ prompt: 'select_account' });
+      const result = await signInWithPopup(auth, provider);
+      const googleEmail = String(result.user.email || '').trim().toLowerCase();
+      if (googleEmail !== cleanEmail) {
+        await firebaseSignOut(auth).catch(() => {});
+        return { ok: false, message: `Tài khoản Google vừa chọn (${googleEmail}) không khớp email ${cleanEmail}. Hãy thử lại và chọn đúng tài khoản.` };
+      }
+      const credential = EmailAuthProvider.credential(cleanEmail, password);
+      await linkWithCredential(result.user, credential);
+      const realUser = buildSessionUser(auth.currentUser);
+      await this.setUserSession(realUser, false);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, message: this.emailAuthErrorMessage(error) };
     }
   },
 
@@ -423,7 +577,7 @@ export const AuthModule = {
 
     if (showNotification && window.showToast) {
       const roleBadge = user.role === 'ADMIN' ? '🛡️ ADMIN' : (user.role === 'PREMIUM' ? '💎 PREMIUM' : '🌱 NEWBIE');
-      window.showToast(`Xin chào ${user.name}! [${roleBadge}] Đã đăng nhập tài khoản Google (${user.email}).`, 'success');
+      window.showToast(`Xin chào ${user.name}! [${roleBadge}] Đã đăng nhập FTECA (${user.email}).`, 'success');
     }
 
     this.notifyListeners(user);
@@ -527,7 +681,7 @@ export const AuthModule = {
     }
 
     if (window.showToast) {
-      window.showToast('Đã đăng xuất khỏi tài khoản Google.', 'info');
+      window.showToast('Đã đăng xuất khỏi tài khoản FTECA.', 'info');
     }
 
     this.notifyListeners(null);

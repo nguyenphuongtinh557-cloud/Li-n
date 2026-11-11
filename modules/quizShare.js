@@ -7,7 +7,7 @@
  * của từng người trong tab "Đề đã chia sẻ".
  */
 
-import { AuthModule } from './auth.js?v=20261109-profile2';
+import { AuthModule } from './auth.js?v=20261111-authotp1';
 import { DB } from './db.js';
 import { getAllSubjects } from './subjects.js?v=20261110-ft4498';
 import { ExamTimer } from './exam.js';
@@ -186,9 +186,9 @@ function ownerLoginRequired() {
     <div class="card sq-owner-gate">
       <div class="sq-owner-gate-icon"><i class="fa-solid fa-link-slash" aria-hidden="true"></i></div>
       <h3>Đăng nhập để chia sẻ đề</h3>
-      <p>Liên kết chia sẻ và bảng điểm được gắn với tài khoản Google của bạn, nên cần đăng nhập trước khi tạo đề.</p>
+      <p>Liên kết chia sẻ và bảng điểm được gắn với tài khoản FTECA của bạn, nên cần đăng nhập trước khi tạo đề.</p>
       <button type="button" class="btn btn-primary" data-sq-action="signin">
-        <i class="fa-brands fa-google" aria-hidden="true"></i> Đăng nhập bằng Google
+        <i class="fa-solid fa-right-to-bracket" aria-hidden="true"></i> Đăng nhập FTECA
       </button>
     </div>`;
 }
@@ -348,7 +348,7 @@ async function loadOwnerShares() {
   } catch (error) {
     ownerView.loading = false;
     const message = error.reason === 'auth-required'
-      ? 'Cần đăng nhập bằng Google (phiên còn hiệu lực) để xem danh sách đề.'
+      ? 'Cần đăng nhập FTECA (phiên còn hiệu lực) để xem danh sách đề.'
       : error.status === 503
         ? 'Máy chủ chưa được cấu hình nơi lưu đề chia sẻ.'
         : 'Không tải được danh sách đề. Vui lòng thử lại.';
@@ -430,7 +430,7 @@ async function createShareFromOwnerTab() {
     await loadOwnerShares();
   } catch (error) {
     const message = error.reason === 'auth-required'
-      ? 'Cần đăng nhập bằng Google để tạo đề chia sẻ.'
+      ? 'Cần đăng nhập FTECA để tạo đề chia sẻ.'
       : error.status === 429
         ? 'Bạn vừa tạo nhiều đề quá, hãy chờ ít phút.'
         : error.status === 503
@@ -454,7 +454,8 @@ export const QuizShares = {
     if (!AuthModule.user?.email) {
       root.innerHTML = ownerLoginRequired();
       root.querySelector('[data-sq-action="signin"]')?.addEventListener('click', () => {
-        void AuthModule.signInWithGoogle();
+        if (window.AuthModal?.openLogin) window.AuthModal.openLogin();
+        else void AuthModule.signInWithGoogle();
       });
       return;
     }
@@ -683,7 +684,7 @@ async function renderLanding() {
     userBox.innerHTML = `
       <img src="${escapeHtml(user.avatar || '')}" alt="" onerror="this.remove()">
       <div><b>${escapeHtml(user.name || user.email)}</b><small>${escapeHtml(user.email)}</small></div>
-      <span class="badge badge-subtle">Tài khoản Google</span>`;
+      <span class="badge badge-subtle">${user.provider === 'password' ? 'Tài khoản FTECA' : 'Tài khoản Google'}</span>`;
     const input = el('sq-guest-name');
     if (input) input.value = '';
   } else {

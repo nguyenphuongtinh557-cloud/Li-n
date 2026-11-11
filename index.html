@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="reader-mobile.css?v=rm7">
   <link rel="stylesheet" href="summary-mobile.css?v=sm5">
   <link rel="stylesheet" href="security.css?v=20261104-security">
+  <link rel="stylesheet" href="auth.css?v=20261111-authotp1">
   <script>
     // Ẩn nội dung ngay từ đầu nếu tài khoản đang bật mật khẩu mở ứng dụng,
     // tránh lộ nội dung trước khi màn khóa kịp dựng.
@@ -418,7 +419,7 @@
                 <button class="mh-icon-btn" aria-label="Thông báo" onclick="NavController.navigateToPage('notifications')">
                   <i class="fa-regular fa-bell"></i>
                 </button>
-                <button class="mh-avatar-btn mh-avatar-guest" id="mh-account-btn" type="button" data-mh-account aria-label="Đăng nhập với Google" title="Đăng nhập với Google" onclick="window.mhOpenAccount?.()">
+                <button class="mh-avatar-btn mh-avatar-guest" id="mh-account-btn" type="button" data-mh-account aria-label="Đăng nhập FTECA" title="Đăng nhập FTECA" onclick="window.mhOpenAccount?.()">
                   <svg class="mh-google-icon" viewBox="0 0 24 24" aria-hidden="true">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -3958,6 +3959,6 @@
 
   <script src="assets/lottie_light.min.js" defer></script>
   <script src="mobile-home.js?v=mh18" defer></script>
-  <script type="module" src="app.js?v=20261110-ft4498bank"></script>
+  <script type="module" src="app.js?v=20261111-authotp1"></script>
 </body>
 </html>

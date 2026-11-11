@@ -17,8 +17,9 @@ import { renderMathIn, containsMath } from './modules/mathRender.js?v=20261109-a
 import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer, pullFeedbacksFromServer, pullSubjectDetailsFromServer } from './modules/sync.js?v=20261106-notify5';
 import { initAdminAuth } from './modules/admin.js?v=20261109-profile2';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js?v=20261110-ft4498';
-import { NavController } from './modules/navigation.js?v=20261110-ft4498';
-import { AuthModule, getUserRole, getActiveAdminEmails } from './modules/auth.js?v=20261109-profile2';
+import { NavController } from './modules/navigation.js?v=20261111-authotp1';
+import { AuthModule, getUserRole, getActiveAdminEmails } from './modules/auth.js?v=20261111-authotp1';
+import './modules/authModal.js?v=20261111-authotp1';
 import { ArticlesModule } from './modules/articles.js?v=20261031-news1';
 import { readSummary, writeSummary, clearSessionCache, summaryIsComplete, summaryIsStale } from './modules/firestoreSummary.js';
 import { renderMindmap, renderStructuredMindmap, initMindmapControls } from './modules/mindmap.js';
@@ -7186,15 +7187,12 @@ window.requireLoggedInForFeature = function(featureName = 'tính năng này') {
   const user = NavController?.currentUser || AuthModule?.user;
   if (user && user.email) return true;
 
-  showToast(`🔒 Vui lòng đăng nhập bằng Google để sử dụng ${featureName}.`, 'error');
-
-  const loginBtn = document.querySelector('.btn-google-signin');
-  if (loginBtn) {
-    loginBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-    loginBtn.style.boxShadow = '0 0 0 3px rgba(16,185,129,0.25)';
-    setTimeout(() => {
-      if (loginBtn) loginBtn.style.boxShadow = '';
-    }, 1600);
+  showToast(`🔒 Vui lòng đăng nhập FTECA để sử dụng ${featureName}.`, 'error');
+  if (window.AuthModal?.openLogin) {
+    window.AuthModal.openLogin();
+  } else {
+    const loginBtn = document.querySelector('.btn-google-signin');
+    if (loginBtn) loginBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
   return false;
 };
@@ -7401,7 +7399,7 @@ function renderMobileStudySpace(root) {
       <div class="mh-header-actions">
         <button class="mh-icon-btn" type="button" aria-label="Tìm kiếm" onclick="window.mhFocusStudySearch?.()"><i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i></button>
         <button class="mh-icon-btn" type="button" aria-label="Thông báo" onclick="NavController.navigateToPage('notifications')"><i class="fa-regular fa-bell" aria-hidden="true"></i></button>
-        <button class="mh-avatar-btn mh-avatar-guest" type="button" data-mh-account aria-label="Đăng nhập với Google" title="Đăng nhập với Google" onclick="window.mhOpenAccount?.()"></button>
+        <button class="mh-avatar-btn mh-avatar-guest" type="button" data-mh-account aria-label="Đăng nhập FTECA" title="Đăng nhập FTECA" onclick="window.mhOpenAccount?.()"></button>
       </div>
     </header>
 

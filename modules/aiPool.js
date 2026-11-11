@@ -6,7 +6,7 @@
  * 3. PREMIUM_ZONE (Khu vực AI Cao Cấp - Claude 3.5, DeepSeek R1, GPT-4o)
  */
 
-import { AuthModule } from './auth.js?v=20261109-profile2';
+import { AuthModule } from './auth.js?v=20261111-authotp1';
 
 const PROXY_URL = '/api/ai-proxy';
 

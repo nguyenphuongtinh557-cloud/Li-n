@@ -5,11 +5,13 @@
   "functions": {
     "api/ai-proxy.js": { "maxDuration": 300 },
     "api/document-summary.js": { "maxDuration": 300 },
-    "api/lesson-summary.js": { "maxDuration": 300 }
+    "api/lesson-summary.js": { "maxDuration": 300 },
+    "api/auth-otp.js": { "maxDuration": 60 }
   },
   "rewrites": [
     { "source": "/api/subject-details", "destination": "/api/subject-details.js" },
     { "source": "/api/admin-users", "destination": "/api/admin-users.js" },
+    { "source": "/api/auth-otp", "destination": "/api/auth-otp.js" },
     { "source": "/api/announcements", "destination": "/api/announcements.js" },
     { "source": "/api/feedbacks", "destination": "/api/feedbacks.js" },
     { "source": "/api/resources", "destination": "/api/resources.js" },

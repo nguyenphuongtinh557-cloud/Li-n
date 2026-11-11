@@ -25,6 +25,7 @@ import resourcesHandler from './api/resources.js';
 import subjectDetailsHandler from './api/subject-details.js';
 import lessonSummaryHandler from './api/lesson-summary.js';
 import documentSummaryHandler from './api/document-summary.js';
+import authOtpHandler from './api/auth-otp.js';
 import { isLocalSubjectDetailsWriteRequest, writeLocalSubjectDetails } from './modules/localSubjectDetailsStore.js';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -388,6 +389,10 @@ const server = http.createServer(async (req, res) => {
   }
   if (cleanUrl === '/api/admin-users') {
     await handleAdminUsers(req, res);
+    return;
+  }
+  if (cleanUrl === '/api/auth-otp') {
+    await runServerlessHandler(authOtpHandler, 'auth-otp', req, res, { bodyLimit: 10_000 });
     return;
   }
   if (cleanUrl === '/api/announcements') {
