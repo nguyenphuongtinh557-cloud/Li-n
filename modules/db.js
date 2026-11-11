@@ -3,7 +3,7 @@
  * Quản lý toàn bộ dữ liệu qua localStorage + Gọi module Sync để đẩy lên GitHub
  */
 
-import { pushToGitHub, pushUserRolesToServer, pushCustomSubjectsToServer, pushAnnouncementToServer, deleteAnnouncementFromServer, pushArticlesToServer, pushResourceToServer, deleteResourceFromServer, pushFeedbackToServer, updateFeedbackOnServer, deleteFeedbackFromServer, pushSubjectDetailsToServer, isLocalSubjectDetailsEditor, persistSubjectDetailsLocally } from './sync.js?v=20261106-notify5';
+import { pushToGitHub, pushUserRolesToServer, pushCustomSubjectsToServer, pushAnnouncementToServer, deleteAnnouncementFromServer, pushArticlesToServer, pushResourceToServer, deleteResourceFromServer, pushFeedbackToServer, updateFeedbackOnServer, deleteFeedbackFromServer, pushSubjectDetailsToServer, isLocalSubjectDetailsEditor, persistSubjectDetailsLocally } from './sync.js';
 import { FT4488_SEED_QUESTIONS } from '../data/seed_questions_ft4488.js';
 import { FT4498_SEED_QUESTIONS } from '../data/seed_questions_ft4498.js';
 
@@ -30,6 +30,20 @@ const KEYS = {
 // Ngân hàng tĩnh FT4488 + FT4498: luôn có sẵn khi đọc, không chiếm quota localStorage.
 const STATIC_BANK = [...FT4488_SEED_QUESTIONS, ...FT4498_SEED_QUESTIONS].map(q => ({ ...q, _seed: true, _static: true }));
 const STATIC_BANK_BY_ID = new Map(STATIC_BANK.map(q => [q.id, q]));
+let subjectDetailsSessionCache = null;
+
+function storeSubjectDetailsMap(map) {
+  const serialized = JSON.stringify(map);
+  try {
+    localStorage.setItem(KEYS.SUBJECT_DETAILS, serialized);
+    subjectDetailsSessionCache = null;
+    return true;
+  } catch (error) {
+    subjectDetailsSessionCache = serialized;
+    console.warn('[Subject details] Không lưu được bộ nhớ trình duyệt; dùng dữ liệu trong phiên hiện tại:', error);
+    return false;
+  }
+}
 
 function readStaticOverrides() {
   try {
@@ -503,7 +517,7 @@ export const DB = {
   /** Lấy toàn bộ bản đồ thông tin chi tiết môn học */
   getAllSubjectDetailsMap() {
     try {
-      return JSON.parse(localStorage.getItem(KEYS.SUBJECT_DETAILS) || '{}');
+      return JSON.parse(subjectDetailsSessionCache ?? (localStorage.getItem(KEYS.SUBJECT_DETAILS) || '{}'));
     } catch { return {}; }
   },
 
@@ -626,13 +640,13 @@ export const DB = {
     const normalized = normalizeInteractiveSubjectDetails(detailsData);
     normalized.updatedAt = new Date().toISOString();
     map[subjectId] = normalized;
-    localStorage.setItem(KEYS.SUBJECT_DETAILS, JSON.stringify(map));
+    const storedLocally = storeSubjectDetailsMap(map);
     const localMode = isLocalSubjectDetailsEditor();
     const localResult = localMode ? await persistSubjectDetailsLocally(subjectId, normalized) : { ok: true, skipped: true };
     const syncResult = localMode
       ? localResult
       : skipSync
-        ? { ok: true, skipped: true }
+        ? { ok: storedLocally, skipped: true, ...(!storedLocally ? { reason: 'browser-storage-unavailable' } : {}) }
         : await pushSubjectDetailsToServer(subjectId, normalized, idToken);
     return {
       ok: Boolean(syncResult?.ok),
@@ -650,7 +664,7 @@ export const DB = {
     const localMap = this.getAllSubjectDetailsMap();
     const merged = { ...localMap, ...remoteMap };
     Object.keys(merged).forEach(subjectId => { merged[subjectId] = normalizeInteractiveSubjectDetails(merged[subjectId]); });
-    localStorage.setItem(KEYS.SUBJECT_DETAILS, JSON.stringify(merged));
+    storeSubjectDetailsMap(merged);
     return merged;
   },
 

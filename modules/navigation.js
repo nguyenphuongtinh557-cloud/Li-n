@@ -308,8 +308,8 @@ export const NavController = {
         // Chương/bài có thể chưa tải xong ở lần mở đầu -> mở reader rồi nạp lại sau.
         this.applyActiveSubject(subject);
         this.openSubjectDetail(subject, 'study-space', { tab: route.tab || 'lecture' });
+        this.pendingReaderRoute = readerContext ? null : route;
         this.openStudyReader(readerContext || { subjectId: subject, returnPage: 'subject-detail' });
-        if (!readerContext) this.pendingReaderRoute = route;
       } else if (subject) {
         this.applyActiveSubject(subject);
         this.navigateToPage(route.page, route.tab || null, { subject });
@@ -329,7 +329,7 @@ export const NavController = {
       } else if (subject && route.page === 'subject-detail') {
         this.syncUrl('subject-detail', { subject, tab: route.tab }, { replace: true });
       } else if (subject && route.page === 'study-reader') {
-        this.syncUrl('subject-detail', { subject, tab: route.tab || 'lecture', item: readerContext ? route.item : null }, { replace: true });
+        this.syncUrl('subject-detail', { subject, tab: route.tab || 'lecture', item: route.item }, { replace: true });
       } else if (subject) {
         this.syncUrl(route.page, { tab: route.tab || 'exam-tab', subject }, { replace: true });
       } else {

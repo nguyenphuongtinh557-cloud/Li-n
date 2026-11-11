@@ -14,10 +14,10 @@ import { planCeraNavigation, runCeraNavigation, rememberSubjectMentions } from '
 import { rememberCeraSubject } from './modules/ceraContext.js?v=20261110-ft4498';
 import { searchSubjectKnowledge } from './modules/knowledgeBase.js?v=20261110-kb1';
 import { renderMathIn, containsMath } from './modules/mathRender.js?v=20261109-adminmath1';
-import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer, pullFeedbacksFromServer, pullSubjectDetailsFromServer } from './modules/sync.js?v=20261106-notify5';
-import { initAdminAuth } from './modules/admin.js?v=20261109-profile2';
+import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer, pullFeedbacksFromServer, pullSubjectDetailsFromServer } from './modules/sync.js';
+import { initAdminAuth } from './modules/admin.js?v=20261111-readerload5';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js?v=20261110-ft4498';
-import { NavController } from './modules/navigation.js?v=20261111-authotp1';
+import { NavController } from './modules/navigation.js?v=20261111-readerload5';
 import { AuthModule, getUserRole, getActiveAdminEmails } from './modules/auth.js?v=20261111-authotp1';
 import './modules/authModal.js?v=20261111-authotp1';
 import { ArticlesModule } from './modules/articles.js?v=20261031-news1';
@@ -189,6 +189,67 @@ function getChapterLabel(chapter, subjectId) {
 /* ════════════════════════════════════════════════════
    INITIALIZATION
 ════════════════════════════════════════════════════ */
+let subjectDetailsLoadState = 'loading';
+let readerResourcesLoadState = 'loading';
+
+function refreshStudyReaderAfterSync() {
+  NavController.flushPendingReaderRoute();
+  if (NavController.activePage === 'study-reader' && _studyReaderContext) renderStudyReader(_studyReaderContext);
+}
+
+async function syncPublicResources() {
+  readerResourcesLoadState = 'loading';
+  try {
+    const feed = await pullResourcesFromServer();
+    if (!feed.ok) throw new Error('Không thể tải tài nguyên học tập.');
+    const merged = DB.mergeResourcesFromServer(feed.resources, feed.deletedIds);
+    readerResourcesLoadState = 'ready';
+    refreshStudyReaderAfterSync();
+    if (document.getElementById('resources-tab')?.classList.contains('active')) {
+      if (typeof renderResources === 'function') renderResources();
+    }
+    const adminEmail = String(NavController.currentUser?.email || '').toLowerCase();
+    const isAdmin = adminEmail && getActiveAdminEmails().includes(adminEmail);
+    const migrationKey = 'qlcl_resources_cloud_migrated_v1';
+    let alreadyMigrated = true;
+    try { alreadyMigrated = Boolean(localStorage.getItem(migrationKey)); } catch { /* ignore */ }
+    if (isAdmin && !alreadyMigrated) {
+      const serverIds = new Set(feed.resources.map(item => item.id));
+      const tombstones = new Set(feed.deletedIds);
+      const localOnly = merged.filter(item => item.id && !serverIds.has(item.id) && !tombstones.has(item.id));
+      for (const item of localOnly) {
+        try { await DB.saveResource(item); } catch { /* giữ bản local nếu Cloud từ chối */ }
+      }
+      try { localStorage.setItem(migrationKey, new Date().toISOString()); } catch { /* ignore */ }
+      if (localOnly.length) console.log(`[Resources] Đã gửi ${localOnly.length} tài nguyên cũ lên Cloud.`);
+    }
+  } catch (error) {
+    readerResourcesLoadState = 'error';
+    console.warn('[Resources] Không thể kéo resources từ server:', error);
+    refreshStudyReaderAfterSync();
+  }
+}
+
+async function syncPublicSubjectDetails() {
+  subjectDetailsLoadState = 'loading';
+  if (NavController.activePage === 'study-reader') renderStudyReaderContent();
+  try {
+    const remoteSubjectDetails = await pullSubjectDetailsFromServer();
+    DB.mergeSubjectDetailsFromServer(remoteSubjectDetails);
+    subjectDetailsLoadState = 'ready';
+    studySpaceContentIndexCache = null;
+    if (NavController.activePage === 'study-space') window.renderStudySpace?.();
+    if (NavController.activePage === 'subject-detail') {
+      const route = NavController.getSharedRoute();
+      if (route.subject) NavController.openSubjectDetail(route.subject, 'study-space', { tab: route.tab });
+    }
+  } catch (error) {
+    subjectDetailsLoadState = 'error';
+    console.warn('[Subject details] Không thể tải cấu hình môn học từ server:', error);
+  }
+  refreshStudyReaderAfterSync();
+}
+
 async function init() {
   const initialRoute = NavController.getSharedRoute();
   if (['ontap', 'aigen', 'history'].includes(initialRoute.page)) {
@@ -212,38 +273,6 @@ async function init() {
   }).catch(error => {
     console.warn('[Community] Không thể đồng bộ dữ liệu cộng đồng:', error);
   });
-
-    // Kéo tài nguyên học tập từ Cloud. Chỉ thêm/cập nhật và gỡ các mục đã bị xóa
-  // mềm; không xóa tài nguyên local chỉ vì file GitHub cũ không có nó.
-  try {
-    const feed = await pullResourcesFromServer();
-    if (feed.ok) {
-      const merged = DB.mergeResourcesFromServer(feed.resources, feed.deletedIds);
-      if (document.getElementById('resources-tab')?.classList.contains('active')) {
-        if (typeof renderResources === 'function') renderResources();
-      }
-
-      // Một lần duy nhất sau khi chuyển sang Firestore: đẩy các tài nguyên cũ
-      // chỉ nằm trên máy admin lên Cloud để không mất khi đổi thiết bị.
-      const adminEmail = String(NavController.currentUser?.email || '').toLowerCase();
-      const isAdmin = adminEmail && getActiveAdminEmails().includes(adminEmail);
-      const migrationKey = 'qlcl_resources_cloud_migrated_v1';
-      let alreadyMigrated = true;
-      try { alreadyMigrated = Boolean(localStorage.getItem(migrationKey)); } catch { /* ignore */ }
-      if (isAdmin && !alreadyMigrated) {
-        const serverIds = new Set(feed.resources.map(item => item.id));
-        const tombstones = new Set(feed.deletedIds);
-        const localOnly = merged.filter(item => item.id && !serverIds.has(item.id) && !tombstones.has(item.id));
-        for (const item of localOnly) {
-          try { await DB.saveResource(item); } catch { /* giữ bản local nếu Cloud từ chối */ }
-        }
-        try { localStorage.setItem(migrationKey, new Date().toISOString()); } catch { /* ignore */ }
-        if (localOnly.length) console.log(`[Resources] Đã gửi ${localOnly.length} tài nguyên cũ lên Cloud.`);
-      }
-    }
-  } catch (e) {
-    console.warn('[Resources] Không thể kéo resources từ server:', e);
-  }
 
   // Kéo bài viết (CMS Articles) từ server về (sync toàn bộ, bao gồm cả xóa)
   try {
@@ -282,29 +311,6 @@ async function init() {
     console.warn('[Articles] Không thể kéo articles từ server:', e);
   }
 
-  // Cấu hình trang môn học công khai là nguồn dữ liệu dùng chung cho tất cả phiên.
-  // Không ghi ngược lên server tại đây: chỉ merge bản đã được Admin xuất bản.
-  try {
-    const remoteSubjectDetails = await pullSubjectDetailsFromServer();
-    if (remoteSubjectDetails && !Array.isArray(remoteSubjectDetails)) {
-      DB.mergeSubjectDetailsFromServer(remoteSubjectDetails);
-      studySpaceContentIndexCache = null;
-      if (NavController.activePage === 'study-space') window.renderStudySpace?.();
-      console.log('[Subject details] Đã tải cấu hình môn học công khai từ server.');
-      // Deep link vẽ trang môn học trước khi đồng bộ xong nên khung chương bài bị trống.
-      if (NavController.activePage === 'subject-detail') {
-        const route = NavController.getSharedRoute();
-        const rendered = document.querySelectorAll('#page-subject-detail .sd5-chap-title').length > 0;
-        if (route.subject && !rendered && DB.getSubjectDetails(route.subject)) {
-          NavController.openSubjectDetail(route.subject, 'study-space', { tab: route.tab });
-        }
-      }
-      NavController.flushPendingReaderRoute();
-    }
-  } catch (e) {
-    console.warn('[Subject details] Không thể tải cấu hình môn học từ server:', e);
-  }
-
   // Kéo thông báo hệ thống mới nhất; nếu server chưa có file, giữ/tạo 2 thư trải nghiệm cục bộ.
   const demoAnnouncements = [
     { id: 'DEMO_WELCOME_2026', title: 'Chào mừng bạn đến với FTECA 24', content: '<p><strong>Xin chào sinh viên,</strong></p><p>Chúng tôi rất vui khi bạn đã có mặt tại FTECA 24. Hãy bắt đầu khám phá tài liệu, ngân hàng câu hỏi và các khu vực ôn tập phù hợp với mình.</p><p>Chúc bạn học tập hiệu quả!</p><p><strong>Ban Quản trị FTECA 24</strong></p>', type: 'success', category: 'Thông báo hệ thống', scope: 'all', excerpt: 'Cùng bắt đầu hành trình học tập và ôn luyện trên FTECA 24.', createdAt: '2026-09-02T05:00:00.000Z', author: 'Admin' },
@@ -339,6 +345,8 @@ async function init() {
   document.getElementById('generate-count')?.addEventListener('change', syncStudyToolbar);
   await NavController.init();
   await NavController.restoreSharedRoute();
+  void syncPublicSubjectDetails();
+  void syncPublicResources();
   restoreExamSession();
   window.setTimeout(() => {
     void syncNonCriticalData().catch(error => {
@@ -6305,7 +6313,7 @@ function getStudyReaderDetails(context = {}) {
   const resources = visibleResources.filter(r => studyReaderResourceCategory(r) === resourceCategory);
   let found = null;
   for (const chapter of details.chapters || []) for (const lesson of chapter.lessons || []) if (lesson.id === (context.lessonId || resource?.readerConfig?.lessonId)) found = { chapter, lesson };
-  if (!found && !resource) { const chapter = (details.chapters || []).find(c => c.lessons?.length); if (chapter) found = { chapter, lesson: chapter.lessons[0] }; }
+  if (!found && !resource && NavController.pendingReaderRoute?.subject !== context.subjectId) { const chapter = (details.chapters || []).find(c => c.lessons?.length); if (chapter) found = { chapter, lesson: chapter.lessons[0] }; }
   return { ...context, details, resources, resource, resourceCategory, lesson: found?.lesson || null, chapterId: found?.chapter?.id || context.chapterId || resource?.readerConfig?.chapterId || null };
 }
 function stripStudyReaderText(value) { const el = document.createElement('div'); el.innerHTML = String(value || ''); return (el.textContent || '').replace(/\s+/g, ' ').trim(); }
@@ -6392,6 +6400,14 @@ function renderStudyReaderContent(context = _studyReaderContext || {}) {
     const outline = buildLessonOutline(data.lesson.blocks); let n = 0;
     const body = (data.lesson.blocks || []).map(b => { const text = escapeHtml(b.content || '').replace(/\n/g, '<br>'); if (b.type === 'lessonDocument') return `<article class="review-lesson-document">${safeStudyReaderRichText(b.content)}</article>`; if (b.type === 'image' && isStudyReaderAllowedUrl(b.src)) return `<figure class="review-lesson-media-reader"><img src="${escapeHtml(b.src)}" alt="${escapeHtml(b.alt || '')}"></figure>`; if (b.type === 'video' && isStudyReaderAllowedUrl(b.src)) return `<p class="review-lesson-media-reader"><a href="${escapeHtml(b.src)}" target="_blank" rel="noopener noreferrer">Mở video bài giảng</a></p>`; if (b.type === 'heading') { const h = outline[n++]; return `<${h.level} id="${h.id}" class="interactive-reader-heading">${text}</${h.level}>`; } return b.type === 'legacyHtml' ? `<div class="student-reader-body">${safeStudyReaderRichText(b.content)}</div>` : `<p class="interactive-reader-text">${text}</p>`; }).join('') || '<p class="interactive-reader-text">Bài học chưa có nội dung soạn thảo.</p>';
     content.innerHTML = `<header class="study-reader-document-head"><div class="study-reader-kicker">Bài giảng tương tác</div><h1 class="study-reader-doc-title">01 · ${escapeHtml(data.lesson.title || 'Bài giảng')}</h1></header><section class="student-reader-body">${body}</section>`;
+  } else if (subjectDetailsLoadState === 'loading' || (NavController.pendingReaderRoute && readerResourcesLoadState === 'loading')) {
+    content.innerHTML = '<div class="study-reader-empty" role="status"><div class="study-reader-empty-card"><h3>Đang tải bài giảng…</h3><p>Đang lấy chương và mục lục của học phần.</p></div></div>';
+  } else if (subjectDetailsLoadState === 'error' || NavController.pendingReaderRoute) {
+    const message = subjectDetailsLoadState === 'error' || readerResourcesLoadState === 'error'
+      ? 'Kiểm tra kết nối mạng rồi thử lại.'
+      : 'Không tìm thấy bài trong liên kết này. Bạn có thể chọn bài khác trong mục lục.';
+    content.innerHTML = `<div class="study-reader-empty" role="alert"><div class="study-reader-empty-card"><h3>Chưa tải được bài giảng</h3><p>${message}</p><button type="button" class="btn btn-primary" id="study-reader-retry">Thử tải lại</button></div></div>`;
+    document.getElementById('study-reader-retry').onclick = () => { void syncPublicSubjectDetails(); void syncPublicResources(); };
   } else content.innerHTML = '<div class="study-reader-empty"><div class="study-reader-empty-card"><div class="empty-pencil-icon"><i class="fa-solid fa-pen-nib"></i></div><h3>Chưa có nội dung tài liệu</h3><p>Tài liệu sẽ hiển thị tại đây khi bạn chọn bài học từ danh sách mục lục.</p></div></div>';
   void renderMathIn(content);
   restoreStudyReaderHighlights(); mountStudyReaderAnnotationLayer(); return data;
@@ -6643,6 +6659,7 @@ function bindStudyReaderControls() {
     document.querySelectorAll('#study-reader-toc-list button').forEach(b => {
       const match = !query || b.dataset.readerLabel.includes(query);
       b.hidden = !match;
+      b.style.display = match ? '' : 'none';
       b.classList.toggle('reader-search-match', Boolean(query && match));
     });
   };

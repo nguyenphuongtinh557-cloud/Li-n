@@ -196,7 +196,7 @@ async function getIdToken() {
   return '';
 }
 
-async function apiRequest(path, { method = 'GET', body } = {}) {
+async function apiRequest(path, { method = 'GET', body, signal } = {}) {
   const token = await getIdToken();
   try {
     const response = await fetch(path, {
@@ -205,7 +205,8 @@ async function apiRequest(path, { method = 'GET', body } = {}) {
         'Content-Type': 'application/json',
         ...(token ? { Authorization: `Bearer ${token}` } : {})
       },
-      body: body === undefined ? undefined : JSON.stringify(body)
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal
     });
     const payload = await response.json().catch(() => ({}));
     return { ok: response.ok && payload?.ok === true, status: response.status, payload };
@@ -251,13 +252,19 @@ export async function deleteResourceFromServer(id) {
 }
 
 export async function pullResourcesFromServer() {
-  const result = await apiRequest('/api/resources');
-  if (!result.ok) return { ok: false, resources: [], deletedIds: [] };
-  return {
-    ok: true,
-    resources: Array.isArray(result.payload.resources) ? result.payload.resources : [],
-    deletedIds: Array.isArray(result.payload.deletedIds) ? result.payload.deletedIds : []
-  };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 12000);
+  try {
+    const result = await apiRequest('/api/resources', { signal: controller.signal });
+    if (!result.ok) return { ok: false, resources: [], deletedIds: [] };
+    return {
+      ok: true,
+      resources: Array.isArray(result.payload.resources) ? result.payload.resources : [],
+      deletedIds: Array.isArray(result.payload.deletedIds) ? result.payload.deletedIds : []
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
 }
 
 // ─── User Feedbacks (Phản Hồi Học Viên) ───────────────────────────────────
@@ -317,15 +324,23 @@ export async function persistSubjectDetailsLocally(subjectId, details) {
 }
 
 export async function pullSubjectDetailsFromServer() {
-  try {
-    const response = await fetch('/api/subject-details', { cache: 'no-cache' });
-    const payload = await response.json().catch(() => ({}));
-    if (response.ok && payload.ok && payload.subjectDetails && typeof payload.subjectDetails === 'object') return payload.subjectDetails;
-    if (response.status === 503 || payload.reason === 'server-not-configured') {
-      return await fetchRaw(SYNC_CONFIG.subjectDetailsFile);
+  const urls = ['/api/subject-details', `${RAW_BASE}/${SYNC_CONFIG.subjectDetailsFile}?t=${Date.now()}`];
+  for (const [index, url] of urls.entries()) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 12000);
+    try {
+      const response = await fetch(url, { cache: 'no-store', signal: controller.signal });
+      if (!response.ok) continue;
+      const payload = await response.json();
+      const map = index === 0 ? (payload.ok ? payload.subjectDetails : null) : payload;
+      if (map && typeof map === 'object' && !Array.isArray(map)) return map;
+    } catch {
+      // Một nguồn chậm hoặc bị chặn không được giữ trình đọc ở trạng thái chờ vô hạn.
+    } finally {
+      clearTimeout(timeout);
     }
-  } catch { /* Static/local preview has no API route; use the public GitHub file below. */ }
-  return await fetchRaw(SYNC_CONFIG.subjectDetailsFile);
+  }
+  throw new Error('Không thể tải nội dung môn học. Vui lòng thử lại.');
 }
 
 // ─── Shared Notes Keys Sync ──────────────────────────────────────────────────
