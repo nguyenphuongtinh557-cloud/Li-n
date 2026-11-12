@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261112-chapter-review3">
+  <link rel="stylesheet" href="style.css?v=20261112-bankui2">
   <link rel="stylesheet" href="subject-page.css?v=20261031-sd8">
   <link rel="stylesheet" href="mobile-home.css?v=mh18">
   <link rel="stylesheet" href="study-space-mobile.css?v=ss4">
@@ -710,15 +710,22 @@
           <!-- ══════ TAB 3: NGÂN HÀNG ĐỀ ══════ -->
           <section id="bank-tab" class="tab-content" role="main" aria-label="Ngân hàng câu hỏi">
             <div class="card bank-shell">
-              <div class="flex justify-between items-center gap-3 bank-toolbar" style="flex-wrap:wrap;margin-bottom:16px;">
-                <div class="bank-title-block" style="min-width:180px;">
-                  <span class="bank-title-accent" aria-hidden="true"></span>
-                  <div class="bank-title-copy">
-                    <h2 style="font-size:18px;font-weight:700;">Ngân Hàng Câu Hỏi</h2>
-                    <p id="bank-count-text" class="text-xs text-muted mt-1">Đang tải...</p>
+              <div class="bank-toolbar" style="margin-bottom:16px;">
+                <div class="bank-header-row">
+                  <span class="bank-hero-icon" aria-hidden="true"><i class="fa-solid fa-book-open"></i></span>
+                  <div class="bank-title-block">
+                    <span class="bank-title-accent" aria-hidden="true"></span>
+                    <div class="bank-title-copy">
+                      <h2>Ngân Hàng Câu Hỏi</h2>
+                      <p id="bank-count-text" class="text-xs text-muted mt-1">Đang tải...</p>
+                    </div>
                   </div>
+                  <button type="button" id="bank-marked-btn" class="bank-marked-btn" onclick="toggleBankMarkedFilter()" aria-pressed="false" aria-label="Chỉ hiện câu hỏi đã đánh dấu">
+                    <i class="fa-regular fa-bookmark" aria-hidden="true"></i>
+                    <span>Đánh dấu</span>
+                  </button>
                 </div>
-                <div class="flex gap-2 bank-filter-bar" style="flex-wrap:wrap;justify-content:flex-end;max-width:100%;">
+                <div class="bank-filter-bar">
                   <div class="bank-filter-pill">
                     <i class="fa-solid fa-graduation-cap bank-filter-icon" aria-hidden="true"></i>
                     <select id="bank-filter-subject" class="form-select" style="width:auto;min-width:190px;max-width:300px;" onchange="onBankFilter()">
@@ -1056,6 +1063,9 @@
                   <button id="btn-pause" class="btn btn-secondary btn-sm exam-pause-btn" onclick="togglePauseExam()">
                     <i class="fa-solid fa-pause"></i> Tạm dừng
                   </button>
+                  <button id="btn-exit-practice" type="button" class="btn btn-secondary btn-sm exam-practice-back" onclick="returnToExamResult()">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại kết quả
+                  </button>
                 </div>
                 <button class="btn btn-success exam-submit-btn" onclick="confirmSubmitExam()">
                   <i class="fa-solid fa-paper-plane"></i> Nộp bài
@@ -1089,6 +1099,8 @@
                 <h2 id="q-title" class="question-text">Đang tải câu hỏi...</h2>
 
                 <div id="q-options-container" class="exam-options"></div>
+
+                <div id="q-practice-explanation" class="hidden exam-practice-explanation" aria-live="polite"></div>
 
                 <div class="exam-footer">
                   <button id="btn-prev-q" class="btn btn-secondary btn-sm exam-nav-btn" onclick="navExamQuestion(-1)">
@@ -1236,16 +1248,6 @@
                   </button>
                 </div>
                 <div id="exam-chapter-practice-list"></div>
-              </div>
-
-              <div id="exam-wrong-practice-container" class="hidden er-practice">
-                <div class="flex justify-between items-center flex-wrap gap-3" style="margin-bottom:16px;">
-                  <h3 style="font-size:16px;font-weight:700;">Luyện lại câu sai và câu bỏ trống</h3>
-                  <button type="button" class="btn btn-secondary btn-sm" onclick="returnToExamResult()">
-                    <i class="fa-solid fa-arrow-left"></i> Quay lại kết quả
-                  </button>
-                </div>
-                <div id="exam-wrong-practice-list"></div>
               </div>
 
               <!-- Question details -->
@@ -4064,6 +4066,6 @@
 
   <script src="assets/lottie_light.min.js" defer></script>
   <script src="mobile-home.js?v=mh18" defer></script>
-  <script type="module" src="app.js?v=20261112-grounding1"></script>
+  <script type="module" src="app.js?v=20261112-bankui2"></script>
 </body>
 </html>

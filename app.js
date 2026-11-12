@@ -142,6 +142,7 @@ const State = {
     returnToReview: false,
     spacedReviewSession: null,
     examChapterSession: null,
+    wrongSession: null,
   },
   bank: {
     page: 1,
@@ -150,6 +151,7 @@ const State = {
     filterChapter: 0,
     filterDiff: 0,
     searchText: '',
+    markedOnly: false,
   },
   source: {
     generating: false,
@@ -754,6 +756,7 @@ const EXAM_SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 let _examPersistTick = 0;
 
 function saveExamSession() {
+  if (State.exam.mode === 'wrong-practice') return;
   const { mode, questions, userAnswers, flagged, currentIndex, meta, timer, result } = State.exam;
   if (!questions.length || result) { clearExamSession(); return; }
   try {
@@ -829,6 +832,9 @@ function restoreExamSession() {
 function renderExamQuestion() {
   const { questions, userAnswers, flagged, currentIndex } = State.exam;
   const q = questions[currentIndex];
+  const isPractice = State.exam.mode === 'wrong-practice';
+
+  document.getElementById('exam-active-card')?.classList.toggle('is-practice', isPractice);
 
   setCurrentQuestion(q);
   updateCeraContextUI(q);
@@ -842,9 +848,11 @@ function renderExamQuestion() {
   const activeSubject = DB.getActiveSubject();
   const subjectCodeEl = document.getElementById('exam-subject-code');
   if (subjectCodeEl) {
-    subjectCodeEl.textContent = activeSubject === 'ALL'
-      ? 'Tổng hợp'
-      : (getSubjectById(activeSubject)?.code || activeSubject);
+    subjectCodeEl.textContent = isPractice
+      ? 'Luyện câu sai'
+      : (activeSubject === 'ALL'
+        ? 'Tổng hợp'
+        : (getSubjectById(activeSubject)?.code || activeSubject));
   }
 
   const flagBtn = document.getElementById('btn-flag');
@@ -859,16 +867,28 @@ function renderExamQuestion() {
   const container = document.getElementById('q-options-container');
   container.innerHTML = '';
   const labels = ['A', 'B', 'C', 'D'];
+  const hasAnswered = isPractice && Object.prototype.hasOwnProperty.call(userAnswers, currentIndex);
 
   q.options.forEach((optText, optIdx) => {
     const isSelected = userAnswers[currentIndex] === optIdx;
     const btn = document.createElement('button');
     btn.type = 'button';
-    btn.className = 'option-btn' + (isSelected ? ' selected' : '');
+    let cls = 'option-btn';
+    if (hasAnswered) {
+      btn.disabled = true;
+      if (optIdx === q.correct) cls += ' correct';
+      else if (isSelected) cls += ' wrong';
+      else cls += ' is-locked';
+    } else if (isSelected) {
+      cls += ' selected';
+    }
+    btn.className = cls;
     btn.onclick = () => selectExamOption(optIdx);
     btn.innerHTML = `<span class="option-label">${labels[optIdx]}</span><span>${escapeHtml(optText)}</span>`;
     container.appendChild(btn);
   });
+
+  renderPracticeExplanation(q, hasAnswered ? userAnswers[currentIndex] : null);
 
   document.getElementById('btn-prev-q').disabled = currentIndex === 0;
   document.getElementById('btn-next-q').disabled = currentIndex === questions.length - 1;
@@ -876,12 +896,56 @@ function renderExamQuestion() {
   renderPalette();
 }
 
+function renderPracticeExplanation(question, selectedOption) {
+  const panel = document.getElementById('q-practice-explanation');
+  if (!panel) return;
+
+  if (!Number.isInteger(selectedOption)) {
+    panel.classList.add('hidden');
+    panel.innerHTML = '';
+    return;
+  }
+
+  const labels = ['A', 'B', 'C', 'D'];
+  const isCorrect = selectedOption === question.correct;
+  const correctLabel = labels[question.correct] || '?';
+  panel.innerHTML = `
+    <span class="qpe-verdict ${isCorrect ? 'is-correct' : 'is-wrong'}">${isCorrect ? 'Chính xác!' : `Chưa đúng · Đáp án đúng: ${correctLabel}`}</span>
+    <p class="qpe-exp"><strong>Giải thích:</strong> ${escapeHtml(question.exp || 'Chưa có lời giải cho câu hỏi này.')}</p>`;
+
+  const ceraBtn = document.createElement('button');
+  ceraBtn.type = 'button';
+  ceraBtn.className = 'btn btn-primary btn-sm';
+  ceraBtn.innerHTML = '<i class="fa-solid fa-wand-magic-sparkles"></i> Hỏi Cera về câu này';
+  ceraBtn.addEventListener('click', () => openCeraForExamQuestion({
+    ...question,
+    userAns: selectedOption,
+    chapterName: getChapterLabel(question.chapter, question.subjectId),
+    isExamReview: true,
+  }));
+  panel.appendChild(ceraBtn);
+  panel.classList.remove('hidden');
+}
+
 function selectExamOption(optIdx) {
-  State.exam.userAnswers[State.exam.currentIndex] = optIdx;
+  const isPractice = State.exam.mode === 'wrong-practice';
+  const idx = State.exam.currentIndex;
+  if (isPractice && Object.prototype.hasOwnProperty.call(State.exam.userAnswers, idx)) return;
+
+  State.exam.userAnswers[idx] = optIdx;
   renderExamQuestion();
-  saveExamSession();
   examFxPickOption(optIdx);
   examFxCountPop();
+
+  if (isPractice) {
+    const answered = Object.keys(State.exam.userAnswers).length;
+    if (answered === State.exam.questions.length) {
+      showToast('Đã luyện xong tất cả câu sai. Bấm "Quay lại kết quả" để xem lại.', 'success');
+    }
+    return;
+  }
+
+  saveExamSession();
 }
 
 function toggleFlagCurrentQuestion() {
@@ -921,6 +985,7 @@ function togglePaletteExpanded() {
 
 function renderPalette() {
   const { questions, userAnswers, flagged, currentIndex } = State.exam;
+  const isPractice = State.exam.mode === 'wrong-practice';
   const grid = document.getElementById('palette-grid');
   if (!grid) return;
   grid.innerHTML = '';
@@ -949,7 +1014,10 @@ function renderPalette() {
     };
 
     let cls = 'palette-btn';
-    if (userAnswers.hasOwnProperty(idx)) cls += ' answered';
+    if (userAnswers.hasOwnProperty(idx)) {
+      cls += ' answered';
+      if (isPractice) cls += userAnswers[idx] === questions[idx].correct ? ' is-correct' : ' is-wrong';
+    }
     if (flagged[idx]) cls += ' flagged';
     if (currentIndex === idx) cls += ' current';
     btn.className = cls;
@@ -1355,7 +1423,7 @@ function finishExam() {
 
 function endExamResult() {
   if (State.practice.examChapterSession) returnFromExamChapterPractice();
-  hide('exam-wrong-practice-container');
+  exitWrongPractice();
   hide('exam-chapter-practice-container');
   State.practice.returnToReview = false;
   const wasChapterReview = State.exam.mode === 'chapter-review';
@@ -1537,7 +1605,6 @@ function startExamChapterPractice(chapterId, subjectId) {
   hide('exam-result-summary');
   hide('exam-review-container');
   hide('result-sidebar');
-  hide('exam-wrong-practice-container');
   show('exam-chapter-practice-container');
 
   const subject = getSubjectById(subjectId);
@@ -1971,21 +2038,65 @@ function findExamReviewSources(question, button, status) {
 ════════════════════════════════════════════════════ */
 function startWrongQuestionPractice() {
   const result = State.exam.result;
-  const questions = result?.questionResults?.filter(question => !question.isCorrect) || [];
+  if (!result) return;
+
+  const savedQuestions = State.exam.questions;
+  const questions = result.questionResults
+    .filter(question => !question.isCorrect)
+    .map(question => ({ ...(savedQuestions[question.idx] || {}), ...question }));
   if (!questions.length) return;
 
-  const review = document.getElementById('exam-review-container');
-  State.practice.returnToReview = Boolean(review && !review.classList.contains('hidden'));
-  hide('exam-result-summary');
-  hide('exam-review-container');
-  hide('result-sidebar');
-  show('exam-wrong-practice-container');
-  renderPracticeQuestions(questions, document.getElementById('exam-wrong-practice-list'), 'exam-review');
-  document.getElementById('exam-wrong-practice-container').scrollIntoView({ behavior: 'smooth' });
+  State.practice.wrongSession = {
+    savedExam: {
+      mode: State.exam.mode,
+      questions: savedQuestions,
+      userAnswers: State.exam.userAnswers,
+      flagged: State.exam.flagged,
+      currentIndex: State.exam.currentIndex,
+      meta: State.exam.meta,
+      result,
+    },
+  };
+
+  State.exam.mode = 'wrong-practice';
+  State.exam.questions = questions;
+  State.exam.userAnswers = {};
+  State.exam.flagged = {};
+  State.exam.currentIndex = 0;
+  State.exam.timer = null;
+  State.exam.result = null;
+
+  paletteExpanded = false;
+  hide('exam-result-card');
+  show('exam-active-card');
+  renderExamQuestion();
+  document.getElementById('exam-active-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function exitWrongPractice() {
+  const session = State.practice.wrongSession;
+  if (!session) return false;
+  const { savedExam } = session;
+  State.practice.wrongSession = null;
+
+  State.exam.mode = savedExam.mode;
+  State.exam.questions = savedExam.questions;
+  State.exam.userAnswers = savedExam.userAnswers;
+  State.exam.flagged = savedExam.flagged;
+  State.exam.currentIndex = savedExam.currentIndex;
+  State.exam.meta = savedExam.meta;
+  State.exam.result = savedExam.result;
+  State.exam.timer = null;
+
+  document.getElementById('exam-active-card')?.classList.remove('is-practice');
+  hide('exam-active-card');
+  show('exam-result-card');
+  document.getElementById('exam-result-card')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  return true;
 }
 
 function returnToExamResult() {
-  hide('exam-wrong-practice-container');
+  if (exitWrongPractice()) return;
   show('exam-result-summary');
   show('result-sidebar');
   if (State.practice.returnToReview) show('exam-review-container');
@@ -2264,6 +2375,7 @@ function renderBankList() {
   const { page, pageSize, filterSubject, filterChapter, filterDiff, searchText } = State.bank;
   const labels = ['A', 'B', 'C', 'D'];
   syncBankDropdownLabels();
+  syncBankMarkedButton();
 
   // Mặc định xem toàn bộ ngân hàng. Câu hỏi nạp trước thời điểm có đa học phần
   // không mang subjectId nên từng bị ẩn khỏi mọi môn trừ FT4468; bộ lọc môn
@@ -2276,6 +2388,10 @@ function renderBankList() {
   if (searchText) {
     const kw = searchText.toLowerCase();
     bank = bank.filter(q => q.q.toLowerCase().includes(kw) || (q.exp || '').toLowerCase().includes(kw));
+  }
+  if (State.bank.markedOnly) {
+    const markedIds = getBankMarkedIds();
+    bank = bank.filter(q => markedIds.has(String(q.id)));
   }
 
   const total = bank.length;
@@ -2299,7 +2415,13 @@ function renderBankList() {
 
   const container = document.getElementById('bank-list-container');
   if (!items.length) {
-    container.innerHTML = `<div class="empty-state">
+    container.innerHTML = State.bank.markedOnly
+      ? `<div class="empty-state">
+      <div class="empty-state-icon"><i class="fa-regular fa-bookmark" aria-hidden="true"></i></div>
+      <div class="empty-state-title">Chưa có câu hỏi nào được đánh dấu</div>
+      <div class="empty-state-desc">Bấm biểu tượng dấu trang trên mỗi câu hỏi để lưu lại và ôn nhanh</div>
+    </div>`
+      : `<div class="empty-state">
       <div class="empty-state-icon">🔍</div>
       <div class="empty-state-title">Không tìm thấy câu hỏi</div>
       <div class="empty-state-desc">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</div>
@@ -2308,6 +2430,7 @@ function renderBankList() {
   }
 
   container.innerHTML = '';
+  const markedIds = getBankMarkedIds();
   items.forEach(q => {
     const card = document.createElement('div');
     card.className = 'bank-question-card is-open';
@@ -2327,14 +2450,18 @@ function renderBankList() {
 
     const subjectCode = filterSubject ? '' : (getSubjectById(q.subjectId)?.code || q.subjectId || '');
     const chapterName = getChapterLabel(q.chapter, q.subjectId);
+    const marked = markedIds.has(String(q.id));
     card.innerHTML = `
       <div class="bank-card-head" style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
         <div class="bank-card-badges" style="display:flex;gap:8px;align-items:center;">
           <span class="ch-dot ch-${q.chapter}"></span>
-          <span class="badge badge-primary bank-card-id" style="font-size:11px;">#${escapeHtml(q.id)} · Ch.${escapeHtml(q.chapter)}</span>
+          <span class="badge badge-primary bank-card-id">#${escapeHtml(q.id)} · Ch.${escapeHtml(q.chapter)}</span>
           <span class="badge badge-${getDiffClass(q.difficulty)}">${getDiffLabel(q.difficulty)}</span>
         </div>
         <span class="text-xs text-muted bank-card-meta"><span class="bank-card-subject">${subjectCode ? escapeHtml(subjectCode) : ''}</span><span class="bank-card-chapter">${subjectCode && chapterName ? ' · ' : ''}${chapterName}</span></span>
+        <button type="button" class="bank-card-flag${marked ? ' is-marked' : ''}" data-qid="${escapeHtml(String(q.id))}" aria-pressed="${marked}" aria-label="${marked ? 'Bỏ đánh dấu câu hỏi' : 'Đánh dấu câu hỏi'}" onclick="toggleBankQuestionMark(this)">
+          <i class="fa-${marked ? 'solid' : 'regular'} fa-bookmark" aria-hidden="true"></i>
+        </button>
         <button type="button" class="bank-card-toggle" aria-expanded="true" aria-label="Ẩn đáp án" onclick="toggleBankCard(this)">
           <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
         </button>
@@ -2344,12 +2471,16 @@ function renderBankList() {
         <div class="bank-answer-grid">
           ${q.options.map((opt, oi) => `
             <div class="bank-answer-item ${oi === q.correct ? 'correct' : ''}">
-              <span style="font-weight:700;flex-shrink:0;">${labels[oi]}.</span>
-              <span>${escapeHtml(opt)}</span>
+              <span class="bank-answer-letter" aria-hidden="true">${labels[oi]}</span>
+              <span class="bank-answer-text">${escapeHtml(opt)}</span>
+              ${oi === q.correct ? '<i class="fa-solid fa-circle-check bank-answer-check" aria-hidden="true"></i>' : ''}
             </div>`).join('')}
         </div>
         <div class="bank-explanation">
-          <strong style="color:var(--primary);">Giải thích:</strong> ${highlight(q.exp || '')}
+          <i class="fa-solid fa-lightbulb bank-exp-icon" aria-hidden="true"></i>
+          <div class="bank-exp-body">
+            <strong>Giải thích:</strong> <span>${highlight(q.exp || '')}</span>
+          </div>
         </div>
       </div>`;
 
@@ -2363,6 +2494,58 @@ function toggleBankCard(btn) {
   const open = card.classList.toggle('is-open');
   btn.setAttribute('aria-expanded', String(open));
   btn.setAttribute('aria-label', open ? 'Ẩn đáp án' : 'Hiện đáp án');
+}
+
+const BANK_MARKED_STORAGE_KEY = 'qlcl_bank_marked';
+
+function getBankMarkedIds() {
+  try {
+    const map = JSON.parse(localStorage.getItem(BANK_MARKED_STORAGE_KEY) || '{}');
+    const ids = map[getSpacedReviewUserId()];
+    return new Set(Array.isArray(ids) ? ids.map(String) : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function saveBankMarkedIds(ids) {
+  try {
+    const map = JSON.parse(localStorage.getItem(BANK_MARKED_STORAGE_KEY) || '{}');
+    map[getSpacedReviewUserId()] = [...ids];
+    localStorage.setItem(BANK_MARKED_STORAGE_KEY, JSON.stringify(map));
+  } catch (error) {
+    console.warn('[Bank] Không lưu được đánh dấu câu hỏi:', error);
+  }
+}
+
+function syncBankMarkedButton() {
+  const btn = document.getElementById('bank-marked-btn');
+  if (!btn) return;
+  btn.classList.toggle('is-active', State.bank.markedOnly);
+  btn.setAttribute('aria-pressed', String(State.bank.markedOnly));
+  const icon = btn.querySelector('i');
+  if (icon) icon.className = `fa-${State.bank.markedOnly ? 'solid' : 'regular'} fa-bookmark`;
+}
+
+function toggleBankMarkedFilter() {
+  State.bank.markedOnly = !State.bank.markedOnly;
+  State.bank.page = 1;
+  renderBankList();
+}
+
+function toggleBankQuestionMark(btn) {
+  const id = String(btn?.dataset.qid || '');
+  if (!id) return;
+  const ids = getBankMarkedIds();
+  if (ids.has(id)) ids.delete(id);
+  else ids.add(id);
+  saveBankMarkedIds(ids);
+  const marked = ids.has(id);
+  btn.classList.toggle('is-marked', marked);
+  btn.setAttribute('aria-pressed', String(marked));
+  btn.setAttribute('aria-label', marked ? 'Bỏ đánh dấu câu hỏi' : 'Đánh dấu câu hỏi');
+  btn.innerHTML = `<i class="fa-${marked ? 'solid' : 'regular'} fa-bookmark" aria-hidden="true"></i>`;
+  if (State.bank.markedOnly) renderBankList();
 }
 
 function changeBankPage(dir) {
@@ -2379,13 +2562,9 @@ function onBankFilter() {
   renderBankList();
 }
 
-/* ─── Dropdown tùy biến cho bộ lọc ngân hàng (mobile ≤900px) ─── */
+/* ─── Dropdown tùy biến cho bộ lọc ngân hàng (mọi kích thước màn hình) ─── */
 const BANK_DD_SELECT_IDS = ['bank-filter-subject', 'bank-filter-chapter', 'bank-filter-diff'];
 let bankOpenDropdown = null;
-
-function isBankDropdownCompact() {
-  return window.matchMedia('(max-width: 900px)').matches;
-}
 
 function isBankFilterDefault(select) {
   return select.value === '' || select.value === '0';
@@ -2452,25 +2631,90 @@ function buildBankDropdownMenu(select) {
   menu.setAttribute('role', 'listbox');
   menu.id = `bank-dd-menu-${select.id}`;
 
+  const searchable = select.id === 'bank-filter-subject' && select.options.length >= 8;
+  let searchInput = null;
+
+  if (searchable) {
+    const bar = document.createElement('div');
+    bar.className = 'bank-dd-searchbar';
+    const icon = document.createElement('i');
+    icon.className = 'fa-solid fa-magnifying-glass';
+    icon.setAttribute('aria-hidden', 'true');
+    searchInput = document.createElement('input');
+    searchInput.type = 'search';
+    searchInput.className = 'bank-dd-search';
+    searchInput.placeholder = 'Tìm môn học theo tên hoặc mã…';
+    searchInput.setAttribute('aria-label', 'Tìm môn học');
+    searchInput.autocomplete = 'off';
+    bar.append(icon, searchInput);
+    menu.appendChild(bar);
+  }
+
+  const list = document.createElement('div');
+  list.className = 'bank-dd-list';
+  const groups = [];
+
   Array.from(select.children).forEach(node => {
     if (node.tagName === 'OPTGROUP') {
       const head = document.createElement('div');
       head.className = 'bank-dd-group';
       head.textContent = node.label;
-      menu.appendChild(head);
-      Array.from(node.children).forEach(opt => menu.appendChild(makeBankDropdownOption(select, opt)));
+      list.appendChild(head);
+      const group = { head, options: [] };
+      Array.from(node.children).forEach(opt => {
+        const option = makeBankDropdownOption(select, opt);
+        option.dataset.searchText = normalizeStudySpaceValue(opt.textContent);
+        group.options.push(option);
+        list.appendChild(option);
+      });
+      groups.push(group);
     } else if (node.tagName === 'OPTION') {
-      menu.appendChild(makeBankDropdownOption(select, node));
+      const option = makeBankDropdownOption(select, node);
+      option.dataset.searchText = normalizeStudySpaceValue(node.textContent);
+      list.appendChild(option);
     }
   });
-  return menu;
+
+  const empty = document.createElement('div');
+  empty.className = 'bank-dd-empty';
+  empty.textContent = 'Không có môn học nào khớp.';
+  empty.hidden = true;
+  list.appendChild(empty);
+  menu.appendChild(list);
+
+  if (searchInput) {
+    const applyFilter = () => {
+      const needle = normalizeStudySpaceValue(searchInput.value);
+      let visible = 0;
+      list.querySelectorAll('.bank-dd-option').forEach(option => {
+        const hit = !needle || option.dataset.searchText.includes(needle);
+        option.hidden = !hit;
+        if (hit) visible += 1;
+      });
+      groups.forEach(group => {
+        group.head.hidden = !group.options.some(option => !option.hidden);
+      });
+      empty.hidden = visible > 0;
+      menu.scrollTop = 0;
+    };
+    searchInput.addEventListener('input', applyFilter);
+    searchInput.addEventListener('keydown', event => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        list.querySelector('.bank-dd-option:not([hidden])')?.click();
+      }
+    });
+  }
+
+  return { menu, searchInput };
 }
 
-function positionBankDropdown(menu, trigger) {
+function positionBankDropdown(menu, trigger, select) {
   const margin = 10;
   const pill = trigger.closest('.bank-filter-pill');
   const rect = (pill && pill.getBoundingClientRect().width ? pill : trigger).getBoundingClientRect();
-  const width = Math.min(Math.max(rect.width, 248), window.innerWidth - margin * 2);
+  const minWidth = select?.id === 'bank-filter-subject' ? 300 : 248;
+  const width = Math.min(Math.max(rect.width, minWidth), window.innerWidth - margin * 2);
   menu.style.width = `${width}px`;
   menu.style.left = `${Math.max(margin, Math.min(rect.left, window.innerWidth - width - margin))}px`;
   menu.style.top = '0px';
@@ -2487,15 +2731,19 @@ function positionBankDropdown(menu, trigger) {
 function openBankDropdown(select, trigger) {
   closeBankDropdown();
   syncBankDropdownLabel(select);
-  const menu = buildBankDropdownMenu(select);
+  const { menu, searchInput } = buildBankDropdownMenu(select);
   document.body.appendChild(menu);
   trigger.classList.add('is-open');
   trigger.setAttribute('aria-expanded', 'true');
   trigger.setAttribute('aria-controls', menu.id);
-  positionBankDropdown(menu, trigger);
+  positionBankDropdown(menu, trigger, select);
   bankOpenDropdown = { select, trigger, menu };
   requestAnimationFrame(() => menu.classList.add('is-open'));
-  menu.querySelector('.bank-dd-option.is-selected')?.focus({ preventScroll: true });
+  if (searchInput && window.matchMedia('(min-width: 901px)').matches) {
+    searchInput.focus({ preventScroll: true });
+  } else {
+    menu.querySelector('.bank-dd-option.is-selected')?.focus({ preventScroll: true });
+  }
 }
 
 function closeBankDropdown(restoreFocus = false) {
@@ -2516,7 +2764,6 @@ function initBankDropdowns() {
     if (trigger && !trigger.dataset.bound) {
       trigger.dataset.bound = '1';
       trigger.addEventListener('click', () => {
-        if (!isBankDropdownCompact()) return;
         if (bankOpenDropdown?.trigger === trigger) {
           closeBankDropdown(true);
           return;
@@ -2545,7 +2792,8 @@ document.addEventListener('keydown', event => {
   }
   if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
     event.preventDefault();
-    const options = Array.from(bankOpenDropdown.menu.querySelectorAll('.bank-dd-option'));
+    const options = Array.from(bankOpenDropdown.menu.querySelectorAll('.bank-dd-option'))
+      .filter(option => !option.hidden);
     const current = options.indexOf(document.activeElement);
     const next = event.key === 'ArrowDown'
       ? Math.min(options.length - 1, current + 1)
@@ -4808,7 +5056,8 @@ function toggleCeraChat() {
   const badge = document.getElementById('cera-badge');
   if (!panel || !fab) return false;
 
-  if (!document.getElementById('exam-active-card')?.classList.contains('hidden')) {
+  const examCard = document.getElementById('exam-active-card');
+  if (examCard && !examCard.classList.contains('hidden') && State.exam.mode !== 'wrong-practice') {
     showToast('Cera sẽ khả dụng sau khi bạn nộp bài thi thử.', 'info');
     return false;
   }
@@ -5048,7 +5297,8 @@ async function ceraSend() {
     || (AuthModule.user || NavController.currentUser || {}).email
     || 'guest';
 
-  if (!document.getElementById('exam-active-card')?.classList.contains('hidden')) {
+  const examCard = document.getElementById('exam-active-card');
+  if (examCard && !examCard.classList.contains('hidden') && State.exam.mode !== 'wrong-practice') {
     showToast('Cera sẽ khả dụng sau khi bạn nộp bài thi thử.', 'info');
     return;
   }
@@ -5234,6 +5484,8 @@ Object.assign(window, {
   updateSubjectBanner,
   changeBankPage,
   toggleBankCard,
+  toggleBankMarkedFilter,
+  toggleBankQuestionMark,
   handleGenerateQuestions,
   handleFileUpload,
   deleteSource,
