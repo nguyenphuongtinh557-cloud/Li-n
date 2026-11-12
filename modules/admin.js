@@ -5,7 +5,7 @@
 import { DB } from './db.js';
 import { pushAdminEdits, pullAdminEdits } from './sync.js';
 import { AuthModule, isAdminEmail } from './auth.js?v=20261111-authotp1';
-import { NavController } from './navigation.js?v=20261111-readerload5';
+import { NavController } from './navigation.js?v=20261112-chapter-review3';
 
 let adminClickCount = 0;
 let adminClickTimeout = null;

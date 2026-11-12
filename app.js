@@ -9,15 +9,15 @@ import { QuestionGenerator } from './modules/questionGeneratorCore.js';
 import { DocumentExtractor } from './modules/documentExtractor.js';
 import { AIQuestionHistory } from './modules/aiQuestionHistory.js';
 import { ExamEngine, ExamTimer } from './modules/exam.js';
-import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion, setCurrentReading } from './modules/cera.js?v=20261110-kb2';
-import { planCeraNavigation, runCeraNavigation, rememberSubjectMentions } from './modules/ceraNav.js?v=20261110-ft4498';
-import { rememberCeraSubject } from './modules/ceraContext.js?v=20261110-ft4498';
+import { ceraChat, ceraAnalyzeImage, verifyAndFixQuestion, setCurrentQuestion, setCurrentReading } from './modules/cera.js?v=20261112-grounding1';
+import { planCeraNavigation, runCeraNavigation, rememberSubjectMentions } from './modules/ceraNav.js?v=20261112-grounding1';
+import { rememberCeraSubject } from './modules/ceraContext.js?v=20261112-grounding1';
 import { searchSubjectKnowledge } from './modules/knowledgeBase.js?v=20261110-kb1';
 import { renderMathIn, containsMath } from './modules/mathRender.js?v=20261109-adminmath1';
 import { pullFromGitHub, pullAdminEdits, fetchWebContent, pullResourcesFromServer, pullArticlesFromServer, pullAnnouncementsFromServer, pullUserRolesFromServer, pullFeedbacksFromServer, pullSubjectDetailsFromServer } from './modules/sync.js';
-import { initAdminAuth } from './modules/admin.js?v=20261111-readerload5';
+import { initAdminAuth } from './modules/admin.js?v=20261112-chapter-review3';
 import { SUBJECTS_REGISTRY, KNOWLEDGE_BLOCKS, getAllSubjects, getSubjectById, getSubjectsByBlock } from './modules/subjects.js?v=20261110-ft4498';
-import { NavController } from './modules/navigation.js?v=20261111-readerload5';
+import { NavController } from './modules/navigation.js?v=20261112-chapter-review3';
 import { AuthModule, getUserRole, getActiveAdminEmails } from './modules/auth.js?v=20261111-authotp1';
 import './modules/authModal.js?v=20261111-authotp1';
 import { ArticlesModule } from './modules/articles.js?v=20261031-news1';
@@ -127,6 +127,7 @@ async function shareUrl(url, title) {
 const State = {
   currentTab: 'exam-tab',
   exam: {
+    mode: 'exam',
     questions: [],
     userAnswers: {},
     flagged: {},
@@ -253,7 +254,7 @@ async function syncPublicSubjectDetails() {
 async function init() {
   const initialRoute = NavController.getSharedRoute();
   if (['ontap', 'aigen', 'history'].includes(initialRoute.page)) {
-    void ensureStudySeed().catch(error => {
+    void ensureStudySeed().then(() => refreshChapterReviewSetup()).catch(error => {
       console.error('[Study] Không thể tải ngân hàng câu hỏi:', error);
       window.showToast?.('Không thể tải ngân hàng câu hỏi. Vui lòng thử lại.', 'error');
     });
@@ -268,6 +269,9 @@ async function init() {
       updateBankCount();
       if (document.getElementById('bank-tab')?.classList.contains('active')) {
         renderBankList();
+      }
+      if (document.getElementById('review-tab')?.classList.contains('active')) {
+        refreshChapterReviewSetup();
       }
     }
   }).catch(error => {
@@ -440,6 +444,18 @@ function switchTab(tabId) {
   if (tabId === 'source-tab') renderSourceTab();
   if (tabId === 'history-tab') { renderHistoryTab(); renderSpacedReviewOverview(); }
   if (tabId === 'share-tab') void QuizShares.renderOwnerTab();
+  if (tabId === 'review-tab') refreshChapterReviewSetup();
+  if (tabId === 'exam-tab' || tabId === 'review-tab') {
+    // Thẻ làm bài/kết quả dùng chung ở cấp trang: chỉ đổi thẻ bắt đầu khi không có phiên đang chạy.
+    const sessionShown = !document.getElementById('exam-active-card')?.classList.contains('hidden')
+      || !document.getElementById('exam-result-card')?.classList.contains('hidden');
+    if (!sessionShown) {
+      const startId = tabId === 'exam-tab' ? 'exam-start-card' : 'review-start-card';
+      const otherStartId = tabId === 'exam-tab' ? 'review-start-card' : 'exam-start-card';
+      document.getElementById(otherStartId)?.classList.add('hidden');
+      document.getElementById(startId)?.classList.remove('hidden');
+    }
+  }
 }
 
 function onStudyModeChange(tabId) {
@@ -471,6 +487,7 @@ function initiateExam() {
   }
 
   const duration = result.questions.length * 60; // 1 phút/câu
+  State.exam.mode = 'exam';
   State.exam.questions = result.questions;
   State.exam.userAnswers = {};
   State.exam.flagged = {};
@@ -510,6 +527,225 @@ function initiateExam() {
   saveExamSession();
 }
 
+/* ════════════════════════════════════════════════════
+   CHAPTER REVIEW MODE (Ôn tập chương)
+════════════════════════════════════════════════════ */
+const CHAPTER_REVIEW_DEFAULT_COUNT = '30';
+
+function getChapterReviewBank() {
+  const subjectId = DB.getActiveSubject();
+  return subjectId === 'ALL' ? DB.getBank() : DB.getBankBySubject(subjectId);
+}
+
+function getChapterReviewConfig() {
+  return {
+    chapter: parseInt(document.getElementById('review-chapter-select')?.value || '0', 10) || 0,
+    difficulty: parseInt(document.getElementById('review-difficulty-select')?.value || '0', 10) || 0,
+    countRaw: document.getElementById('review-question-count')?.value || CHAPTER_REVIEW_DEFAULT_COUNT,
+  };
+}
+
+function getChapterReviewPool(config = getChapterReviewConfig()) {
+  if (!config.chapter) return [];
+  return getChapterReviewBank().filter(q =>
+    Number(q.chapter) === config.chapter &&
+    (!config.difficulty || (q.difficulty || 1) === config.difficulty)
+  );
+}
+
+function ensureReviewBarHandles(bar) {
+  ['easy', 'medium'].forEach(level => {
+    const segment = bar.querySelector(`.diff-bar-${level}`);
+    if (segment && !segment.querySelector('.diff-bar-handle')) {
+      const handle = document.createElement('div');
+      handle.className = 'diff-bar-handle';
+      segment.appendChild(handle);
+    }
+  });
+}
+
+function paintReviewBar(easy, medium, hard) {
+  const bar = document.getElementById('review-diff-bar');
+  if (!bar) return;
+  const segments = {
+    easy: bar.querySelector('.diff-bar-easy'),
+    medium: bar.querySelector('.diff-bar-medium'),
+    hard: bar.querySelector('.diff-bar-hard'),
+  };
+  if (segments.easy) segments.easy.style.flex = easy;
+  if (segments.medium) segments.medium.style.flex = medium;
+  if (segments.hard) segments.hard.style.flex = hard;
+  const easyPct = document.getElementById('review-diff-easy-pct');
+  const mediumPct = document.getElementById('review-diff-medium-pct');
+  const hardPct = document.getElementById('review-diff-hard-pct');
+  if (easyPct) easyPct.textContent = easy;
+  if (mediumPct) mediumPct.textContent = medium;
+  if (hardPct) hardPct.textContent = hard;
+}
+
+function applyChapterReviewRatio(easy, medium, hard) {
+  const bar = document.getElementById('review-diff-bar');
+  if (!bar) return;
+  bar.classList.remove('is-locked');
+  ensureReviewBarHandles(bar);
+  paintReviewBar(easy, medium, hard);
+  // Tỉ lệ dùng chung với Thi thử: đồng bộ luôn thanh bên kia.
+  updateDifficultyUI(easy, medium, hard);
+}
+
+function updateChapterReviewDifficultyUI() {
+  const { difficulty } = getChapterReviewConfig();
+  const bar = document.getElementById('review-diff-bar');
+  if (!bar) return;
+  if (difficulty) {
+    bar.classList.add('is-locked');
+    bar.querySelectorAll('.diff-bar-handle').forEach(handle => handle.remove());
+    const preset = { 1: [100, 0, 0], 2: [0, 100, 0], 3: [0, 0, 100] }[difficulty] || [100, 0, 0];
+    paintReviewBar(...preset);
+    return;
+  }
+  const ratio = DB.getSettings().diffRatio || { easy: 0.5, medium: 0.3, hard: 0.2 };
+  applyChapterReviewRatio(
+    Math.round(ratio.easy * 100),
+    Math.round(ratio.medium * 100),
+    Math.round(ratio.hard * 100)
+  );
+}
+
+function updateChapterReviewSummary() {
+  const config = getChapterReviewConfig();
+  const pool = getChapterReviewPool(config);
+  const planned = config.countRaw === 'all'
+    ? pool.length
+    : Math.min(Number(config.countRaw) || 0, pool.length);
+  const durationEl = document.getElementById('review-duration-footer');
+  const countEl = document.getElementById('review-count-footer');
+  const noteEl = document.getElementById('review-pool-note');
+  if (durationEl) durationEl.textContent = `${planned} phút làm bài`;
+  if (countEl) countEl.textContent = `${planned} câu hỏi`;
+  if (noteEl) {
+    noteEl.textContent = pool.length
+      ? `Ngân hàng chương này có ${pool.length} câu phù hợp bộ lọc`
+      : 'Chương này chưa có câu phù hợp bộ lọc';
+  }
+}
+
+function onChapterReviewConfigChange() {
+  updateChapterReviewSummary();
+  updateChapterReviewDifficultyUI();
+}
+
+function refreshChapterReviewSetup() {
+  const chapterSelect = document.getElementById('review-chapter-select');
+  if (!chapterSelect) return;
+
+  const subjectId = DB.getActiveSubject();
+  const chapters = [...new Set(
+    getChapterReviewBank()
+      .map(q => Number(q.chapter))
+      .filter(ch => Number.isFinite(ch) && ch > 0)
+  )].sort((a, b) => a - b);
+
+  const previous = Number(chapterSelect.value) || 0;
+  const target = chapters.includes(previous) ? previous : (chapters[0] || 0);
+  if (!chapters.length) {
+    const placeholder = document.createElement('option');
+    placeholder.value = '0';
+    placeholder.textContent = 'Chưa có chương trong ngân hàng';
+    chapterSelect.replaceChildren(placeholder);
+  } else {
+    chapterSelect.replaceChildren(...chapters.map(ch => {
+      const option = document.createElement('option');
+      option.value = String(ch);
+      option.textContent = getChapterLabel(ch, subjectId) || `Chương ${ch}`;
+      return option;
+    }));
+    chapterSelect.value = String(target);
+  }
+  refreshStudyToolbarSelects();
+  updateChapterReviewSummary();
+  updateChapterReviewDifficultyUI();
+}
+
+function buildChapterReviewQuestions(config) {
+  const subjectId = DB.getActiveSubject();
+  const pool = getChapterReviewPool(config);
+  if (!pool.length) return [];
+
+  if (config.difficulty) {
+    const size = config.countRaw === 'all' ? pool.length : (Number(config.countRaw) || 0);
+    return ExamEngine.buildPracticePaper(size, config.chapter, { subjectId, difficulty: config.difficulty });
+  }
+  if (config.countRaw === 'all') {
+    return ExamEngine.buildPracticePaper(pool.length, config.chapter, { subjectId });
+  }
+  const result = ExamEngine.buildBalancedPaper(Number(config.countRaw) || 0, DB.getSettings().diffRatio, config.chapter, 0);
+  return result?.questions || [];
+}
+
+function initiateChapterReview() {
+  if (document.getElementById('cera-send-btn')?.disabled) {
+    showToast('Vui lòng chờ Cera trả lời xong trước khi bắt đầu ôn tập.', 'warning');
+    return;
+  }
+
+  const config = getChapterReviewConfig();
+  if (!config.chapter) {
+    showToast('Ngân hàng chưa có chương nào để ôn tập.', 'warning');
+    return;
+  }
+  const questions = buildChapterReviewQuestions(config);
+  if (!questions.length) {
+    showToast('Không có câu hỏi phù hợp bộ lọc đã chọn.', 'warning');
+    return;
+  }
+
+  const diffCounts = { 1: 0, 2: 0, 3: 0 };
+  questions.forEach(q => { diffCounts[q.difficulty || 1] += 1; });
+  const pctOf = value => Math.round(value / questions.length * 100);
+
+  State.exam.mode = 'chapter-review';
+  State.exam.questions = questions;
+  State.exam.userAnswers = {};
+  State.exam.flagged = {};
+  State.exam.currentIndex = 0;
+  State.exam.meta = {
+    total: questions.length,
+    easy: diffCounts[1],
+    medium: diffCounts[2],
+    hard: diffCounts[3],
+    ratioActual: { easy: pctOf(diffCounts[1]), medium: pctOf(diffCounts[2]), hard: pctOf(diffCounts[3]) },
+    review: { chapter: config.chapter, difficulty: config.difficulty, count: config.countRaw },
+  };
+  State.exam.result = null;
+  resetResultViewState();
+  updateDifficultyBar('exam-diff-bar', State.exam.meta.ratioActual);
+
+  hide('review-start-card');
+  hide('exam-start-card');
+  hide('exam-result-card');
+  show('exam-active-card');
+
+  const ceraPanel = document.getElementById('cera-panel');
+  if (ceraPanel?.classList.contains('is-open')) {
+    ceraPanel.classList.remove('is-open');
+    ceraPanel.setAttribute('aria-hidden', 'true');
+    document.getElementById('cera-fab')?.classList.remove('is-open');
+  }
+
+  renderExamQuestion();
+  renderPalette();
+
+  const pauseBtn = document.getElementById('btn-pause');
+  if (pauseBtn) {
+    pauseBtn.classList.remove('is-paused');
+    pauseBtn.innerHTML = '<i class="fa-solid fa-pause"></i> Tạm dừng';
+  }
+
+  startExamTimer(questions.length * 60);
+  saveExamSession();
+}
+
 /* ─── Exam session persistence ───
    Reload/đóng tab giữa bài không còn mất toàn bộ bài đang làm: câu hỏi, đáp
    án đã chọn, cờ đánh dấu, vị trí và thời gian còn lại được lưu localStorage. */
@@ -518,11 +754,11 @@ const EXAM_SESSION_MAX_AGE_MS = 24 * 60 * 60 * 1000;
 let _examPersistTick = 0;
 
 function saveExamSession() {
-  const { questions, userAnswers, flagged, currentIndex, meta, timer, result } = State.exam;
+  const { mode, questions, userAnswers, flagged, currentIndex, meta, timer, result } = State.exam;
   if (!questions.length || result) { clearExamSession(); return; }
   try {
     localStorage.setItem(EXAM_SESSION_KEY, JSON.stringify({
-      questions, userAnswers, flagged, currentIndex, meta,
+      mode, questions, userAnswers, flagged, currentIndex, meta,
       total: timer?.total || questions.length * 60,
       left: timer ? timer.left : questions.length * 60,
       paused: !!timer?.paused,
@@ -563,6 +799,7 @@ function restoreExamSession() {
   const left = Math.min(total, Math.max(0, (Number(saved.left) || total) - elapsed));
   if (left <= 0) { clearExamSession(); return; }
 
+  State.exam.mode = saved.mode === 'chapter-review' ? 'chapter-review' : 'exam';
   State.exam.questions = saved.questions;
   State.exam.userAnswers = saved.userAnswers && typeof saved.userAnswers === 'object' ? saved.userAnswers : {};
   State.exam.flagged = saved.flagged && typeof saved.flagged === 'object' ? saved.flagged : {};
@@ -571,6 +808,7 @@ function restoreExamSession() {
   State.exam.result = null;
 
   hide('exam-start-card');
+  hide('review-start-card');
   hide('exam-result-card');
   show('exam-active-card');
   const durationText = document.getElementById('exam-duration-text');
@@ -1120,7 +1358,9 @@ function endExamResult() {
   hide('exam-wrong-practice-container');
   hide('exam-chapter-practice-container');
   State.practice.returnToReview = false;
-  NavController.navigateToPage('ontap', 'exam-tab');
+  const wasChapterReview = State.exam.mode === 'chapter-review';
+  State.exam.mode = 'exam';
+  NavController.navigateToPage('ontap', wasChapterReview ? 'review-tab' : 'exam-tab');
 }
 
 function renderExamResult(result) {
@@ -4092,6 +4332,7 @@ function applySubjectSelection(subjectId) {
   // Re-render active tab if needed
   if (State.currentTab === 'bank-tab') renderBankList();
   if (State.currentTab === 'history-tab') void renderSpacedReviewOverview();
+  refreshChapterReviewSetup();
   NavController.syncTabUrl(State.currentTab || 'exam-tab', { replace: true });
 }
 
@@ -4156,6 +4397,19 @@ function initSubjectSelector() {
     }
   }
 
+  // Mobile chapter-review picker mirrors the toolbar dropdown
+  const reviewMobileSelect = document.getElementById('review-subject-select-mobile');
+  if (reviewMobileSelect) {
+    reviewMobileSelect.innerHTML = select.innerHTML;
+    if (saved) reviewMobileSelect.value = saved;
+    if (!reviewMobileSelect.dataset.bound) {
+      reviewMobileSelect.dataset.bound = '1';
+      reviewMobileSelect.addEventListener('change', () => {
+        if (reviewMobileSelect.value) applySubjectSelection(reviewMobileSelect.value);
+      });
+    }
+  }
+
   // On change
   select.addEventListener('change', () => {
     if (select.value) applySubjectSelection(select.value);
@@ -4178,9 +4432,13 @@ function syncStudyToolbar() {
   const difficultySelect = document.getElementById('study-difficulty-select');
   const countSelect = document.getElementById('study-count-select');
   const countControl = countSelect?.closest('.study-toolbar-control');
+  const difficultyControl = difficultySelect?.closest('.study-toolbar-control');
   const bankDifficulty = document.getElementById('bank-filter-diff');
 
   if (modeSelect) modeSelect.value = State.currentTab;
+  const isChapterReview = State.currentTab === 'review-tab';
+  countControl?.classList.toggle('hidden', isChapterReview);
+  difficultyControl?.classList.toggle('hidden', isChapterReview);
   if (difficultySelect) difficultySelect.value = State.practice.selectedDifficulty ? String(State.practice.selectedDifficulty) : 'custom';
   if (bankDifficulty) {
     bankDifficulty.value = String(State.practice.selectedDifficulty);
@@ -4269,6 +4527,8 @@ function updateSubjectBanner(subjectId) {
   if (select && select.value !== subjectId) select.value = subjectId;
   const mobileSelect = document.getElementById('exam-subject-select-mobile');
   if (mobileSelect && mobileSelect.value !== subjectId) mobileSelect.value = subjectId;
+  const reviewMobileSelect = document.getElementById('review-subject-select-mobile');
+  if (reviewMobileSelect && reviewMobileSelect.value !== subjectId) reviewMobileSelect.value = subjectId;
   refreshStudyToolbarSelects();
 }
 
@@ -4308,9 +4568,10 @@ function updateDifficultyBar(id, ratioActual) {
 /**
  * Kéo thanh màu để điều chỉnh độ khó (chuột, cảm ứng, bút stylus)
  */
-function initDraggableDifficultyBar() {
-  const bar = document.getElementById('exam-start-diff-bar');
+function initDraggableDifficultyBar(barId = 'exam-start-diff-bar', onRatio = null) {
+  const bar = document.getElementById(barId);
   if (!bar) return;
+  const emitRatio = onRatio || updateDifficultyUI;
 
   const readRatio = () => ({
     easy: parseFloat(bar.querySelector('.diff-bar-easy').style.flex) || 50,
@@ -4340,7 +4601,7 @@ function initDraggableDifficultyBar() {
       }
     }
 
-    updateDifficultyUI(Math.round(newEasy), Math.round(newMedium), Math.round(newHard));
+    emitRatio(Math.round(newEasy), Math.round(newMedium), Math.round(newHard));
   };
 
   // Trên điện thoại ngón tay khó bám đúng nút 18px: chạm đâu cũng kéo nút biên gần nhất
@@ -4447,6 +4708,7 @@ if (typeof window !== 'undefined') {
   window.addEventListener('load', () => {
     loadDifficultyRatioUI();
     initDraggableDifficultyBar();
+    initDraggableDifficultyBar('review-diff-bar', applyChapterReviewRatio);
   });
 }
 
@@ -4781,6 +5043,7 @@ async function ceraSend() {
   const statusText = document.getElementById('cera-status-text');
   const modelSelect = document.getElementById('cera-model-select');
   if (!input || !sendBtn || !messages) return;
+  syncCeraReadingContext();
   const ceraUserId = (AuthModule.user || NavController.currentUser || {}).uid
     || (AuthModule.user || NavController.currentUser || {}).email
     || 'guest';
@@ -4938,6 +5201,9 @@ Object.assign(window, {
   QuizShares,
   QuizSharePage,
   initiateExam,
+  initiateChapterReview,
+  onChapterReviewConfigChange,
+  refreshChapterReviewSetup,
   navExamQuestion,
   selectExamOption,
   toggleFlagCurrentQuestion,
@@ -4965,6 +5231,7 @@ Object.assign(window, {
   onStudyToolbarDifficultyChange,
   onBankFilter,
   applyBankSubjectScope,
+  updateSubjectBanner,
   changeBankPage,
   toggleBankCard,
   handleGenerateQuestions,
@@ -6428,13 +6695,27 @@ function toggleStudyReaderFocusMode() {
 }
 function renderStudyReaderToc(context = _studyReaderContext || {}) {
   const data = getStudyReaderDetails(context), list = document.getElementById('study-reader-toc-list'); if (!list) return; list.innerHTML = '';
-  const add = (label, action, active = false) => { const button = document.createElement('button'); button.type = 'button'; button.dataset.readerLabel = label.toLocaleLowerCase('vi-VN'); button.textContent = label; button.classList.toggle('active', active); button.onclick = action; list.appendChild(button); };
+  const add = (label, action, active = false, parent = list) => { const button = document.createElement('button'); button.type = 'button'; button.dataset.readerLabel = label.toLocaleLowerCase('vi-VN'); button.textContent = label; button.classList.toggle('active', active); button.onclick = action; parent.appendChild(button); };
   if (data.summaryResult) {
     add('Tổng quan', () => document.getElementById('study-reader-content')?.scrollTo({ top: 0, behavior: 'smooth' }), true);
     (data.summaryResult.chapters || []).forEach((chapter, index) => add(chapter.title || `Chương ${index + 1}`, () => document.getElementById(`summary-study-chapter-${index + 1}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' })));
     return;
   }
-  (data.details.chapters || []).forEach(chapter => { const heading = document.createElement('div'); heading.className = 'study-reader-toc-chapter'; heading.textContent = chapter.title || 'Chương học'; list.appendChild(heading);  (chapter.lessons || []).forEach(lesson => { add(lesson.title || 'Bài học', () => renderStudyReader({ subjectId: data.subjectId, chapterId: chapter.id, lessonId: lesson.id, returnPage: data.returnPage || 'subject-detail' }), data.lesson?.id === lesson.id); if (data.lesson?.id === lesson.id) buildLessonOutline(lesson.blocks).forEach(item => add(`↳ ${item.title}`, () => document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }))); }); });
+  (data.details.chapters || []).forEach(chapter => {
+    const group = document.createElement('div'); group.className = 'study-reader-toc-group';
+    const heading = document.createElement('div'); heading.className = 'study-reader-toc-chapter'; heading.setAttribute('role', 'button'); heading.tabIndex = 0; heading.setAttribute('aria-expanded', 'true');
+    const label = document.createElement('span'); label.textContent = chapter.title || 'Chương học';
+    const chevron = document.createElement('i'); chevron.className = 'fa-solid fa-chevron-down study-reader-toc-chevron'; chevron.setAttribute('aria-hidden', 'true');
+    heading.append(label, chevron);
+    const lessons = document.createElement('div'); lessons.className = 'study-reader-toc-lessons';
+    const toggle = () => { const collapsed = heading.classList.toggle('is-collapsed'); heading.setAttribute('aria-expanded', String(!collapsed)); lessons.classList.toggle('study-reader-m-hidden', collapsed); };
+    heading.onclick = toggle;
+    heading.onkeydown = event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); toggle(); } };
+    (chapter.lessons || []).forEach(lesson => { add(lesson.title || 'Bài học', () => renderStudyReader({ subjectId: data.subjectId, chapterId: chapter.id, lessonId: lesson.id, returnPage: data.returnPage || 'subject-detail' }), data.lesson?.id === lesson.id, lessons); if (data.lesson?.id === lesson.id) buildLessonOutline(lesson.blocks).forEach(item => add(`↳ ${item.title}`, () => document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), false, lessons)); });
+    if (data.lesson?.id && (chapter.lessons || []).some(lesson => lesson.id === data.lesson.id)) heading.classList.add('has-active');
+    group.append(heading, lessons);
+    list.appendChild(group);
+  });
   data.resources.forEach(r => add(`📎 ${r.name || 'Tài liệu'}`, () => renderStudyReader({ subjectId: data.subjectId, resourceId: r.id, returnPage: data.returnPage || 'subject-detail' }), data.resource?.id === r.id));
 }
 function renderStudyReaderLessonSwitcher(context = _studyReaderContext || {}) {
@@ -6505,6 +6786,7 @@ function lessonSummaryHash(chapter = {}, lesson = {}) {
 function renderStudyReaderSummary(summary) {
   const result = document.getElementById('study-reader-ai-result');
   if (!result) return;
+  result.closest('.study-reader-ai')?.classList.toggle('has-summary', Boolean(summary));
   if (!summary) { result.innerHTML = ''; return; }
   const section = (title, items) => items?.length ? `<section><b>${title}</b><ul>${items.map(item => `<li>${escapeHtml(String(item))}</li>`).join('')}</ul></section>` : '';
   result.innerHTML = `${section('Ý chính', summary.mainPoints)}${section('Từ khóa cần nhớ', summary.keywords)}${section('Lưu ý dễ nhầm', summary.pitfalls)}${section('Câu hỏi ôn nhanh', summary.quickQuestions)}<small>Nguồn: ${escapeHtml(summary.source || '')}</small>`;
@@ -6651,6 +6933,8 @@ function initStudyReaderSummaryControls() {
 
 function bindStudyReaderControls() {
   document.getElementById('study-reader-back').onclick = () => NavController.closeStudyReader();
+  const backToc = document.getElementById('study-reader-back-toc');
+  if (backToc) backToc.onclick = () => NavController.closeStudyReader();
   const input = document.getElementById('study-reader-note-input');
   if (input) input.oninput = () => { clearTimeout(_studyReaderNoteTimer); _studyReaderNoteTimer = setTimeout(() => saveStudyReaderNote({ text: input.value }), 450); };
   const find = document.getElementById('study-reader-find');
@@ -6717,7 +7001,7 @@ function renderStudyReaderHeaderResourceLink(context = _studyReaderContext || {}
   link.hidden = false;
   link.href = resource.url;
   link.title = `Tải / mở: ${resource.name || 'tài liệu'}`;
-  link.querySelector('span').textContent = resource.name ? `Tải: ${resource.name}` : 'Tải tài liệu';
+  link.querySelector('span').textContent = 'Tải Tài liệu';
 }
 
 function renderStudyReader(context = {}) { _studyReaderContext = { ...context, returnPage: context.returnPage || 'curriculum-summary' }; const subject = getAllSubjects().find(s => s.id === context.subjectId) || {}; const crumb = document.getElementById('study-reader-crumb'); if (crumb) crumb.textContent = context.summaryResult ? 'Ôn tập · Tóm tắt chi tiết' : `${subject.code || context.subjectId || ''} · ${subject.name || 'Tài liệu học tập'}`; renderStudyReaderContent(_studyReaderContext); renderStudyReaderToc(_studyReaderContext); renderStudyReaderHeaderResourceLink(_studyReaderContext); bindStudyReaderControls(); bindStudyReaderDrawers(); loadStudyReaderNote(); initStudyReaderSummaryControls(); initStudyReaderMobileLayer(_studyReaderContext); window.NavController?.syncStudyReaderUrl?.(_studyReaderContext); }
@@ -6743,7 +7027,7 @@ function decorateStudyReaderTocMobile() {
   const list = document.getElementById('study-reader-toc-list');
   if (!list) return;
   list.querySelectorAll('.study-reader-toc-chapter').forEach(heading => {
-    if (heading.querySelector('.study-reader-m-chevron')) return;
+    if (heading.querySelector('.study-reader-m-chevron, .study-reader-toc-chevron')) return;
     heading.insertAdjacentHTML('beforeend', '<i class="fa-solid fa-chevron-up study-reader-m-chevron" aria-hidden="true"></i>');
     heading.onclick = () => {
       const collapsed = heading.classList.toggle('is-collapsed');

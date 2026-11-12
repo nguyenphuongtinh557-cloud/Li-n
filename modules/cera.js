@@ -11,7 +11,7 @@
 import { DB } from './db.js';
 import { AIPool } from './aiPool.js';
 import { formatKnowledgeContext, searchSubjectKnowledge } from './knowledgeBase.js?v=20261110-kb1';
-import { buildCeraContext, resolveCeraSubjectForQuery } from './ceraContext.js?v=20261110-ft4498';
+import { buildCeraContext, resolveCeraSubjectForQuery } from './ceraContext.js?v=20261112-grounding1';
 
 // ─── System Prompt & High EQ GenZ Companion Knowledge Engine ─────────────────
 const CERA_SYSTEM = `
@@ -422,13 +422,18 @@ export async function ceraChat(userText, history = [], options = {}) {
     reading: _currentReading,
     readingActive
   });
-  const knowledgeQuery = _currentContext
+  const knowledgeQuery = !readingActive && _currentContext
     ? [userText, _currentContext.q, _currentContext.options?.[_currentContext.correct], _currentContext.exp].filter(Boolean).join(' ')
     : userText;
   const resolvedSubject = resolveCeraSubjectForQuery(userText, { reading: _currentReading, readingActive });
+  // Đang mở bài giảng thì học liệu phải lấy theo môn của bài đó, không để câu hỏi
+  // thi cũ (_currentContext) kéo sang môn khác.
+  const knowledgeSubjectId = readingActive && _currentReading?.subjectId
+    ? _currentReading.subjectId
+    : (_currentContext?.subjectId || resolvedSubject.primary?.id || DB.getActiveSubject());
   const knowledgeContext = formatKnowledgeContext(searchSubjectKnowledge(
     knowledgeQuery,
-    _currentContext?.subjectId || resolvedSubject.primary?.id || DB.getActiveSubject(),
+    knowledgeSubjectId,
     4,
     readingActive ? _currentReading?.lessonId || null : null
   ));

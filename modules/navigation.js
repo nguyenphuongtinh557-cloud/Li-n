@@ -77,6 +77,7 @@ const PAGE_PATHS = {
 
 const ONTAP_TAB_ROUTES = {
   'exam-tab': { path: '/on-tap', subject: true },
+  'review-tab': { path: '/on-tap-chuong', subject: true },
   'bank-tab': { path: '/ngan-hang-cau-hoi', subject: true },
   'source-tab': { path: '/tao-cau-hoi', subject: true },
   'history-tab': { path: '/lich-su-on-tap', subject: false },
@@ -183,6 +184,7 @@ function parseRouteLocation() {
   switch (root) {
     case 'mon': return parseSubjectRoute(segments);
     case 'on-tap': return { page: 'ontap', tab: 'exam-tab', subject: second || null };
+    case 'on-tap-chuong': return { page: 'ontap', tab: 'review-tab', subject: second || null };
     case 'ngan-hang-cau-hoi': return { page: 'ontap', tab: 'bank-tab', subject: second || null };
     case 'tao-cau-hoi': return { page: 'ontap', tab: 'source-tab', subject: second || null };
     case 'lich-su-on-tap': return { page: 'ontap', tab: 'history-tab' };
@@ -523,8 +525,16 @@ export const NavController = {
       }
       if (subTabId === 'exam-tab') {
         document.getElementById('exam-start-card')?.classList.remove('hidden');
+        document.getElementById('review-start-card')?.classList.add('hidden');
         document.getElementById('exam-active-card')?.classList.add('hidden');
         document.getElementById('exam-result-card')?.classList.add('hidden');
+      }
+      if (subTabId === 'review-tab') {
+        document.getElementById('review-start-card')?.classList.remove('hidden');
+        document.getElementById('exam-start-card')?.classList.add('hidden');
+        document.getElementById('exam-active-card')?.classList.add('hidden');
+        document.getElementById('exam-result-card')?.classList.add('hidden');
+        window.refreshChapterReviewSetup?.();
       }
     }
 

@@ -13,7 +13,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Caveat:wght@600;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261109-avatarcrop1">
+  <link rel="stylesheet" href="style.css?v=20261112-chapter-review3">
   <link rel="stylesheet" href="subject-page.css?v=20261031-sd8">
   <link rel="stylesheet" href="mobile-home.css?v=mh18">
   <link rel="stylesheet" href="study-space-mobile.css?v=ss4">
@@ -220,6 +220,7 @@
               <i class="fa-solid fa-bullseye" aria-hidden="true"></i>
               <select id="study-mode-select" class="study-toolbar-select" aria-label="Chế độ ôn tập" onchange="onStudyModeChange(this.value)">
                 <option value="exam-tab">Thi thử</option>
+                <option value="review-tab">Ôn tập chương</option>
                 <option value="bank-tab">Ngân hàng</option>
                 <option value="source-tab">AI sinh câu</option>
                 <option value="history-tab">Lịch sử</option>
@@ -600,288 +601,110 @@
               </section>
             </div>
 
-            <!-- Active Exam View -->
-            <div id="exam-active-card" class="hidden exam-layout">
-              <!-- Left: Question Paper -->
-              <div class="exam-paper">
-                <div class="exam-topbar">
-                  <div class="exam-topbar-left">
-                    <span id="exam-subject-chip" class="exam-subject-chip">
-                      <i class="fa-solid fa-book-open" aria-hidden="true"></i>
-                      <span id="exam-subject-code">FT4468</span>
-                    </span>
-                    <span id="exam-timer-display" class="timer-display">
-                      <i class="fa-regular fa-clock" aria-hidden="true"></i>
-                      <span id="exam-timer-text">50:00</span>
-                    </span>
-                    <button id="btn-pause" class="btn btn-secondary btn-sm exam-pause-btn" onclick="togglePauseExam()">
-                      <i class="fa-solid fa-pause"></i> Tạm dừng
-                    </button>
+          </section>
+
+          <!-- ══════ TAB 2: ÔN TẬP CHƯƠNG ══════ -->
+          <section id="review-tab" class="tab-content" role="main" aria-label="Ôn tập chương">
+
+            <!-- Start Screen -->
+            <div id="review-start-card" class="card exam-start-screen">
+              <section class="exam-start-hero">
+                <div class="exam-start-hero-copy">
+                  <span class="exam-start-kicker"><i class="fa-solid fa-layer-group" aria-hidden="true"></i> ÔN TẬP THEO CHƯƠNG</span>
+                  <h1 class="exam-start-title">Ôn tập chương theo nhu cầu</h1>
+                  <p class="exam-start-description">Chọn chương, số câu và độ khó để tạo đề ôn tập bám sát phần kiến thức bạn cần củng cố.</p>
+                </div>
+                <div class="exam-start-art" aria-hidden="true">
+                  <img src="/public/chibi.webp" alt="" fetchpriority="high">
+                </div>
+              </section>
+
+              <section class="exam-config-panel" aria-labelledby="review-config-title">
+                <header class="exam-mobile-head">
+                  <span class="exam-mobile-head-icon" aria-hidden="true"><i class="fa-solid fa-layer-group"></i></span>
+                  <div class="exam-mobile-head-copy">
+                    <h2>Ôn tập chương</h2>
+                    <p>Chọn chương, số câu và độ khó để bắt đầu.</p>
                   </div>
-                  <button class="btn btn-success exam-submit-btn" onclick="confirmSubmitExam()">
-                    <i class="fa-solid fa-paper-plane"></i> Nộp bài
-                  </button>
+                </header>
+                <span class="exam-mobile-rule" aria-hidden="true"></span>
+
+                <div class="exam-mobile-subject">
+                  <label for="review-subject-select-mobile">Chọn môn</label>
+                  <div class="exam-mobile-subject-field custom-select-host">
+                    <i class="fa-solid fa-book-open" aria-hidden="true"></i>
+                    <select id="review-subject-select-mobile" data-custom-select aria-label="Chọn môn ôn tập"></select>
+                    <i class="fa-solid fa-chevron-down exam-mobile-subject-chevron" aria-hidden="true"></i>
+                  </div>
                 </div>
 
-                <div class="exam-progress-track" aria-hidden="true">
-                  <div id="exam-progress-bar"></div>
+                <div class="exam-config-heading">
+                  <div>
+                    <h2 id="review-config-title">Cấu hình ôn tập</h2>
+                  </div>
                 </div>
 
-                <div class="exam-mobile-progress">
-                  <span id="q-progress-text-mobile" class="emp-count">Câu 1 / 50</span>
-                  <div class="emp-track" aria-hidden="true"><div id="exam-progress-bar-mobile"></div></div>
-                  <span id="exam-progress-pct-mobile" class="emp-pct">0%</span>
-                  <button id="btn-flag-mobile" type="button" class="emp-flag" onclick="toggleFlagCurrentQuestion()" aria-label="Đánh dấu câu hỏi" aria-pressed="false">
-                    <i class="fa-regular fa-bookmark" aria-hidden="true"></i>
-                  </button>
+                <div class="exam-start-grid">
+                  <div class="exam-info-tile exam-info-count custom-select-host">
+                    <div class="exam-info-heading"><i class="fa-solid fa-list-ol" aria-hidden="true"></i><label for="review-question-count">Số câu hỏi</label></div>
+                    <select id="review-question-count" data-custom-select aria-label="Số câu hỏi ôn tập" onchange="onChapterReviewConfigChange()">
+                      <option value="10">10 câu</option>
+                      <option value="30" selected>30 câu</option>
+                      <option value="50">50 câu</option>
+                      <option value="100">100 câu</option>
+                      <option value="all">Tất cả</option>
+                    </select>
+                  </div>
+                  <div class="exam-info-tile exam-info-chapter custom-select-host">
+                    <div class="exam-info-heading"><i class="fa-solid fa-book-bookmark" aria-hidden="true"></i><label for="review-chapter-select">Chương</label></div>
+                    <select id="review-chapter-select" data-custom-select aria-label="Chương ôn tập" onchange="onChapterReviewConfigChange()"></select>
+                  </div>
+                  <div class="exam-info-tile exam-info-diff custom-select-host">
+                    <div class="exam-info-heading"><i class="fa-solid fa-gauge-high" aria-hidden="true"></i><label for="review-difficulty-select">Độ khó</label></div>
+                    <select id="review-difficulty-select" data-custom-select aria-label="Độ khó ôn tập" onchange="onChapterReviewConfigChange()">
+                      <option value="0" selected>Tất cả</option>
+                      <option value="1">Dễ</option>
+                      <option value="2">Trung bình</option>
+                      <option value="3">Khó</option>
+                    </select>
+                  </div>
                 </div>
 
-                <div class="exam-question-body">
-                  <div class="question-header">
-                    <div class="exam-question-chips">
-                      <span id="q-chapter-badge" class="badge badge-primary">Chương 1</span>
-                      <span id="q-diff-badge" class="badge badge-easy">Dễ</span>
+                <div class="exam-start-difficulty">
+                  <div class="exam-difficulty-heading">
+                    <div><i class="fa-solid fa-chart-simple" aria-hidden="true"></i><span><span class="exam-diff-title-desktop">Phân bố độ khó bộ đề</span><span class="exam-diff-title-mobile">Độ khó</span></span></div>
+                    <div class="exam-difficulty-legend">
+                      <span class="exam-diff-easy"><i></i>Dễ <strong id="review-diff-easy-pct">40</strong>%</span>
+                      <span class="exam-diff-medium"><i></i>Trung bình <strong id="review-diff-medium-pct">40</strong>%</span>
+                      <span class="exam-diff-hard"><i></i>Khó <strong id="review-diff-hard-pct">20</strong>%</span>
                     </div>
-                    <button id="btn-flag" class="exam-flag-btn" onclick="toggleFlagCurrentQuestion()">
-                      <i class="fa-regular fa-bookmark"></i> Đánh dấu
-                    </button>
                   </div>
 
-                  <h2 id="q-title" class="question-text">Đang tải câu hỏi...</h2>
-
-                  <div id="q-options-container" class="exam-options"></div>
-
-                  <div class="exam-footer">
-                    <button id="btn-prev-q" class="btn btn-secondary btn-sm exam-nav-btn" onclick="navExamQuestion(-1)">
-                      <i class="fa-solid fa-chevron-left"></i> Trước
-                    </button>
-                    <span id="q-progress-text" class="exam-position">Câu 1 / 50</span>
-                    <span id="q-position-mobile" class="exam-position-mobile">1 / 50</span>
-                    <button id="btn-next-q" class="btn btn-primary btn-sm exam-nav-btn" onclick="navExamQuestion(1)">
-                      Sau <i class="fa-solid fa-chevron-right"></i>
-                    </button>
+                  <div class="difficulty-bar exam-start-difficulty-bar draggable-bar" id="review-diff-bar" aria-label="Kéo để điều chỉnh tỷ lệ độ khó">
+                    <div class="diff-bar-easy" style="flex:40;" data-difficulty="easy">
+                      <div class="diff-bar-handle"></div>
+                    </div>
+                    <div class="diff-bar-medium" style="flex:40;" data-difficulty="medium">
+                      <div class="diff-bar-handle"></div>
+                    </div>
+                    <div class="diff-bar-hard" style="flex:20;" data-difficulty="hard"></div>
                   </div>
                 </div>
-              </div>
 
-              <!-- Right: Palette Sidebar -->
-              <aside class="exam-sidebar">
-                <div class="exam-palette-card">
-                  <div class="exam-palette-head">
-                    <h3><i class="fa-solid fa-list-ul" aria-hidden="true"></i> Danh sách câu</h3>
-                    <span id="palette-summary" class="text-xs text-muted">Đã làm: 0/50</span>
-                  </div>
+                <button class="btn btn-primary btn-lg btn-full exam-start-submit" onclick="initiateChapterReview()" id="btn-start-review">
+                  <i class="fa-solid fa-play" aria-hidden="true"></i>
+                  <span class="exam-start-submit-label"><span class="esl-desktop">Bắt đầu ôn tập</span><span class="esl-mobile">Bắt đầu ôn tập</span></span>
+                  <i class="fa-solid fa-arrow-right exam-start-submit-arrow" aria-hidden="true"></i>
+                </button>
 
-                  <div class="palette-legend">
-                    <span><i class="legend-dot"></i>Đã chọn</span>
-                    <span><i class="legend-dot is-empty"></i>Chưa chọn</span>
-                    <span><i class="legend-dot is-flagged"></i>Đánh dấu</span>
-                    <span><i class="legend-current"></i>Đang xem</span>
-                  </div>
-
-                  <div id="palette-grid" class="palette-grid"></div>
-
-                  <button type="button" class="palette-more" id="palette-more-btn" onclick="togglePaletteExpanded()">
-                    <i class="fa-solid fa-chevron-down"></i>
-                    <span>Xem thêm câu hỏi</span>
-                  </button>
+                <div class="exam-start-footer">
+                  <span><i class="fa-regular fa-clock" aria-hidden="true"></i><strong id="review-duration-footer">30 phút làm bài</strong></span>
+                  <span class="exam-footer-divider"></span>
+                  <span><i class="fa-solid fa-rectangle-list" aria-hidden="true"></i><strong id="review-count-footer">30 câu hỏi</strong></span>
+                  <span class="exam-start-footer-note" id="review-pool-note">Câu sai sẽ được đưa vào lịch ôn hôm nay</span>
                 </div>
-              </aside>
+              </section>
             </div>
-
-            <!-- Exam Result Screen -->
-            <div id="exam-result-card" class="hidden er" data-state="mid">
-              <div class="er-layout">
-
-                <!-- Score summary -->
-                <section id="exam-result-summary" class="er-score-card">
-                  <div class="er-score-top">
-                    <div class="er-ring-wrap">
-                      <div id="result-score-ring" class="er-ring" role="img" aria-label="Tỷ lệ câu đúng">
-                        <div class="er-ring-inner">
-                          <span id="result-score-val" class="er-ring-value">0%</span>
-                          <span id="result-score-label" class="er-ring-label">Tổng điểm 0/0</span>
-                        </div>
-                      </div>
-                      <span id="result-verdict" class="er-verdict">Điểm 0/10</span>
-                    </div>
-
-                    <div class="er-score-col">
-                      <div class="er-stats-mobile">
-                        <div class="er-stat is-correct">
-                          <span class="er-stat-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span>
-                          <span class="er-stat-label">Đúng</span>
-                          <strong id="res-correct-m" class="er-stat-value">0</strong>
-                          <b id="res-correct-pct-m" class="er-stat-pct">(0%)</b>
-                        </div>
-                        <div class="er-stat is-wrong">
-                          <span class="er-stat-icon"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i></span>
-                          <span class="er-stat-label">Sai</span>
-                          <strong id="res-wrong-m" class="er-stat-value">0</strong>
-                          <b id="res-wrong-pct-m" class="er-stat-pct">(0%)</b>
-                        </div>
-                        <div class="er-stat is-empty">
-                          <span class="er-stat-icon"><i class="fa-solid fa-circle-minus" aria-hidden="true"></i></span>
-                          <span class="er-stat-label">Chưa làm</span>
-                          <strong id="res-empty-m" class="er-stat-value">0</strong>
-                          <b id="res-empty-pct-m" class="er-stat-pct">(0%)</b>
-                        </div>
-                      </div>
-
-                      <div class="er-tiles">
-                        <div class="er-tile is-correct">
-                          <span class="er-tile-icon"><i class="fa-solid fa-circle-check"></i></span>
-                          <strong id="res-correct">0</strong>
-                          <span class="er-tile-label">Đúng <b id="res-correct-pct">(0%)</b></span>
-                        </div>
-                        <div class="er-tile is-wrong">
-                          <span class="er-tile-icon"><i class="fa-solid fa-circle-xmark"></i></span>
-                          <strong id="res-wrong">0</strong>
-                          <span class="er-tile-label">Sai <b id="res-wrong-pct">(0%)</b></span>
-                        </div>
-                        <div class="er-tile is-empty">
-                          <span class="er-tile-icon"><i class="fa-solid fa-circle-minus"></i></span>
-                          <strong id="res-empty">0</strong>
-                          <span class="er-tile-label">Chưa làm <b id="res-empty-pct">(0%)</b></span>
-                        </div>
-                      </div>
-
-                      <div class="er-actions">
-                        <button type="button" class="btn btn-primary er-btn" onclick="endExamResult()">
-                          <i class="fa-solid fa-house"></i> Kết thúc
-                        </button>
-                        <button id="btn-practice-wrong" type="button" class="btn btn-secondary er-btn hidden" onclick="startWrongQuestionPractice()">
-                          <i class="fa-solid fa-repeat"></i> Luyện lại câu sai
-                        </button>
-                        <button id="btn-review-details" type="button" class="btn btn-secondary er-btn" onclick="toggleReviewDetails()">
-                          <i class="fa-solid fa-list-check"></i> Xem chi tiết đáp án
-                        </button>
-                        <button type="button" class="btn btn-secondary er-btn" onclick="switchTab('history-tab')">
-                          <i class="fa-solid fa-chart-line"></i> Lịch sử
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <details class="er-analysis">
-                    <summary>
-                      <span><i class="fa-solid fa-chart-simple"></i> Phân tích theo chương &amp; độ khó</span>
-                      <i class="fa-solid fa-chevron-down"></i>
-                    </summary>
-                    <div class="er-analysis-body">
-                      <div class="er-analysis-block">
-                        <h4>Phân tích theo chương</h4>
-                        <div id="res-chapter-bars" class="chapter-bar-wrap"></div>
-                      </div>
-                      <div class="er-analysis-block">
-                        <h4>Độ khó</h4>
-                        <div id="res-diff-stats" class="er-diff-list"></div>
-                      </div>
-                      <div id="exam-feedback-section" class="er-feedback hidden">
-                        <h4><i class="fa-solid fa-wand-magic-sparkles"></i> Lỗ hổng kiến thức</h4>
-                        <div id="exam-feedback-content"></div>
-                      </div>
-                    </div>
-                  </details>
-                </section>
-
-                <!-- Practice surfaces -->
-                <div id="exam-chapter-practice-container" class="hidden er-practice">
-                  <div class="flex justify-between items-center flex-wrap gap-3" style="margin-bottom:16px;">
-                    <div>
-                      <h3 id="exam-chapter-practice-title" style="font-size:16px;font-weight:700;"></h3>
-                      <p id="exam-chapter-practice-count" class="text-xs text-muted" style="margin-top:4px;"></p>
-                    </div>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="returnFromExamChapterPractice()">
-                      <i class="fa-solid fa-arrow-left"></i> Quay lại kết quả
-                    </button>
-                  </div>
-                  <div id="exam-chapter-practice-list"></div>
-                </div>
-
-                <div id="exam-wrong-practice-container" class="hidden er-practice">
-                  <div class="flex justify-between items-center flex-wrap gap-3" style="margin-bottom:16px;">
-                    <h3 style="font-size:16px;font-weight:700;">Luyện lại câu sai và câu bỏ trống</h3>
-                    <button type="button" class="btn btn-secondary btn-sm" onclick="returnToExamResult()">
-                      <i class="fa-solid fa-arrow-left"></i> Quay lại kết quả
-                    </button>
-                  </div>
-                  <div id="exam-wrong-practice-list"></div>
-                </div>
-
-                <!-- Question details -->
-                <section id="exam-review-container" class="er-details">
-                  <div class="er-details-head">
-                    <div>
-                      <h3>Chi tiết từng câu hỏi</h3>
-                      <p id="result-details-count" class="er-details-sub">Xem lại đáp án và lời giải</p>
-                    </div>
-                    <button id="result-toggle-all" type="button" class="er-text-btn" onclick="toggleAllResultDetails()">Mở tất cả</button>
-                  </div>
-
-                  <div class="er-toolbar">
-                    <div class="er-filters" role="group" aria-label="Lọc câu hỏi">
-                      <button type="button" class="er-filter is-active" data-filter="all" aria-pressed="true" onclick="setResultFilter('all')">
-                        <i class="fa-solid fa-layer-group"></i> Tất cả (<span id="result-count-all">0</span>)
-                      </button>
-                      <button type="button" class="er-filter" data-filter="correct" aria-pressed="false" onclick="setResultFilter('correct')">
-                        <i class="fa-solid fa-check"></i> Đúng (<span id="result-count-correct">0</span>)
-                      </button>
-                      <button type="button" class="er-filter" data-filter="wrong" aria-pressed="false" onclick="setResultFilter('wrong')">
-                        <i class="fa-solid fa-xmark"></i> Sai (<span id="result-count-wrong">0</span>)
-                      </button>
-                      <button type="button" class="er-filter" data-filter="empty" aria-pressed="false" onclick="setResultFilter('empty')">
-                        <i class="fa-regular fa-circle"></i> Chưa làm (<span id="result-count-empty">0</span>)
-                      </button>
-                      <button type="button" class="er-filter" data-filter="flagged" aria-pressed="false" onclick="setResultFilter('flagged')">
-                        <i class="fa-regular fa-bookmark"></i> Đánh dấu (<span id="result-count-flagged">0</span>)
-                      </button>
-                    </div>
-                    <label class="er-sort">
-                      <span>Sắp xếp:</span>
-                      <select id="result-sort" onchange="setResultSort(this.value)">
-                        <option value="order">Thứ tự đề</option>
-                        <option value="wrong-first">Câu sai trước</option>
-                        <option value="difficulty">Câu khó trước</option>
-                        <option value="chapter">Theo chương</option>
-                      </select>
-                    </label>
-                  </div>
-
-                  <div id="review-questions-list" class="er-q-list"></div>
-                  <div id="result-filter-empty" class="er-empty hidden">
-                    <i class="fa-regular fa-folder-open"></i>
-                    <p>Không có câu hỏi nào trong mục này.</p>
-                  </div>
-                  <button type="button" id="result-review-more" class="er-more-btn hidden" onclick="toggleResultReviewExpanded()">
-                    <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
-                    <span>Xem thêm câu hỏi</span>
-                  </button>
-                </section>
-
-                <!-- Question palette -->
-                <aside id="result-sidebar" class="er-side">
-                  <div class="er-side-card">
-                    <div class="er-side-head">
-                      <h3><i class="fa-solid fa-list-ul"></i> Danh sách câu hỏi</h3>
-                      <span id="result-palette-summary">Đã làm: 0/0</span>
-                    </div>
-                    <div class="er-legend">
-                      <span><i class="er-dot is-correct"></i> Đúng (<b id="result-palette-correct">0</b>)</span>
-                      <span><i class="fa-solid fa-circle-xmark is-wrong"></i> Sai (<b id="result-palette-wrong">0</b>)</span>
-                      <span><i class="er-dot is-empty"></i> Chưa làm (<b id="result-palette-empty">0</b>)</span>
-                      <span><i class="fa-regular fa-bookmark is-flagged"></i> Đánh dấu (<b id="result-palette-flagged">0</b>)</span>
-                    </div>
-                    <div id="result-palette-grid" class="er-palette"></div>
-                    <button type="button" class="palette-more" id="result-palette-more" onclick="toggleResultPalette()">
-                      <i class="fa-solid fa-chevron-down"></i>
-                      <span>Xem thêm chi tiết</span>
-                    </button>
-                  </div>
-                </aside>
-              </div>
-            </div>
-                
           </section>
 
           <!-- ══════ TAB 3: NGÂN HÀNG ĐỀ ══════ -->
@@ -1215,6 +1038,288 @@
           <section id="share-tab" class="tab-content" role="main" aria-label="Đề đã chia sẻ">
             <div id="quiz-share-owner-root" class="sq-owner-root"></div>
           </section>
+
+          <!-- Active Exam View -->
+          <div id="exam-active-card" class="hidden exam-layout">
+            <!-- Left: Question Paper -->
+            <div class="exam-paper">
+              <div class="exam-topbar">
+                <div class="exam-topbar-left">
+                  <span id="exam-subject-chip" class="exam-subject-chip">
+                    <i class="fa-solid fa-book-open" aria-hidden="true"></i>
+                    <span id="exam-subject-code">FT4468</span>
+                  </span>
+                  <span id="exam-timer-display" class="timer-display">
+                    <i class="fa-regular fa-clock" aria-hidden="true"></i>
+                    <span id="exam-timer-text">50:00</span>
+                  </span>
+                  <button id="btn-pause" class="btn btn-secondary btn-sm exam-pause-btn" onclick="togglePauseExam()">
+                    <i class="fa-solid fa-pause"></i> Tạm dừng
+                  </button>
+                </div>
+                <button class="btn btn-success exam-submit-btn" onclick="confirmSubmitExam()">
+                  <i class="fa-solid fa-paper-plane"></i> Nộp bài
+                </button>
+              </div>
+
+              <div class="exam-progress-track" aria-hidden="true">
+                <div id="exam-progress-bar"></div>
+              </div>
+
+              <div class="exam-mobile-progress">
+                <span id="q-progress-text-mobile" class="emp-count">Câu 1 / 50</span>
+                <div class="emp-track" aria-hidden="true"><div id="exam-progress-bar-mobile"></div></div>
+                <span id="exam-progress-pct-mobile" class="emp-pct">0%</span>
+                <button id="btn-flag-mobile" type="button" class="emp-flag" onclick="toggleFlagCurrentQuestion()" aria-label="Đánh dấu câu hỏi" aria-pressed="false">
+                  <i class="fa-regular fa-bookmark" aria-hidden="true"></i>
+                </button>
+              </div>
+
+              <div class="exam-question-body">
+                <div class="question-header">
+                  <div class="exam-question-chips">
+                    <span id="q-chapter-badge" class="badge badge-primary">Chương 1</span>
+                    <span id="q-diff-badge" class="badge badge-easy">Dễ</span>
+                  </div>
+                  <button id="btn-flag" class="exam-flag-btn" onclick="toggleFlagCurrentQuestion()">
+                    <i class="fa-regular fa-bookmark"></i> Đánh dấu
+                  </button>
+                </div>
+
+                <h2 id="q-title" class="question-text">Đang tải câu hỏi...</h2>
+
+                <div id="q-options-container" class="exam-options"></div>
+
+                <div class="exam-footer">
+                  <button id="btn-prev-q" class="btn btn-secondary btn-sm exam-nav-btn" onclick="navExamQuestion(-1)">
+                    <i class="fa-solid fa-chevron-left"></i> Trước
+                  </button>
+                  <span id="q-progress-text" class="exam-position">Câu 1 / 50</span>
+                  <span id="q-position-mobile" class="exam-position-mobile">1 / 50</span>
+                  <button id="btn-next-q" class="btn btn-primary btn-sm exam-nav-btn" onclick="navExamQuestion(1)">
+                    Sau <i class="fa-solid fa-chevron-right"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Right: Palette Sidebar -->
+            <aside class="exam-sidebar">
+              <div class="exam-palette-card">
+                <div class="exam-palette-head">
+                  <h3><i class="fa-solid fa-list-ul" aria-hidden="true"></i> Danh sách câu</h3>
+                  <span id="palette-summary" class="text-xs text-muted">Đã làm: 0/50</span>
+                </div>
+
+                <div class="palette-legend">
+                  <span><i class="legend-dot"></i>Đã chọn</span>
+                  <span><i class="legend-dot is-empty"></i>Chưa chọn</span>
+                  <span><i class="legend-dot is-flagged"></i>Đánh dấu</span>
+                  <span><i class="legend-current"></i>Đang xem</span>
+                </div>
+
+                <div id="palette-grid" class="palette-grid"></div>
+
+                <button type="button" class="palette-more" id="palette-more-btn" onclick="togglePaletteExpanded()">
+                  <i class="fa-solid fa-chevron-down"></i>
+                  <span>Xem thêm câu hỏi</span>
+                </button>
+              </div>
+            </aside>
+          </div>
+
+          <!-- Exam Result Screen -->
+          <div id="exam-result-card" class="hidden er" data-state="mid">
+            <div class="er-layout">
+
+              <!-- Score summary -->
+              <section id="exam-result-summary" class="er-score-card">
+                <div class="er-score-top">
+                  <div class="er-ring-wrap">
+                    <div id="result-score-ring" class="er-ring" role="img" aria-label="Tỷ lệ câu đúng">
+                      <div class="er-ring-inner">
+                        <span id="result-score-val" class="er-ring-value">0%</span>
+                        <span id="result-score-label" class="er-ring-label">Tổng điểm 0/0</span>
+                      </div>
+                    </div>
+                    <span id="result-verdict" class="er-verdict">Điểm 0/10</span>
+                  </div>
+
+                  <div class="er-score-col">
+                    <div class="er-stats-mobile">
+                      <div class="er-stat is-correct">
+                        <span class="er-stat-icon"><i class="fa-solid fa-circle-check" aria-hidden="true"></i></span>
+                        <span class="er-stat-label">Đúng</span>
+                        <strong id="res-correct-m" class="er-stat-value">0</strong>
+                        <b id="res-correct-pct-m" class="er-stat-pct">(0%)</b>
+                      </div>
+                      <div class="er-stat is-wrong">
+                        <span class="er-stat-icon"><i class="fa-solid fa-circle-xmark" aria-hidden="true"></i></span>
+                        <span class="er-stat-label">Sai</span>
+                        <strong id="res-wrong-m" class="er-stat-value">0</strong>
+                        <b id="res-wrong-pct-m" class="er-stat-pct">(0%)</b>
+                      </div>
+                      <div class="er-stat is-empty">
+                        <span class="er-stat-icon"><i class="fa-solid fa-circle-minus" aria-hidden="true"></i></span>
+                        <span class="er-stat-label">Chưa làm</span>
+                        <strong id="res-empty-m" class="er-stat-value">0</strong>
+                        <b id="res-empty-pct-m" class="er-stat-pct">(0%)</b>
+                      </div>
+                    </div>
+
+                    <div class="er-tiles">
+                      <div class="er-tile is-correct">
+                        <span class="er-tile-icon"><i class="fa-solid fa-circle-check"></i></span>
+                        <strong id="res-correct">0</strong>
+                        <span class="er-tile-label">Đúng <b id="res-correct-pct">(0%)</b></span>
+                      </div>
+                      <div class="er-tile is-wrong">
+                        <span class="er-tile-icon"><i class="fa-solid fa-circle-xmark"></i></span>
+                        <strong id="res-wrong">0</strong>
+                        <span class="er-tile-label">Sai <b id="res-wrong-pct">(0%)</b></span>
+                      </div>
+                      <div class="er-tile is-empty">
+                        <span class="er-tile-icon"><i class="fa-solid fa-circle-minus"></i></span>
+                        <strong id="res-empty">0</strong>
+                        <span class="er-tile-label">Chưa làm <b id="res-empty-pct">(0%)</b></span>
+                      </div>
+                    </div>
+
+                    <div class="er-actions">
+                      <button type="button" class="btn btn-primary er-btn" onclick="endExamResult()">
+                        <i class="fa-solid fa-house"></i> Kết thúc
+                      </button>
+                      <button id="btn-practice-wrong" type="button" class="btn btn-secondary er-btn hidden" onclick="startWrongQuestionPractice()">
+                        <i class="fa-solid fa-repeat"></i> Luyện lại câu sai
+                      </button>
+                      <button id="btn-review-details" type="button" class="btn btn-secondary er-btn" onclick="toggleReviewDetails()">
+                        <i class="fa-solid fa-list-check"></i> Xem chi tiết đáp án
+                      </button>
+                      <button type="button" class="btn btn-secondary er-btn" onclick="switchTab('history-tab')">
+                        <i class="fa-solid fa-chart-line"></i> Lịch sử
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <details class="er-analysis">
+                  <summary>
+                    <span><i class="fa-solid fa-chart-simple"></i> Phân tích theo chương &amp; độ khó</span>
+                    <i class="fa-solid fa-chevron-down"></i>
+                  </summary>
+                  <div class="er-analysis-body">
+                    <div class="er-analysis-block">
+                      <h4>Phân tích theo chương</h4>
+                      <div id="res-chapter-bars" class="chapter-bar-wrap"></div>
+                    </div>
+                    <div class="er-analysis-block">
+                      <h4>Độ khó</h4>
+                      <div id="res-diff-stats" class="er-diff-list"></div>
+                    </div>
+                    <div id="exam-feedback-section" class="er-feedback hidden">
+                      <h4><i class="fa-solid fa-wand-magic-sparkles"></i> Lỗ hổng kiến thức</h4>
+                      <div id="exam-feedback-content"></div>
+                    </div>
+                  </div>
+                </details>
+              </section>
+
+              <!-- Practice surfaces -->
+              <div id="exam-chapter-practice-container" class="hidden er-practice">
+                <div class="flex justify-between items-center flex-wrap gap-3" style="margin-bottom:16px;">
+                  <div>
+                    <h3 id="exam-chapter-practice-title" style="font-size:16px;font-weight:700;"></h3>
+                    <p id="exam-chapter-practice-count" class="text-xs text-muted" style="margin-top:4px;"></p>
+                  </div>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="returnFromExamChapterPractice()">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại kết quả
+                  </button>
+                </div>
+                <div id="exam-chapter-practice-list"></div>
+              </div>
+
+              <div id="exam-wrong-practice-container" class="hidden er-practice">
+                <div class="flex justify-between items-center flex-wrap gap-3" style="margin-bottom:16px;">
+                  <h3 style="font-size:16px;font-weight:700;">Luyện lại câu sai và câu bỏ trống</h3>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="returnToExamResult()">
+                    <i class="fa-solid fa-arrow-left"></i> Quay lại kết quả
+                  </button>
+                </div>
+                <div id="exam-wrong-practice-list"></div>
+              </div>
+
+              <!-- Question details -->
+              <section id="exam-review-container" class="er-details">
+                <div class="er-details-head">
+                  <div>
+                    <h3>Chi tiết từng câu hỏi</h3>
+                    <p id="result-details-count" class="er-details-sub">Xem lại đáp án và lời giải</p>
+                  </div>
+                  <button id="result-toggle-all" type="button" class="er-text-btn" onclick="toggleAllResultDetails()">Mở tất cả</button>
+                </div>
+
+                <div class="er-toolbar">
+                  <div class="er-filters" role="group" aria-label="Lọc câu hỏi">
+                    <button type="button" class="er-filter is-active" data-filter="all" aria-pressed="true" onclick="setResultFilter('all')">
+                      <i class="fa-solid fa-layer-group"></i> Tất cả (<span id="result-count-all">0</span>)
+                    </button>
+                    <button type="button" class="er-filter" data-filter="correct" aria-pressed="false" onclick="setResultFilter('correct')">
+                      <i class="fa-solid fa-check"></i> Đúng (<span id="result-count-correct">0</span>)
+                    </button>
+                    <button type="button" class="er-filter" data-filter="wrong" aria-pressed="false" onclick="setResultFilter('wrong')">
+                      <i class="fa-solid fa-xmark"></i> Sai (<span id="result-count-wrong">0</span>)
+                    </button>
+                    <button type="button" class="er-filter" data-filter="empty" aria-pressed="false" onclick="setResultFilter('empty')">
+                      <i class="fa-regular fa-circle"></i> Chưa làm (<span id="result-count-empty">0</span>)
+                    </button>
+                    <button type="button" class="er-filter" data-filter="flagged" aria-pressed="false" onclick="setResultFilter('flagged')">
+                      <i class="fa-regular fa-bookmark"></i> Đánh dấu (<span id="result-count-flagged">0</span>)
+                    </button>
+                  </div>
+                  <label class="er-sort">
+                    <span>Sắp xếp:</span>
+                    <select id="result-sort" onchange="setResultSort(this.value)">
+                      <option value="order">Thứ tự đề</option>
+                      <option value="wrong-first">Câu sai trước</option>
+                      <option value="difficulty">Câu khó trước</option>
+                      <option value="chapter">Theo chương</option>
+                    </select>
+                  </label>
+                </div>
+
+                <div id="review-questions-list" class="er-q-list"></div>
+                <div id="result-filter-empty" class="er-empty hidden">
+                  <i class="fa-regular fa-folder-open"></i>
+                  <p>Không có câu hỏi nào trong mục này.</p>
+                </div>
+                <button type="button" id="result-review-more" class="er-more-btn hidden" onclick="toggleResultReviewExpanded()">
+                  <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+                  <span>Xem thêm câu hỏi</span>
+                </button>
+              </section>
+
+              <!-- Question palette -->
+              <aside id="result-sidebar" class="er-side">
+                <div class="er-side-card">
+                  <div class="er-side-head">
+                    <h3><i class="fa-solid fa-list-ul"></i> Danh sách câu hỏi</h3>
+                    <span id="result-palette-summary">Đã làm: 0/0</span>
+                  </div>
+                  <div class="er-legend">
+                    <span><i class="er-dot is-correct"></i> Đúng (<b id="result-palette-correct">0</b>)</span>
+                    <span><i class="fa-solid fa-circle-xmark is-wrong"></i> Sai (<b id="result-palette-wrong">0</b>)</span>
+                    <span><i class="er-dot is-empty"></i> Chưa làm (<b id="result-palette-empty">0</b>)</span>
+                    <span><i class="fa-regular fa-bookmark is-flagged"></i> Đánh dấu (<b id="result-palette-flagged">0</b>)</span>
+                  </div>
+                  <div id="result-palette-grid" class="er-palette"></div>
+                  <button type="button" class="palette-more" id="result-palette-more" onclick="toggleResultPalette()">
+                    <i class="fa-solid fa-chevron-down"></i>
+                    <span>Xem thêm chi tiết</span>
+                  </button>
+                </div>
+              </aside>
+            </div>
+          </div>
 
         </section>
 
@@ -1586,14 +1691,14 @@
         <section id="page-study-reader" class="study-reader-page hidden" aria-label="Trình đọc bài giảng">
           <div class="study-reader-frame">
             <header class="study-reader-header">
-              <div class="study-reader-brand"><button id="study-reader-back" class="study-reader-back" type="button" aria-label="Quay lại"><i class="fa-solid fa-arrow-left"></i><span>Quay lại</span></button><div id="study-reader-crumb" class="study-reader-crumb">Tài liệu học tập</div></div>
-              <a id="study-reader-resource-link" class="study-reader-resource-link" href="#" target="_blank" rel="noopener noreferrer" hidden><i class="fa-solid fa-download"></i><span>Tải tài liệu</span></a>
+              <div class="study-reader-brand"><button id="study-reader-back" class="study-reader-back" type="button" aria-label="Quay lại"><i class="fa-solid fa-arrow-left"></i><span>Quay lại</span></button><span class="study-reader-logo"><img src="fteca.webp" alt="FTECA"></span><div id="study-reader-crumb" class="study-reader-crumb">Tài liệu học tập</div></div>
+              <a id="study-reader-resource-link" class="study-reader-resource-link" href="#" target="_blank" rel="noopener noreferrer" hidden><i class="fa-solid fa-download"></i><span>Tải Tài liệu</span></a>
               <div class="study-reader-header-actions"><button id="study-reader-focus-toggle" type="button" class="btn-focus-mode" onclick="toggleStudyReaderFocusMode()" title="Chế độ đọc tập trung"><i class="fa-solid fa-expand"></i> <span>Tập trung</span></button><button id="study-reader-toc-toggle" type="button" aria-controls="study-reader-toc" aria-expanded="false"><i class="fa-solid fa-list"></i><span>Mục lục</span></button><button id="study-reader-panel-toggle" type="button" aria-controls="study-reader-right-panel" aria-expanded="false"><i class="fa-solid fa-note-sticky"></i><span>Ghi chú</span></button></div>
             </header>
             <div class="study-reader-grid">
-              <aside id="study-reader-toc" class="study-reader-toc" aria-label="Mục lục bài giảng"><div class="study-reader-course-card"><div class="study-reader-course-icon"><i class="fa-solid fa-graduation-cap"></i></div><div><span id="study-reader-course-code">FTECA</span><strong id="study-reader-course-title">Tài liệu học tập &amp; Bài giảng ôn tập</strong></div></div><div class="study-reader-toc-head"><span>Tiến độ học tập</span><b id="study-reader-progress">0%</b></div><div class="study-reader-progress-track" aria-label="Tiến độ học"><i id="study-reader-progress-bar" style="width:0%"></i></div><label class="study-reader-find-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="study-reader-find" class="study-reader-find" type="search" placeholder="Tìm trong bài giảng…" autocomplete="off"></label><nav id="study-reader-toc-list" class="study-reader-toc-list"></nav></aside>
-              <main class="study-reader-main"><div class="study-reader-main-top"><span id="study-reader-location"><i class="fa-solid fa-book-open"></i> Không gian học tập</span><span class="study-reader-page-count">Reader <b id="study-reader-page-indicator">1 / 1</b></span><button type="button" class="study-reader-mobile-only study-reader-expand" onclick="toggleStudyReaderFocusMode()" aria-label="Toàn màn hình"><i class="fa-solid fa-expand"></i></button></div><div id="study-reader-toolbar" class="study-reader-toolbar" aria-label="Công cụ học"><button type="button" class="study-reader-tool-btn study-reader-mobile-only" data-reader-mobile="toc"><i class="fa-solid fa-book-open"></i> Mục lục</button><button type="button" class="study-reader-tool-btn" data-reader-action="note"><i class="fa-solid fa-note-sticky"></i> Tạo ghi chú</button><button type="button" class="study-reader-tool-btn" data-reader-action="highlight"><i class="fa-solid fa-highlighter"></i> Highlight</button><button type="button" class="study-reader-tool-btn" data-reader-action="annotate"><i class="fa-solid fa-pen-ruler"></i> Vẽ</button><button type="button" class="study-reader-tool-btn" data-reader-action="undo"><i class="fa-solid fa-rotate-left"></i> Hoàn tác</button><button type="button" class="study-reader-tool-btn" data-reader-action="clear"><i class="fa-solid fa-eraser"></i> Xóa nét vẽ</button><button type="button" class="study-reader-tool-btn study-reader-mobile-only" data-reader-mobile="colors"><i class="fa-solid fa-palette"></i> Màu</button><div id="study-reader-color-palette" class="study-reader-color-palette hidden" role="group" aria-label="Chọn màu bút"><button type="button" class="swatch-btn active" data-annotation-color="#10b981" aria-label="Màu xanh lá" title="Xanh lá" style="background:#10b981!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#06b6d4" aria-label="Màu xanh ngọc" title="Xanh ngọc" style="background:#06b6d4!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#2563eb" aria-label="Màu xanh dương" title="Xanh dương" style="background:#2563eb!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#6366f1" aria-label="Màu chàm" title="Xanh chàm" style="background:#6366f1!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#8b5cf6" aria-label="Màu tím" title="Tím" style="background:#8b5cf6!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#ec4899" aria-label="Màu hồng" title="Hồng" style="background:#ec4899!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#ef4444" aria-label="Màu đỏ" title="Đỏ" style="background:#ef4444!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#f97316" aria-label="Màu cam" title="Cam" style="background:#f97316!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#eab308" aria-label="Màu vàng" title="Vàng" style="background:#eab308!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#1e293b" aria-label="Màu đen" title="Đen" style="background:#1e293b!important;"></button></div></div><article id="study-reader-content" class="study-reader-content" tabindex="-1"></article><footer class="study-reader-document-footer" aria-label="Trạng thái tài liệu"><span><i class="fa-solid fa-sparkles"></i> Học từng chút, giỏi từng ngày</span><div class="study-reader-footer-progress"><i></i></div></footer><nav class="study-reader-lesson-nav" aria-label="Điều hướng bài học"><button type="button" class="study-reader-lesson-nav-btn is-prev" id="study-reader-prev-lesson"><i class="fa-solid fa-arrow-left"></i> Bài trước</button><span class="study-reader-lesson-nav-count" id="study-reader-lesson-counter">1 / 1</span><button type="button" class="study-reader-lesson-nav-btn is-next" id="study-reader-next-lesson">Bài tiếp <i class="fa-solid fa-arrow-right"></i></button></nav></main>
-              <aside id="study-reader-right-panel" class="study-reader-right-panel"><div class="study-reader-panel-orb" aria-hidden="true"></div><section id="study-reader-note" class="study-reader-note-paper"><div class="study-reader-panel-title"><span><i class="fa-solid fa-note-sticky"></i> Ghi chú của bạn</span><small id="study-reader-note-status">Chưa lưu</small></div><textarea id="study-reader-note-input" placeholder="Viết ghi chú để tiện ghi nhớ…"></textarea><div class="study-reader-note-tools"><button type="button" data-note-format="bold"><b>B</b></button><button type="button" data-note-format="italic"><i>I</i></button><button type="button" data-note-format="list"><i class="fa-solid fa-list"></i></button></div></section><section id="study-reader-ai" class="study-reader-ai"><div class="study-reader-panel-title"><span><i class="fa-solid fa-sparkles"></i> Tóm tắt bài học</span></div><p class="study-reader-ai-copy">Tóm tắt tiêu chuẩn do hệ thống phát hành.</p><div class="study-reader-ai-modes" role="group" aria-label="Chế độ tóm tắt"><button type="button" data-summary-mode="quick">⚡ 1 phút</button><button type="button" data-summary-mode="study" class="active">📚 Chi tiết</button><button type="button" data-summary-mode="exam" disabled title="Tính năng đang bảo trì">🚧 Ôn thi</button></div><input id="study-reader-ai-instruction" type="text" maxlength="300" placeholder="Bạn chưa hiểu phần nào? (không bắt buộc)" style="display:none;"><button id="study-reader-ai-summary" type="button" class="study-reader-ai-action" style="display:none;"><i class="fa-solid fa-wand-magic-sparkles"></i> Tóm tắt bài này</button><div id="study-reader-ai-status" class="study-reader-ai-status" aria-live="polite">Đang tải tóm tắt…</div><div id="study-reader-ai-result" class="study-reader-ai-result"></div><div class="study-reader-ai-actions"><button type="button" id="study-reader-ai-save" disabled>Lưu vào ghi chú</button><button type="button" id="study-reader-ai-regenerate" disabled><i class="fa-solid fa-rotate-right"></i> Tạo lại bằng AI</button><button type="button" id="study-reader-ai-explain" disabled>Giải thích phần đang bôi đen</button></div></section><section id="study-reader-share" class="study-reader-share"><div class="study-reader-panel-title"><span><i class="fa-solid fa-link"></i> Tài liệu &amp; Chia sẻ</span></div><div class="study-reader-key-row"><input id="study-reader-key-input" type="text" placeholder="Nhập key để truy cập ghi chú"><button id="study-reader-key-open" type="button">Xác nhận</button></div><div class="study-reader-share-actions"><button id="study-reader-save" type="button"><i class="fa-regular fa-bookmark"></i> Lưu lại</button><button id="study-reader-share-create" type="button"><i class="fa-solid fa-share-nodes"></i> Chia sẻ</button></div><small id="study-reader-share-status">Chia sẻ hoạt động cục bộ trên thiết bị này.</small></section></aside>
+              <aside id="study-reader-toc" class="study-reader-toc" aria-label="Mục lục bài giảng"><button id="study-reader-back-toc" class="study-reader-toc-back" type="button"><i class="fa-solid fa-arrow-left"></i><span>Quay lại</span></button><div class="study-reader-course-card"><div class="study-reader-course-icon"><i class="fa-solid fa-graduation-cap"></i></div><div><span id="study-reader-course-code">FTECA</span><strong id="study-reader-course-title">Tài liệu học tập &amp; Bài giảng ôn tập</strong></div></div><div class="study-reader-toc-head"><span>Tiến độ học tập</span><b id="study-reader-progress">0%</b></div><div class="study-reader-progress-track" aria-label="Tiến độ học"><i id="study-reader-progress-bar" style="width:0%"></i></div><label class="study-reader-find-wrap"><i class="fa-solid fa-magnifying-glass"></i><input id="study-reader-find" class="study-reader-find" type="search" placeholder="Tìm trong bài giảng…" autocomplete="off"></label><nav id="study-reader-toc-list" class="study-reader-toc-list"></nav></aside>
+              <main class="study-reader-main"><div class="study-reader-main-top"><span id="study-reader-location"><i class="fa-solid fa-book-open"></i> Không gian học tập</span><span class="study-reader-page-count">Reader <b id="study-reader-page-indicator">1 / 1</b></span><button type="button" class="study-reader-mobile-only study-reader-expand" onclick="toggleStudyReaderFocusMode()" aria-label="Toàn màn hình"><i class="fa-solid fa-expand"></i></button></div><div id="study-reader-toolbar" class="study-reader-toolbar" aria-label="Công cụ học"><button type="button" class="study-reader-tool-btn study-reader-mobile-only" data-reader-mobile="toc"><i class="fa-solid fa-book-open"></i> Mục lục</button><button type="button" class="study-reader-tool-btn" data-reader-action="note"><i class="fa-solid fa-note-sticky"></i> Tạo ghi chú</button><button type="button" class="study-reader-tool-btn" data-reader-action="highlight"><i class="fa-solid fa-highlighter"></i> Highlight</button><button type="button" class="study-reader-tool-btn" data-reader-action="annotate"><i class="fa-solid fa-pen-ruler"></i> Vẽ</button><button type="button" class="study-reader-tool-btn" data-reader-action="undo"><i class="fa-solid fa-rotate-left"></i> Hoàn tác</button><button type="button" class="study-reader-tool-btn" data-reader-action="clear"><i class="fa-solid fa-eraser"></i> Xóa nét vẽ</button><button type="button" class="study-reader-tool-btn study-reader-mobile-only" data-reader-mobile="colors"><i class="fa-solid fa-palette"></i> Màu</button><div id="study-reader-color-palette" class="study-reader-color-palette hidden" role="group" aria-label="Chọn màu bút"><button type="button" class="swatch-btn active" data-annotation-color="#10b981" aria-label="Màu xanh lá" title="Xanh lá" style="background:#10b981!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#06b6d4" aria-label="Màu xanh ngọc" title="Xanh ngọc" style="background:#06b6d4!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#2563eb" aria-label="Màu xanh dương" title="Xanh dương" style="background:#2563eb!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#6366f1" aria-label="Màu chàm" title="Xanh chàm" style="background:#6366f1!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#8b5cf6" aria-label="Màu tím" title="Tím" style="background:#8b5cf6!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#ec4899" aria-label="Màu hồng" title="Hồng" style="background:#ec4899!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#ef4444" aria-label="Màu đỏ" title="Đỏ" style="background:#ef4444!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#f97316" aria-label="Màu cam" title="Cam" style="background:#f97316!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#eab308" aria-label="Màu vàng" title="Vàng" style="background:#eab308!important;"></button><button type="button" class="swatch-btn" data-annotation-color="#1e293b" aria-label="Màu đen" title="Đen" style="background:#1e293b!important;"></button></div></div><article id="study-reader-content" class="study-reader-content" tabindex="-1"></article><footer class="study-reader-document-footer" aria-label="Trạng thái tài liệu"><span><i class="fa-solid fa-circle-check"></i> Học cùng tiến độ · Cố gắng lên nhé!</span><div class="study-reader-footer-progress"><i></i></div></footer><nav class="study-reader-lesson-nav" aria-label="Điều hướng bài học"><button type="button" class="study-reader-lesson-nav-btn is-prev" id="study-reader-prev-lesson"><i class="fa-solid fa-arrow-left"></i> Bài trước</button><span class="study-reader-lesson-nav-count" id="study-reader-lesson-counter">1 / 1</span><button type="button" class="study-reader-lesson-nav-btn is-next" id="study-reader-next-lesson">Bài tiếp <i class="fa-solid fa-arrow-right"></i></button></nav></main>
+              <aside id="study-reader-right-panel" class="study-reader-right-panel"><div class="study-reader-panel-orb" aria-hidden="true"></div><section id="study-reader-note" class="study-reader-note-paper"><div class="study-reader-panel-title"><span><i class="fa-solid fa-note-sticky"></i> Ghi chú của bạn</span><small id="study-reader-note-status">Chưa lưu</small></div><textarea id="study-reader-note-input" placeholder="Viết ghi chú để tiện ghi nhớ…"></textarea></section><section id="study-reader-ai" class="study-reader-ai"><div class="study-reader-panel-title"><span><i class="fa-solid fa-star"></i> Tóm tắt bài học</span></div><p class="study-reader-ai-copy">Tóm tắt tiêu chuẩn do hệ thống phát hành.</p><div class="study-reader-ai-modes" role="group" aria-label="Chế độ tóm tắt"><button type="button" data-summary-mode="quick">⚡ 1 phút</button><button type="button" data-summary-mode="study" class="active">📚 Chi tiết</button><button type="button" data-summary-mode="exam" disabled title="Tính năng đang bảo trì">👀 Ôn thi</button></div><input id="study-reader-ai-instruction" type="text" maxlength="300" placeholder="Bạn chưa hiểu phần nào? (không bắt buộc)" style="display:none;"><button id="study-reader-ai-summary" type="button" class="study-reader-ai-action" style="display:none;"><i class="fa-solid fa-wand-magic-sparkles"></i> Tóm tắt bài này</button><div id="study-reader-ai-status" class="study-reader-ai-status" aria-live="polite">Đang tải tóm tắt…</div><div id="study-reader-ai-result" class="study-reader-ai-result"></div><div class="study-reader-ai-actions"><button type="button" id="study-reader-ai-save" disabled>Lưu vào ghi chú</button><button type="button" id="study-reader-ai-regenerate" disabled><i class="fa-solid fa-rotate-right"></i> Tạo lại bằng AI</button><button type="button" id="study-reader-ai-explain" disabled>Giải thích phần đang bôi đen</button></div></section><section id="study-reader-share" class="study-reader-share"><div class="study-reader-panel-title"><span><i class="fa-solid fa-link"></i> Tài liệu &amp; Chia sẻ</span></div><div class="study-reader-key-row"><input id="study-reader-key-input" type="text" placeholder="Nhập key để truy cập ghi chú"><button id="study-reader-key-open" type="button">Xác nhận</button></div><div class="study-reader-share-actions"><button id="study-reader-save" type="button"><i class="fa-regular fa-bookmark"></i> Lưu lại</button><button id="study-reader-share-create" type="button"><i class="fa-solid fa-share-nodes"></i> Chia sẻ</button></div><small id="study-reader-share-status">Chia sẻ hoạt động cục bộ trên thiết bị này.</small></section></aside>
             </div>
           </div>
         </section>
@@ -3959,6 +4064,6 @@
 
   <script src="assets/lottie_light.min.js" defer></script>
   <script src="mobile-home.js?v=mh18" defer></script>
-  <script type="module" src="app.js?v=20261111-readerload6"></script>
+  <script type="module" src="app.js?v=20261112-grounding1"></script>
 </body>
 </html>

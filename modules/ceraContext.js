@@ -81,6 +81,10 @@ function availabilityFor(subject) {
   };
 }
 
+function significantNameTokens(subject) {
+  return [...new Set(tokensOf(subject.name).filter(token => !SUBJECT_NAME_STOPWORDS.has(token)))];
+}
+
 export function mentionedSubjects(query) {
   const queryText = String(query || '');
   const upper = queryText.toUpperCase();
@@ -99,21 +103,21 @@ export function mentionedSubjects(query) {
       scored.push({ subject, score: 100 });
       return;
     }
-    const nameTokens = tokensOf(subject.name).filter(token => token.length >= 2 && !SUBJECT_NAME_STOPWORDS.has(token));
+    const nameTokens = significantNameTokens(subject);
     const hits = nameTokens.filter(token => queryTokens.has(token)).length;
     if (nameTokens.length && hits >= Math.min(2, nameTokens.length)) {
       // Cụm từ liền nhau trong câu ("vi sinh đại cương") đáng tin hơn các từ rời
       // rạc, tránh nhầm "Sinh học đại cương" khi người học nói "Vi sinh đại cương".
-      const run = longestAdjacentRun(tokensOf(subject.name).filter(token => !SUBJECT_NAME_STOPWORDS.has(token)), queryTokenList);
+      const run = longestAdjacentRun(nameTokens, queryTokenList);
       scored.push({ subject, score: hits + run * 2 });
     }
   });
   return scored.sort((a, b) => b.score - a.score).slice(0, 2).map(entry => entry.subject);
 }
 
-// Một mention "mạnh" là mã môn, tên gọi tắt, hoặc ≥3 từ trong tên môn.
-// "kho bảo quản" chỉ khớp 2 từ với "Nguyên lý bảo quản…" nên không được coi là
-// người học đang hỏi môn đó khi họ đang đọc bài của môn khác.
+// Một mention "mạnh" là mã môn, tên gọi tắt, tên môn đầy đủ, hoặc một cụm ≥3 từ
+// liền nhau của tên môn. Từ rời rạc trong tiêu đề mục ("các … quá trình … lý …
+// hóa" của bài đang đọc) không đủ để coi là người học đang hỏi môn khác.
 function strongSubjectMention(query, subject) {
   const upper = String(query || '').toUpperCase();
   const code = String(subject.code || subject.id || '').toUpperCase();
@@ -121,9 +125,9 @@ function strongSubjectMention(query, subject) {
   const normalizedQuery = normalize(query);
   const aliases = SUBJECT_ALIASES[subject.id] || [];
   if (aliases.some(alias => normalizedQuery.includes(alias))) return true;
-  const nameTokens = tokensOf(subject.name).filter(token => token.length >= 2 && !SUBJECT_NAME_STOPWORDS.has(token));
-  const queryTokens = new Set(tokensOf(query));
-  return nameTokens.filter(token => queryTokens.has(token)).length >= 3;
+  const fullName = normalize(subject.name);
+  if (fullName.length >= 8 && normalizedQuery.includes(fullName)) return true;
+  return longestAdjacentRun(significantNameTokens(subject), tokensOf(query)) >= 3;
 }
 
 export function resolveCeraSubjectForQuery(query, { reading = null, readingActive = false } = {}) {
