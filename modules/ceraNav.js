@@ -8,7 +8,7 @@
 
 import { DB } from './db.js';
 import { getAllSubjects } from './subjects.js?v=20261110-ft4498';
-import { mentionedSubjects, recallCeraSubject, rememberCeraSubject, refersToPreviousSubject, getCeraUserProfile } from './ceraContext.js?v=20261112-grounding1';
+import { mentionedSubjects, recallCeraSubject, rememberCeraSubject, refersToPreviousSubject, getCeraUserProfile } from './ceraContext.js?v=20261113-allkb3';
 
 const CUES = /(mở|xem|đưa (tôi|mình|em)|dẫn (tôi|mình|em)|đi đến|đi tới|đến trang|chuyển (sang|đến|qua)|vào trang|tới trang|tôi muốn|mình muốn|em muốn|cho (tôi|mình|em) (xem|đến|xin|hỏi)|xem trang|quay (lại|về)|thi thử|thi môn|làm bài thi|vào thi|đi thi|thông tin liên hệ|liên hệ (tác giả|admin|anh Phúc)|liên lạc|nâng cấp tài khoản|gói (vip|cao cấp|premium)|(?:tải|lấy|xin|download)\s+(?:tài liệu|file|drive|tài nguyên)|link drive|tải xuống)/i;
 

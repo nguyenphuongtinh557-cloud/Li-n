@@ -10,8 +10,8 @@
 
 import { DB } from './db.js';
 import { AIPool } from './aiPool.js';
-import { formatKnowledgeContext, searchSubjectKnowledge } from './knowledgeBase.js?v=20261110-kb1';
-import { buildCeraContext, resolveCeraSubjectForQuery } from './ceraContext.js?v=20261112-grounding1';
+import { formatKnowledgeContext, searchAllKnowledge } from './knowledgeBase.js?v=20261113-allkb3';
+import { buildCeraContext, resolveCeraSubjectForQuery } from './ceraContext.js?v=20261113-allkb3';
 
 // ─── System Prompt & High EQ GenZ Companion Knowledge Engine ─────────────────
 const CERA_SYSTEM = `
@@ -53,7 +53,9 @@ Bạn là "FTECA" — Bạn đồng hành GenZ cực kỳ thông minh, tinh tế
 
 # DỮ LIỆU & TRUNG THỰC:
 - Chỉ khẳng định dữ liệu khi nó xuất hiện trong [NGUỒN QLCL], [DỮ LIỆU NGƯỜI HỌC] hoặc [Ngữ cảnh câu hỏi đang ôn].
-- Không thấy dữ liệu: nói rõ "Tớ chưa thấy thông tin này trong dữ liệu FTECA" và gợi ý mở đúng môn/bài. KHÔNG bịa điểm số, tên tài liệu, chương hay đáp án.
+- [NGUỒN QLCL] được lấy từ TOÀN BỘ bài giảng và ngân hàng câu hỏi của mọi môn. Được phép so sánh, tổng hợp và suy luận từ nhiều nguồn để trả lời, nhưng phải chỉ rõ mã môn + tên bài/chương (hoặc số câu trắc nghiệm) làm căn cứ.
+- Không thấy dữ liệu: nói rõ "Tớ chưa thấy thông tin này trong dữ liệu FTECA" và chỉ gợi ý mở đúng môn/bài đang học trên màn hình. TUYỆT ĐỐI không gợi ý mã môn khác khi người học chưa nhắc tới và [NGUỒN QLCL] không nhắc tới. KHÔNG bịa điểm số, tên tài liệu, chương hay đáp án.
+- Trang hiện tại và môn đang mở nằm ở mục "Vị trí hiện tại" trong [DỮ LIỆU NGƯỜI HỌC]; dùng nó để hiểu "môn này", "bài này", "đề này".
 - Dữ liệu cá nhân (điểm, lịch sử làm bài, ghi chú, tóm tắt riêng) chỉ nhắc phần liên quan thật ngắn; không đọc lại toàn bộ.
 
 # VAI TRÒ NGƯỜI DÙNG:
@@ -431,12 +433,13 @@ export async function ceraChat(userText, history = [], options = {}) {
   const knowledgeSubjectId = readingActive && _currentReading?.subjectId
     ? _currentReading.subjectId
     : (_currentContext?.subjectId || resolvedSubject.primary?.id || DB.getActiveSubject());
-  const knowledgeContext = formatKnowledgeContext(searchSubjectKnowledge(
-    knowledgeQuery,
-    knowledgeSubjectId,
-    4,
-    readingActive ? _currentReading?.lessonId || null : null
-  ));
+  // Tra toàn bộ bài giảng + ngân hàng câu hỏi của mọi môn; môn/bài đang mở chỉ
+  // được ưu tiên điểm, không chặn nguồn từ môn khác.
+  const knowledgeContext = formatKnowledgeContext(searchAllKnowledge(knowledgeQuery, {
+    limit: 5,
+    focusSubjectId: knowledgeSubjectId,
+    focusLessonId: readingActive ? _currentReading?.lessonId || '' : ''
+  }));
 
   // ── 0. Kiểm tra nếu là Chế độ Premium ─────────────────────────────────────
   if (options.isPremium || options.premiumModelId) {
@@ -463,7 +466,8 @@ export async function ceraChat(userText, history = [], options = {}) {
   // ── 2. Phát hiện Yêu cầu Hành động đặc biệt (Dịch thuật, Tóm tắt, Giải thích sâu, Ví dụ...) ───
   const actionPattern = /(dịch|translate|nghĩa\s*là|nghĩa\s*của|tóm\s*tắt|sâu\s*hơn|ví\s*dụ|tại\s*sao|phân\s*tích|so\s*sánh|cho\s*biết|như\s*thế\s*nào|hướng\s*dẫn)/i;
   if (actionPattern.test(userText)) {
-    let contextPrompt = CERA_SYSTEM + '\n\n';
+    // CERA_SYSTEM đã được askAI gửi ở role system; nhắc lại ở đây chỉ tốn quota.
+    let contextPrompt = '';
     if (learningContext) contextPrompt += `${learningContext}\n\n`;
     if (context) contextPrompt += `${context}\n\n`;
     if (compactHistory.length > 0) {
@@ -501,7 +505,8 @@ export async function ceraChat(userText, history = [], options = {}) {
   // ── 5. Gọi FTECA AI trực tiếp cho mọi cuộc trò chuyện ──────────────────
 
   // ── 7. Không có dữ liệu → Gọi CERA AI ────────────────────────────────────
-  let contextPrompt = CERA_SYSTEM + '\n\n';
+  // CERA_SYSTEM đã là system message trong askAI, chỉ gửi phần dữ liệu ở đây.
+  let contextPrompt = '';
   if (learningContext) contextPrompt += `${learningContext}\n\n`;
   if (context) contextPrompt += `${context}\n\n`;
   if (knowledgeContext) contextPrompt += `${knowledgeContext}\n\n`;

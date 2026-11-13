@@ -55,6 +55,54 @@ function tokensOf(value) {
   return normalize(value).match(/[a-z0-9]{2,}/g) || [];
 }
 
+const PAGE_PATH_LABELS = [
+  ['/on-tap-chuong', 'Ôn tập theo chương'],
+  ['/ngan-hang-cau-hoi', 'Ngân hàng câu hỏi'],
+  ['/tao-cau-hoi', 'Tạo câu hỏi bằng AI'],
+  ['/lich-su-on-tap', 'Lịch sử ôn tập'],
+  ['/de-da-chia-se', 'Đề đã chia sẻ'],
+  ['/on-tap', 'Ôn tập & Kiểm tra'],
+  ['/mon', 'Trang môn học'],
+  ['/tom-tat-giao-trinh', 'Tóm tắt giáo trình'],
+  ['/tom-tat', 'Tóm tắt bài học'],
+  ['/doc-bao', 'Bài viết'],
+  ['/tam-diem', 'Tâm điểm'],
+  ['/thong-bao', 'Thông báo'],
+  ['/ho-tro', 'Hỗ trợ'],
+  ['/nang-cap-tai-khoan', 'Nâng cấp tài khoản'],
+  ['/quan-tri', 'Trang quản trị'],
+  ['/khong-gian-hoc-tap', 'Không gian học tập'],
+  ['/de-thi', 'Đề thi chia sẻ']
+];
+
+const PAGE_ACTIVE_LABELS = {
+  home: 'Trang chủ',
+  ontap: 'Ôn tập & Kiểm tra',
+  'study-reader': 'Đọc bài giảng',
+  'study-space': 'Không gian học tập',
+  'subject-detail': 'Trang môn học'
+};
+
+const SUBJECT_PATH_PREFIXES = ['/on-tap', '/ngan-hang-cau-hoi', '/tao-cau-hoi', '/mon'];
+
+// Neo câu trả lời vào đúng trang/môn đang mở để CERA hiểu "môn này", "bài này".
+export function buildCeraLocationSection({ reading = null, readingActive = false } = {}) {
+  const scope = typeof window !== 'undefined' ? window : null;
+  if (!scope) return '';
+  const path = String(scope.location?.pathname || '/');
+  const pageTitle = PAGE_PATH_LABELS.find(([prefix]) => path.startsWith(prefix))?.[1]
+    || PAGE_ACTIVE_LABELS[scope.NavController?.activePage]
+    || 'Trang chủ';
+  const lines = [`- Trang đang mở: ${pageTitle}`];
+  const subjectId = readingActive && reading?.subjectId ? reading.subjectId : DB.getActiveSubject();
+  const subject = getAllSubjects().find(item => item.id === subjectId);
+  const showsSubject = readingActive || scope.NavController?.activePage === 'subject-detail'
+    || SUBJECT_PATH_PREFIXES.some(prefix => path.startsWith(prefix));
+  if (subject && showsSubject) lines.push(`- Môn đang mở: ${subject.code} · ${plain(subject.name)}`);
+  if (readingActive && reading?.title) lines.push(`- Bài đang đọc: ${plain(reading.title).slice(0, 160)}`);
+  return `## Vị trí hiện tại\n${lines.join('\n')}`;
+}
+
 function formatAvailability(subject, info, withIntro = false) {
   const line = `- ${subject.code} · ${plain(subject.name)}: ${info.resources} tài nguyên, ${info.articles} bài đăng, ${info.lessons} bài giảng đã phát hành${info.hasIntro ? ', có giới thiệu môn' : ', chưa có giới thiệu môn'}`;
   return withIntro && info.intro ? `${line}\n  Giới thiệu môn: "${info.intro.slice(0, 300)}"` : line;
@@ -317,6 +365,7 @@ export function buildCeraContext({ query = '', userId = '', reading = null, read
   const activeSubjectId = primary?.id || remembered?.id || DB.getActiveSubject();
   const activeSubject = getAllSubjects().find(subject => subject.id === activeSubjectId);
 
+  sections.push(buildCeraLocationSection({ reading, readingActive }));
   sections.push(userProfileSection());
 
   if (activeSubject) {
