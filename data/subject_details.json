@@ -6468,13 +6468,33 @@
       {
         "id": "chap_1795587460378",
         "title": "Chương VII: Hướng dẫn làm bài luận kết thúc học phần",
-        "lessons": [],
+        "lessons": [
+          {
+            "id": "les_1795587488333",
+            "title": "Lưu ý chính trước khi làm bài",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 0,
+            "updatedAt": "2026-11-25T06:19:34.738Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
+          }
+        ],
         "order": 6
       }
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-11-25T06:17:41.643Z"
+    "updatedAt": "2026-11-25T06:19:36.474Z"
   },
   "FT4455": {
     "subjectId": "FT4455",
