@@ -6487,6 +6487,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1795588279161",
+            "title": "ok",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 1,
+            "updatedAt": "2026-11-25T06:31:19.940Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 6
@@ -6494,7 +6513,7 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-11-25T06:31:15.138Z"
+    "updatedAt": "2026-11-25T06:31:20.456Z"
   },
   "FT4455": {
     "subjectId": "FT4455",
