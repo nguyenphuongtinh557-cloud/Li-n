@@ -6506,6 +6506,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1795588324206",
+            "title": "Hướng dẫn cách tính trên file exel",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 2,
+            "updatedAt": "2026-11-25T06:32:04.302Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 6
@@ -6513,7 +6532,7 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-11-25T06:31:43.238Z"
+    "updatedAt": "2026-11-25T06:32:04.619Z"
   },
   "FT4455": {
     "subjectId": "FT4455",
