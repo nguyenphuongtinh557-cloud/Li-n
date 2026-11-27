@@ -6556,7 +6556,15 @@
             "duration": "10:00",
             "status": "published",
             "type": "editor",
-            "blocks": [],
+            "blocks": [
+              {
+                "id": "block_1795769947525_0",
+                "type": "lessonDocument",
+                "content": "<p>Đến phần này, có lẽ các em đã hoàn thành nội dung cho bài thuyết trình của mình rồi nhỉ?</p>\n<p>Vì thời lượng trình bày chỉ có vài phút, các em khó có thể giới thiệu tất cả các slide. Thay vào đó, hãy tập trung vào những nội dung chính sau:</p>\n<p><strong>Slide đầu tiên:</strong> Giới thiệu tên sản phẩm và một số thông tin liên quan đến bản thân cũng như sản phẩm. Khi thuyết trình, các em có thể giới thiệu sơ lược về sản phẩm, nhưng hãy trình bày ngắn gọn.</p>\n<p><img src=\"https://cdn.phototourl.com/anon/2026-11-27-325607f3-46d0-4153-9c1b-0c2cec9f9d7e.png\" alt=\"\" width=\"377\" height=\"212\"></p>\n<p><strong>Slide 2:</strong> Hãy giới thiệu câu chuyện về sản phẩm hoặc một vấn đề xã hội đang được quan tâm và có liên quan trực tiếp đến công dụng sản phẩm. Chỉ chọn những số liệu, thông tin quan trọng nhất để trình bày. Tránh đưa quá nhiều nội dung vì thời gian có hạn, và việc trình bày lan man có thể khiến các em bị trừ điểm đáng kể.</p>\n<p> </p>\n<p>Slide 3: Slide này sẽ nêu về những công dụng chính mà sản phẩm của em cung cắp cho người tiêu dùng nó sẽ tập trung giải quyết những vấn đề xã hội mà em vừa nói đến ở slide 2 </p>\n<p>Ở slide này em thấy anh để rất ít nhưng thật sự khi thuyết trình phải nói sơ qua về cơ chế tại sao nó mang lợi ích như vậy cho cơ thể của người tiêu dùng </p>\n<p> </p>\n<p>Slide 4: </p>",
+                "settings": {},
+                "order": 0
+              }
+            ],
             "content": "",
             "description": "",
             "order": 3,
@@ -6575,7 +6583,7 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-11-27T07:28:30.549Z"
+    "updatedAt": "2026-11-27T09:07:02.217Z"
   },
   "FT4455": {
     "subjectId": "FT4455",
