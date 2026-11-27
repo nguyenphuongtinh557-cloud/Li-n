@@ -6549,6 +6549,25 @@
               "cache": {},
               "updatedAt": null
             }
+          },
+          {
+            "id": "les_1795764497813",
+            "title": "Hướng dẫn thuyết trình và trình bài canva",
+            "duration": "10:00",
+            "status": "published",
+            "type": "editor",
+            "blocks": [],
+            "content": "",
+            "description": "",
+            "order": 3,
+            "updatedAt": "2026-11-27T07:28:17.833Z",
+            "aiSummary": {
+              "enabled": false,
+              "contentHash": "",
+              "status": "none",
+              "cache": {},
+              "updatedAt": null
+            }
           }
         ],
         "order": 6
@@ -6556,7 +6575,7 @@
     ],
     "introCanvas": [],
     "introCanvasHeight": 620,
-    "updatedAt": "2026-11-25T15:36:18.639Z"
+    "updatedAt": "2026-11-27T07:28:21.841Z"
   },
   "FT4455": {
     "subjectId": "FT4455",
